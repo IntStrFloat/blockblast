@@ -15,13 +15,12 @@ export default function GameScreen() {
 
   const { boardSize, cellSize, cellGap } = getBoardMetrics(screenWidth);
 
-  // Геометрия доски (спека 04: pad не указан отдельно — первая ячейка от края)
-  const geom = {
-    boardSize,
-    cell: cellSize,
-    gap: cellGap,
-    pad: 0,
-  };
+  // Геометрия доски (спека 04: pad не указан отдельно — первая ячейка от края).
+  // useMemo: нестабильная ссылка пересоздавала бы dragCtx каждый рендер (спека 07 п.2).
+  const geom = useMemo(
+    () => ({ boardSize, cell: cellSize, gap: cellGap, pad: 0 }),
+    [boardSize, cellSize, cellGap],
+  );
 
   // Shared values для drag-системы
   const boardOrigin = useSharedValue({ x: 0, y: 0 });
