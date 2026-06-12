@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut , useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSharedValue } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
 import {
@@ -22,7 +21,7 @@ import { PauseOverlay } from '@/features/game/components/PauseOverlay';
 import { TutorialHints } from '@/features/game/components/TutorialHints';
 import type { DragCtx } from '@/features/game';
 import { useLang, useSettings } from '@/features/settings';
-import { AppText, colors, getBlockTheme, getBoardMetrics, radii } from '@/ui';
+import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
 
 /** Мини-тост пасхалки (спека 06): секундный, не блокирует геймплей. */
 function EggToast() {

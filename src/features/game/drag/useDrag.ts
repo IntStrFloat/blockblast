@@ -27,7 +27,7 @@ export interface SlotMeasure {
 export interface UseDragOptions {
   trayIndex: number;
   /** cells фигуры — [row, col][] относительно bbox */
-  cells: ReadonlyArray<readonly [number, number]>;
+  cells: readonly (readonly [number, number])[];
   w: number;
   h: number;
   colorId: number;
@@ -60,7 +60,7 @@ export function useDrag({
   const dropC = useSharedValue(-1);
 
   // Захваченные значения для worklet
-  const cellsCapture = cells as ReadonlyArray<readonly [number, number]>;
+  const cellsCapture = cells as readonly (readonly [number, number])[];
 
   const onDropJS = useCallback(
     (ti: number, r: number, c: number) => {

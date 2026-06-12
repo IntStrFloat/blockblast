@@ -1,8 +1,7 @@
-import { emptyBoard, idx, serialize } from '@/core/engine';
-import { KEYS, getString, removeKey } from '@/core/storage';
+import { emptyBoard, idx, serialize , SHAPES_BY_ID } from '@/core/engine';
+import { KEYS, getString, removeKey, setString } from '@/core/storage';
 import { useScores } from '@/features/scores';
 import { useStreak } from '@/features/streak';
-import { SHAPES_BY_ID } from '@/core/engine';
 
 import { hasSavedGame, useGameStore } from '../store';
 
@@ -45,11 +44,8 @@ describe('useGameStore', () => {
     const expected = serialize(useGameStore.getState().game);
     useGameStore.getState().newGame();
     // подменяем сейв и загружаем
-    const ok = (() => {
-      const { setString } = require('@/core/storage');
-      setString(KEYS.gameCurrent, expected);
-      return useGameStore.getState().loadSaved();
-    })();
+    setString(KEYS.gameCurrent, expected);
+    const ok = useGameStore.getState().loadSaved();
     expect(ok).toBe(true);
     expect(serialize(useGameStore.getState().game)).toBe(expected);
   });

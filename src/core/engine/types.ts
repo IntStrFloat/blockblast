@@ -10,7 +10,7 @@ export type Board = Cell[];
 export interface Shape {
   id: string;
   /** Клетки [row, col] относительно левого верхнего угла bbox */
-  cells: ReadonlyArray<readonly [number, number]>;
+  cells: readonly (readonly [number, number])[];
   w: number;
   h: number;
   /** Вес в weighted-random генерации волны */
@@ -39,11 +39,11 @@ export interface GameState {
 }
 
 export interface PlacementEvent {
-  placed: ReadonlyArray<readonly [number, number]>;
+  placed: readonly (readonly [number, number])[];
   colorId: number;
   clearedRows: number[];
   clearedCols: number[];
-  clearedCells: ReadonlyArray<readonly [number, number]>;
+  clearedCells: readonly (readonly [number, number])[];
   /** Цвета очищенных клеток (параллельно clearedCells) — для анимации исчезновения */
   clearedColors: number[];
   scoreDelta: number;

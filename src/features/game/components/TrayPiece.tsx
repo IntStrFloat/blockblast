@@ -78,7 +78,7 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
             position: 'relative',
           }}
         >
-          {(cells as ReadonlyArray<readonly [number, number]>).map(([dr, dc], i) => (
+          {(cells as readonly (readonly [number, number])[]).map(([dr, dc], i) => (
             <View
               key={i}
               style={{

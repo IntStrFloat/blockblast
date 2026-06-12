@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import type { LayoutChangeEvent, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -26,17 +26,6 @@ export function BoardView({ style }: BoardViewProps) {
   useEffect(() => {
     ctx.boardMirror.value = [...board];
   }, [board, ctx.boardMirror]);
-
-  // Индексы только что размещённых клеток (для анимации scale)
-  const [justPlacedSet, setJustPlacedSet] = useState<ReadonlySet<number>>(new Set());
-  useEffect(() => {
-    if (!lastEvent || lastEvent.placed.length === 0) return;
-    const indices = new Set(lastEvent.placed.map(([r, c]) => r * 8 + c));
-    setJustPlacedSet(indices);
-    // Сбрасываем через 150мс — чуть дольше анимации 120мс
-    const timer = setTimeout(() => setJustPlacedSet(new Set()), 150);
-    return () => clearTimeout(timer);
-  }, [lastEvent]);
 
   // Screen shake при очистке 2+ линий (спека 04)
   const { shakeStyle, triggerShake } = useShake();
@@ -97,7 +86,6 @@ export function BoardView({ style }: BoardViewProps) {
               gap={gap}
               fillColor={fillColor}
               emptyColor={cellEmpty}
-              justPlaced={justPlacedSet.has(index)}
             />
           );
         })}

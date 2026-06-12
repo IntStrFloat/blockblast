@@ -30,7 +30,7 @@ export function topLeftToCell(
 /** canPlace по зеркалу доски (плоский массив 64). */
 export function fitsOnBoard(
   board: ArrayLike<number>,
-  cells: ReadonlyArray<readonly [number, number]>,
+  cells: readonly (readonly [number, number])[],
   r: number,
   c: number,
   w: number,
@@ -50,7 +50,7 @@ export function fitsOnBoard(
  */
 export function previewMask(
   board: ArrayLike<number>,
-  cells: ReadonlyArray<readonly [number, number]>,
+  cells: readonly (readonly [number, number])[],
   r: number,
   c: number,
 ): number[] {

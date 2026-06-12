@@ -17,7 +17,6 @@ interface BoardCellProps {
   gap: number;
   fillColor: string; // cellColors[colorId-1], пустая строка если colorId=0
   emptyColor: string;
-  justPlaced: boolean;
 }
 
 export const BoardCell = memo(function BoardCell({
@@ -27,21 +26,21 @@ export const BoardCell = memo(function BoardCell({
   gap,
   fillColor,
   emptyColor,
-  justPlaced,
 }: BoardCellProps) {
   const ctx = useDragCtx();
   const r = (index / 8) | 0;
   const c = index % 8;
   const step = size + gap;
 
-  // Анимация размещения: scale 1.15→1.0 за 120мс (спека 04)
+  // Анимация размещения: scale 1.15→1.0 за 120мс (спека 04).
+  // Триггер — появление блока в ячейке (смена colorId на ненулевой).
   const placedScale = useSharedValue(1);
   useEffect(() => {
-    if (justPlaced) {
+    if (colorId > 0) {
       placedScale.value = 1.15;
       placedScale.value = withTiming(1.0, { duration: 120 });
     }
-  }, [justPlaced, placedScale]);
+  }, [colorId, placedScale]);
 
   // Стиль базовой ячейки с анимацией размещения
   const cellAnimStyle = useAnimatedStyle(() => ({

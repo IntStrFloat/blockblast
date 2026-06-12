@@ -10,7 +10,7 @@ export type SoundName =
   | 'gameover'
   | 'record';
 
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 const SOURCES: Record<SoundName, number> = {
   pickup: require('@/assets/sounds/pickup.wav'),
   drop: require('@/assets/sounds/drop.wav'),
@@ -20,7 +20,7 @@ const SOURCES: Record<SoundName, number> = {
   gameover: require('@/assets/sounds/gameover.wav'),
   record: require('@/assets/sounds/record.wav'),
 };
-/* eslint-enable @typescript-eslint/no-require-imports */
+ 
 
 let players: Partial<Record<SoundName, AudioPlayer>> | null = null;
 

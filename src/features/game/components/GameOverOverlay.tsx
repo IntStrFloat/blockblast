@@ -41,19 +41,20 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
 
   const isOver = game.status === 'over';
 
-  // Появление с задержкой + однократный учёт game over в счётчиках рекламы
+  // Появление с задержкой + однократный учёт game over в счётчиках рекламы.
+  // Сброс состояния — в cleanup (revive/new game переключают isOver в false).
   useEffect(() => {
-    if (!isOver) {
-      setVisible(false);
-      countedRef.current = false;
-      return;
-    }
+    if (!isOver) return;
     if (!countedRef.current) {
       countedRef.current = true;
       saveAdsMeta(recordGameOver(loadAdsMeta()));
     }
     const timer = setTimeout(() => setVisible(true), 800);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      setVisible(false);
+      countedRef.current = false;
+    };
   }, [isOver]);
 
   if (!isOver || !visible) return null;
