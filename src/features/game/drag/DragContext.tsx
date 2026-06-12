@@ -20,6 +20,10 @@ export interface DragCtx {
   previewColor: SharedValue<number>;
   /** Цвета блоков активной темы (для ghost-подсветки) */
   cellColors: string[];
+  /** Цвет фона доски активной темы */
+  boardBg: string;
+  /** Цвет пустой ячейки активной темы */
+  cellEmpty: string;
   /** Дроп на JS-поток; вызывается один раз на отпускание валидной позиции */
   onDrop: (trayIndex: number, r: number, c: number) => void;
 }

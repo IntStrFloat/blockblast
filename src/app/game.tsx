@@ -1,13 +1,12 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSharedValue } from 'react-native-reanimated';
 
 import { colors, getBoardMetrics, getBlockTheme } from '@/ui';
 import { useSettings } from '@/features/settings';
-import { BoardView, DragProvider, TrayView, useGameStore } from '@/features/game';
+import { BoardView, DragProvider, TrayView, useGameStore, EMPTY_MASK } from '@/features/game';
 import type { DragCtx } from '@/features/game';
-import { EMPTY_MASK } from '@/features/game/drag/gridMath';
 
 export default function GameScreen() {
   const { width: screenWidth } = useWindowDimensions();
@@ -48,15 +47,24 @@ export default function GameScreen() {
     useGameStore.getState().placePiece(trayIndex, r, c);
   }, []);
 
-  const dragCtx: DragCtx = {
-    geom,
-    boardOrigin,
-    boardMirror,
-    preview,
-    previewColor,
-    cellColors: theme.cellColors,
-    onDrop,
-  };
+  const dragCtx: DragCtx = useMemo(
+    () => ({
+      geom,
+      boardOrigin,
+      boardMirror,
+      preview,
+      previewColor,
+      cellColors: theme.cellColors,
+      boardBg: theme.boardBg,
+      cellEmpty: theme.cellEmpty,
+      onDrop,
+    }),
+    // shared values are stable references; geom is recreated each render but
+    // its contents change only when screenWidth changes — include it by identity.
+    // theme and onDrop are the reactive deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [geom, theme, onDrop],
+  );
 
   return (
     <DragProvider value={dragCtx}>

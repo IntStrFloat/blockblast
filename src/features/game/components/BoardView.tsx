@@ -53,6 +53,7 @@ export function BoardView({ style }: BoardViewProps) {
 
   const { boardSize, cell, gap } = geom;
   const cellColors = ctx.cellColors;
+  const { boardBg, cellEmpty } = ctx;
 
   return (
     <View
@@ -64,7 +65,7 @@ export function BoardView({ style }: BoardViewProps) {
           height: boardSize,
           borderRadius: radii.card / 2,
           overflow: 'hidden',
-          backgroundColor: '#142142',
+          backgroundColor: boardBg,
           position: 'relative',
         },
         style,
@@ -81,7 +82,7 @@ export function BoardView({ style }: BoardViewProps) {
             size={cell}
             gap={gap}
             fillColor={fillColor}
-            emptyColor="#1E2F55"
+            emptyColor={cellEmpty}
             justPlaced={justPlacedSet.has(index)}
           />
         );

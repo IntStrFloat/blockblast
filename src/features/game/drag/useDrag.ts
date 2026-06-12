@@ -51,6 +51,9 @@ export function useDrag({
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const scale = useSharedValue(0.65);
+  // Тень при захвате: elevation (Android) и shadowOpacity (iOS)
+  const elevation = useSharedValue(0);
+  const shadowOpacity = useSharedValue(0);
 
   // Текущая валидная позиция дропа (shared, для onEnd)
   const dropR = useSharedValue(-1);
@@ -70,7 +73,9 @@ export function useDrag({
     .enabled(!disabled)
     .onBegin(() => {
       'worklet';
-      scale.value = withSpring(1.0, { damping: 15, stiffness: 200 });
+      scale.value = withSpring(1.0, { damping: 18, stiffness: 360 });
+      elevation.value = withTiming(8, { duration: 150 });
+      shadowOpacity.value = withTiming(0.3, { duration: 150 });
     })
     .onStart(() => {
       'worklet';
@@ -135,11 +140,15 @@ export function useDrag({
         translateX.value = 0;
         translateY.value = 0;
         scale.value = 0.65;
+        elevation.value = 0;
+        shadowOpacity.value = 0;
       } else {
         // Невалидно — spring назад в слот
         translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
         translateY.value = withSpring(0, { damping: 18, stiffness: 220 });
         scale.value = withTiming(0.65, { duration: 150 });
+        elevation.value = withTiming(0, { duration: 150 });
+        shadowOpacity.value = withTiming(0, { duration: 150 });
       }
     })
     .onFinalize((_event, success) => {
@@ -155,6 +164,8 @@ export function useDrag({
         translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
         translateY.value = withSpring(0, { damping: 18, stiffness: 220 });
         scale.value = withTiming(0.65, { duration: 150 });
+        elevation.value = withTiming(0, { duration: 150 });
+        shadowOpacity.value = withTiming(0, { duration: 150 });
       } else {
         // onEnd уже отработал — только сбрасываем drop-позицию
         dropR.value = -1;
@@ -168,6 +179,13 @@ export function useDrag({
       { translateY: translateY.value },
       { scale: scale.value },
     ],
+    // Android — elevation анимируется
+    elevation: elevation.value,
+    // iOS — shadowOpacity анимируется, остальные статичны
+    shadowColor: '#000',
+    shadowOpacity: shadowOpacity.value,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
   }));
 
   return { gesture, animatedStyle };
