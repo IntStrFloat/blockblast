@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import type { LayoutChangeEvent, ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { radii } from '@/ui';
 import { useDragCtx } from '../drag/DragContext';
+import { ClearLayer } from '../effects/ClearLayer';
+import { Particles } from '../effects/Particles';
+import { useShake } from '../effects/useShake';
 import { useGameStore } from '../store';
 import { BoardCell } from './BoardCell';
 
@@ -34,6 +38,15 @@ export function BoardView({ style }: BoardViewProps) {
     return () => clearTimeout(timer);
   }, [lastEvent]);
 
+  // Screen shake при очистке 2+ линий (спека 04)
+  const { shakeStyle, triggerShake } = useShake();
+  useEffect(() => {
+    if (!lastEvent) return;
+    if (lastEvent.clearedRows.length + lastEvent.clearedCols.length >= 2) {
+      triggerShake();
+    }
+  }, [lastEvent, triggerShake]);
+
   // Запоминаем ref доски для measureInWindow
   const boardRef = useRef<View>(null);
 
@@ -56,37 +69,41 @@ export function BoardView({ style }: BoardViewProps) {
   const { boardBg, cellEmpty } = ctx;
 
   return (
-    <View
-      ref={boardRef}
-      onLayout={onLayout}
-      style={[
-        {
-          width: boardSize,
-          height: boardSize,
-          borderRadius: radii.card / 2,
-          overflow: 'hidden',
-          backgroundColor: boardBg,
-          position: 'relative',
-        },
-        style,
-      ]}
-    >
-      {board.map((colorId, index) => {
-        const fillColor =
-          colorId > 0 && colorId <= cellColors.length ? cellColors[colorId - 1] : '';
-        return (
-          <BoardCell
-            key={index}
-            index={index}
-            colorId={colorId}
-            size={cell}
-            gap={gap}
-            fillColor={fillColor}
-            emptyColor={cellEmpty}
-            justPlaced={justPlacedSet.has(index)}
-          />
-        );
-      })}
-    </View>
+    <Animated.View style={shakeStyle}>
+      <View
+        ref={boardRef}
+        onLayout={onLayout}
+        style={[
+          {
+            width: boardSize,
+            height: boardSize,
+            borderRadius: radii.card / 2,
+            overflow: 'hidden',
+            backgroundColor: boardBg,
+            position: 'relative',
+          },
+          style,
+        ]}
+      >
+        {board.map((colorId, index) => {
+          const fillColor =
+            colorId > 0 && colorId <= cellColors.length ? cellColors[colorId - 1] : '';
+          return (
+            <BoardCell
+              key={index}
+              index={index}
+              colorId={colorId}
+              size={cell}
+              gap={gap}
+              fillColor={fillColor}
+              emptyColor={cellEmpty}
+              justPlaced={justPlacedSet.has(index)}
+            />
+          );
+        })}
+        <ClearLayer />
+        <Particles />
+      </View>
+    </Animated.View>
   );
 }

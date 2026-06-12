@@ -5,7 +5,14 @@ import { useSharedValue } from 'react-native-reanimated';
 
 import { colors, getBoardMetrics, getBlockTheme } from '@/ui';
 import { useSettings } from '@/features/settings';
-import { BoardView, DragProvider, TrayView, useGameStore, EMPTY_MASK } from '@/features/game';
+import {
+  BoardView,
+  DragProvider,
+  EMPTY_MASK,
+  PraiseBanner,
+  TrayView,
+  useGameStore,
+} from '@/features/game';
 import type { DragCtx } from '@/features/game';
 
 export default function GameScreen() {
@@ -85,8 +92,11 @@ export default function GameScreen() {
           {/* Placeholder для HUD (следующая задача) */}
           <View style={{ height: 48 }} />
 
-          {/* Доска */}
-          <BoardView />
+          {/* Доска + похвалы поверх */}
+          <View>
+            <BoardView />
+            <PraiseBanner />
+          </View>
 
           {/* Трей */}
           <TrayView
