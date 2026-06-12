@@ -10,3 +10,4 @@ export { ComboBadge } from './effects/ComboBadge';
 export { Confetti } from './effects/Confetti';
 export { useGameFeedback } from './sound/useGameFeedback';
 export { initSounds, playSound } from './sound/sounds';
+export { eggForScore } from './easterEggs';
