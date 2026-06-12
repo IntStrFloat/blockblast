@@ -21,7 +21,11 @@ export function Overlay({ children }: OverlayProps) {
 
 const styles = StyleSheet.create({
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: colors.overlayScrim,
     alignItems: 'center',
     justifyContent: 'center',
