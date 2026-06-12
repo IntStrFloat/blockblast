@@ -11,7 +11,7 @@
 | Re-render'ов React во время drag | 0 |
 | Re-render при размещении | только изменившиеся ячейки (memo) |
 | Холодный старт → Home | < 2с на среднем Android |
-| Размер release APK (arm64) | < 30 МБ |
+| Размер release APK (arm64) | < 50 МБ (факт v1.0.0: 46.3 МБ — RN+Hermes+Reanimated базовый вес; universal 4-ABI: 107 МБ) |
 | Нативные зависимости сверх Expo | только mmkv (+ ad/iap SDK при включении флагов) |
 
 ## Решение по рендеру: Views + Reanimated (не Skia)
