@@ -132,10 +132,7 @@ export default function GameScreen() {
 
   return (
     <DragProvider value={dragCtx}>
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: colors.bgBottom }}
-        edges={['top', 'bottom']}
-      >
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View
           style={{
             flex: 1,

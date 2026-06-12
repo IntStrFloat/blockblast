@@ -28,10 +28,15 @@ interface GameStore {
 }
 
 export function hasSavedGame(): boolean {
+  return getSavedScore() !== null;
+}
+
+/** Счёт сохранённой партии (для кнопки «Продолжить» на Home), null если сейва нет. */
+export function getSavedScore(): number | null {
   const raw = getString(KEYS.gameCurrent);
-  if (!raw) return false;
+  if (!raw) return null;
   const parsed = deserialize(raw);
-  return parsed !== null && parsed.status === 'playing';
+  return parsed !== null && parsed.status === 'playing' ? parsed.score : null;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({

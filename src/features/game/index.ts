@@ -1,5 +1,5 @@
 /** Public API фичи game */
-export { useGameStore, hasSavedGame } from './store';
+export { useGameStore, hasSavedGame, getSavedScore } from './store';
 export { BoardView } from './components/BoardView';
 export { TrayView } from './components/TrayView';
 export { DragProvider } from './drag/DragContext';
