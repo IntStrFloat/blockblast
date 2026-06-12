@@ -44,3 +44,6 @@ example
 
 # signing & secrets (только локально, бэкапить вручную!)
 /credentials/
+
+# local build artifacts (APKs)
+/dist/

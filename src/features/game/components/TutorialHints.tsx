@@ -36,7 +36,8 @@ export function TutorialHints() {
         position: 'absolute',
         left: 24,
         right: 24,
-        top: 8,
+        // absolute не учитывает padding SafeAreaView — отступаем от статусбара вручную
+        top: 64,
         alignItems: 'center',
         zIndex: 50,
       }}
