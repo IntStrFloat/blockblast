@@ -1,4 +1,8 @@
+import { KEYS, getJSON, setJSON } from '@/core/storage';
+
 import { MONETIZATION } from './config';
+import { EMPTY_ADS_META } from './frequency';
+import type { AdsMeta } from './frequency';
 import { NoopAdsProvider, NoopIapProvider } from './noop';
 import type { AdsProvider, IapProvider } from './types';
 
@@ -36,4 +40,13 @@ export function getIap(): IapProvider {
     // Здесь будет RuStoreIapProvider после регистрации в RuStore Console.
   }
   return NoopIapProvider;
+}
+
+/** Персист счётчиков частоты показов (KEYS.adsMeta). */
+export function loadAdsMeta(): AdsMeta {
+  return getJSON<AdsMeta>(KEYS.adsMeta) ?? EMPTY_ADS_META;
+}
+
+export function saveAdsMeta(meta: AdsMeta): void {
+  setJSON(KEYS.adsMeta, meta);
 }
