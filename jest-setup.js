@@ -32,7 +32,7 @@ jest.mock('react-native-mmkv', () => {
       this.map.clear();
     }
   }
-  return { MMKV };
+  return { MMKV, createMMKV: () => new MMKV() };
 });
 
 jest.mock('expo-localization', () => ({
