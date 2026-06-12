@@ -19,8 +19,8 @@ jest.mock('react-native-mmkv', () => {
       const v = this.map.get(key);
       return typeof v === 'boolean' ? v : undefined;
     }
-    delete(key) {
-      this.map.delete(key);
+    remove(key) {
+      return this.map.delete(key);
     }
     contains(key) {
       return this.map.has(key);

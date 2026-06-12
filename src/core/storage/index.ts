@@ -37,5 +37,5 @@ export function setString(key: string, value: string): void {
 }
 
 export function removeKey(key: string): void {
-  storage.delete(key);
+  storage.remove(key);
 }
