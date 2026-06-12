@@ -44,6 +44,8 @@ export interface PlacementEvent {
   clearedRows: number[];
   clearedCols: number[];
   clearedCells: ReadonlyArray<readonly [number, number]>;
+  /** Цвета очищенных клеток (параллельно clearedCells) — для анимации исчезновения */
+  clearedColors: number[];
   scoreDelta: number;
   score: number;
   combo: number;

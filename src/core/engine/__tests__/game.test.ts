@@ -91,6 +91,9 @@ describe('place: очистка и скоринг', () => {
     expect(event.clearedRows).toEqual([3]);
     expect(event.clearedCols).toEqual([]);
     expect(event.clearedCells.length).toBe(8);
+    // цвета до очистки: 5 старых (color 4) + 3 от фигуры h3 (color 2)
+    expect(event.clearedColors.filter((c) => c === 4).length).toBe(5);
+    expect(event.clearedColors.filter((c) => c === 2).length).toBe(3);
     expect(event.scoreDelta).toBe(93);
     expect(event.combo).toBe(1);
     expect(event.praise).toBe('good');

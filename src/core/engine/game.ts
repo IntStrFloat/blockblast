@@ -5,6 +5,7 @@ import {
   emptyBoard,
   findFullLines,
   hasAnyMove,
+  idx,
   isBoardEmpty,
 } from './board';
 import { DEFAULT_CONFIG } from './config';
@@ -91,10 +92,13 @@ export function place(
 
   let board = placedRes.board;
   let clearedCells: [number, number][] = [];
+  let clearedColors: number[] = [];
   if (lines > 0) {
+    const preClear = board;
     const cleared = clearLines(board, rows, cols);
     board = cleared.board;
     clearedCells = cleared.clearedCells;
+    clearedColors = clearedCells.map(([cr, cc]) => preClear[idx(cr, cc)]);
   }
 
   let combo = state.combo;
@@ -147,6 +151,7 @@ export function place(
     clearedRows: rows,
     clearedCols: cols,
     clearedCells,
+    clearedColors,
     scoreDelta,
     score,
     combo,
