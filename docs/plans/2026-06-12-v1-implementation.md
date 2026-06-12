@@ -1,4 +1,4 @@
-# Block Blast v1 — Implementation Plan
+﻿# Block Blast v1 — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (inline). Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -13,32 +13,32 @@
 ---
 
 ### Task 1: Тулинг и зависимости
-- [ ] `npx expo install expo-haptics expo-audio expo-localization @expo-google-fonts/unbounded` + `npm i zustand react-native-mmkv react-native-nitro-modules` + `npm i -D jest jest-expo @types/jest`
-- [ ] jest config (package.json): preset `jest-expo`, `transformIgnorePatterns` под Expo-стандарт; smoke-тест `src/core/engine/__tests__/smoke.test.ts` (1+1)
-- [ ] Удалить демо-файлы шаблона (`src/app/explore.tsx`, demo-компоненты), минимальный `_layout` + пустые экраны-заглушки index/game/settings
-- [ ] Прогон: `npm test`, `npx tsc --noEmit` → commit `chore: тулинг (jest, mmkv, zustand, audio/haptics) + чистка шаблона`
+- [x] `npx expo install expo-haptics expo-audio expo-localization @expo-google-fonts/unbounded` + `npm i zustand react-native-mmkv react-native-nitro-modules` + `npm i -D jest jest-expo @types/jest`
+- [x] jest config (package.json): preset `jest-expo`, `transformIgnorePatterns` под Expo-стандарт; smoke-тест `src/core/engine/__tests__/smoke.test.ts` (1+1)
+- [x] Удалить демо-файлы шаблона (`src/app/explore.tsx`, demo-компоненты), минимальный `_layout` + пустые экраны-заглушки index/game/settings
+- [x] Прогон: `npm test`, `npx tsc --noEmit` → commit `chore: тулинг (jest, mmkv, zustand, audio/haptics) + чистка шаблона`
 
 ### Task 2: core/engine — типы, RNG, каталог фигур (TDD)
 **Files:** `src/core/engine/{types.ts,rng.ts,shapes.ts}` + `__tests__/{rng,shapes}.test.ts`
-- [ ] Тесты RNG: детерминизм seed, диапазон [0,1), различие последовательностей
-- [ ] mulberry32 + `nextInt`, состояние наружу (для GameState.rngState)
-- [ ] Тесты каталога: ≥35 форм, id уникальны, клетки в bbox w×h, связность (BFS), веса > 0, наличие ключевых форм (1x1, 3x3, I-tetromino гориз/верт, L/T/S/Z ориентации, 2x3, 1x5)
-- [ ] `shapes.ts`: каталог по спеке 03 (линии/квадраты/прямоугольники/уголки/L/J/T/S/Z с ориентациями, веса)
-- [ ] commit `feat(engine): rng + каталог фигур`
+- [x] Тесты RNG: детерминизм seed, диапазон [0,1), различие последовательностей
+- [x] mulberry32 + `nextInt`, состояние наружу (для GameState.rngState)
+- [x] Тесты каталога: ≥35 форм, id уникальны, клетки в bbox w×h, связность (BFS), веса > 0, наличие ключевых форм (1x1, 3x3, I-tetromino гориз/верт, L/T/S/Z ориентации, 2x3, 1x5)
+- [x] `shapes.ts`: каталог по спеке 03 (линии/квадраты/прямоугольники/уголки/L/J/T/S/Z с ориентациями, веса)
+- [x] commit `feat(engine): rng + каталог фигур`
 
 ### Task 3: core/engine — board ops + размещение/очистка (TDD)
 **Files:** `src/core/engine/board.ts` + tests
-- [ ] Тесты: `canPlace` (границы/пересечения), `findFullLines` (строка, столбец, оба разом, пересечение 1 раз), `applyPlacement`, `clearLines`, `hasAnyMove`, `isBoardEmpty`
-- [ ] Реализация (board = number[64])
-- [ ] commit `feat(engine): board ops`
+- [x] Тесты: `canPlace` (границы/пересечения), `findFullLines` (строка, столбец, оба разом, пересечение 1 раз), `applyPlacement`, `clearLines`, `hasAnyMove`, `isBoardEmpty`
+- [x] Реализация (board = number[64])
+- [x] commit `feat(engine): board ops`
 
 ### Task 4: core/engine — scoring + place + game over + serialize (TDD)
 **Files:** `src/core/engine/{scoring.ts,game.ts,serialize.ts,config.ts,index.ts}` + tests
-- [ ] Тесты scoring по таблице спеки 03: размещение +cells; 1 строка=90; 2 линии=20·10+20=220 (wait: 2 линии могут пересекаться — считаем по факту clearedCells); boardClear +360; комбо ×(1+0.5·(combo−1)), сброс при ходе без очистки
-- [ ] Тесты place: события PlacementEvent полностью (placed, cleared, scoreDelta, combo, praise good/great/amazing/unbelievable, onFire, newTray, gameOver)
-- [ ] Тесты: game over после установки и после новой волны; revive очищает доску, сохраняет счёт; serialize roundtrip + reject битых версий; детерминизм партии по seed
-- [ ] Реализация: `createGame(seed?, config?)`, `place`, `revive`, `serialize/deserialize` (формат `{v:1, ...}`), `GameConfig` дефолты из спеки
-- [ ] commit `feat(engine): scoring, place, game over, serialize`
+- [x] Тесты scoring по таблице спеки 03: размещение +cells; 1 строка=90; 2 линии=20·10+20=220 (wait: 2 линии могут пересекаться — считаем по факту clearedCells); boardClear +360; комбо ×(1+0.5·(combo−1)), сброс при ходе без очистки
+- [x] Тесты place: события PlacementEvent полностью (placed, cleared, scoreDelta, combo, praise good/great/amazing/unbelievable, onFire, newTray, gameOver)
+- [x] Тесты: game over после установки и после новой волны; revive очищает доску, сохраняет счёт; serialize roundtrip + reject битых версий; детерминизм партии по seed
+- [x] Реализация: `createGame(seed?, config?)`, `place`, `revive`, `serialize/deserialize` (формат `{v:1, ...}`), `GameConfig` дефолты из спеки
+- [x] commit `feat(engine): scoring, place, game over, serialize`
 
 ### Task 5: core/storage + core/i18n
 **Files:** `src/core/storage/{mmkv.ts,index.ts}`, `src/core/i18n/{index.ts,ru.ts,en.ts,praise.ts}` + tests (i18n: фолбэк ключей, оба тона похвал ru/en)
