@@ -26,6 +26,8 @@ export interface DragCtx {
   cellEmpty: string;
   /** Дроп на JS-поток; вызывается один раз на отпускание валидной позиции */
   onDrop: (trayIndex: number, r: number, c: number) => void;
+  /** Фидбек захвата фигуры (звук+хаптика) — один runOnJS на начало жеста */
+  onGrab?: () => void;
 }
 
 const Ctx = createContext<DragCtx | null>(null);

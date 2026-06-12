@@ -11,6 +11,7 @@ import {
   EMPTY_MASK,
   PraiseBanner,
   TrayView,
+  useGameFeedback,
   useGameStore,
 } from '@/features/game';
 import type { DragCtx } from '@/features/game';
@@ -48,6 +49,9 @@ export default function GameScreen() {
 
   const tray = useGameStore((s) => s.game.tray);
 
+  // Звук + хаптика по событиям партии (спека 04)
+  const { onGrab } = useGameFeedback();
+
   // onDrop — стабильный колбэк, вызывается из worklet через runOnJS
   const onDrop = useCallback((trayIndex: number, r: number, c: number) => {
     useGameStore.getState().placePiece(trayIndex, r, c);
@@ -64,12 +68,13 @@ export default function GameScreen() {
       boardBg: theme.boardBg,
       cellEmpty: theme.cellEmpty,
       onDrop,
+      onGrab,
     }),
     // shared values are stable references; geom is recreated each render but
     // its contents change only when screenWidth changes — include it by identity.
-    // theme and onDrop are the reactive deps.
+    // theme, onDrop and onGrab are the reactive deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [geom, theme, onDrop],
+    [geom, theme, onDrop, onGrab],
   );
 
   return (

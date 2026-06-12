@@ -69,6 +69,8 @@ export function useDrag({
     [ctx],
   );
 
+  const onGrabJS = ctx.onGrab;
+
   const gesture = Gesture.Pan()
     .enabled(!disabled)
     .onBegin(() => {
@@ -76,6 +78,7 @@ export function useDrag({
       scale.value = withSpring(1.0, { damping: 18, stiffness: 360 });
       elevation.value = withTiming(8, { duration: 150 });
       shadowOpacity.value = withTiming(0.3, { duration: 150 });
+      if (onGrabJS) runOnJS(onGrabJS)();
     })
     .onStart(() => {
       'worklet';

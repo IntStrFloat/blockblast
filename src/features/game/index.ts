@@ -8,3 +8,5 @@ export { EMPTY_MASK } from './drag/gridMath';
 export { PraiseBanner } from './effects/PraiseBanner';
 export { ComboBadge } from './effects/ComboBadge';
 export { Confetti } from './effects/Confetti';
+export { useGameFeedback } from './sound/useGameFeedback';
+export { initSounds, playSound } from './sound/sounds';
