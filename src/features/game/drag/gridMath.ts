@@ -13,6 +13,46 @@ export interface BoardGeom {
   gap: number;
 }
 
+interface WindowRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface DragTopLeftInput {
+  slot: WindowRect;
+  translationX: number;
+  translationY: number;
+  figureWidth: number;
+  figureHeight: number;
+  pieceLiftPx: number;
+  previewGapPx: number;
+}
+
+export function dragTopLefts(input: DragTopLeftInput): {
+  piece: { x: number; y: number };
+  preview: { x: number; y: number };
+} {
+  'worklet';
+  const piece = {
+    x: input.slot.x + input.slot.width / 2 + input.translationX - input.figureWidth / 2,
+    y:
+      input.slot.y +
+      input.slot.height / 2 +
+      input.translationY -
+      input.pieceLiftPx -
+      input.figureHeight / 2,
+  };
+  return {
+    piece,
+    preview: {
+      x: piece.x,
+      y: piece.y - input.figureHeight - input.previewGapPx,
+    },
+  };
+}
+
 /** Верхний левый угол фигуры (в координатах окна) → ближайшая ячейка сетки. */
 export function topLeftToCell(
   tlX: number,
@@ -44,44 +84,17 @@ export function fitsOnBoard(
   return true;
 }
 
-/**
- * Маска превью 64: 0 — ничего, 1 — ghost-клетки фигуры,
- * 2 — клетки линий, которые соберутся этим ходом (подсветка).
- */
+/** Маска превью показывает только клетки самой фигуры. */
 export function previewMask(
-  board: ArrayLike<number>,
   cells: readonly (readonly [number, number])[],
   r: number,
   c: number,
 ): number[] {
   'worklet';
   const mask = new Array<number>(64).fill(0);
-  const tmp = new Array<number>(64);
-  for (let i = 0; i < 64; i++) tmp[i] = board[i];
   for (let i = 0; i < cells.length; i++) {
     const idx = (r + cells[i][0]) * 8 + (c + cells[i][1]);
-    tmp[idx] = 1;
     mask[idx] = 1;
-  }
-  for (let row = 0; row < 8; row++) {
-    let full = true;
-    for (let col = 0; col < 8; col++) {
-      if (tmp[row * 8 + col] === 0) {
-        full = false;
-        break;
-      }
-    }
-    if (full) for (let col = 0; col < 8; col++) mask[row * 8 + col] = 2;
-  }
-  for (let col = 0; col < 8; col++) {
-    let full = true;
-    for (let row = 0; row < 8; row++) {
-      if (tmp[row * 8 + col] === 0) {
-        full = false;
-        break;
-      }
-    }
-    if (full) for (let row = 0; row < 8; row++) mask[row * 8 + col] = 2;
   }
   return mask;
 }

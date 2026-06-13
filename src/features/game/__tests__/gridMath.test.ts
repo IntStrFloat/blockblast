@@ -1,4 +1,9 @@
-import { fitsOnBoard, previewMask, topLeftToCell } from '../drag/gridMath';
+import {
+  dragTopLefts,
+  fitsOnBoard,
+  previewMask,
+  topLeftToCell,
+} from '../drag/gridMath';
 
 const GEOM = { boardX: 100, boardY: 200, pad: 6, cell: 40, gap: 2 };
 
@@ -15,6 +20,37 @@ describe('topLeftToCell', () => {
 
   it('за пределами — отрицательные/большие индексы (валидация отдельно)', () => {
     expect(topLeftToCell(0, 0, GEOM).r).toBeLessThan(0);
+  });
+});
+
+describe('dragTopLefts', () => {
+  it('places the entire preview above the visible piece', () => {
+    const result = dragTopLefts({
+      slot: { x: 30, y: 600, width: 120, height: 160 },
+      translationX: 45,
+      translationY: -210,
+      figureWidth: 124,
+      figureHeight: 82,
+      pieceLiftPx: 60,
+      previewGapPx: 2,
+    });
+
+    expect(result.preview.x).toBe(result.piece.x);
+    expect(result.preview.y + 82).toBe(result.piece.y - 2);
+  });
+
+  it('keeps tall previews fully above their visible pieces', () => {
+    const result = dragTopLefts({
+      slot: { x: 0, y: 800, width: 360, height: 90 },
+      translationX: -80,
+      translationY: -320,
+      figureWidth: 40,
+      figureHeight: 166,
+      pieceLiftPx: 60,
+      previewGapPx: 2,
+    });
+
+    expect(result.preview.y + 166).toBe(result.piece.y - 2);
   });
 });
 
@@ -36,17 +72,14 @@ describe('fitsOnBoard', () => {
 
 describe('previewMask', () => {
   it('ghost-клетки фигуры = 1', () => {
-    const empty = new Array(64).fill(0);
-    const mask = previewMask(empty, [[0, 0]], 3, 3);
+    const mask = previewMask([[0, 0]], 3, 3);
     expect(mask[3 * 8 + 3]).toBe(1);
     expect(mask.filter((v) => v !== 0).length).toBe(1);
   });
 
-  it('собирающаяся строка подсвечивается = 2', () => {
-    const board = new Array(64).fill(0);
-    for (let c = 0; c < 7; c++) board[2 * 8 + c] = 1; // строка 2 без последней
-    const mask = previewMask(board, [[0, 0]], 2, 7);
-    for (let c = 0; c < 8; c++) expect(mask[2 * 8 + c]).toBe(2);
-    expect(mask.filter((v) => v === 2).length).toBe(8);
+  it('never expands the preview when the move completes a line', () => {
+    const mask = previewMask([[0, 0]], 2, 7);
+    expect(mask[2 * 8 + 7]).toBe(1);
+    expect(mask.filter((v) => v !== 0)).toHaveLength(1);
   });
 });

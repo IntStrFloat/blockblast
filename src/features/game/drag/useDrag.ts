@@ -14,8 +14,16 @@ import type { SharedValue } from 'react-native-reanimated';
 
 import { TRAY_MOTION } from '../animation/motion';
 import { dropCommitFor } from './dropLifecycle';
-import { EMPTY_MASK, fitsOnBoard, previewMask, topLeftToCell } from './gridMath';
+import {
+  dragTopLefts,
+  EMPTY_MASK,
+  fitsOnBoard,
+  previewMask,
+  topLeftToCell,
+} from './gridMath';
 import type { DragCtx } from './DragContext';
+
+const PIECE_LIFT_PX = 60;
 
 /** Позиция слота в координатах окна — снимается на measureInWindow */
 export interface SlotMeasure {
@@ -86,7 +94,7 @@ export function useDrag({
     .onUpdate((event) => {
       'worklet';
       translateX.value = event.translationX;
-      translateY.value = event.translationY - 60;
+      translateY.value = event.translationY - PIECE_LIFT_PX;
 
       const { geom, boardOrigin, boardMirror, preview, previewColor } = ctx;
       const cellPx = geom.cell;
@@ -96,16 +104,18 @@ export function useDrag({
       const figW = w * cellPx + (w > 1 ? (w - 1) * gapPx : 0);
       const figH = h * cellPx + (h > 1 ? (h - 1) * gapPx : 0);
 
-      // Центр слота в координатах окна
       const sm = slotMeasure.value;
-      const slotCenterX = sm.x + sm.width / 2;
-      const slotCenterY = sm.y + sm.height / 2;
+      const topLeft = dragTopLefts({
+        slot: sm,
+        translationX: event.translationX,
+        translationY: event.translationY,
+        figureWidth: figW,
+        figureHeight: figH,
+        pieceLiftPx: PIECE_LIFT_PX,
+        previewGapPx: gapPx,
+      });
 
-      // Top-left фигуры в координатах окна (при scale=1, с подъёмом -60)
-      const tlX = slotCenterX + event.translationX - figW / 2;
-      const tlY = slotCenterY + event.translationY - 60 - figH / 2;
-
-      const { r, c } = topLeftToCell(tlX, tlY, {
+      const { r, c } = topLeftToCell(topLeft.preview.x, topLeft.preview.y, {
         boardX: boardOrigin.value.x,
         boardY: boardOrigin.value.y,
         pad: geom.pad,
@@ -118,7 +128,7 @@ export function useDrag({
         dropR.value = r;
         dropC.value = c;
         if (positionChanged) {
-          preview.value = previewMask(boardMirror.value, cellsCapture, r, c);
+          preview.value = previewMask(cellsCapture, r, c);
           previewColor.value = colorId;
         }
       } else {

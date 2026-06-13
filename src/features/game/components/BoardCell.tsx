@@ -57,12 +57,7 @@ export const BoardCell = memo(function BoardCell({
     if (mask === 0) return { opacity: 0 };
     const cid = previewColorShared.value;
     const color = cid > 0 && cid <= cellColors.length ? cellColors[cid - 1] : '#FFFFFF';
-    if (mask === 1) {
-      // ghost: полупрозрачный контур
-      return { opacity: 0.45, backgroundColor: color };
-    }
-    // mask === 2: линия соберётся — ярче
-    return { opacity: 0.8, backgroundColor: color };
+    return { opacity: 0.45, backgroundColor: color };
   });
 
   return (
