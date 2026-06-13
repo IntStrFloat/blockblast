@@ -1,4 +1,3 @@
-import type { JSX } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -59,7 +58,7 @@ export interface MascotProps {
  * Капи — View-композиция тельца-«батона» с глянцем, ушами, мордочкой,
  * моргающими глазами и косметикой. Все движения — через shared values.
  */
-export function Mascot({ motion, stage, equipped, size = 60 }: MascotProps): JSX.Element {
+export function Mascot({ motion, stage, equipped, size = 60 }: MascotProps) {
   const { x, bob, scaleX, scaleY, facing, rotate, eyeOpen, opacity } = motion;
 
   // Внешний контейнер: позиция, наклон, squash/stretch, флип, прозрачность.
@@ -148,13 +147,13 @@ export function Mascot({ motion, stage, equipped, size = 60 }: MascotProps): JSX
           <View
             style={[
               styles.crownBlock,
-              { width: headBlock, height: headBlock, backgroundColor: '#FF9F1C' },
+              { width: headBlock, height: headBlock, backgroundColor: mascotPalette.crown1 },
             ]}
           />
           <View
             style={[
               styles.crownBlock,
-              { width: headBlock * 0.8, height: headBlock * 0.8, backgroundColor: '#3DDC84' },
+              { width: headBlock * 0.8, height: headBlock * 0.8, backgroundColor: mascotPalette.crown2 },
             ]}
           />
         </View>
@@ -218,7 +217,7 @@ export function Mascot({ motion, stage, equipped, size = 60 }: MascotProps): JSX
  * Расширяемый каталог косметики: рисует представительное подмножество id
  * простыми View-формами. Неизвестные id → null.
  */
-function renderCosmetic(id: string, size: number): JSX.Element | null {
+function renderCosmetic(id: string, size: number) {
   // face-* очки/солнцезащитные: тёмная полоса поверх глаз.
   if (id === 'face-sunglasses' || id === 'face-glasses') {
     const w = Math.round(size * 0.66);

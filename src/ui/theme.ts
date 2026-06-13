@@ -74,6 +74,8 @@ export const mascotPalette = {
   blush: '#F2A6D8',
   ink: '#2B2440',
   block: '#FFD23F',
+  crown1: '#FF9F1C',
+  crown2: '#3DDC84',
 } as const;
 
 /** Геометрия доски от ширины экрана (спека 04). */

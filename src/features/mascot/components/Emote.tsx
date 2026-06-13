@@ -1,4 +1,3 @@
-import type { JSX } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
@@ -28,7 +27,7 @@ interface EmoteProps {
  * Маленький пузырь-эмоция над маскотом. Родитель управляет монтированием:
  * появляется (FadeIn) при mount, исчезает (FadeOut) при unmount.
  */
-export function Emote({ id, size = 22 }: EmoteProps): JSX.Element | null {
+export function Emote({ id, size = 22 }: EmoteProps) {
   const symbol = SYMBOL[id];
   if (!symbol) return null;
 
