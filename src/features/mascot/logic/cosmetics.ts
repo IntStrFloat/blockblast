@@ -37,6 +37,6 @@ export const COSMETICS: Cosmetic[] = [
   // --- aura (4 предмета) ---
   { id: 'aura-sparkles',    slot: 'aura', minStage: 4 },
   { id: 'aura-stars',       slot: 'aura', minStage: 4 },
-  { id: 'aura-rainbow',     slot: 'aura', minStage: 4 },
-  { id: 'aura-fire',        slot: 'aura', minStage: 4 },
+  { id: 'aura-rainbow',     slot: 'aura', minStage: 4 }, // зарезервировано, не выдаётся ни на одном уровне
+  { id: 'aura-fire',        slot: 'aura', minStage: 4 }, // зарезервировано, не выдаётся ни на одном уровне
 ];

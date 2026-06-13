@@ -36,9 +36,13 @@ export interface MascotConfigType {
     swap: { unlockLevel: number };
   };
   nightHour: number;
+  /**
+   * Моргание управляется отдельным интервал-таймером.
+   * Планировщик поведения (behavior.ts) ОБЯЗАН исключать 'blink' из пула nextAction.
+   */
   blink: { minMs: number; maxMs: number };
   actions: ActionSpec[];
-  rewards: Record<number, LevelReward>;
+  rewards: Partial<Record<number, LevelReward>>;
 }
 
 /**

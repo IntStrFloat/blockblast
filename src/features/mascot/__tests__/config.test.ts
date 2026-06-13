@@ -35,21 +35,25 @@ describe('MASCOT_CONFIG.rewards', () => {
     for (let lvl = 1; lvl <= MASCOT_CONFIG.maxLevel; lvl++) {
       const reward = MASCOT_CONFIG.rewards[lvl];
       expect(reward).toBeDefined();
+      if (!reward) continue;
       if (reward.kind === 'cosmetic') {
         expect(cosmeticIds.has(reward.id)).toBe(true);
       }
     }
   });
 
-  it('number of cosmetic rewards >= (24 - number of helper milestones)', () => {
+  it('each level 1..maxLevel has a defined reward, with exactly 2 helpers and 22 cosmetics', () => {
     let cosmeticCount = 0;
     let helperCount = 0;
     for (let lvl = 1; lvl <= MASCOT_CONFIG.maxLevel; lvl++) {
       const reward = MASCOT_CONFIG.rewards[lvl];
+      expect(reward).toBeDefined();
+      if (!reward) continue;
       if (reward.kind === 'cosmetic') cosmeticCount++;
       if (reward.kind === 'helper') helperCount++;
     }
-    expect(cosmeticCount).toBeGreaterThanOrEqual(MASCOT_CONFIG.maxLevel - helperCount);
+    expect(helperCount).toBe(2);
+    expect(cosmeticCount).toBe(22);
   });
 
   it('level 5 rewards hint helper', () => {
