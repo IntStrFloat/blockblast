@@ -1,6 +1,5 @@
 import { MASCOT_CONFIG, xpToNext } from './config';
-import type { LevelReward, Stage } from './types';
-import type { ProgressInfo } from './types';
+import type { LevelReward, ProgressInfo, Stage } from './types';
 
 /**
  * Возвращает стадию эволюции маскота для заданного уровня.
@@ -29,7 +28,7 @@ export function stageForLevel(level: number): Stage {
 export function progressFor(totalXp: number): ProgressInfo {
   const { maxLevel } = MASCOT_CONFIG;
   let level = 1;
-  let remaining = totalXp;
+  let remaining = Math.max(0, totalXp);
 
   while (level < maxLevel) {
     const needed = xpToNext(level);

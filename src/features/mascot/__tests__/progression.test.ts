@@ -1,11 +1,11 @@
-import { xpToNext } from '../logic/config';
+import { MASCOT_CONFIG, xpToNext } from '../logic/config';
 import { stageForLevel, progressFor, rewardForLevel } from '../logic/progression';
 
-// Вычисляем общий XP, достаточный для достижения максимального уровня (24)
-// Сумма xpToNext(1) + xpToNext(2) + ... + xpToNext(23) переводит с уровня 1 до 24
+// Вычисляем общий XP, достаточный для достижения максимального уровня
+// Сумма xpToNext(1) + xpToNext(2) + ... + xpToNext(maxLevel-1) переводит с уровня 1 до maxLevel
 function totalXpForMaxLevel(): number {
   let sum = 0;
-  for (let lvl = 1; lvl < 24; lvl++) {
+  for (let lvl = 1; lvl < MASCOT_CONFIG.maxLevel; lvl++) {
     sum += xpToNext(lvl);
   }
   return sum;
@@ -40,6 +40,10 @@ describe('stageForLevel', () => {
 describe('progressFor', () => {
   it('progressFor(0) → level 1, stage 1, xpInLevel 0, xpToNext 40', () => {
     expect(progressFor(0)).toEqual({ level: 1, stage: 1, xpInLevel: 0, xpToNext: 40 });
+  });
+
+  it('progressFor(-100) clamps to level 1, stage 1, xpInLevel 0, xpToNext 40', () => {
+    expect(progressFor(-100)).toEqual({ level: 1, stage: 1, xpInLevel: 0, xpToNext: 40 });
   });
 
   it('totalXp just below first threshold keeps level 1 with correct xpInLevel', () => {
