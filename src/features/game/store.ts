@@ -1,29 +1,28 @@
 import { create } from 'zustand';
 
-import {
-  createGame,
-  deserialize,
-  place,
-  revive,
-  serialize,
-} from '@/core/engine';
+import { createGame, deserialize, place, revive, seedFromTime, serialize } from '@/core/engine';
 import type { GameState, PlacementEvent } from '@/core/engine';
 import { KEYS, getString, removeKey, setString } from '@/core/storage';
+import { useAnalyticsStore } from '@/features/analytics';
+import { useLeaderboardStore } from '@/features/leaderboard/store';
 import { useScores } from '@/features/scores';
 import type { SubmitResult } from '@/features/scores';
 import { useStreak } from '@/features/streak';
 
+interface NewGameOptions {
+  seed?: number;
+  mode?: 'weekly' | 'daily';
+  challengeDate?: string | null;
+}
+
 interface GameStore {
   game: GameState;
   lastEvent: PlacementEvent | null;
-  /** Очищено линий с последней фиксации статистики */
   linesCleared: number;
-  /** Итог партии для GameOver-оверлея (null, пока партия идёт) */
   finalResult: SubmitResult | null;
-  newGame: () => void;
+  newGame: (options?: NewGameOptions) => void;
   placePiece: (trayIndex: number, r: number, c: number) => PlacementEvent | null;
   reviveGame: () => void;
-  /** true, если сохранённая партия загружена */
   loadSaved: () => boolean;
 }
 
@@ -31,7 +30,6 @@ export function hasSavedGame(): boolean {
   return getSavedScore() !== null;
 }
 
-/** Счёт сохранённой партии (для кнопки «Продолжить» на Home), null если сейва нет. */
 export function getSavedScore(): number | null {
   const raw = getString(KEYS.gameCurrent);
   if (!raw) return null;
@@ -45,10 +43,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
   linesCleared: 0,
   finalResult: null,
 
-  newGame: () => {
-    const game = createGame();
+  newGame: (options) => {
+    const proof = useLeaderboardStore.getState().startRun({
+      startedAt: new Date().toISOString(),
+      mode: options?.mode ?? 'weekly',
+      seed: options?.seed ?? seedFromTime(),
+      challengeDate: options?.challengeDate ?? null,
+    });
+    const game = createGame(proof.seed);
     set({ game, lastEvent: null, linesCleared: 0, finalResult: null });
     setString(KEYS.gameCurrent, serialize(game));
+    useAnalyticsStore
+      .getState()
+      .track('game_start', { mode: options?.mode === 'daily' ? 'daily' : 'weekly' });
   },
 
   placePiece: (trayIndex, r, c) => {
@@ -57,15 +64,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     try {
       result = place(game, trayIndex, r, c);
     } catch {
-      return null; // невалидный дроп — UI вернёт фигуру в слот
+      return null;
     }
+
     const lines =
       linesCleared + result.event.clearedRows.length + result.event.clearedCols.length;
+    useLeaderboardStore.getState().recordMove({ trayIndex, row: r, col: c });
 
     if (result.event.gameOver) {
-      // Фиксация: статистика, стрик, сейв удаляется. Revive после этого
-      // продолжает ту же партию; повторный game over зафиксируется как новая попытка.
       const final = useScores.getState().submitGame(result.event.score, lines);
+      void useLeaderboardStore.getState().finishActiveRun(result.event.score, new Date());
       useStreak.getState().markPlayedToday();
       removeKey(KEYS.gameCurrent);
       set({
@@ -78,6 +86,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       setString(KEYS.gameCurrent, serialize(result.state));
       set({ game: result.state, lastEvent: result.event, linesCleared: lines });
     }
+
     return result.event;
   },
 

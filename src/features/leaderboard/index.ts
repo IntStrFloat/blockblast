@@ -1,0 +1,31 @@
+export {
+  createLeaderboardClient,
+  createRemoteLeaderboardClient,
+  hasRemoteLeaderboardConfig,
+  type BackendProfileSession,
+  type LeaderboardClient,
+} from './client';
+export { WeeklyCard } from './components/WeeklyCard';
+export { Podium } from './components/Podium';
+export { LeaderboardRow } from './components/LeaderboardRow';
+export { appendRunMove, beginRunProof, finalizeRunProof } from './runProof';
+export { createLeaderboardStore, useLeaderboardStore } from './store';
+export {
+  createChallengeCode,
+  createDailyChallenge,
+  decodeChallengeCode,
+  getUtcWeekCountdown,
+  getUtcWeekWindow,
+  getWeeklyGoal,
+  shouldShowDailyChallenge,
+} from './week';
+export type {
+  LeaderboardEntry,
+  ProfileIdentity,
+  RunMode,
+  RunMove,
+  RunProof,
+  VerifiedRun,
+  WeeklyImpact,
+  WeeklyLeaderboardSnapshot,
+} from './types';

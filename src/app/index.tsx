@@ -5,7 +5,15 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
+import { useAnalyticsStore } from '@/features/analytics';
 import { getSavedScore, useGameStore } from '@/features/game';
+import {
+  WeeklyCard,
+  createDailyChallenge,
+  shouldShowDailyChallenge,
+  useLeaderboardStore,
+} from '@/features/leaderboard';
+import { ProfileChip, ProfileOverlay, useProfileStore } from '@/features/profile';
 import { useScores } from '@/features/scores';
 import { useLang, useSettings } from '@/features/settings';
 import { isStreakAlive, todayISO, useStreak } from '@/features/streak';
@@ -13,7 +21,6 @@ import { AppText, GameButton, colors, getBlockTheme, radii, spacing } from '@/ui
 
 const LOGO_ROWS = ['BLOCK', 'BLAST'];
 
-/** Лого из цветных блоков, стаггер-появление один раз (спека 01). */
 function Logo() {
   const themeId = useSettings((s) => s.themeId);
   const palette = getBlockTheme(themeId).cellColors;
@@ -21,17 +28,15 @@ function Logo() {
     <View style={{ gap: 8, alignItems: 'center' }}>
       {LOGO_ROWS.map((row, rowIdx) => (
         <View key={row} style={{ flexDirection: 'row', gap: 6 }}>
-          {[...row].map((ch, i) => (
+          {[...row].map((ch, index) => (
             <Animated.View
-              key={`${rowIdx}-${i}`}
-              entering={FadeInDown.delay((rowIdx * row.length + i) * 55)
-                .springify()
-                .damping(14)}
+              key={`${rowIdx}-${index}`}
+              entering={FadeInDown.delay((rowIdx * row.length + index) * 55).springify().damping(14)}
               style={{
                 width: 46,
                 height: 46,
                 borderRadius: radii.cell + 4,
-                backgroundColor: palette[(rowIdx * 2 + i) % palette.length],
+                backgroundColor: palette[(rowIdx * 2 + index) % palette.length],
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
@@ -51,21 +56,42 @@ export default function HomeScreen() {
   const router = useRouter();
   const lang = useLang();
   const best = useScores((s) => s.best);
+  const gamesPlayed = useScores((s) => s.gamesPlayed);
   const streakLastDay = useStreak((s) => s.lastDay);
   const streakCount = useStreak((s) => s.count);
   const streakVisible = isStreakAlive({ lastDay: streakLastDay, count: streakCount }, todayISO())
     ? streakCount
     : 0;
-
   const [savedScore, setSavedScore] = useState<number | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const dailyChallenge = createDailyChallenge(new Date().toISOString().slice(0, 10));
+  const showDailyChallenge = shouldShowDailyChallenge(gamesPlayed);
+
   useFocusEffect(
     useCallback(() => {
+      let active = true;
       setSavedScore(getSavedScore());
-    }, []),
+
+      void (async () => {
+        const session = await useProfileStore.getState().bootstrapRemote();
+        if (!active) return;
+        await useLeaderboardStore.getState().issueTickets(session?.authToken);
+        await useLeaderboardStore.getState().refreshIfStale(new Date(), 30_000);
+      })();
+
+      if (showDailyChallenge) {
+        useAnalyticsStore.getState().track('daily_challenge_exposed', { source: 'home_card' });
+      }
+
+      return () => {
+        active = false;
+      };
+    }, [showDailyChallenge]),
   );
 
   const startNew = useCallback(() => {
-    useGameStore.getState().newGame();
+    useGameStore.getState().newGame({ mode: 'weekly' });
     router.push('/game');
   }, [router]);
 
@@ -78,25 +104,35 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-      {/* Настройки */}
-      <Pressable
-        onPress={() => router.push('/settings')}
-        hitSlop={8}
+      <View
         style={{
           position: 'absolute',
           top: 56,
+          left: 20,
           right: 20,
-          width: 44,
-          height: 44,
-          borderRadius: 14,
-          backgroundColor: colors.surface,
-          alignItems: 'center',
-          justifyContent: 'center',
           zIndex: 10,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
-        <AppText preset="body">⚙️</AppText>
-      </Pressable>
+        <Pressable
+          onPress={() => router.push('/settings')}
+          hitSlop={8}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 14,
+            backgroundColor: colors.surface,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <AppText preset="body">S</AppText>
+        </Pressable>
+
+        <ProfileChip onPress={() => setProfileOpen(true)} />
+      </View>
 
       <View
         style={{
@@ -109,24 +145,45 @@ export default function HomeScreen() {
       >
         <Logo />
 
-        {/* Рекорд + стрик */}
         <View style={{ alignItems: 'center', gap: 6 }}>
           <AppText preset="body" style={{ color: colors.accent }}>
-            👑 {t('home.best', lang)}: {best}
+            {t('home.best', lang)}: {best}
           </AppText>
           {streakVisible >= 1 ? (
             <AppText preset="caption">
-              🔥 {streakVisible} {t('home.streakDays', lang)}
+              {streakVisible} {t('home.streakDays', lang)}
             </AppText>
           ) : null}
         </View>
 
-        {/* Кнопки */}
+        <WeeklyCard onPress={() => router.push('/leaderboard')} />
+
+        {showDailyChallenge ? (
+          <View style={{ width: '100%', maxWidth: 320, gap: spacing.xs }}>
+            <GameButton
+              label={t('home.dailyChallenge', lang)}
+              variant="ghost"
+              onPress={() => {
+                useAnalyticsStore.getState().track('daily_challenge_started', { source: 'home_card' });
+                useGameStore.getState().newGame({
+                  seed: dailyChallenge.seed,
+                  mode: 'daily',
+                  challengeDate: dailyChallenge.dateIso,
+                });
+                router.push('/game');
+              }}
+            />
+            <AppText preset="caption" style={{ textAlign: 'center' }}>
+              {t('home.dailyCode', lang)}: {dailyChallenge.code}
+            </AppText>
+          </View>
+        ) : null}
+
         <View style={{ width: '100%', maxWidth: 320, gap: spacing.m }}>
           {savedScore !== null ? (
             <>
               <GameButton
-                label={`${t('home.continue', lang)} · ${savedScore}`}
+                label={`${t('home.continue', lang)} - ${savedScore}`}
                 onPress={() => router.push('/game')}
               />
               <GameButton
@@ -140,6 +197,8 @@ export default function HomeScreen() {
           )}
         </View>
       </View>
+
+      <ProfileOverlay visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </SafeAreaView>
   );
 }

@@ -1,0 +1,21 @@
+[Unit]
+Description=Bloxx leaderboard backend
+After=network.target
+
+[Service]
+Type=simple
+User=bloxx
+Group=bloxx
+WorkingDirectory=/opt/bloxx/backend
+EnvironmentFile=/opt/bloxx/backend.env
+ExecStart=/usr/bin/node /opt/bloxx/backend/index.cjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/bloxx
+
+[Install]
+WantedBy=multi-user.target

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { t } from '@/core/i18n';
+import { useLeaderboardStore } from '@/features/leaderboard';
 import {
   MONETIZATION,
   getAds,
@@ -24,14 +25,11 @@ interface GameOverOverlayProps {
   onHome: () => void;
 }
 
-/**
- * Оверлей Game Over: появление через ~0.8с (спека 01), рекорд + конфетти,
- * revive через rewarded, interstitial по частотным правилам — после закрытия.
- */
 export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
   const game = useGameStore((s) => s.game);
   const finalResult = useGameStore((s) => s.finalResult);
   const reviveGame = useGameStore((s) => s.reviveGame);
+  const latestImpact = useLeaderboardStore((state) => state.latestImpact);
   const removeAds = useEntitlements((s) => s.removeAds);
   const lang = useLang();
 
@@ -41,8 +39,6 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
 
   const isOver = game.status === 'over';
 
-  // Появление с задержкой + однократный учёт game over в счётчиках рекламы.
-  // Сброс состояния — в cleanup (revive/new game переключают isOver в false).
   useEffect(() => {
     if (!isOver) return;
     if (!countedRef.current) {
@@ -98,7 +94,7 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
       {newRecord ? <Confetti height={280} /> : null}
 
       <AppText preset="title" style={{ textAlign: 'center' }}>
-        {newRecord ? `🏆 ${t('gameOver.newRecord', lang)}` : t('gameOver.title', lang)}
+        {newRecord ? t('gameOver.newRecord', lang) : t('gameOver.title', lang)}
       </AppText>
 
       <View style={{ alignItems: 'center', gap: 4 }}>
@@ -110,6 +106,32 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
           </AppText>
         ) : null}
       </View>
+
+      {latestImpact ? (
+        <View
+          style={{
+            borderRadius: 16,
+            backgroundColor: colors.surface,
+            padding: 12,
+            gap: 4,
+          }}
+        >
+          <AppText preset="caption">{t('gameOver.weeklyImpact', lang)}</AppText>
+          <AppText preset="body">
+            {latestImpact.queued
+              ? t('gameOver.queued', lang)
+              : `${t('gameOver.weeklyBestLabel', lang)}: ${latestImpact.score}`}
+          </AppText>
+          {!latestImpact.queued ? (
+            <AppText preset="caption">
+              {latestImpact.rank !== null ? `#${latestImpact.rank}` : t('leaderboard.unranked', lang)}
+              {latestImpact.rankDelta && latestImpact.rankDelta > 0
+                ? ` / ${t('gameOver.rankDelta', lang)} ${latestImpact.rankDelta}`
+                : ''}
+            </AppText>
+          ) : null}
+        </View>
+      ) : null}
 
       {canRevive ? (
         <GameButton
@@ -128,7 +150,7 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
 
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <GameButton
-          label={`↗ ${t('gameOver.share', lang)}`}
+          label={t('gameOver.share', lang)}
           variant="ghost"
           style={{ flex: 1 }}
           onPress={() => shareScore(game.score, newRecord, lang)}
