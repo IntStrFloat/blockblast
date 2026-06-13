@@ -47,3 +47,6 @@ example
 
 # local build artifacts (APKs)
 /dist/
+
+# brainstorming visual companion (локальные макеты)
+/.superpowers/
