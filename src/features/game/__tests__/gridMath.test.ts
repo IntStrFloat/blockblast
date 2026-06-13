@@ -32,11 +32,11 @@ describe('dragTopLefts', () => {
       figureWidth: 124,
       figureHeight: 82,
       pieceLiftPx: 60,
-      previewLiftPx: 84,
+      previewLiftPx: 42,
     });
 
     expect(result.preview.x).toBe(result.piece.x);
-    expect(result.preview.y).toBe(result.piece.y - 84);
+    expect(result.preview.y).toBe(result.piece.y - 42);
   });
 
   it('keeps the same preview lift for tall pieces', () => {
@@ -47,10 +47,10 @@ describe('dragTopLefts', () => {
       figureWidth: 40,
       figureHeight: 166,
       pieceLiftPx: 60,
-      previewLiftPx: 84,
+      previewLiftPx: 42,
     });
 
-    expect(result.preview.y).toBe(result.piece.y - 84);
+    expect(result.preview.y).toBe(result.piece.y - 42);
   });
 });
 

@@ -24,7 +24,7 @@ import {
 import type { DragCtx } from './DragContext';
 
 const PIECE_LIFT_PX = 60;
-const PREVIEW_LIFT_ROWS = 2;
+const PREVIEW_LIFT_ROWS = 1;
 
 /** Позиция слота в координатах окна — снимается на measureInWindow */
 export interface SlotMeasure {
