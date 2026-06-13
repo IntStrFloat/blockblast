@@ -18,6 +18,7 @@ import { shareScore } from '@/features/share';
 import { AppText, GameButton, Overlay, colors } from '@/ui';
 
 import { Confetti } from '../effects/Confetti';
+import { gameOverPresentationFor } from '../gameOverPresentation';
 import { useGameStore } from '../store';
 
 interface GameOverOverlayProps {
@@ -27,8 +28,9 @@ interface GameOverOverlayProps {
 
 export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
   const game = useGameStore((s) => s.game);
+  const lastEvent = useGameStore((s) => s.lastEvent);
   const finalResult = useGameStore((s) => s.finalResult);
-  const reviveGame = useGameStore((s) => s.reviveGame);
+  const continueGame = useGameStore((s) => s.continueGame);
   const latestImpact = useLeaderboardStore((state) => state.latestImpact);
   const removeAds = useEntitlements((s) => s.removeAds);
   const lang = useLang();
@@ -38,12 +40,13 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
   const [rewardedReady, setRewardedReady] = useState(false);
   const countedRef = useRef(false);
 
-  const isOver = game.status === 'over';
+  const presentation = gameOverPresentationFor(game.status, lastEvent);
+  const isOver = presentation.visible;
 
   useEffect(() => {
     if (!isOver) return;
     let active = true;
-    if (!countedRef.current) {
+    if (presentation.fresh && !countedRef.current) {
       countedRef.current = true;
       saveAdsMeta(recordGameOver(loadAdsMeta()));
     }
@@ -52,17 +55,19 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
       .finally(() => {
         if (active) setRewardedReady(getAds().isRewardedReady());
       });
-    const timer = setTimeout(() => setVisible(true), 800);
+    const timer = presentation.fresh
+      ? setTimeout(() => setVisible(true), presentation.revealDelayMs)
+      : null;
     return () => {
       active = false;
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       setVisible(false);
       setRewardedReady(false);
       countedRef.current = false;
     };
-  }, [isOver]);
+  }, [isOver, presentation.fresh, presentation.revealDelayMs]);
 
-  if (!isOver || !visible) return null;
+  if (!isOver || (presentation.fresh && !visible)) return null;
 
   const newRecord = finalResult?.newRecord ?? false;
   const canRevive = !game.reviveUsed && rewardedReady;
@@ -94,7 +99,7 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
     setBusy(true);
     try {
       const result = await getAds().showRewarded('revive');
-      if (result === 'rewarded') reviveGame();
+      if (result === 'rewarded') continueGame();
       setRewardedReady(getAds().isRewardedReady());
     } finally {
       setBusy(false);

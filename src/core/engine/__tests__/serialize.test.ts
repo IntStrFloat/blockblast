@@ -1,9 +1,12 @@
-import { findPlacements } from '../board';
-import { createGame, place } from '../game';
+import { emptyBoard, findPlacements } from '../board';
+import { createGame, place, revive } from '../game';
+import { SHAPES_BY_ID } from '../shapes';
 import { deserialize, serialize } from '../serialize';
 import type { GameState } from '../types';
 
-/** Детерминированно играет N валидных ходов */
+const dot = SHAPES_BY_ID.get('dot')!;
+const h3 = SHAPES_BY_ID.get('h3')!;
+
 function playMoves(g: GameState, moves: number): GameState {
   for (let step = 0; step < moves; step++) {
     const i = g.tray.findIndex((p) => p !== null);
@@ -17,45 +20,95 @@ function playMoves(g: GameState, moves: number): GameState {
   return g;
 }
 
+function expectRoundTrip(state: GameState): void {
+  const restored = deserialize(serialize(state));
+  expect(restored).not.toBeNull();
+  expect(restored).toEqual(state);
+}
+
 describe('serialize / deserialize', () => {
-  it('roundtrip сохраняет партию полностью', () => {
-    const g = playMoves(createGame(7), 4);
-    const restored = deserialize(serialize(g));
-    expect(restored).not.toBeNull();
-    expect(restored!.board).toEqual(g.board);
-    expect(restored!.score).toBe(g.score);
-    expect(restored!.combo).toBe(g.combo);
-    expect(restored!.rngState).toBe(g.rngState);
-    expect(restored!.status).toBe(g.status);
-    expect(restored!.reviveUsed).toBe(g.reviveUsed);
-    expect(restored!.tray.map((p) => (p ? `${p.shape.id}:${p.colorId}` : '-'))).toEqual(
-      g.tray.map((p) => (p ? `${p.shape.id}:${p.colorId}` : '-')),
-    );
+  it('round-trips an active game in v1 format', () => {
+    expectRoundTrip(playMoves(createGame(7), 4));
   });
 
-  it('мусор и чужие версии отбрасываются', () => {
+  it('round-trips a terminal game in v1 format', () => {
+    const over: GameState = {
+      board: emptyBoard(),
+      tray: [null, { shape: dot, colorId: 4 }, { shape: h3, colorId: 2 }],
+      score: 321,
+      combo: 2,
+      movesSinceClear: 1,
+      status: 'over',
+      reviveUsed: false,
+      rngState: 77,
+    };
+
+    expectRoundTrip(over);
+  });
+
+  it('round-trips a continued game with reviveUsed=true and preserved tray holes', () => {
+    const revived = revive({
+      board: emptyBoard().map((_, index) => (index === 0 ? 5 : 0)),
+      tray: [null, { shape: dot, colorId: 6 }, { shape: h3, colorId: 2 }],
+      score: 654,
+      combo: 4,
+      movesSinceClear: 3,
+      status: 'over',
+      reviveUsed: false,
+      rngState: 123,
+    });
+
+    expect(revived).not.toBeNull();
+    expectRoundTrip(revived!);
+  });
+
+  it('reads an existing v1 payload directly', () => {
+    const payload = JSON.stringify({
+      v: 1,
+      board: emptyBoard(),
+      tray: [null, { id: 'dot', colorId: 6 }, { id: 'h3', colorId: 2 }],
+      score: 999,
+      combo: 0,
+      movesSinceClear: 0,
+      status: 'playing',
+      reviveUsed: true,
+      rngState: 42,
+    });
+
+    expect(deserialize(payload)).toEqual({
+      board: emptyBoard(),
+      tray: [null, { shape: dot, colorId: 6 }, { shape: h3, colorId: 2 }],
+      score: 999,
+      combo: 0,
+      movesSinceClear: 0,
+      status: 'playing',
+      reviveUsed: true,
+      rngState: 42,
+    });
+  });
+
+  it('rejects corrupt payloads', () => {
     expect(deserialize('not json')).toBeNull();
     expect(deserialize('{}')).toBeNull();
     expect(deserialize(JSON.stringify({ v: 99 }))).toBeNull();
-  });
 
-  it('неизвестный id фигуры — отбрасывается', () => {
     const g = createGame(7);
-    const raw = JSON.parse(serialize(g));
-    raw.tray[0].id = 'no-such-shape';
-    expect(deserialize(JSON.stringify(raw))).toBeNull();
-  });
+    const unknownShape = JSON.parse(serialize(g));
+    unknownShape.tray[0].id = 'no-such-shape';
+    expect(deserialize(JSON.stringify(unknownShape))).toBeNull();
 
-  it('битая доска — отбрасывается', () => {
-    const g = createGame(7);
-    const raw = JSON.parse(serialize(g));
-    raw.board = [1, 2, 3];
-    expect(deserialize(JSON.stringify(raw))).toBeNull();
+    const badBoard = JSON.parse(serialize(g));
+    badBoard.board = [1, 2, 3];
+    expect(deserialize(JSON.stringify(badBoard))).toBeNull();
+
+    const badStatus = JSON.parse(serialize(g));
+    badStatus.status = 'paused';
+    expect(deserialize(JSON.stringify(badStatus))).toBeNull();
   });
 });
 
-describe('детерминизм партии', () => {
-  it('одинаковый seed + одинаковые ходы → одинаковое состояние', () => {
+describe('game determinism', () => {
+  it('same seed plus same moves yields the same state', () => {
     const a = playMoves(createGame(99), 10);
     const b = playMoves(createGame(99), 10);
     expect(serialize(a)).toBe(serialize(b));

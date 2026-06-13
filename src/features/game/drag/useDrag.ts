@@ -13,6 +13,7 @@ import {
 import type { SharedValue } from 'react-native-reanimated';
 
 import { TRAY_MOTION } from '../animation/motion';
+import { dropCommitFor } from './dropLifecycle';
 import { EMPTY_MASK, fitsOnBoard, previewMask, topLeftToCell } from './gridMath';
 import type { DragCtx } from './DragContext';
 
@@ -113,15 +114,21 @@ export function useDrag({
       });
 
       if (fitsOnBoard(boardMirror.value, cellsCapture, r, c, w, h)) {
+        const positionChanged = dropR.value !== r || dropC.value !== c;
         dropR.value = r;
         dropC.value = c;
-        preview.value = previewMask(boardMirror.value, cellsCapture, r, c);
-        previewColor.value = colorId;
+        if (positionChanged) {
+          preview.value = previewMask(boardMirror.value, cellsCapture, r, c);
+          previewColor.value = colorId;
+        }
       } else {
+        const hadPreview = dropR.value >= 0 || dropC.value >= 0;
         dropR.value = -1;
         dropC.value = -1;
-        preview.value = EMPTY_MASK;
-        previewColor.value = 0;
+        if (hadPreview) {
+          preview.value = EMPTY_MASK;
+          previewColor.value = 0;
+        }
       }
     })
     .onEnd(() => {
@@ -129,12 +136,11 @@ export function useDrag({
       ctx.preview.value = EMPTY_MASK;
       ctx.previewColor.value = 0;
 
-      const r = dropR.value;
-      const c = dropC.value;
+      const commit = dropCommitFor(trayIndex, dropR.value, dropC.value);
 
-      if (r >= 0 && c >= 0) {
+      if (commit) {
         // Валидный дроп — ровно один runOnJS
-        runOnJS(onDropJS)(trayIndex, r, c);
+        runOnJS(onDropJS)(commit.trayIndex, commit.row, commit.col);
         // Фигура исчезнет из трея через store (tray[trayIndex] = null)
         // translateX/Y сбросим здесь на случай если компонент переиспользуется
         translateX.value = 0;

@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
-import { getSavedScore, useGameStore } from '@/features/game';
+import { getSavedGameSummary } from '@/features/game';
+import type { SavedGameSummary } from '@/features/game';
 import {
   WeeklyCard,
   createDailyChallenge,
@@ -62,7 +63,11 @@ export default function HomeScreen() {
   const streakVisible = isStreakAlive({ lastDay: streakLastDay, count: streakCount }, todayISO())
     ? streakCount
     : 0;
-  const [savedScore, setSavedScore] = useState<number | null>(null);
+  const [savedGame, setSavedGame] = useState<SavedGameSummary>({
+    kind: 'none',
+    score: null,
+    canContinue: false,
+  });
   const [profileOpen, setProfileOpen] = useState(false);
 
   const dailyChallenge = createDailyChallenge(new Date().toISOString().slice(0, 10));
@@ -71,7 +76,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      setSavedScore(getSavedScore());
+      setSavedGame(getSavedGameSummary());
 
       void (async () => {
         const session = await useProfileStore.getState().bootstrapRemote();
@@ -91,8 +96,7 @@ export default function HomeScreen() {
   );
 
   const startNew = useCallback(() => {
-    useGameStore.getState().newGame({ mode: 'weekly' });
-    router.push('/game');
+    router.push({ pathname: '/game', params: { entry: 'new' } });
   }, [router]);
 
   const confirmNew = useCallback(() => {
@@ -101,6 +105,29 @@ export default function HomeScreen() {
       { text: t('home.newGame', lang), style: 'destructive', onPress: startNew },
     ]);
   }, [lang, startNew]);
+
+  const startDaily = useCallback(() => {
+    useAnalyticsStore.getState().track('daily_challenge_started', { source: 'home_card' });
+    router.push({
+      pathname: '/game',
+      params: {
+        entry: 'daily',
+        seed: String(dailyChallenge.seed),
+        challengeDate: dailyChallenge.dateIso,
+      },
+    });
+  }, [dailyChallenge.dateIso, dailyChallenge.seed, router]);
+
+  const confirmDaily = useCallback(() => {
+    if (savedGame.kind === 'none') {
+      startDaily();
+      return;
+    }
+    Alert.alert(t('home.dailyChallenge', lang), t('home.newGameConfirm', lang), [
+      { text: t('settings.cancel', lang), style: 'cancel' },
+      { text: t('home.dailyChallenge', lang), style: 'destructive', onPress: startDaily },
+    ]);
+  }, [lang, savedGame.kind, startDaily]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -160,19 +187,11 @@ export default function HomeScreen() {
 
         {showDailyChallenge ? (
           <View style={{ width: '100%', maxWidth: 320, gap: spacing.xs }}>
-            <GameButton
-              label={t('home.dailyChallenge', lang)}
-              variant="ghost"
-              onPress={() => {
-                useAnalyticsStore.getState().track('daily_challenge_started', { source: 'home_card' });
-                useGameStore.getState().newGame({
-                  seed: dailyChallenge.seed,
-                  mode: 'daily',
-                  challengeDate: dailyChallenge.dateIso,
-                });
-                router.push('/game');
-              }}
-            />
+              <GameButton
+                label={t('home.dailyChallenge', lang)}
+                variant="ghost"
+                onPress={confirmDaily}
+              />
             <AppText preset="caption" style={{ textAlign: 'center' }}>
               {t('home.dailyCode', lang)}: {dailyChallenge.code}
             </AppText>
@@ -180,11 +199,13 @@ export default function HomeScreen() {
         ) : null}
 
         <View style={{ width: '100%', maxWidth: 320, gap: spacing.m }}>
-          {savedScore !== null ? (
+          {savedGame.canContinue && savedGame.score !== null ? (
             <>
               <GameButton
-                label={`${t('home.continue', lang)} - ${savedScore}`}
-                onPress={() => router.push('/game')}
+                label={`${t('home.continue', lang)} - ${savedGame.score}`}
+                onPress={() =>
+                  router.push({ pathname: '/game', params: { entry: 'resume' } })
+                }
               />
               <GameButton
                 label={t('home.newGame', lang)}
@@ -192,6 +213,8 @@ export default function HomeScreen() {
                 onPress={confirmNew}
               />
             </>
+          ) : savedGame.kind === 'terminal' ? (
+            <GameButton label={t('home.newGame', lang)} onPress={confirmNew} />
           ) : (
             <GameButton label={t('home.play', lang)} onPress={startNew} />
           )}

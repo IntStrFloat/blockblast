@@ -4,7 +4,8 @@ import * as Haptics from 'expo-haptics';
 import { useSettings } from '@/features/settings';
 
 import { useGameStore } from '../store';
-import { clearSoundFor, initSounds, playSound } from './sounds';
+import { soundForPlacement } from './soundEvents';
+import { initSounds, playSound } from './sounds';
 
 function haptic(fn: () => Promise<void>): void {
   fn().catch(() => {}); // на части Android вибромотора нет
@@ -29,11 +30,7 @@ export function useGameFeedback(): { onGrab: () => void } {
     if (!lastEvent) return;
     const lines = lastEvent.clearedRows.length + lastEvent.clearedCols.length;
 
-    if (sound) {
-      if (lastEvent.gameOver) playSound('gameover');
-      else if (lines > 0) playSound(clearSoundFor(lastEvent.combo));
-      else playSound('drop');
-    }
+    if (sound) playSound(soundForPlacement(lastEvent));
 
     if (hapticsOn) {
       if (lastEvent.gameOver) {
@@ -48,8 +45,7 @@ export function useGameFeedback(): { onGrab: () => void } {
         haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastEvent]);
+  }, [hapticsOn, lastEvent, sound]);
 
   // Фанфара нового рекорда
   useEffect(() => {
@@ -57,8 +53,7 @@ export function useGameFeedback(): { onGrab: () => void } {
       const timer = setTimeout(() => playSound('record'), 600);
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalResult]);
+  }, [finalResult, sound]);
 
   const onGrab = useCallback(() => {
     if (sound) playSound('pickup');
