@@ -264,11 +264,7 @@ describe('nextAction — emote passthrough', () => {
         break;
       }
     }
-    // It may not appear in 500 if cooldown / low weight — just skip if not found
-    if (!found) {
-      // Log but don't fail; the emote field is tested implicitly via validity
-      expect(true).toBe(true);
-    }
+    expect(found).toBe(true);
   });
 
   it('idle action has no emote (undefined)', () => {

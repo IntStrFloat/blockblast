@@ -35,7 +35,7 @@ export function nextAction(
     if (ctx.reduceMotion && !spec.calm) return false;
 
     // Cooldown: strictly less than cooldownMs elapsed since last use
-    const lastUsed = recent.get(spec.id as ActionId);
+    const lastUsed = recent.get(spec.id);
     if (lastUsed !== undefined && now - lastUsed < spec.cooldownMs) return false;
 
     return true;
