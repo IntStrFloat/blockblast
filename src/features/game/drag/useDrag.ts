@@ -8,11 +8,11 @@ import {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
 
+import { TRAY_MOTION } from '../animation/motion';
 import { EMPTY_MASK, fitsOnBoard, previewMask, topLeftToCell } from './gridMath';
 import type { DragCtx } from './DragContext';
 
@@ -50,7 +50,7 @@ export function useDrag({
 }: UseDragOptions) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
-  const scale = useSharedValue(0.65);
+  const scale = useSharedValue<number>(TRAY_MOTION.restingScale);
   // Тень при захвате: elevation (Android) и shadowOpacity (iOS)
   const elevation = useSharedValue(0);
   const shadowOpacity = useSharedValue(0);
@@ -73,15 +73,12 @@ export function useDrag({
 
   const gesture = Gesture.Pan()
     .enabled(!disabled)
-    .onBegin(() => {
-      'worklet';
-      scale.value = withSpring(1.0, { damping: 18, stiffness: 360 });
-      elevation.value = withTiming(8, { duration: 150 });
-      shadowOpacity.value = withTiming(0.3, { duration: 150 });
-      if (onGrabJS) runOnJS(onGrabJS)();
-    })
     .onStart(() => {
       'worklet';
+      scale.value = withTiming(TRAY_MOTION.grabScale, { duration: TRAY_MOTION.grabDurationMs });
+      elevation.value = withTiming(8, { duration: TRAY_MOTION.grabDurationMs });
+      shadowOpacity.value = withTiming(0.3, { duration: TRAY_MOTION.grabDurationMs });
+      if (onGrabJS) runOnJS(onGrabJS)();
       dropR.value = -1;
       dropC.value = -1;
     })
@@ -142,16 +139,18 @@ export function useDrag({
         // translateX/Y сбросим здесь на случай если компонент переиспользуется
         translateX.value = 0;
         translateY.value = 0;
-        scale.value = 0.65;
+        scale.value = TRAY_MOTION.restingScale;
         elevation.value = 0;
         shadowOpacity.value = 0;
       } else {
-        // Невалидно — spring назад в слот
-        translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
-        translateY.value = withSpring(0, { damping: 18, stiffness: 220 });
-        scale.value = withTiming(0.65, { duration: 150 });
-        elevation.value = withTiming(0, { duration: 150 });
-        shadowOpacity.value = withTiming(0, { duration: 150 });
+        // Невалидно — короткий timing назад в слот без overshoot
+        translateX.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
+        translateY.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
+        scale.value = withTiming(TRAY_MOTION.restingScale, {
+          duration: TRAY_MOTION.returnScaleDurationMs,
+        });
+        elevation.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });
+        shadowOpacity.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });
       }
     })
     .onFinalize((_event, success) => {
@@ -164,11 +163,13 @@ export function useDrag({
       if (!success) {
         dropR.value = -1;
         dropC.value = -1;
-        translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
-        translateY.value = withSpring(0, { damping: 18, stiffness: 220 });
-        scale.value = withTiming(0.65, { duration: 150 });
-        elevation.value = withTiming(0, { duration: 150 });
-        shadowOpacity.value = withTiming(0, { duration: 150 });
+        translateX.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
+        translateY.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
+        scale.value = withTiming(TRAY_MOTION.restingScale, {
+          duration: TRAY_MOTION.returnScaleDurationMs,
+        });
+        elevation.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });
+        shadowOpacity.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });
       } else {
         // onEnd уже отработал — только сбрасываем drop-позицию
         dropR.value = -1;

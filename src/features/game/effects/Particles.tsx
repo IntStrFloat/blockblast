@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import Animated, { Keyframe } from 'react-native-reanimated';
 
+import { PARTICLE_MOTION, particleSourceIndexes } from '../animation/motion';
 import { useDragCtx } from '../drag/DragContext';
 import { useGameStore } from '../store';
-
-const MAX_PARTICLES = 24;
 
 interface Particle {
   id: string;
@@ -19,7 +18,7 @@ interface Particle {
 }
 
 /**
- * Разлетающиеся квадратики при очистке (450мс, до 24 штук — спека 04/07).
+ * Разлетающиеся квадратики при очистке: до 36 небольших фрагментов.
  * Внутри контейнера доски.
  */
 export function Particles() {
@@ -34,29 +33,32 @@ export function Particles() {
     const step = cell + gap;
     const gen = ++generation.current;
 
-    // Сэмплируем источники: не больше 12 клеток, по 2 частицы
-    const sources = lastEvent.clearedCells.filter(
-      (_, i) => i % Math.max(1, Math.ceil(lastEvent.clearedCells.length / 12)) === 0,
-    );
+    const sourceIndexes = particleSourceIndexes(lastEvent.clearedCells.length);
     const next: Particle[] = [];
-    sources.forEach(([r, c], i) => {
-      const colorId = lastEvent.clearedColors[lastEvent.clearedCells.indexOf(sources[i])] ?? 1;
+    sourceIndexes.forEach((sourceIndex, sourceOrder) => {
+      const [r, c] = lastEvent.clearedCells[sourceIndex];
+      const colorId = lastEvent.clearedColors[sourceIndex] ?? 1;
       const color = ctx.cellColors[colorId - 1] ?? '#FFFFFF';
       const cx = c * step + cell / 2;
       const cy = r * step + cell / 2;
-      for (let k = 0; k < 2 && next.length < MAX_PARTICLES; k++) {
+      for (
+        let fragment = 0;
+        fragment < PARTICLE_MOTION.fragmentsPerSource &&
+        next.length < PARTICLE_MOTION.maxParticles;
+        fragment += 1
+      ) {
         const angle = Math.random() * Math.PI * 2;
-        const dist = cell * (1.2 + Math.random() * 1.6);
+        const dist = cell * (1.4 + Math.random() * 1.8);
         next.push({
-          id: `${gen}-${i}-${k}`,
+          id: `${gen}-${sourceOrder}-${fragment}`,
           x: cx,
           y: cy,
-          size: Math.max(4, cell * (0.16 + Math.random() * 0.12)),
+          size: Math.max(3, cell * (0.12 + Math.random() * 0.1)),
           color,
           dx: Math.cos(angle) * dist,
-          dyUp: -Math.abs(Math.sin(angle)) * dist * 0.8 - cell * 0.4,
+          dyUp: -Math.abs(Math.sin(angle)) * dist * 0.9 - cell * 0.45,
           dyDown: cell * (0.8 + Math.random()),
-          rotate: `${Math.round((Math.random() - 0.5) * 240)}deg`,
+          rotate: `${Math.round((Math.random() - 0.5) * 320)}deg`,
         });
       }
     });
@@ -64,7 +66,7 @@ export function Particles() {
 
     const timer = setTimeout(() => {
       if (generation.current === gen) setParts([]);
-    }, 600);
+    }, PARTICLE_MOTION.durationMs + 120);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastEvent]);
@@ -75,14 +77,20 @@ export function Particles() {
         const kf = new Keyframe({
           0: {
             opacity: 1,
-            transform: [{ translateX: 0 }, { translateY: 0 }, { rotate: '0deg' }],
+            transform: [
+              { translateX: 0 },
+              { translateY: 0 },
+              { rotate: '0deg' },
+              { scale: 1 },
+            ],
           },
-          60: {
+          55: {
             opacity: 1,
             transform: [
               { translateX: p.dx * 0.7 },
               { translateY: p.dyUp },
               { rotate: p.rotate },
+              { scale: 0.9 },
             ],
           },
           100: {
@@ -91,9 +99,10 @@ export function Particles() {
               { translateX: p.dx },
               { translateY: p.dyUp + p.dyDown },
               { rotate: p.rotate },
+              { scale: 0.45 },
             ],
           },
-        }).duration(450);
+        }).duration(PARTICLE_MOTION.durationMs);
         return (
           <Animated.View
             key={p.id}
