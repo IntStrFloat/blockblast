@@ -66,6 +66,16 @@ export const radii = {
   button: 16,
 } as const;
 
+export const mascotPalette = {
+  body0: '#B3B9F2',
+  body1: '#7C84E6',
+  ear: '#666FD8',
+  muzzle: '#CDD2F9',
+  blush: '#F2A6D8',
+  ink: '#2B2440',
+  block: '#FFD23F',
+} as const;
+
 /** Геометрия доски от ширины экрана (спека 04). */
 export function getBoardMetrics(screenWidth: number): {
   boardSize: number;
