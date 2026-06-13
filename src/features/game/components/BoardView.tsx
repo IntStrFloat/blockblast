@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { View } from 'react-native';
 import type { LayoutChangeEvent, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { radii } from '@/ui';
+
+import { buildClearPresentation } from '../animation/clearPresentation';
+import { useReducedMotion } from '../animation/useReducedMotion';
 import { useDragCtx } from '../drag/DragContext';
 import { ClearLayer } from '../effects/ClearLayer';
-import { Particles } from '../effects/Particles';
 import { useShake } from '../effects/useShake';
 import { useGameStore } from '../store';
 import { BoardCell } from './BoardCell';
@@ -21,6 +23,14 @@ export function BoardView({ style }: BoardViewProps) {
 
   const board = useGameStore((s) => s.game.board);
   const lastEvent = useGameStore((s) => s.lastEvent);
+  const reducedMotion = useReducedMotion();
+  const presentation = useMemo(
+    () =>
+      lastEvent && lastEvent.clearedCells.length > 0
+        ? buildClearPresentation(lastEvent, geom, ctx.cellColors, reducedMotion)
+        : null,
+    [ctx.cellColors, geom, lastEvent, reducedMotion],
+  );
 
   // Синхронизация boardMirror для worklet-проверок
   useEffect(() => {
@@ -30,11 +40,8 @@ export function BoardView({ style }: BoardViewProps) {
   // Screen shake при очистке 2+ линий (спека 04)
   const { shakeStyle, triggerShake } = useShake();
   useEffect(() => {
-    if (!lastEvent) return;
-    if (lastEvent.clearedRows.length + lastEvent.clearedCols.length >= 2) {
-      triggerShake();
-    }
-  }, [lastEvent, triggerShake]);
+    if (presentation) triggerShake(presentation.shake);
+  }, [presentation, triggerShake]);
 
   // Запоминаем ref доски для measureInWindow
   const boardRef = useRef<View>(null);
@@ -89,8 +96,10 @@ export function BoardView({ style }: BoardViewProps) {
             />
           );
         })}
-        <ClearLayer />
-        <Particles />
+        <ClearLayer
+          key={lastEvent ? `${lastEvent.score}-${lastEvent.combo}` : 'clear-none'}
+          presentation={presentation}
+        />
       </View>
     </Animated.View>
   );

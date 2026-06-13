@@ -16,6 +16,7 @@ export interface SubmitResult {
 
 interface ScoresState extends ScoresData {
   submitGame: (score: number, linesCleared: number) => SubmitResult;
+  improveBest: (score: number) => SubmitResult;
   resetBest: () => void;
 }
 
@@ -45,6 +46,20 @@ export const useScores = create<ScoresState>((set, get) => ({
     set(next);
     persist(next);
     return { newRecord, delta: newRecord ? score - prev.best : 0 };
+  },
+  improveBest: (score) => {
+    const prev = get();
+    const newRecord = score > prev.best;
+    if (!newRecord) return { newRecord: false, delta: 0 };
+
+    const next: ScoresData = {
+      best: score,
+      gamesPlayed: prev.gamesPlayed,
+      totalLinesCleared: prev.totalLinesCleared,
+    };
+    set(next);
+    persist(next);
+    return { newRecord: true, delta: score - prev.best };
   },
   resetBest: () => {
     set({ best: 0 });

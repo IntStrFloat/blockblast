@@ -1,7 +1,7 @@
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import Animated, { FadeIn, FadeOut , useSharedValue } from 'react-native-reanimated';
+import { Alert, useWindowDimensions, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
@@ -15,15 +15,15 @@ import {
   useGameFeedback,
   useGameStore,
 } from '@/features/game';
+import type { DragCtx } from '@/features/game';
 import { GameOverOverlay } from '@/features/game/components/GameOverOverlay';
 import { Hud } from '@/features/game/components/Hud';
 import { PauseOverlay } from '@/features/game/components/PauseOverlay';
 import { TutorialHints } from '@/features/game/components/TutorialHints';
-import type { DragCtx } from '@/features/game';
+import { AdBanner } from '@/features/monetization';
 import { useLang, useSettings } from '@/features/settings';
 import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
 
-/** Мини-тост пасхалки (спека 06): секундный, не блокирует геймплей. */
 function EggToast() {
   const lastEvent = useGameStore((s) => s.lastEvent);
   const lang = useLang();
@@ -40,8 +40,7 @@ function EggToast() {
       if (counter.current === id) setEgg(null);
     }, 1400);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastEvent]);
+  }, [lang, lastEvent]);
 
   if (!egg) return null;
   return (
@@ -61,46 +60,83 @@ function EggToast() {
         zIndex: 60,
       }}
     >
-      <AppText preset="button">{egg.text} 🐟</AppText>
+      <AppText preset="button">
+        {egg.text} {'\u{1F41F}'}
+      </AppText>
     </Animated.View>
   );
 }
 
 export default function GameScreen() {
   const router = useRouter();
+  const lang = useLang();
+  const params = useLocalSearchParams<{
+    entry?: string | string[];
+    seed?: string | string[];
+    challengeDate?: string | string[];
+  }>();
   const { width: screenWidth } = useWindowDimensions();
   const themeId = useSettings((s) => s.themeId);
   const theme = getBlockTheme(themeId);
-
   const { boardSize, cellSize, cellGap } = getBoardMetrics(screenWidth);
-
   const geom = useMemo(
     () => ({ boardSize, cell: cellSize, gap: cellGap, pad: 0 }),
     [boardSize, cellSize, cellGap],
   );
 
-  // Shared values для drag-системы
   const boardOrigin = useSharedValue({ x: 0, y: 0 });
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
 
   const loadSaved = useGameStore((s) => s.loadSaved);
-  const newGame = useGameStore((s) => s.newGame);
+  const discardAndStartNew = useGameStore((s) => s.discardAndStartNew);
+  const tray = useGameStore((s) => s.game.tray);
+  const status = useGameStore((s) => s.game.status);
+  const [entryReady, setEntryReady] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const entryHandled = useRef(false);
 
   useEffect(() => {
-    const loaded = loadSaved();
-    if (!loaded) newGame();
-    // Только при маунте
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (entryHandled.current) return;
+    entryHandled.current = true;
 
-  const tray = useGameStore((s) => s.game.tray);
-  const [paused, setPaused] = useState(false);
+    const entry = Array.isArray(params.entry) ? params.entry[0] : params.entry;
+    if (entry === 'resume') {
+      if (!loadSaved()) {
+        router.replace('/');
+        return;
+      }
+    } else if (entry === 'new') {
+      discardAndStartNew({ mode: 'weekly' });
+    } else if (entry === 'daily') {
+      const rawSeed = Array.isArray(params.seed) ? params.seed[0] : params.seed;
+      const challengeDate = Array.isArray(params.challengeDate)
+        ? params.challengeDate[0]
+        : params.challengeDate;
+      const seed = Number(rawSeed);
+      if (!Number.isFinite(seed) || !challengeDate) {
+        router.replace('/');
+        return;
+      }
+      discardAndStartNew({ seed, mode: 'daily', challengeDate });
+    } else {
+      router.replace('/');
+      return;
+    }
 
-  // Звук + хаптика по событиям партии (спека 04)
+    const readyTimer = setTimeout(() => setEntryReady(true), 0);
+    return () => clearTimeout(readyTimer);
+  }, [
+    discardAndStartNew,
+    loadSaved,
+    params.challengeDate,
+    params.entry,
+    params.seed,
+    router,
+  ]);
+
   const { onGrab } = useGameFeedback();
-
   const onDrop = useCallback((trayIndex: number, r: number, c: number) => {
     useGameStore.getState().placePiece(trayIndex, r, c);
   }, []);
@@ -118,21 +154,32 @@ export default function GameScreen() {
       onDrop,
       onGrab,
     }),
-    // shared values стабильны; реактивные зависимости — geom/theme/колбэки
+    // Shared values are stable. Reactive inputs are geometry, theme, and callbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [geom, theme, onDrop, onGrab],
   );
 
   const goHome = useCallback(() => router.replace('/'), [router]);
-  const restart = useCallback(() => {
-    useGameStore.getState().newGame();
+  const startFresh = useCallback(() => {
+    useGameStore.getState().discardAndStartNew();
     setPaused(false);
   }, []);
+  const confirmRestart = useCallback(() => {
+    Alert.alert(t('pause.restart', lang), t('home.newGameConfirm', lang), [
+      { text: t('common.cancel', lang), style: 'cancel' },
+      { text: t('pause.restart', lang), style: 'destructive', onPress: startFresh },
+    ]);
+  }, [lang, startFresh]);
+
+  if (!entryReady) {
+    return <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']} />;
+  }
 
   return (
     <DragProvider value={dragCtx}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View
+          pointerEvents={status === 'over' ? 'none' : 'auto'}
           style={{
             flex: 1,
             alignItems: 'center',
@@ -142,14 +189,13 @@ export default function GameScreen() {
         >
           <Hud onPause={() => setPaused(true)} />
 
-          {/* Доска + похвалы поверх */}
           <View>
             <BoardView />
             <PraiseBanner />
           </View>
 
-          {/* Трей */}
-          <TrayView tray={tray} style={{ width: '100%', height: '22%' }} />
+          <TrayView tray={tray} style={{ width: '100%', height: '20%' }} />
+          <AdBanner />
         </View>
 
         <TutorialHints />
@@ -158,12 +204,12 @@ export default function GameScreen() {
         {paused ? (
           <PauseOverlay
             onResume={() => setPaused(false)}
-            onRestart={restart}
+            onRestart={confirmRestart}
             onHome={goHome}
           />
         ) : null}
 
-        <GameOverOverlay onPlayAgain={restart} onHome={goHome} />
+        <GameOverOverlay onPlayAgain={startFresh} onHome={goHome} />
       </SafeAreaView>
     </DragProvider>
   );

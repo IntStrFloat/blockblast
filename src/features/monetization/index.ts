@@ -5,8 +5,10 @@ import { EMPTY_ADS_META } from './frequency';
 import type { AdsMeta } from './frequency';
 import { NoopAdsProvider, NoopIapProvider } from './noop';
 import type { AdsProvider, IapProvider } from './types';
+import { YandexAdsProvider } from './yandexAds';
 
 export { MONETIZATION, PRODUCT_IDS } from './config';
+export { AdBanner } from './AdBanner';
 export { useEntitlements } from './entitlements';
 export {
   EMPTY_ADS_META,
@@ -24,15 +26,8 @@ export type {
   RewardedResult,
 } from './types';
 
-/**
- * Фабрики провайдеров. При включении флагов сюда добавляются
- * YandexAdsProvider / RuStoreIapProvider (шаги — спека 05), интерфейс не меняется.
- */
 export function getAds(): AdsProvider {
-  if (MONETIZATION.adsEnabled) {
-    // Здесь будет YandexAdsProvider после появления ad unit IDs.
-  }
-  return NoopAdsProvider;
+  return MONETIZATION.adsEnabled ? YandexAdsProvider : NoopAdsProvider;
 }
 
 export function getIap(): IapProvider {

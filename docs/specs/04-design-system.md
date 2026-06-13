@@ -52,11 +52,12 @@ colors: {
 
 | Событие | Анимация | Длительность |
 |---|---|---|
-| Захват фигуры | scale 0.65→1.0 spring, подъём на −60px от пальца, лёгкая тень | 150мс |
-| Возврат в слот | spring (damping 18, stiffness 220) | ~250мс |
+| Захват фигуры | весь слот + 24px вниз активирует drag; visual scale 0.65→0.92, подъём на −60px, лёгкая тень | 110мс |
+| Возврат в слот | короткий timing без overshoot | 100–130мс |
+| Появление фигур в трее | scale 0.90→1.0 + лёгкий fade, без spring | 110мс |
 | Размещение | ячейки фигуры: scale 1.15→1.0 | 120мс |
-| Очистка линий | по ячейке: scale→0 + fade, стаггер 18мс от точки размещения волной | 250мс + стаггер |
-| Частицы | 6–10 квадратиков цвета ячейки разлетаются с гравитацией (Reanimated, пул переиспользуемых вью) | 450мс |
+| Очистка линий | белый sweep линии, pop 1.18, rotate + collapse, стаггер 10мс от точки размещения | 310мс + стаггер |
+| Частицы | до 36 мелких фрагментов цвета ячейки, по 3 на sampled source, разлёт с гравитацией | 520мс |
 | Похвала | баннер: scale 0.6→1 overshoot + fade out вверх | 700мс |
 | Screen shake | translate доски ±3px, 2 цикла — только при 2+ линиях | 180мс |
 | Новый рекорд | конфетти 24 частицы + counter roll | 1.2с |
@@ -80,3 +81,20 @@ colors: {
 ## Звук (expo-audio)
 
 Короткие синтезированные сэмплы (генерируются `scripts/gen-sounds.js` в WAV, см. репо): pickup (короткий клик), drop (мягкий тук), clear1/clear2/clear3 (нарастающие мажорные арпеджио — питч растёт с комбо), gameover (нисходящий), record (фанфара-арпеджио). Все ≤400мс, ≤50КБ. Предзагрузка при входе в игру, polyphony — переиспользуемые плееры.
+
+## Spectacle clear choreography (2026-06-13)
+
+- Every completed row or column is rendered from exactly eight cell-derived contour segments.
+- Row/column intersections are deduplicated and receive one white chromatic flare.
+- Cleared blocks split into four clipped quadrants that preserve the original block face.
+- Debris is deterministic, square, axis-biased, and capped at 56 fragments plus six sparks.
+- The phase order is line lock (35-165 ms), flare (90-205 ms), crush (145-335 ms),
+  debris (175-475 ms), and praise (255-820 ms).
+- Shake severity scales from a one-line nudge to 5 px plus 1.015 scale for four lines/full clear.
+- Praise uses layered extrusion, bloom, a combo chip, and a score burst. Long labels remain on
+  one line and shrink within a 3.5% board inset.
+- Reduced motion disables shake and fragment travel, limits debris to 12, and keeps a short
+  readable contour/praise pulse.
+- Web roots (`html`, `body`, `#root`, navigation content) are always dark before hydration.
+- Player-facing leaderboard states use only saved/offline language; current remote data has no
+  technical "live backend" badge.

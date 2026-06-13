@@ -1,7 +1,7 @@
 {
   "name": "blockblast",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "dependencies": {
     "@expo-google-fonts/unbounded": "^0.4.1",
     "expo": "~56.0.11",
@@ -29,6 +29,7 @@
     "react-native-screens": "4.25.2",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.8.3",
+    "yandex-mobile-ads": "^8.1.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -47,7 +48,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "backend:build": "tsc -p backend/tsconfig.engine.json",
+    "backend:test": "npm run backend:build && node --test backend/__tests__/*.test.cjs"
   },
   "jest": {
     "preset": "jest-expo",
@@ -57,6 +60,9 @@
     "testMatch": [
       "**/__tests__/**/*.test.ts",
       "**/__tests__/**/*.test.tsx"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/.claude/worktrees/"
     ]
   },
   "private": true

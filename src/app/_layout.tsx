@@ -4,13 +4,15 @@ import {
   useFonts,
 } from '@expo-google-fonts/unbounded';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Stack } from 'expo-router';
+import { Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { getAds } from '@/features/monetization';
 import { colors } from '@/ui';
+import { appNavigationTheme } from '@/ui/navigationTheme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -21,19 +23,28 @@ export default function RootLayout() {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
 
+  useEffect(() => {
+    void getAds().init();
+  }, []);
+
   if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bgBottom }}>
+      <LinearGradient
+        colors={[colors.bgTop, colors.bgBottom]}
+        style={{ flex: 1, backgroundColor: colors.bgBottom }}
+      >
         <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: 'transparent' },
-            animation: 'fade',
-          }}
-        />
+        <ThemeProvider value={appNavigationTheme}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: 'transparent' },
+              animation: 'fade',
+            }}
+          />
+        </ThemeProvider>
       </LinearGradient>
     </GestureHandlerRootView>
   );

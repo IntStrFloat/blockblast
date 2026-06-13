@@ -6,12 +6,13 @@ import type { ReactNode } from 'react';
 
 import { t } from '@/core/i18n';
 import type { LangSetting } from '@/core/i18n';
+import { useAnalyticsStore } from '@/features/analytics';
 import { MONETIZATION } from '@/features/monetization';
 import { useScores } from '@/features/scores';
 import { useLang, useSettings } from '@/features/settings';
 import { AppText, BLOCK_THEMES, GameButton, colors, radii, spacing } from '@/ui';
 
-const PRIVACY_URL = 'http://186.246.12.198/privacy.html';
+const PRIVACY_URL = 'https://bloxx.193.160.208.95.nip.io/privacy.html';
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -51,10 +52,7 @@ function Chip({
         backgroundColor: active ? colors.accent : colors.surface,
       }}
     >
-      <AppText
-        preset="caption"
-        style={{ color: active ? '#1B2A4A' : colors.textPrimary }}
-      >
+      <AppText preset="caption" style={{ color: active ? '#1B2A4A' : colors.textPrimary }}>
         {label}
       </AppText>
     </Pressable>
@@ -65,6 +63,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const lang = useLang();
   const settings = useSettings();
+  const analyticsOptOut = useAnalyticsStore((state) => state.optOut);
+  const setAnalyticsOptOut = useAnalyticsStore((state) => state.setOptOut);
   const resetBest = useScores((s) => s.resetBest);
 
   const confirmReset = () => {
@@ -83,32 +83,25 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={{ padding: spacing.l, gap: 4 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
-            marginBottom: spacing.m,
-          }}
-        >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: spacing.m }}>
           <Pressable onPress={() => router.back()} hitSlop={8}>
-            <AppText preset="title">‹</AppText>
+            <AppText preset="title">{'<'}</AppText>
           </Pressable>
           <AppText preset="title">{t('settings.title', lang)}</AppText>
         </View>
 
-        <Row label={`🔊 ${t('settings.sound', lang)}`}>
+        <Row label={t('settings.sound', lang)}>
           <Switch
             value={settings.sound}
-            onValueChange={(v) => settings.update({ sound: v })}
+            onValueChange={(value) => settings.update({ sound: value })}
             trackColor={{ true: colors.accent }}
           />
         </Row>
 
-        <Row label={`📳 ${t('settings.haptics', lang)}`}>
+        <Row label={t('settings.haptics', lang)}>
           <Switch
             value={settings.haptics}
-            onValueChange={(v) => settings.update({ haptics: v })}
+            onValueChange={(value) => settings.update({ haptics: value })}
             trackColor={{ true: colors.accent }}
           />
         </Row>
@@ -137,15 +130,14 @@ export default function SettingsScreen() {
                 style={{
                   padding: 6,
                   borderRadius: radii.button,
-                  backgroundColor:
-                    settings.themeId === theme.id ? colors.accent : colors.surface,
+                  backgroundColor: settings.themeId === theme.id ? colors.accent : colors.surface,
                 }}
               >
                 <View style={{ flexDirection: 'row', gap: 3 }}>
-                  {theme.cellColors.slice(0, 4).map((c) => (
+                  {theme.cellColors.slice(0, 4).map((color) => (
                     <View
-                      key={c}
-                      style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: c }}
+                      key={color}
+                      style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: color }}
                     />
                   ))}
                 </View>
@@ -156,18 +148,25 @@ export default function SettingsScreen() {
 
         <Row label={t('settings.language', lang)}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            {langOptions.map((o) => (
+            {langOptions.map((option) => (
               <Chip
-                key={o.value}
-                label={o.label}
-                active={settings.lang === o.value}
-                onPress={() => settings.update({ lang: o.value })}
+                key={option.value}
+                label={option.label}
+                active={settings.lang === option.value}
+                onPress={() => settings.update({ lang: option.value })}
               />
             ))}
           </View>
         </Row>
 
-        {/* IAP — только при включённой монетизации (спека 05: кнопки скрыты, не заглушки) */}
+        <Row label={t('settings.analytics', lang)}>
+          <Switch
+            value={!analyticsOptOut}
+            onValueChange={(value) => setAnalyticsOptOut(!value)}
+            trackColor={{ true: colors.accent }}
+          />
+        </Row>
+
         {MONETIZATION.iapEnabled ? (
           <View style={{ gap: spacing.s, marginTop: spacing.m }}>
             <GameButton label={t('settings.removeAds', lang)} onPress={() => {}} />
@@ -186,7 +185,7 @@ export default function SettingsScreen() {
             </AppText>
           </Pressable>
           <AppText preset="caption">
-            {t('settings.version', lang)}: {Constants.expoConfig?.version ?? '1.0.0'}
+            {t('settings.version', lang)}: {Constants.expoConfig?.version ?? '1.1.0'}
           </AppText>
         </View>
 

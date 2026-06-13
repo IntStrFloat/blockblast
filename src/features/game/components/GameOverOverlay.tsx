@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { t } from '@/core/i18n';
+import { useLeaderboardStore } from '@/features/leaderboard';
 import {
   MONETIZATION,
   getAds,
@@ -17,6 +18,7 @@ import { shareScore } from '@/features/share';
 import { AppText, GameButton, Overlay, colors } from '@/ui';
 
 import { Confetti } from '../effects/Confetti';
+import { gameOverPresentationFor } from '../gameOverPresentation';
 import { useGameStore } from '../store';
 
 interface GameOverOverlayProps {
@@ -24,43 +26,51 @@ interface GameOverOverlayProps {
   onHome: () => void;
 }
 
-/**
- * Оверлей Game Over: появление через ~0.8с (спека 01), рекорд + конфетти,
- * revive через rewarded, interstitial по частотным правилам — после закрытия.
- */
 export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
   const game = useGameStore((s) => s.game);
+  const lastEvent = useGameStore((s) => s.lastEvent);
   const finalResult = useGameStore((s) => s.finalResult);
-  const reviveGame = useGameStore((s) => s.reviveGame);
+  const continueGame = useGameStore((s) => s.continueGame);
+  const latestImpact = useLeaderboardStore((state) => state.latestImpact);
   const removeAds = useEntitlements((s) => s.removeAds);
   const lang = useLang();
 
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [rewardedReady, setRewardedReady] = useState(false);
   const countedRef = useRef(false);
 
-  const isOver = game.status === 'over';
+  const presentation = gameOverPresentationFor(game.status, lastEvent);
+  const isOver = presentation.visible;
 
-  // Появление с задержкой + однократный учёт game over в счётчиках рекламы.
-  // Сброс состояния — в cleanup (revive/new game переключают isOver в false).
   useEffect(() => {
     if (!isOver) return;
-    if (!countedRef.current) {
+    let active = true;
+    if (presentation.fresh && !countedRef.current) {
       countedRef.current = true;
       saveAdsMeta(recordGameOver(loadAdsMeta()));
     }
-    const timer = setTimeout(() => setVisible(true), 800);
+    void getAds()
+      .init()
+      .finally(() => {
+        if (active) setRewardedReady(getAds().isRewardedReady());
+      });
+    const timer = presentation.fresh
+      ? setTimeout(() => setVisible(true), presentation.revealDelayMs)
+      : null;
     return () => {
-      clearTimeout(timer);
+      active = false;
+      if (timer) clearTimeout(timer);
       setVisible(false);
+      setRewardedReady(false);
       countedRef.current = false;
     };
-  }, [isOver]);
+  }, [isOver, presentation.fresh, presentation.revealDelayMs]);
 
-  if (!isOver || !visible) return null;
+  if (!isOver || (presentation.fresh && !visible)) return null;
 
   const newRecord = finalResult?.newRecord ?? false;
-  const canRevive = !game.reviveUsed && getAds().isRewardedReady();
+  const canRevive = !game.reviveUsed && rewardedReady;
 
   const closeWithInterstitial = async (after: () => void) => {
     if (busy) return;
@@ -73,8 +83,10 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
         nowMs: Date.now(),
       });
       if (show) {
-        await getAds().showInterstitial('gameover');
-        saveAdsMeta(recordInterstitialShown(meta, Date.now()));
+        const result = await getAds().showInterstitial('gameover');
+        if (result === 'shown') {
+          saveAdsMeta(recordInterstitialShown(meta, Date.now()));
+        }
       }
     } finally {
       setBusy(false);
@@ -87,7 +99,8 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
     setBusy(true);
     try {
       const result = await getAds().showRewarded('revive');
-      if (result === 'rewarded') reviveGame();
+      if (result === 'rewarded') continueGame();
+      setRewardedReady(getAds().isRewardedReady());
     } finally {
       setBusy(false);
     }
@@ -98,7 +111,7 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
       {newRecord ? <Confetti height={280} /> : null}
 
       <AppText preset="title" style={{ textAlign: 'center' }}>
-        {newRecord ? `🏆 ${t('gameOver.newRecord', lang)}` : t('gameOver.title', lang)}
+        {newRecord ? t('gameOver.newRecord', lang) : t('gameOver.title', lang)}
       </AppText>
 
       <View style={{ alignItems: 'center', gap: 4 }}>
@@ -110,6 +123,32 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
           </AppText>
         ) : null}
       </View>
+
+      {latestImpact ? (
+        <View
+          style={{
+            borderRadius: 16,
+            backgroundColor: colors.surface,
+            padding: 12,
+            gap: 4,
+          }}
+        >
+          <AppText preset="caption">{t('gameOver.weeklyImpact', lang)}</AppText>
+          <AppText preset="body">
+            {latestImpact.queued
+              ? t('gameOver.queued', lang)
+              : `${t('gameOver.weeklyBestLabel', lang)}: ${latestImpact.score}`}
+          </AppText>
+          {!latestImpact.queued ? (
+            <AppText preset="caption">
+              {latestImpact.rank !== null ? `#${latestImpact.rank}` : t('leaderboard.unranked', lang)}
+              {latestImpact.rankDelta && latestImpact.rankDelta > 0
+                ? ` / ${t('gameOver.rankDelta', lang)} ${latestImpact.rankDelta}`
+                : ''}
+            </AppText>
+          ) : null}
+        </View>
+      ) : null}
 
       {canRevive ? (
         <GameButton
@@ -128,7 +167,7 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
 
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <GameButton
-          label={`↗ ${t('gameOver.share', lang)}`}
+          label={t('gameOver.share', lang)}
           variant="ghost"
           style={{ flex: 1 }}
           onPress={() => shareScore(game.score, newRecord, lang)}

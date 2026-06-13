@@ -58,3 +58,20 @@ IAP отсутствуют полностью — даже Remove Ads.
 - God Mode не делаем в v1; в движке заложена `trayPolicy` для будущего.
 
 Источники: onlineblockblastsolver.com/block-blast-score-rules, blockpuzzlesolver.com/scoring, Balancy/Gamigion deconstructions, Udonis statistics, Deconstructor of Fun (2026-01), Playgama FAQ.
+
+## Animation reference update (2026-06-13)
+
+The current App Store listing observed during implementation was Block Blast version 7.1.6,
+released June 11, 2026. Public store screenshots and supplied gameplay frames establish the
+visual language but do not expose frame-accurate timings, so choreography timings in this
+project are implementation measurements rather than claims about the original binary.
+
+Observed reference traits:
+
+- Completed axes receive a continuous colored bloom with crisp block-edge highlights.
+- Cross clears intensify the shared intersection instead of stacking duplicate effects.
+- Blocks retain their beveled face briefly, then break into compact square fragments.
+- Score and praise feedback are centered on the clear and remain readable over the board.
+
+Our approved "maximum spectacle" adaptation intentionally increases rainbow bloom, debris,
+shake, and praise scale while retaining exact 8x8 cell geometry and reduced-motion behavior.

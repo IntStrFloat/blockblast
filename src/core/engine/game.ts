@@ -165,10 +165,18 @@ export function place(
 }
 
 /** Второй шанс: чистая доска, счёт и трей сохраняются. Один раз за партию. */
-export function revive(state: GameState): GameState {
+type RevivableGameState = GameState & { status: 'over'; reviveUsed: false };
+
+export function revive(state: RevivableGameState): GameState;
+export function revive(state: GameState): GameState | null;
+export function revive(state: GameState): GameState | null {
+  if (state.status !== 'over' || state.reviveUsed) return null;
+
   return {
     ...state,
     board: emptyBoard(),
+    combo: 0,
+    movesSinceClear: 0,
     status: 'playing',
     reviveUsed: true,
   };

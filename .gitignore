@@ -47,3 +47,10 @@ example
 
 # local build artifacts (APKs)
 /dist/
+/web-dist/
+/web-dist.tgz
+/.omx/
+
+# generated backend runtime and local data
+/backend/runtime/
+/backend/data/
