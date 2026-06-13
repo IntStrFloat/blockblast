@@ -25,8 +25,8 @@ export const KEYS = {
 } as const;
 
 export function getJSON<T>(key: string): T | null {
-  const raw = storage.getString(key);
-  if (raw === undefined) return null;
+  const raw = getString(key);
+  if (raw === null) return null;
   try {
     return JSON.parse(raw) as T;
   } catch {
@@ -35,17 +35,29 @@ export function getJSON<T>(key: string): T | null {
 }
 
 export function setJSON(key: string, value: unknown): void {
-  storage.set(key, JSON.stringify(value));
+  setString(key, JSON.stringify(value));
 }
 
 export function getString(key: string): string | null {
-  return storage.getString(key) ?? null;
+  try {
+    return storage.getString(key) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function setString(key: string, value: string): void {
-  storage.set(key, value);
+  try {
+    storage.set(key, value);
+  } catch {
+    // Browser storage is unavailable during Expo server rendering.
+  }
 }
 
 export function removeKey(key: string): void {
-  storage.remove(key);
+  try {
+    storage.remove(key);
+  } catch {
+    // Browser storage is unavailable during Expo server rendering.
+  }
 }

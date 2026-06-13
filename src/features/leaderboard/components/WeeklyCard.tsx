@@ -7,6 +7,7 @@ import { useLang } from '@/features/settings';
 import { AppText, colors, radii, spacing } from '@/ui';
 
 import { useLeaderboardStore } from '../store';
+import { weeklyStatusLabel } from '../presentation';
 import { getWeeklyGoal } from '../week';
 
 interface WeeklyCardProps {
@@ -35,12 +36,7 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
     }
   }, [goalCurrent, goalTarget, snapshot?.isCached]);
 
-  const statusLabel =
-    viewState === 'cached'
-      ? t('leaderboard.cached', lang)
-      : snapshot?.source === 'remote'
-        ? t('leaderboard.live', lang)
-        : t('leaderboard.offline', lang);
+  const statusLabel = weeklyStatusLabel(viewState, snapshot?.source, lang);
 
   return (
     <Pressable
@@ -56,7 +52,7 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <AppText preset="caption">{t('leaderboard.weeklyTitle', lang)}</AppText>
-        <AppText preset="caption">{statusLabel}</AppText>
+        {statusLabel ? <AppText preset="caption">{statusLabel}</AppText> : null}
       </View>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>

@@ -30,6 +30,23 @@ export const PARTICLE_MOTION = {
   durationMs: 520,
 } as const;
 
+export const SPECTACLE_MOTION = {
+  placementEndMs: 90,
+  lineLockStartMs: 35,
+  lineLockEndMs: 165,
+  flareStartMs: 90,
+  flareEndMs: 205,
+  crushStartMs: 145,
+  crushEndMs: 335,
+  debrisStartMs: 175,
+  debrisEndMs: 475,
+  praiseStartMs: 255,
+  praiseEndMs: 820,
+  maxDebris: 56,
+  reducedDebris: 12,
+  sparkCount: 6,
+} as const;
+
 type Cell = readonly [number, number];
 
 export function clearCellDelay(cell: Cell, placed: readonly Cell[]): number {

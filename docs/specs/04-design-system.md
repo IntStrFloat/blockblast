@@ -81,3 +81,20 @@ colors: {
 ## Звук (expo-audio)
 
 Короткие синтезированные сэмплы (генерируются `scripts/gen-sounds.js` в WAV, см. репо): pickup (короткий клик), drop (мягкий тук), clear1/clear2/clear3 (нарастающие мажорные арпеджио — питч растёт с комбо), gameover (нисходящий), record (фанфара-арпеджио). Все ≤400мс, ≤50КБ. Предзагрузка при входе в игру, polyphony — переиспользуемые плееры.
+
+## Spectacle clear choreography (2026-06-13)
+
+- Every completed row or column is rendered from exactly eight cell-derived contour segments.
+- Row/column intersections are deduplicated and receive one white chromatic flare.
+- Cleared blocks split into four clipped quadrants that preserve the original block face.
+- Debris is deterministic, square, axis-biased, and capped at 56 fragments plus six sparks.
+- The phase order is line lock (35-165 ms), flare (90-205 ms), crush (145-335 ms),
+  debris (175-475 ms), and praise (255-820 ms).
+- Shake severity scales from a one-line nudge to 5 px plus 1.015 scale for four lines/full clear.
+- Praise uses layered extrusion, bloom, a combo chip, and a score burst. Long labels remain on
+  one line and shrink within a 3.5% board inset.
+- Reduced motion disables shake and fragment travel, limits debris to 12, and keeps a short
+  readable contour/praise pulse.
+- Web roots (`html`, `body`, `#root`, navigation content) are always dark before hydration.
+- Player-facing leaderboard states use only saved/offline language; current remote data has no
+  technical "live backend" badge.

@@ -5,7 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
-import { LeaderboardRow, Podium, getUtcWeekCountdown, useLeaderboardStore } from '@/features/leaderboard';
+import {
+  LeaderboardRow,
+  Podium,
+  getUtcWeekCountdown,
+  useLeaderboardStore,
+  weeklyStatusLabel,
+} from '@/features/leaderboard';
 import { useLang } from '@/features/settings';
 import { AppText, colors, radii, spacing } from '@/ui';
 
@@ -51,6 +57,7 @@ export default function LeaderboardScreen() {
     Boolean(snapshot?.currentPlayer) &&
     !entries.some((entry) => entry.tag === snapshot?.currentPlayer.tag) &&
     snapshot?.currentPlayer.rank !== null;
+  const statusLabel = weeklyStatusLabel(viewState, snapshot?.source, lang);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -89,13 +96,7 @@ export default function LeaderboardScreen() {
                 gap: spacing.s,
               }}
             >
-              <AppText preset="caption">
-                {viewState === 'cached'
-                  ? t('leaderboard.cached', lang)
-                  : snapshot?.source === 'remote'
-                    ? t('leaderboard.live', lang)
-                    : t('leaderboard.offline', lang)}
-              </AppText>
+              {statusLabel ? <AppText preset="caption">{statusLabel}</AppText> : null}
               {viewState === 'loading' ? (
                 <AppText preset="body">{t('leaderboard.loading', lang)}</AppText>
               ) : viewState === 'empty' ? (

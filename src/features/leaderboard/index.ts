@@ -8,6 +8,7 @@ export {
 export { WeeklyCard } from './components/WeeklyCard';
 export { Podium } from './components/Podium';
 export { LeaderboardRow } from './components/LeaderboardRow';
+export { weeklyStatusLabel } from './presentation';
 export { appendRunMove, beginRunProof, finalizeRunProof } from './runProof';
 export { createLeaderboardStore, useLeaderboardStore } from './store';
 export {
