@@ -164,6 +164,29 @@ export function place(
   return { state: next, event };
 }
 
+export function replaceTrayPiece(
+  state: GameState,
+  trayIndex: number,
+  config: GameConfig = DEFAULT_CONFIG,
+): GameState {
+  const exclude = new Set<string>();
+  for (let i = 0; i < state.tray.length; i++) {
+    if (i !== trayIndex) {
+      const slot = state.tray[i];
+      if (slot !== null) exclude.add(slot.shape.id);
+    }
+  }
+  const picked = pickWeighted(state.rngState, exclude);
+  const color = rngInt(picked.state, config.colors);
+  const newTray = state.tray.slice();
+  newTray[trayIndex] = { shape: picked.shape, colorId: color.value + 1 };
+  return {
+    ...state,
+    tray: newTray,
+    rngState: color.state,
+  };
+}
+
 /** Второй шанс: чистая доска, счёт и трей сохраняются. Один раз за партию. */
 export function revive(state: GameState): GameState {
   return {

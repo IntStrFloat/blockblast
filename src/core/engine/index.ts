@@ -12,5 +12,5 @@ export {
   isBoardEmpty,
 } from './board';
 export { scorePlacement, praiseFor } from './scoring';
-export { createGame, place, revive } from './game';
+export { createGame, place, replaceTrayPiece, revive } from './game';
 export { serialize, deserialize } from './serialize';
