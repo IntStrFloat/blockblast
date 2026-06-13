@@ -41,17 +41,6 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
   const appearScale = useSharedValue<number>(TRAY_MOTION.appearFromScale);
   const appearOpacity = useSharedValue<number>(0.7);
 
-  const { gesture, animatedStyle } = useDrag({
-    trayIndex,
-    cells,
-    w,
-    h,
-    colorId,
-    disabled,
-    ctx,
-    slotMeasure,
-  });
-
   useEffect(() => {
     appearScale.value = TRAY_MOTION.appearFromScale;
     appearOpacity.value = 0.7;
@@ -69,12 +58,29 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
   const figW = w * cell + (w > 1 ? (w - 1) * gap : 0);
   const figH = h * cell + (h > 1 ? (h - 1) * gap : 0);
 
-  const onContainerLayout = useCallback(() => {
+  const measureSlot = useCallback(() => {
     // measureInWindow нельзя вызывать в worklet — снимаем на JS при layout
     containerRef.current?.measureInWindow((x, y, width, height) => {
       slotMeasure.value = { x, y, width, height };
     });
   }, [slotMeasure]);
+
+  const measureForDrag = useCallback(() => {
+    measureSlot();
+    ctx.boardMeasureRef.current?.();
+  }, [ctx.boardMeasureRef, measureSlot]);
+
+  const { gesture, animatedStyle } = useDrag({
+    trayIndex,
+    cells,
+    w,
+    h,
+    colorId,
+    disabled,
+    ctx,
+    slotMeasure,
+    measureForDrag,
+  });
 
   return (
     <GestureDetector gesture={gesture}>
@@ -93,7 +99,7 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
         <View
           ref={containerRef}
           collapsable={false}
-          onLayout={onContainerLayout}
+          onLayout={measureSlot}
           style={{
             position: 'absolute',
             top: 0,

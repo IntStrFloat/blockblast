@@ -38,11 +38,18 @@ describe('drag update source contract', () => {
 describe('layout measurement source contract', () => {
   const boardSource = fs.readFileSync(`${__dirname}/../components/BoardView.tsx`, 'utf8');
   const traySource = fs.readFileSync(`${__dirname}/../components/TrayPiece.tsx`, 'utf8');
+  const dragSource = fs.readFileSync(`${__dirname}/../drag/useDrag.ts`, 'utf8');
 
   it('remeasures board and tray slot positions after layout changes', () => {
     expect(boardSource).toContain('onLayout={onLayout}');
     expect(boardSource).toContain('measureInWindow');
-    expect(traySource).toContain('onLayout={onContainerLayout}');
+    expect(traySource).toContain('onLayout={measureSlot}');
     expect(traySource).toContain('measureInWindow');
+  });
+
+  it('remeasures board and tray immediately before each drag', () => {
+    expect(traySource).toContain('measureForDrag');
+    expect(traySource).toContain('ctx.boardMeasureRef.current?.()');
+    expect(dragSource).toContain('runOnJS(measureForDrag)()');
   });
 });

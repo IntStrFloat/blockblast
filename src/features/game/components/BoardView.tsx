@@ -52,6 +52,13 @@ export function BoardView({ style }: BoardViewProps) {
     });
   }, [ctx.boardOrigin]);
 
+  useEffect(() => {
+    ctx.boardMeasureRef.current = measureBoard;
+    return () => {
+      if (ctx.boardMeasureRef.current === measureBoard) ctx.boardMeasureRef.current = null;
+    };
+  }, [ctx.boardMeasureRef, measureBoard]);
+
   const onLayout = useCallback(
     (_e: LayoutChangeEvent) => {
       // setTimeout 0 гарантирует валидную позицию после layout-pass

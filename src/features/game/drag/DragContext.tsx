@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { MutableRefObject } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 
 export interface BoardGeometry {
@@ -12,9 +13,11 @@ export interface DragCtx {
   geom: BoardGeometry;
   /** Позиция доски в координатах окна (measureInWindow) */
   boardOrigin: SharedValue<{ x: number; y: number }>;
+  /** Актуализирует позицию доски перед началом drag */
+  boardMeasureRef: MutableRefObject<(() => void) | null>;
   /** Зеркало доски для worklet-проверок */
   boardMirror: SharedValue<number[]>;
-  /** Маска превью 0/1/2 (gridMath.previewMask) */
+  /** Битовая маска превью: 1 — фигура, 2 — собираемая линия */
   preview: SharedValue<number[]>;
   /** colorId перетаскиваемой фигуры (0 — нет drag) */
   previewColor: SharedValue<number>;

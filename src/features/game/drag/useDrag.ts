@@ -24,6 +24,7 @@ import {
 import type { DragCtx } from './DragContext';
 
 const PIECE_LIFT_PX = 60;
+const PREVIEW_LIFT_ROWS = 2;
 
 /** Позиция слота в координатах окна — снимается на measureInWindow */
 export interface SlotMeasure {
@@ -45,6 +46,8 @@ export interface UseDragOptions {
   ctx: DragCtx;
   /** SharedValue позиции слота в окне (measureInWindow на layout) */
   slotMeasure: SharedValue<SlotMeasure>;
+  /** Актуализирует позиции слота и доски непосредственно перед drag */
+  measureForDrag: () => void;
 }
 
 export function useDrag({
@@ -56,6 +59,7 @@ export function useDrag({
   disabled,
   ctx,
   slotMeasure,
+  measureForDrag,
 }: UseDragOptions) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -84,6 +88,7 @@ export function useDrag({
     .enabled(!disabled)
     .onStart(() => {
       'worklet';
+      runOnJS(measureForDrag)();
       scale.value = withTiming(TRAY_MOTION.grabScale, { duration: TRAY_MOTION.grabDurationMs });
       elevation.value = withTiming(8, { duration: TRAY_MOTION.grabDurationMs });
       shadowOpacity.value = withTiming(0.3, { duration: TRAY_MOTION.grabDurationMs });
@@ -112,7 +117,7 @@ export function useDrag({
         figureWidth: figW,
         figureHeight: figH,
         pieceLiftPx: PIECE_LIFT_PX,
-        previewGapPx: gapPx,
+        previewLiftPx: PREVIEW_LIFT_ROWS * (cellPx + gapPx),
       });
 
       const { r, c } = topLeftToCell(topLeft.preview.x, topLeft.preview.y, {
@@ -128,7 +133,7 @@ export function useDrag({
         dropR.value = r;
         dropC.value = c;
         if (positionChanged) {
-          preview.value = previewMask(cellsCapture, r, c);
+          preview.value = previewMask(boardMirror.value, cellsCapture, r, c);
           previewColor.value = colorId;
         }
       } else {

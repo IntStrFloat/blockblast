@@ -85,6 +85,7 @@ export default function GameScreen() {
   );
 
   const boardOrigin = useSharedValue({ x: 0, y: 0 });
+  const boardMeasureRef = useRef<(() => void) | null>(null);
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
@@ -145,6 +146,7 @@ export default function GameScreen() {
     () => ({
       geom,
       boardOrigin,
+      boardMeasureRef,
       boardMirror,
       preview,
       previewColor,
