@@ -20,7 +20,9 @@ describe('drop lifecycle', () => {
 
 describe('drag update source contract', () => {
   const source = fs.readFileSync(`${__dirname}/../drag/useDrag.ts`, 'utf8');
-  const updateBody = source.match(/\.onUpdate\(\(event\) => \{([\s\S]*?)\n    \}\)\n    \.onEnd/)?.[1];
+  const updateBody = source.match(
+    /\.onUpdate\(\(event\) => \{([\s\S]*?)\r?\n    \}\)\r?\n    \.onEnd/,
+  )?.[1];
 
   it('keeps bridge, persistence, audio, and React state work out of onUpdate', () => {
     expect(updateBody).toBeDefined();
