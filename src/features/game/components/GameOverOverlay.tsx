@@ -35,20 +35,29 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
 
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [rewardedReady, setRewardedReady] = useState(false);
   const countedRef = useRef(false);
 
   const isOver = game.status === 'over';
 
   useEffect(() => {
     if (!isOver) return;
+    let active = true;
     if (!countedRef.current) {
       countedRef.current = true;
       saveAdsMeta(recordGameOver(loadAdsMeta()));
     }
+    void getAds()
+      .init()
+      .finally(() => {
+        if (active) setRewardedReady(getAds().isRewardedReady());
+      });
     const timer = setTimeout(() => setVisible(true), 800);
     return () => {
+      active = false;
       clearTimeout(timer);
       setVisible(false);
+      setRewardedReady(false);
       countedRef.current = false;
     };
   }, [isOver]);
@@ -56,7 +65,7 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
   if (!isOver || !visible) return null;
 
   const newRecord = finalResult?.newRecord ?? false;
-  const canRevive = !game.reviveUsed && getAds().isRewardedReady();
+  const canRevive = !game.reviveUsed && rewardedReady;
 
   const closeWithInterstitial = async (after: () => void) => {
     if (busy) return;
@@ -69,8 +78,10 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
         nowMs: Date.now(),
       });
       if (show) {
-        await getAds().showInterstitial('gameover');
-        saveAdsMeta(recordInterstitialShown(meta, Date.now()));
+        const result = await getAds().showInterstitial('gameover');
+        if (result === 'shown') {
+          saveAdsMeta(recordInterstitialShown(meta, Date.now()));
+        }
       }
     } finally {
       setBusy(false);
@@ -84,6 +95,7 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
     try {
       const result = await getAds().showRewarded('revive');
       if (result === 'rewarded') reviveGame();
+      setRewardedReady(getAds().isRewardedReady());
     } finally {
       setBusy(false);
     }

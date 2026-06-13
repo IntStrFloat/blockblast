@@ -19,6 +19,7 @@ import { GameOverOverlay } from '@/features/game/components/GameOverOverlay';
 import { Hud } from '@/features/game/components/Hud';
 import { PauseOverlay } from '@/features/game/components/PauseOverlay';
 import { TutorialHints } from '@/features/game/components/TutorialHints';
+import { AdBanner } from '@/features/monetization';
 import type { DragCtx } from '@/features/game';
 import { useLang, useSettings } from '@/features/settings';
 import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
@@ -149,7 +150,8 @@ export default function GameScreen() {
           </View>
 
           {/* Трей */}
-          <TrayView tray={tray} style={{ width: '100%', height: '22%' }} />
+          <TrayView tray={tray} style={{ width: '100%', height: '20%' }} />
+          <AdBanner />
         </View>
 
         <TutorialHints />

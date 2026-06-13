@@ -1,18 +1,18 @@
 # 05 — Монетизация (реклама + IAP, RuStore)
 
-Статус: утверждено · Обновлено: 2026-06-12
+Статус: реализовано · Обновлено: 2026-06-13
 
 ## Модель
 
 Гибрид (улучшение оригинала, у которого только реклама):
-1. **Реклама**: interstitial после Game Over + rewarded за Revive (+ баннер на игровом экране — опционально, флагом).
+1. **Реклама**: interstitial после каждого третьего Game Over + rewarded за Revive + sticky-баннер под треем фигур.
 2. **IAP**: `remove_ads` (non-consumable) — убирает interstitial и баннер, rewarded-revive остаётся (это услуга игроку). Задел под косметику (скины) в v1.1.
 
-Принципы из [06-audience.md](06-audience.md): никакой рекламы в первых 3 партиях, никогда — во время геймплея, rewarded — только добровольно.
+Принципы из [06-audience.md](06-audience.md): interstitial не показывается после первых двух партий и никогда не прерывает геймплей; rewarded — только добровольно.
 
 ## Архитектура (features/monetization)
 
-Все SDK — за интерфейсами. Приложение всегда собирается и работает с Noop-реализациями; реальные провайдеры включаются флагами, когда появятся креды.
+Все SDK — за интерфейсами. Native-сборка использует Yandex Mobile Ads, web и тесты — platform-safe Noop-реализацию.
 
 ```ts
 interface AdsProvider {
@@ -29,22 +29,22 @@ interface IapProvider {
 }
 ```
 
-- `NoopAdsProvider` / `NoopIapProvider` — дефолт: rewarded → `'unavailable'` (кнопка Revive скрыта… НО в dev-сборках флаг `FAKE_REWARDED=true` даёт revive бесплатно для теста UX).
+- `NoopAdsProvider` / `NoopIapProvider`: web/test fallback; rewarded → `'unavailable'`.
 - Выбор провайдера — фабрика по флагам в `monetization/config.ts`:
 
 ```ts
 export const MONETIZATION = {
-  adsEnabled: false,          // включить при наличии Yandex ad unit IDs
-  bannerEnabled: false,       // отдельно: баннер агрессивнее, решение после метрик
+  adsEnabled: true,
+  bannerEnabled: true,
   iapEnabled: false,          // включить при регистрации в RuStore Console
-  interstitial: { minGamesBeforeFirst: 3, minIntervalSec: 120, everyNGameovers: 2 },
-  fakeRewardedInDev: true,
+  interstitial: { minGamesBeforeFirst: 3, minIntervalSec: 0, everyNGameovers: 3 },
+  fakeRewardedInDev: false,
 };
 ```
 
 ## Частотные правила interstitial
 
-Показ после закрытия Game Over-оверлея, если: партий сыграно ≥ 3 И с прошлого показа ≥ 120 сек И это каждый 2-й game over И `remove_ads` не куплен. Счётчики — MMKV (`ads.meta`).
+Показ при выходе из Game Over-оверлея после 3-го, 6-го, 9-го и далее проигрыша, если `remove_ads` не куплен. Счётчик сбрасывается только после фактического показа. Счётчики — MMKV (`ads.meta`).
 
 ## Entitlements
 
@@ -56,8 +56,8 @@ export const MONETIZATION = {
 
 - Пакет: **`yandex-mobile-ads@8.1.0`** — официальный RN-пакет Яндекса.
 - Форматы: sticky banner, interstitial, rewarded, app open. Требования: minSdk 23+, iOS 13+.
-- Expo: config plugin отсутствует → нужен `npx expo prebuild` (мы и так в prebuild-пайплайне для APK).
-- Шаги включения: (1) кабинет partner.yandex — создать приложение и ad units (interstitial + rewarded), (2) `npm i yandex-mobile-ads`, prebuild, (3) написать `YandexAdsProvider implements AdsProvider` (~80 строк, обёртка init/load/show), (4) ad unit IDs → `monetization/config.ts`, `adsEnabled: true`, (5) demo-ad-unit-ids для теста: `demo-interstitial-yandex`, `demo-rewarded-yandex`.
+- Expo: пакет подключается через React Native autolinking в prebuild/native-сборке.
+- Ad unit IDs публичны и имеют env-overrides `EXPO_PUBLIC_YANDEX_*_AD_UNIT_ID`. OAuth/UAuth-токен кабинета не используется приложением и хранится только локально вне git.
 
 ### IAP Android — RuStore Billing
 
@@ -70,5 +70,6 @@ export const MONETIZATION = {
 
 ## Состояние v1 (этой сборки)
 
-- ✅ Интерфейсы, Noop-провайдеры, фабрика, флаги, частотные правила, entitlements-стор, кнопки «Убрать рекламу»/«Восстановить» в настройках (показывают «недоступно в этой сборке» при `iapEnabled:false` — или скрыты), revive-флоу через `AdsProvider`.
-- ⬜ Подключение реальных SDK — по шагам выше, когда появятся аккаунты Yandex Ads / RuStore Console. Код приложения при этом не меняется — только провайдеры и флаги.
+- ✅ Yandex Mobile Ads: preload/reload interstitial и rewarded, sticky-баннер под треем, revive только после reward-события.
+- ✅ Platform-safe web/test fallback, частотные правила, entitlements-стор и `remove_ads`-проверки.
+- ⬜ RuStore IAP остаётся выключенным до регистрации продукта.

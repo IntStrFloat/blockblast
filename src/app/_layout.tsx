@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { getAds } from '@/features/monetization';
 import { colors } from '@/ui';
 import { appNavigationTheme } from '@/ui/navigationTheme';
 
@@ -21,6 +22,10 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
+
+  useEffect(() => {
+    void getAds().init();
+  }, []);
 
   if (!fontsLoaded) return null;
 

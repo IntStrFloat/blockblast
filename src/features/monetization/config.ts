@@ -1,25 +1,27 @@
-/**
- * Флаги монетизации (спека 05).
- * Реальные SDK включаются здесь, когда появятся креды Yandex Ads / RuStore Console —
- * код экранов при этом не меняется.
- */
 export const MONETIZATION = {
   /** Interstitial + rewarded через Yandex Mobile Ads */
-  adsEnabled: false,
-  /** Баннер на игровом экране — отдельное решение после метрик */
-  bannerEnabled: false,
+  adsEnabled: true,
+  /** Sticky-баннер под треем фигур */
+  bannerEnabled: true,
   /** Покупки RuStore (remove_ads) */
   iapEnabled: false,
-  interstitial: {
-    /** Не показывать рекламу первые N партий */
-    minGamesBeforeFirst: 3,
-    /** Минимум секунд между interstitial */
-    minIntervalSec: 120,
-    /** Показ на каждый N-й game over */
-    everyNGameovers: 2,
+  yandex: {
+    bannerAdUnitId:
+      process.env.EXPO_PUBLIC_YANDEX_BANNER_AD_UNIT_ID ?? 'R-M-19434156-1',
+    rewardedAdUnitId:
+      process.env.EXPO_PUBLIC_YANDEX_REWARDED_AD_UNIT_ID ?? 'R-M-19434156-3',
+    interstitialAdUnitId:
+      process.env.EXPO_PUBLIC_YANDEX_INTERSTITIAL_AD_UNIT_ID ?? 'R-M-19434156-4',
   },
-  /** В dev-сборках rewarded всегда «успешен» — для теста revive-флоу */
-  fakeRewardedInDev: true,
+  interstitial: {
+    /** Первый показ на третьем проигрыше */
+    minGamesBeforeFirst: 3,
+    /** Частота определяется проигрышами, без дополнительного таймера */
+    minIntervalSec: 0,
+    /** Затем показ на каждый третий game over */
+    everyNGameovers: 3,
+  },
+  fakeRewardedInDev: false,
 } as const;
 
 export const PRODUCT_IDS = {
