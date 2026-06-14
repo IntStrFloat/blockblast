@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -78,19 +78,21 @@ function MascotLayerInner({ dragActive }: MascotLayerProps) {
   // translateX всего слота (тень + маскот + эмоция) — горизонтальный ход Капи.
   const trackStyle = useAnimatedStyle(() => ({ transform: [{ translateX: motion.x.value }] }));
 
-  // Тап по Капи: сердечко + лёгкий подскок.
-  const handleTap = useCallback(() => {
-    showEmote('heart');
+  // Тап по Капи: подскок — прямо в worklet (UI-поток), сердечко — через runOnJS.
+  // react-compiler's react-hooks/refs ложно срабатывает на жесте-worklet, который
+  // трогает Reanimated shared values и создаётся внутри компонента (тот же паттерн
+  // в useDrag проходит лишь потому, что живёт в кастомном хуке). Колбэк исполняется
+  // на UI-потоке в момент тапа, не во время рендера — доступ безопасен.
+  /* eslint-disable react-hooks/refs */
+  const tap = Gesture.Tap().onEnd(() => {
+    'worklet';
     motion.bob.value = withSequence(
       withTiming(-10, { duration: 140 }),
       withSpring(0, { damping: 10, stiffness: 220 }),
     );
-  }, [motion, showEmote]);
-
-  const tap = useMemo(
-    () => Gesture.Tap().onEnd(() => runOnJS(handleTap)()),
-    [handleTap],
-  );
+    runOnJS(showEmote)('heart');
+  });
+  /* eslint-enable react-hooks/refs */
 
   return (
     <View style={styles.layer} pointerEvents="box-none">

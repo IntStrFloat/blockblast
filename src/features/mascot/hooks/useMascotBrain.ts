@@ -231,8 +231,11 @@ export function useMascotBrain(params: MascotBrainParams): void {
   const { dragActive } = params;
 
   // Свежие значения параметров для долгоживущих таймеров/подписок.
+  // Обновляем в эффекте, а не в теле рендера (правило react-hooks/refs).
   const paramsRef = useRef(params);
-  paramsRef.current = params;
+  useEffect(() => {
+    paramsRef.current = params;
+  });
 
   // Карта {actionId → ts последнего применения} для кулдаунов.
   const recentRef = useRef<Map<ActionId, number>>(new Map());
@@ -323,7 +326,6 @@ export function useMascotBrain(params: MascotBrainParams): void {
       unsubscribe();
     };
     // Один раз на маунт: внутри читаем свежие значения из refs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- Пауза/возобновление по сигналу drag (UI-поток → JS один раз на смену) ---
