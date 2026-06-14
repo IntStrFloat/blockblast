@@ -20,6 +20,7 @@ import { GameOverOverlay } from '@/features/game/components/GameOverOverlay';
 import { Hud } from '@/features/game/components/Hud';
 import { PauseOverlay } from '@/features/game/components/PauseOverlay';
 import { TutorialHints } from '@/features/game/components/TutorialHints';
+import { NewRecordCelebration } from '@/features/game/effects/NewRecordCelebration';
 import { AdBanner } from '@/features/monetization';
 import { useLang, useSettings } from '@/features/settings';
 import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
@@ -202,6 +203,7 @@ export default function GameScreen() {
 
         <TutorialHints />
         <EggToast />
+        <NewRecordCelebration />
 
         {paused ? (
           <PauseOverlay

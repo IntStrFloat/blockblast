@@ -4,31 +4,87 @@ import Animated, { Keyframe } from 'react-native-reanimated';
 
 import { BLOCK_THEMES } from '@/ui';
 
+import { createSeedHasher, seededRandom } from '../animation/presentationMath';
+
 const COUNT = 24;
 
-interface ConfettiProps {
-  /** Высота зоны падения */
-  height?: number;
-  colors?: string[];
+export interface ConfettiPiece {
+  id: number;
+  leftPct: number;
+  size: number;
+  color: string;
+  delay: number;
+  drift: number;
+  rotate: string;
+  testID?: string;
 }
 
-/** Конфетти нового рекорда: 24 частицы, 1.2с (спека 04). Монтировать по факту события. */
-export function Confetti({ height = 360, colors }: ConfettiProps) {
-  const palette = colors ?? BLOCK_THEMES[0].cellColors;
+interface BuildConfettiPiecesOptions {
+  count?: number;
+  height?: number;
+  palette: readonly string[];
+  seed?: number;
+  testIdPrefix?: string;
+}
 
-  const pieces = useMemo(
+interface ConfettiProps {
+  height?: number;
+  colors?: string[];
+  palette?: string[];
+  count?: number;
+  pieces?: ConfettiPiece[];
+  seed?: number;
+  testIdPrefix?: string;
+}
+
+export function buildConfettiPieces({
+  count = COUNT,
+  height = 360,
+  palette,
+  seed,
+  testIdPrefix,
+}: BuildConfettiPiecesOptions): ConfettiPiece[] {
+  const hasher = createSeedHasher();
+  hasher.feedNumber(seed ?? 0);
+  hasher.feedNumber(count);
+  hasher.feedNumber(height);
+  palette.forEach((color) => hasher.feedString(color));
+  const random = seededRandom(hasher.value());
+
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    leftPct: 4 + random() * 92,
+    size: 6 + random() * 6,
+    color: palette[i % palette.length] ?? '#FFFFFF',
+    delay: Math.round(random() * 250),
+    drift: (random() - 0.5) * 80,
+    rotate: `${Math.round((random() - 0.5) * 540)}deg`,
+    testID: testIdPrefix ? `${testIdPrefix}${i}` : undefined,
+  }));
+}
+
+export function Confetti({
+  height = 360,
+  colors,
+  palette,
+  count = COUNT,
+  pieces,
+  seed,
+  testIdPrefix,
+}: ConfettiProps) {
+  const resolvedPalette = palette ?? colors ?? BLOCK_THEMES[0].cellColors;
+
+  const resolvedPieces = useMemo(
     () =>
-      Array.from({ length: COUNT }, (_, i) => ({
-        id: i,
-        leftPct: Math.random() * 100,
-        size: 6 + Math.random() * 6,
-        color: palette[i % palette.length],
-        delay: Math.round(Math.random() * 250),
-        drift: (Math.random() - 0.5) * 80,
-        rotate: `${Math.round((Math.random() - 0.5) * 540)}deg`,
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+      pieces ??
+      buildConfettiPieces({
+        count,
+        height,
+        palette: resolvedPalette,
+        seed,
+        testIdPrefix,
+      }),
+    [count, height, pieces, resolvedPalette, seed, testIdPrefix],
   );
 
   return (
@@ -43,7 +99,7 @@ export function Confetti({ height = 360, colors }: ConfettiProps) {
         overflow: 'hidden',
       }}
     >
-      {pieces.map((p) => {
+      {resolvedPieces.map((p) => {
         const kf = new Keyframe({
           0: {
             opacity: 1,
@@ -68,10 +124,12 @@ export function Confetti({ height = 360, colors }: ConfettiProps) {
         })
           .duration(1200)
           .delay(p.delay);
+
         return (
           <Animated.View
             key={p.id}
             entering={kf}
+            testID={p.testID}
             style={{
               position: 'absolute',
               left: `${p.leftPct}%`,
