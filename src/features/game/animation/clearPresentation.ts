@@ -1,5 +1,6 @@
 import { BOARD_SIZE, type PlacementEvent, type PraiseTier } from '@/core/engine';
 
+import { centroid, createSeedHasher, seededRandom, type Cell } from './presentationMath';
 import { SPECTACLE_MOTION, clearCellDelay } from './motion';
 
 export interface ClearGeometry {
@@ -101,40 +102,23 @@ export interface ClearPresentation {
   reducedMotion: boolean;
 }
 
-type Cell = readonly [number, number];
-
 function cellKey(row: number, col: number) {
   return `${row}:${col}`;
 }
 
 function eventSeed(event: PlacementEvent): number {
-  let hash = 2166136261;
-  const feed = (value: number) => {
-    hash ^= value | 0;
-    hash = Math.imul(hash, 16777619);
-  };
-
-  event.clearedRows.forEach(feed);
-  event.clearedCols.forEach(feed);
+  const hash = createSeedHasher();
+  event.clearedRows.forEach((value) => hash.feedNumber(value));
+  event.clearedCols.forEach((value) => hash.feedNumber(value));
   event.clearedCells.forEach(([row, col]) => {
-    feed(row);
-    feed(col);
+    hash.feedNumber(row);
+    hash.feedNumber(col);
   });
-  event.clearedColors.forEach(feed);
-  feed(event.score);
-  feed(event.scoreDelta);
-  feed(event.combo);
-  return hash >>> 0 || 1;
-}
-
-function seededRandom(seed: number) {
-  let state = seed >>> 0 || 1;
-  return () => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return (state >>> 0) / 4294967296;
-  };
+  event.clearedColors.forEach((color) => hash.feedNumber(color));
+  hash.feedNumber(event.score);
+  hash.feedNumber(event.scoreDelta);
+  hash.feedNumber(event.combo);
+  return hash.value();
 }
 
 function colorLookup(event: PlacementEvent, cellColors: readonly string[]) {
@@ -190,21 +174,6 @@ function makeLine(
     colors: segments.map((segment) => segment.color),
     segments,
   };
-}
-
-function cellCentroid(cells: readonly Cell[], geom: ClearGeometry) {
-  if (cells.length === 0) {
-    return { x: geom.boardSize / 2, y: geom.boardSize / 2 };
-  }
-  const step = geom.cell + geom.gap;
-  const total = cells.reduce(
-    (sum, [row, col]) => ({
-      x: sum.x + col * step + geom.cell / 2,
-      y: sum.y + row * step + geom.cell / 2,
-    }),
-    { x: 0, y: 0 },
-  );
-  return { x: total.x / cells.length, y: total.y / cells.length };
 }
 
 function fragmentTravel(
@@ -445,7 +414,7 @@ export function buildClearPresentation(
       colors: [getColor(row, col), '#FFFFFF'] as [string, string],
     })),
   );
-  const centroid = cellCentroid(event.clearedCells as readonly Cell[], geom);
+  const centroidPoint = centroid(event.clearedCells as readonly Cell[], geom);
   const lineCount = event.clearedRows.length + event.clearedCols.length;
 
   return {
@@ -453,8 +422,8 @@ export function buildClearPresentation(
     intersections,
     fragments: buildFragments(event, geom, getColor, random, reducedMotion),
     debris: buildDebris(event, geom, getColor, random, reducedMotion),
-    sparks: buildSparks(centroid, geom, random, reducedMotion),
-    centroid,
+    sparks: buildSparks(centroidPoint, geom, random, reducedMotion),
+    centroid: centroidPoint,
     shake: shakeForClear(lineCount, event.boardCleared, reducedMotion),
     praiseFontSize: praiseFontSize(event.praise, geom.boardSize),
     reducedMotion,

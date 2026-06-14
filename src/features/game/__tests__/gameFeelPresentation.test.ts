@@ -83,6 +83,21 @@ describe('comboFrameFor', () => {
     expect(comboFrameFor(placementEvent({ combo: 1, clearedRows: [2] }), false).intensity).toBe(0);
   });
 
+  it('starts combo-derived shake at combo three', () => {
+    const comboTwo = comboFrameFor(
+      placementEvent({ combo: 2, clearedRows: [1], boardCleared: true }),
+      false,
+    );
+    const comboThree = comboFrameFor(
+      placementEvent({ combo: 3, clearedRows: [1], boardCleared: true }),
+      false,
+    );
+
+    expect(comboTwo.intensity).toBeGreaterThan(0);
+    expect(comboTwo.shakeAmplitude).toBe(0);
+    expect(comboThree.shakeAmplitude).toBeGreaterThan(0);
+  });
+
   it('raises combo intensity and line strength for multi-clear streaks', () => {
     const presentation = comboFrameFor(
       placementEvent({

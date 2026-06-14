@@ -2,6 +2,7 @@ import type { PlacementEvent } from '@/core/engine';
 
 import type { ClearGeometry } from './clearPresentation';
 import { GAME_FEEL_MOTION } from './motion';
+import { clamp, centroid, createSeedHasher, seededRandom, type Cell } from './presentationMath';
 
 export interface PlacementParticlePresentation {
   id: string;
@@ -35,82 +36,37 @@ export interface ComboFramePresentation {
   reducedMotion: boolean;
 }
 
-type Cell = readonly [number, number];
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function feedString(hash: number, value: string) {
-  let next = hash >>> 0;
-  for (let index = 0; index < value.length; index += 1) {
-    next ^= value.charCodeAt(index);
-    next = Math.imul(next, 16777619);
-  }
-  return next >>> 0;
-}
-
 function presentationSeed(
   event: PlacementEvent,
   geom: ClearGeometry,
   cellColors: readonly string[],
   reducedMotion: boolean,
 ) {
-  let hash = 2166136261;
-  const feed = (value: number) => {
-    hash ^= value | 0;
-    hash = Math.imul(hash, 16777619);
-  };
-
+  const hash = createSeedHasher();
   event.placed.forEach(([row, col]) => {
-    feed(row);
-    feed(col);
+    hash.feedNumber(row);
+    hash.feedNumber(col);
   });
-  event.clearedRows.forEach(feed);
-  event.clearedCols.forEach(feed);
+  event.clearedRows.forEach((value) => hash.feedNumber(value));
+  event.clearedCols.forEach((value) => hash.feedNumber(value));
   event.clearedCells.forEach(([row, col]) => {
-    feed(row);
-    feed(col);
+    hash.feedNumber(row);
+    hash.feedNumber(col);
   });
-  event.clearedColors.forEach(feed);
-  feed(event.colorId);
-  feed(event.score);
-  feed(event.scoreDelta);
-  feed(event.combo);
-  feed(event.boardCleared ? 1 : 0);
-  feed(reducedMotion ? 1 : 0);
-  feed(geom.boardSize);
-  feed(geom.cell);
-  feed(geom.gap);
+  event.clearedColors.forEach((value) => hash.feedNumber(value));
+  hash.feedNumber(event.colorId);
+  hash.feedNumber(event.score);
+  hash.feedNumber(event.scoreDelta);
+  hash.feedNumber(event.combo);
+  hash.feedNumber(event.boardCleared ? 1 : 0);
+  hash.feedNumber(reducedMotion ? 1 : 0);
+  hash.feedNumber(geom.boardSize);
+  hash.feedNumber(geom.cell);
+  hash.feedNumber(geom.gap);
   cellColors.forEach((color) => {
-    hash = feedString(hash, color);
+    hash.feedString(color);
   });
-  return hash >>> 0 || 1;
-}
-
-function seededRandom(seed: number) {
-  let state = seed >>> 0 || 1;
-  return () => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return (state >>> 0) / 4294967296;
-  };
-}
-
-function centroid(cells: readonly Cell[], geom: ClearGeometry) {
-  if (cells.length === 0) {
-    return { x: geom.boardSize / 2, y: geom.boardSize / 2 };
-  }
-  const step = geom.cell + geom.gap;
-  const sum = cells.reduce(
-    (acc, [row, col]) => ({
-      x: acc.x + col * step + geom.cell / 2,
-      y: acc.y + row * step + geom.cell / 2,
-    }),
-    { x: 0, y: 0 },
-  );
-  return { x: sum.x / cells.length, y: sum.y / cells.length };
+  return hash.value();
 }
 
 function colorForIndex(
@@ -196,6 +152,7 @@ export function comboFrameFor(
   reducedMotion: boolean,
 ): ComboFramePresentation {
   const comboIntensity = clamp((event.combo - 1) / 4, 0, GAME_FEEL_MOTION.comboIntensityMax);
+  const comboShakeProgress = clamp((event.combo - 2) / 3, 0, 1);
   const lineStrength = clamp(
     lineCountFor(event) / 4,
     0,
@@ -206,25 +163,18 @@ export function comboFrameFor(
     0,
     GAME_FEEL_MOTION.comboBoardClearStrengthMax,
   );
-  const shakeBase = clamp(
-    comboIntensity * 0.6 + lineStrength * 0.4 + boardClearStrength * 0.3,
-    0,
-    1,
-  );
 
   return {
     intensity: comboIntensity,
     lineStrength,
     boardClearStrength,
-    shakeAmplitude: reducedMotion ? 0 : Math.round(shakeBase * GAME_FEEL_MOTION.comboShakeMax),
-    shakeDurationMs: reducedMotion ? 0 : GAME_FEEL_MOTION.comboShakeDurationMs,
+    shakeAmplitude: reducedMotion
+      ? 0
+      : Math.round(comboShakeProgress * GAME_FEEL_MOTION.comboShakeMax),
+    shakeDurationMs: reducedMotion || comboShakeProgress <= 0 ? 0 : GAME_FEEL_MOTION.comboShakeDurationMs,
     scale: reducedMotion
       ? 1
-      : clamp(
-          1 + comboIntensity * 0.08 + lineStrength * 0.02 + boardClearStrength * 0.02,
-          1,
-          GAME_FEEL_MOTION.comboScaleMax,
-        ),
+      : clamp(1 + comboShakeProgress * 0.12, 1, GAME_FEEL_MOTION.comboScaleMax),
     reducedMotion,
   };
 }
