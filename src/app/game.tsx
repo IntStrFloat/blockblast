@@ -20,6 +20,7 @@ import { Hud } from '@/features/game/components/Hud';
 import { PauseOverlay } from '@/features/game/components/PauseOverlay';
 import { TutorialHints } from '@/features/game/components/TutorialHints';
 import type { DragCtx } from '@/features/game';
+import { MascotLayer } from '@/features/mascot';
 import { useLang, useSettings } from '@/features/settings';
 import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
 
@@ -144,6 +145,9 @@ export default function GameScreen() {
           }}
         >
           <Hud onPause={() => setPaused(true)} />
+
+          {/* Слой Капи над доской (спека 09) */}
+          <MascotLayer dragActive={dragActive} />
 
           {/* Доска + похвалы поверх */}
           <View>
