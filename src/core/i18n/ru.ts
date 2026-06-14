@@ -50,6 +50,7 @@ export const ru = {
     resetBestConfirm: 'Точно сбросить рекорд? Это необратимо.',
     cancel: 'Отмена',
     confirm: 'Сбросить',
+    showMascot: 'Показывать Капи',
   },
   tutorial: {
     hint1: 'Перетащи фигуру на доску',

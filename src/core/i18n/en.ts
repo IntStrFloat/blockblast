@@ -50,6 +50,7 @@ export const en = {
     resetBestConfirm: 'Reset your best score? This cannot be undone.',
     cancel: 'Cancel',
     confirm: 'Reset',
+    showMascot: 'Show Capi',
   },
   tutorial: {
     hint1: 'Drag a piece onto the board',
