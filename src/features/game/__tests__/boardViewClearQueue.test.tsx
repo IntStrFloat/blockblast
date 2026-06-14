@@ -76,15 +76,29 @@ jest.mock('../animation/clearPresentation', () => ({
     praiseFontSize: 0,
     reducedMotion: false,
     __lifetimeMs: event.clearLifetimeMs,
+    __nodeCount: event.clearedCells.length > 0 ? 64 : 0,
   }),
   clearPresentationLifetimeMs: (presentation: { __lifetimeMs?: number } | null) =>
     presentation?.__lifetimeMs ?? 0,
+  countAnimatedClearNodes: (presentation: { __nodeCount?: number } | null) =>
+    presentation?.__nodeCount ?? 0,
 }));
 
 jest.mock('../animation/gameFeelPresentation', () => ({
   buildPlacementPresentation: (event: MockPlacementEvent) => ({
     anchor: { x: 12, y: 18 },
-    particles: [],
+    particles: Array.from({ length: 12 }, (_, index) => ({
+      id: `particle-${event.id}-${index}`,
+      x: 12,
+      y: 18,
+      size: 4,
+      color: '#ff4d67',
+      dx: 0,
+      dy: 0,
+      rotateDeg: 0,
+      delayMs: 0,
+      durationMs: 200,
+    })),
     burstScale: 1.04,
     flashAlpha: 0.2,
     scoreScale: 1,
@@ -101,6 +115,29 @@ jest.mock('../animation/gameFeelPresentation', () => ({
     reducedMotion: false,
     __lifetimeMs: event.placementLifetimeMs,
   }),
+  countAnimatedPlacementNodes: (effect: {
+    placement?: { particles?: unknown[] } | null;
+    comboFrame?: { intensity?: number } | null;
+  }) => 1 + (effect.placement?.particles?.length ?? 0) + ((effect.comboFrame?.intensity ?? 0) > 0 ? 1 : 0),
+  budgetPlacementEffects: (
+    activeClearNodes: number,
+    placementEffects: {
+      id: string;
+      placement?: { particles?: unknown[] } | null;
+      comboFrame?: { intensity?: number } | null;
+    }[],
+  ) => {
+    const remaining = Math.max(0, 128 - activeClearNodes);
+    const kept: typeof placementEffects = [];
+    let used = 0;
+    [...placementEffects].reverse().forEach((effect) => {
+      const count = 1 + (effect.placement?.particles?.length ?? 0) + ((effect.comboFrame?.intensity ?? 0) > 0 ? 1 : 0);
+      if (used + count > remaining) return;
+      used += count;
+      kept.unshift(effect);
+    });
+    return kept;
+  },
   placementEffectLifetimeMs: (
     placement: { __lifetimeMs?: number } | null,
     comboFrame: { __lifetimeMs?: number } | null,
@@ -354,6 +391,7 @@ describe('BoardView clear presentation queue', () => {
 
     expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
     expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(1);
+    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects?.[0]?.placement?.particles).toHaveLength(12);
     expect(mockTriggerShakeSpy).toHaveBeenLastCalledWith({
       clear: null,
       combo: expect.objectContaining({ intensity: 0.45, shakeAmplitude: 0 }),
@@ -415,5 +453,96 @@ describe('BoardView clear presentation queue', () => {
     });
 
     expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(0);
+  });
+
+  it('renders no placement effects when two active clears already consume the shared 128-node ceiling', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(<BoardView />);
+    });
+
+    mockBoardState.lastEvent = makeEvent('clear-a', 800);
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(50);
+    });
+
+    mockBoardState.lastEvent = makeEvent('clear-b', 900);
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(50);
+    });
+
+    mockBoardState.lastEvent = {
+      ...makeEvent('placement-after-clears', 700),
+      clearLifetimeMs: 0,
+      placementLifetimeMs: 700,
+      clearedCells: [],
+      clearedRows: [],
+      clearedCols: [],
+      clearedColors: [],
+      combo: 2,
+    };
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(2);
+    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(0);
+  });
+
+  it('keeps placement effects within the remaining shared budget after one active clear', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(<BoardView />);
+    });
+
+    mockBoardState.lastEvent = makeEvent('clear-a', 900);
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(50);
+    });
+
+    ['p1', 'p2', 'p3', 'p4', 'p5'].forEach((id) => {
+      mockBoardState.lastEvent = {
+        ...makeEvent(id, 700),
+        clearLifetimeMs: 0,
+        placementLifetimeMs: 700,
+        clearedCells: [],
+        clearedRows: [],
+        clearedCols: [],
+        clearedColors: [],
+        combo: 2,
+      };
+      act(() => {
+        renderer!.update(<BoardView />);
+      });
+    });
+
+    const placementEffects = mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? [];
+    const totalPlacementNodes = placementEffects.reduce(
+      (sum: number, effect: { placement?: { particles?: unknown[] }; comboFrame?: { intensity?: number } }) =>
+        sum + 1 + (effect.placement?.particles?.length ?? 0) + ((effect.comboFrame?.intensity ?? 0) > 0 ? 1 : 0),
+      0,
+    );
+
+    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(1);
+    expect(totalPlacementNodes).toBeLessThanOrEqual(64);
+    expect(placementEffects.length).toBeGreaterThan(0);
   });
 });

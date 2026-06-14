@@ -1,9 +1,12 @@
 import type { PlacementEvent } from '@/core/engine';
 
 import {
+  budgetPlacementEffects,
   buildPlacementPresentation,
+  countAnimatedPlacementNodes,
   comboFrameFor,
   placementEffectLifetimeMs,
+  type PlacementEffectInstance,
   scoreScaleFor,
 } from '../animation/gameFeelPresentation';
 import { GAME_FEEL_MOTION } from '../animation/motion';
@@ -76,6 +79,25 @@ describe('buildPlacementPresentation', () => {
       true,
     );
     expect(presentation.burstScale).toBeLessThanOrEqual(GAME_FEEL_MOTION.reducedPlacementBurstScale);
+  });
+
+  it('uses the placed piece base color for every placement particle', () => {
+    const presentation = buildPlacementPresentation(
+      placementEvent({
+        colorId: 3,
+        score: 5400,
+        combo: 3,
+        clearedRows: [4],
+      }),
+      GEOM,
+      CELL_COLORS,
+      false,
+    );
+
+    expect(presentation.particles).not.toHaveLength(0);
+    expect(new Set(presentation.particles.map(({ color }) => color))).toEqual(
+      new Set([CELL_COLORS[2]]),
+    );
   });
 });
 
@@ -175,5 +197,145 @@ describe('game-feel budgets', () => {
 
     expect(lifetime).toBeGreaterThanOrEqual(GAME_FEEL_MOTION.placementParticleDurationMs);
     expect(lifetime).toBeGreaterThan(comboFrame.shakeDurationMs);
+  });
+
+  it('counts placement flash, particles, and optional combo frame as animated nodes', () => {
+    const noFrame = {
+      id: 'placement-1',
+      placement: {
+        anchor: { x: 0, y: 0 },
+        particles: Array.from({ length: 6 }, (_, index) => ({
+          id: `p-${index}`,
+          x: 0,
+          y: 0,
+          size: 4,
+          color: CELL_COLORS[1],
+          dx: 0,
+          dy: 0,
+          rotateDeg: 0,
+          delayMs: 0,
+          durationMs: 100,
+        })),
+        burstScale: 1.02,
+        flashAlpha: 0.16,
+        scoreScale: 1,
+        reducedMotion: false,
+      },
+      comboFrame: {
+        intensity: 0,
+        lineStrength: 0,
+        boardClearStrength: 0,
+        shakeAmplitude: 0,
+        shakeDurationMs: 0,
+        scale: 1,
+        reducedMotion: false,
+      },
+      color: CELL_COLORS[1],
+    } satisfies PlacementEffectInstance;
+    const withFrame = {
+      ...noFrame,
+      id: 'placement-2',
+      comboFrame: {
+        intensity: 0.45,
+        lineStrength: 0.5,
+        boardClearStrength: 0,
+        shakeAmplitude: 0,
+        shakeDurationMs: 0,
+        scale: 1,
+        reducedMotion: false,
+      },
+    } satisfies PlacementEffectInstance;
+
+    expect(countAnimatedPlacementNodes(noFrame)).toBe(7);
+    expect(countAnimatedPlacementNodes(withFrame)).toBe(8);
+  });
+
+  it('drops older placement effects first when clear presentations consume the shared node budget', () => {
+    const placementEffects = [
+      {
+        id: 'oldest',
+        placement: {
+          anchor: { x: 0, y: 0 },
+          particles: Array.from({ length: 29 }, (_, index) => ({
+            id: `oldest-${index}`,
+            x: 0,
+            y: 0,
+            size: 4,
+            color: CELL_COLORS[1],
+            dx: 0,
+            dy: 0,
+            rotateDeg: 0,
+            delayMs: 0,
+            durationMs: 100,
+          })),
+          burstScale: 1.02,
+          flashAlpha: 0.16,
+          scoreScale: 1,
+          reducedMotion: false,
+        },
+        comboFrame: comboFrameFor(placementEvent({ combo: 1 }), false),
+        color: CELL_COLORS[1],
+      },
+      {
+        id: 'middle',
+        placement: {
+          anchor: { x: 0, y: 0 },
+          particles: Array.from({ length: 24 }, (_, index) => ({
+            id: `middle-${index}`,
+            x: 0,
+            y: 0,
+            size: 4,
+            color: CELL_COLORS[1],
+            dx: 0,
+            dy: 0,
+            rotateDeg: 0,
+            delayMs: 0,
+            durationMs: 100,
+          })),
+          burstScale: 1.02,
+          flashAlpha: 0.16,
+          scoreScale: 1,
+          reducedMotion: false,
+        },
+        comboFrame: comboFrameFor(placementEvent({ combo: 1 }), false),
+        color: CELL_COLORS[1],
+      },
+      {
+        id: 'newest',
+        placement: {
+          anchor: { x: 0, y: 0 },
+          particles: Array.from({ length: 20 }, (_, index) => ({
+            id: `newest-${index}`,
+            x: 0,
+            y: 0,
+            size: 4,
+            color: CELL_COLORS[1],
+            dx: 0,
+            dy: 0,
+            rotateDeg: 0,
+            delayMs: 0,
+            durationMs: 100,
+          })),
+          burstScale: 1.02,
+          flashAlpha: 0.16,
+          scoreScale: 1,
+          reducedMotion: false,
+        },
+        comboFrame: comboFrameFor(placementEvent({ combo: 1 }), false),
+        color: CELL_COLORS[1],
+      },
+    ] satisfies PlacementEffectInstance[];
+
+    expect(budgetPlacementEffects(128, placementEffects)).toEqual([]);
+    expect(budgetPlacementEffects(64, placementEffects).map(({ id }) => id)).toEqual(['middle', 'newest']);
+
+    const noClearBudgeted = budgetPlacementEffects(0, placementEffects);
+    const totalPlacementNodes = noClearBudgeted.reduce(
+      (sum, effect) => sum + countAnimatedPlacementNodes(effect),
+      0,
+    );
+
+    expect(noClearBudgeted).toHaveLength(3);
+    expect(totalPlacementNodes).toBeLessThanOrEqual(GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap);
   });
 });

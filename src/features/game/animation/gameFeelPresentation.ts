@@ -1,6 +1,6 @@
 import type { PlacementEvent } from '@/core/engine';
 
-import type { ClearGeometry } from './clearPresentation';
+import { countAnimatedClearNodes, type ClearGeometry, type ClearPresentationInstance } from './clearPresentation';
 import { GAME_FEEL_MOTION } from './motion';
 import { clamp, centroid, createSeedHasher, seededRandom, type Cell } from './presentationMath';
 
@@ -76,14 +76,13 @@ function presentationSeed(
   return hash.value();
 }
 
-function colorForIndex(
+function basePlacementColor(
   cellColors: readonly string[],
   event: PlacementEvent,
-  particleIndex: number,
 ): string {
   if (cellColors.length === 0) return '#FFFFFF';
   const baseIndex = Math.max(0, event.colorId - 1);
-  return cellColors[(baseIndex + particleIndex) % cellColors.length] ?? '#FFFFFF';
+  return cellColors[baseIndex] ?? '#FFFFFF';
 }
 
 function lineCountFor(event: PlacementEvent) {
@@ -107,6 +106,7 @@ export function buildPlacementPresentation(
   const random = seededRandom(presentationSeed(event, geom, cellColors, reducedMotion));
   const lineCount = lineCountFor(event);
   const scoreScale = scoreScaleFor(event.score);
+  const color = basePlacementColor(cellColors, event);
   const count = reducedMotion
     ? Math.max(1, Math.min(event.placed.length * 2, GAME_FEEL_MOTION.placementParticleMin))
     : clamp(
@@ -127,7 +127,7 @@ export function buildPlacementPresentation(
       x: anchor.x + Math.cos(angle) * drift * (reducedMotion ? 0.35 : 1),
       y: anchor.y + Math.sin(angle) * drift * (reducedMotion ? 0.35 : 1),
       size: Math.max(2, geom.cell * (0.18 + random() * 0.14)),
-      color: colorForIndex(cellColors, event, index),
+      color,
       dx: reducedMotion ? 0 : Math.cos(angle) * travel,
       dy: reducedMotion ? 0 : Math.sin(angle) * travel,
       rotateDeg: reducedMotion ? 0 : (random() - 0.5) * 40,
@@ -207,4 +207,42 @@ export function placementEffectLifetimeMs(
     : 0;
 
   return Math.max(latestParticle, flashLifetime, comboLifetime) + 60;
+}
+
+export function countAnimatedPlacementNodes(effect: PlacementEffectInstance): number {
+  return 1 + effect.placement.particles.length + (effect.comboFrame.intensity > 0 ? 1 : 0);
+}
+
+export function totalActiveClearNodes(
+  presentations: readonly ClearPresentationInstance[],
+): number {
+  return presentations.reduce(
+    (sum, { presentation }) => sum + countAnimatedClearNodes(presentation),
+    0,
+  );
+}
+
+export function budgetPlacementEffects(
+  activeClearNodes: number,
+  placementEffects: readonly PlacementEffectInstance[],
+): PlacementEffectInstance[] {
+  const remaining = Math.max(
+    0,
+    GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap - activeClearNodes,
+  );
+  if (remaining <= 0 || placementEffects.length === 0) return [];
+
+  const kept: PlacementEffectInstance[] = [];
+  let used = 0;
+
+  for (let index = placementEffects.length - 1; index >= 0; index -= 1) {
+    const effect = placementEffects[index]!;
+    const nodes = countAnimatedPlacementNodes(effect);
+    if (nodes > remaining - used) continue;
+    kept.unshift(effect);
+    used += nodes;
+    if (kept.length >= GAME_FEEL_MOTION.placementQueueCap) break;
+  }
+
+  return kept;
 }

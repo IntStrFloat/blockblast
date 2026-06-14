@@ -9,10 +9,12 @@ import { radii } from '@/ui';
 import {
   buildClearPresentation,
   clearPresentationLifetimeMs,
+  countAnimatedClearNodes,
   MAX_ACTIVE_CLEAR_PRESENTATIONS,
   type ClearPresentationInstance,
 } from '../animation/clearPresentation';
 import {
+  budgetPlacementEffects,
   buildPlacementPresentation,
   comboFrameFor,
   placementEffectLifetimeMs,
@@ -106,6 +108,14 @@ export function BoardView({ style }: BoardViewProps) {
   }, [boardGeom, lastEvent, reducedMotion, stableCellColors]);
   const [activePresentations, setActivePresentations] = useState<ClearPresentationInstance[]>([]);
   const [activePlacementEffects, setActivePlacementEffects] = useState<PlacementEffectInstance[]>([]);
+  const budgetedPlacementEffects = useMemo(
+    () =>
+      budgetPlacementEffects(
+        activePresentations.reduce((sum, { presentation }) => sum + countAnimatedClearNodes(presentation), 0),
+        activePlacementEffects,
+      ),
+    [activePlacementEffects, activePresentations],
+  );
   const presentationTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const enqueuedPresentationIdsRef = useRef<Set<string>>(new Set());
   const placementTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -276,7 +286,7 @@ export function BoardView({ style }: BoardViewProps) {
       </View>
       <GameEffectsLayer
         presentations={activePresentations}
-        placementEffects={activePlacementEffects}
+        placementEffects={budgetedPlacementEffects}
       />
     </Animated.View>
   );
