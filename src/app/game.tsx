@@ -16,6 +16,7 @@ import {
   useGameStore,
 } from '@/features/game';
 import type { DragCtx } from '@/features/game';
+import { GameBackground } from '@/features/game/components/GameBackground';
 import { GameOverOverlay } from '@/features/game/components/GameOverOverlay';
 import { Hud } from '@/features/game/components/Hud';
 import { PauseOverlay } from '@/features/game/components/PauseOverlay';
@@ -181,6 +182,7 @@ export default function GameScreen() {
   return (
     <DragProvider value={dragCtx}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        <GameBackground boardSize={boardSize} />
         <View
           pointerEvents={status === 'over' ? 'none' : 'auto'}
           style={{
