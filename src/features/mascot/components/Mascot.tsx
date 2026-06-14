@@ -59,13 +59,13 @@ export interface MascotProps {
  * моргающими глазами и косметикой. Все движения — через shared values.
  */
 export function Mascot({ motion, stage, equipped, size = 60 }: MascotProps) {
-  const { x, bob, scaleX, scaleY, facing, rotate, eyeOpen, opacity } = motion;
+  const { bob, scaleX, scaleY, facing, rotate, eyeOpen, opacity } = motion;
+  // горизонтальное положение применяет родительский слой (MascotLayer), чтобы тень/эмоция двигались вместе
 
-  // Внешний контейнер: позиция, наклон, squash/stretch, флип, прозрачность.
+  // Внешний контейнер: наклон, squash/stretch, флип, прозрачность.
   const containerStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [
-      { translateX: x.value },
       { translateY: bob.value },
       { rotate: `${rotate.value}deg` },
       { scaleX: scaleX.value * facing.value },

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import {
+import Animated, {
   runOnJS,
+  useAnimatedStyle,
   withSequence,
   withSpring,
   withTiming,
@@ -74,6 +75,9 @@ function MascotLayerInner({ dragActive }: MascotLayerProps) {
 
   useMascotBrain({ motion, stage, reduceMotion, areaWidth, dragActive, onEmote: showEmote });
 
+  // translateX всего слота (тень + маскот + эмоция) — горизонтальный ход Капи.
+  const trackStyle = useAnimatedStyle(() => ({ transform: [{ translateX: motion.x.value }] }));
+
   // Тап по Капи: сердечко + лёгкий подскок.
   const handleTap = useCallback(() => {
     showEmote('heart');
@@ -83,9 +87,10 @@ function MascotLayerInner({ dragActive }: MascotLayerProps) {
     );
   }, [motion, showEmote]);
 
-  const tap = Gesture.Tap().onEnd(() => {
-    runOnJS(handleTap)();
-  });
+  const tap = useMemo(
+    () => Gesture.Tap().onEnd(() => runOnJS(handleTap)()),
+    [handleTap],
+  );
 
   return (
     <View style={styles.layer} pointerEvents="box-none">
@@ -95,8 +100,9 @@ function MascotLayerInner({ dragActive }: MascotLayerProps) {
           <MascotChip />
         </View>
 
-        {/* Маскот в нижнем левом углу; горизонтальный ход — через motion.x. */}
-        <View style={styles.mascotSlot} pointerEvents="box-none">
+        {/* Маскот в нижнем левом углу; горизонтальный ход — через trackStyle (motion.x),
+            чтобы тень и эмоция двигались вместе с Капи. */}
+        <Animated.View style={[styles.mascotSlot, trackStyle]} pointerEvents="box-none">
           {/* Мягкая «тень»-овал под маскотом. */}
           <View style={styles.shadow} pointerEvents="none" />
           <GestureDetector gesture={tap}>
@@ -108,7 +114,7 @@ function MascotLayerInner({ dragActive }: MascotLayerProps) {
               </View>
             </View>
           </GestureDetector>
-        </View>
+        </Animated.View>
 
         {/* Тонкая линия «пола». */}
         <View style={styles.floor} pointerEvents="none" />
