@@ -51,6 +51,8 @@ export const GAME_FEEL_MOTION = {
   scoreScaleMax: 1.25,
   placementParticleMin: 6,
   placementParticleMax: 12,
+  oneLineExternalEffectTargetCap: 64,
+  crossMultiLineExternalEffectHardCap: 128,
   placementParticleTravelCells: 1.05,
   placementParticleDriftCells: 0.32,
   placementParticleDelayMaxMs: 70,

@@ -129,6 +129,8 @@ describe('game-feel budgets', () => {
   it('centralizes hard caps used by the presentation helpers', () => {
     expect(GAME_FEEL_MOTION.placementParticleMax).toBe(12);
     expect(GAME_FEEL_MOTION.recordConfettiMax).toBe(18);
+    expect(GAME_FEEL_MOTION.oneLineExternalEffectTargetCap).toBe(64);
+    expect(GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap).toBe(128);
     expect(GAME_FEEL_MOTION.scoreScaleMax).toBe(1.25);
   });
 });
