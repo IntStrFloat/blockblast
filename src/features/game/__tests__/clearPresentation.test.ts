@@ -2,12 +2,39 @@ import type { PlacementEvent } from '@/core/engine';
 
 import {
   buildClearPresentation,
+  countAnimatedClearNodes,
   praiseFontSize,
   shakeForClear,
 } from '../animation/clearPresentation';
+import { GAME_FEEL_MOTION } from '../animation/motion';
 
 const CELL_COLORS = ['#ff4d67', '#ffc93c', '#4cc9ff'];
 const GEOM = { boardSize: 94, cell: 10, gap: 2 };
+
+function rowEvent(): PlacementEvent {
+  const clearedCells = Array.from({ length: 8 }, (_, col) => [3, col] as const);
+
+  return {
+    placed: [
+      [3, 2],
+      [3, 3],
+      [3, 4],
+    ],
+    colorId: 2,
+    clearedRows: [3],
+    clearedCols: [],
+    clearedCells,
+    clearedColors: clearedCells.map((_, index) => (index % 3) + 1),
+    scoreDelta: 120,
+    score: 620,
+    combo: 2,
+    praise: 'great',
+    onFire: false,
+    boardCleared: false,
+    newTray: false,
+    gameOver: false,
+  };
+}
 
 function crossEvent(): PlacementEvent {
   const clearedCells = [
@@ -31,6 +58,34 @@ function crossEvent(): PlacementEvent {
     praise: 'amazing',
     onFire: true,
     boardCleared: false,
+    newTray: false,
+    gameOver: false,
+  };
+}
+
+function boardClearEvent(): PlacementEvent {
+  const clearedCells = Array.from({ length: 8 }, (_, row) =>
+    Array.from({ length: 8 }, (_, col) => [row, col] as const),
+  ).flat();
+
+  return {
+    placed: [
+      [3, 3],
+      [3, 4],
+      [4, 3],
+      [4, 4],
+    ],
+    colorId: 3,
+    clearedRows: Array.from({ length: 8 }, (_, row) => row),
+    clearedCols: Array.from({ length: 8 }, (_, col) => col),
+    clearedCells,
+    clearedColors: clearedCells.map((_, index) => (index % 3) + 1),
+    scoreDelta: 1280,
+    score: 5120,
+    combo: 5,
+    praise: 'unbelievable',
+    onFire: true,
+    boardCleared: true,
     newTray: false,
     gameOver: false,
   };
@@ -74,11 +129,21 @@ describe('clear presentation geometry', () => {
     const second = buildClearPresentation(crossEvent(), GEOM, CELL_COLORS, false);
 
     expect(second).toEqual(first);
-    expect(first.fragments).toHaveLength(15 * 4);
+    expect(countAnimatedClearNodes(first)).toBeLessThanOrEqual(
+      GAME_FEEL_MOTION.oneLineExternalEffectTargetCap,
+    );
+    expect(first.fragments.length).toBeGreaterThan(0);
     expect(first.fragments.every(({ dx, dy }) => Math.abs(dx) <= 13.5 && Math.abs(dy) <= 13.5)).toBe(
       true,
     );
-    expect(first.debris.length).toBeLessThanOrEqual(56);
+    expect(first.debris.length + first.fallingFragments.length).toBeLessThanOrEqual(
+      GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap,
+    );
+    expect(first.fallingFragments.length).toBeGreaterThan(0);
+    expect(
+      first.debris.some(({ dy }) => dy > GEOM.boardSize) ||
+        first.fallingFragments.some(({ dy }) => dy > GEOM.boardSize),
+    ).toBe(true);
     expect(first.sparks).toHaveLength(6);
   });
 
@@ -91,7 +156,27 @@ describe('clear presentation geometry', () => {
     );
     expect(presentation.debris.length).toBeLessThanOrEqual(12);
     expect(presentation.debris.every(({ dx, dy }) => dx === 0 && dy === 0)).toBe(true);
+    expect(presentation.fallingFragments).toEqual([]);
     expect(presentation.shake.amplitude).toBe(0);
+  });
+
+  it('keeps one-line external effects inside the shared target cap', () => {
+    const presentation = buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false);
+
+    expect(presentation.debris.length + presentation.fallingFragments.length).toBeLessThanOrEqual(
+      GAME_FEEL_MOTION.oneLineExternalEffectTargetCap,
+    );
+  });
+
+  it('keeps worst-case simultaneous animated clear nodes under the shared queue budget', () => {
+    const presentation = buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false);
+
+    expect(countAnimatedClearNodes(presentation)).toBeLessThanOrEqual(
+      GAME_FEEL_MOTION.oneLineExternalEffectTargetCap,
+    );
+    expect(presentation.lines).toHaveLength(16);
+    expect(presentation.lines.every((line) => line.segments.length >= 1)).toBe(true);
+    expect(presentation.intersections.length).toBeGreaterThan(0);
   });
 });
 

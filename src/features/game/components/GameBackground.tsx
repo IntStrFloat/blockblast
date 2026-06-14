@@ -1,28 +1,28 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, Keyframe } from 'react-native-reanimated';
+import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useRef, useState } from "react";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
+import Animated, { FadeIn, FadeOut, Keyframe } from "react-native-reanimated";
 
-import { useReducedMotion } from '../animation/useReducedMotion';
-import { useGameStore } from '../store';
+import { useReducedMotion } from "../animation/useReducedMotion";
+import { useGameStore } from "../store";
 
 const SOFT_SUNSET = {
-  base: '#0E1736',
-  peach: '#F6B39F',
-  pink: '#E98BAC',
-  coolIndigo: '#425E9E',
-  halo: '#A7D2FF',
-  shadow: '#060A16',
+  base: "#0E1736",
+  peach: "#F6B39F",
+  pink: "#E98BAC",
+  coolIndigo: "#425E9E",
+  halo: "#A7D2FF",
+  shadow: "#060A16",
 } as const;
 
 function hexToRgba(hex: string, alpha: number) {
-  const cleaned = hex.replace('#', '');
+  const cleaned = hex.replace("#", "");
   const normalized =
     cleaned.length === 3
       ? cleaned
-          .split('')
+          .split("")
           .map((part) => `${part}${part}`)
-          .join('')
+          .join("")
       : cleaned;
   const red = Number.parseInt(normalized.slice(0, 2), 16);
   const green = Number.parseInt(normalized.slice(2, 4), 16);
@@ -34,7 +34,7 @@ const WARM_PEACH = hexToRgba(SOFT_SUNSET.peach, 0.34);
 const WARM_PEACH_FADE = hexToRgba(SOFT_SUNSET.peach, 0);
 const WARM_PINK = hexToRgba(SOFT_SUNSET.pink, 0.28);
 const WARM_PINK_FADE = hexToRgba(SOFT_SUNSET.pink, 0);
-const COOL_INDIGO = hexToRgba(SOFT_SUNSET.coolIndigo, 0.30);
+const COOL_INDIGO = hexToRgba(SOFT_SUNSET.coolIndigo, 0.3);
 const COOL_INDIGO_FADE = hexToRgba(SOFT_SUNSET.coolIndigo, 0);
 const COOL_HALO = hexToRgba(SOFT_SUNSET.halo, 0.16);
 const COOL_HALO_FADE = hexToRgba(SOFT_SUNSET.halo, 0);
@@ -89,10 +89,13 @@ export function GameBackground({ boardSize }: GameBackgroundProps) {
     clearPulseTimer();
     timerRef.current = setTimeout(() => {
       setPulseKey(eventKey);
-      timerRef.current = setTimeout(() => {
-        setPulseKey((current) => (current === eventKey ? 0 : current));
-        timerRef.current = null;
-      }, reducedMotion ? 220 : 300);
+      timerRef.current = setTimeout(
+        () => {
+          setPulseKey((current) => (current === eventKey ? 0 : current));
+          timerRef.current = null;
+        },
+        reducedMotion ? 220 : 300,
+      );
     }, 0);
 
     return clearPulseTimer;
@@ -108,7 +111,9 @@ export function GameBackground({ boardSize }: GameBackgroundProps) {
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: SOFT_SUNSET.base }]} />
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: SOFT_SUNSET.base }]}
+      />
 
       <LinearGradient
         colors={[WARM_PEACH, WARM_PEACH_FADE]}
@@ -189,7 +194,7 @@ export function GameBackground({ boardSize }: GameBackgroundProps) {
           style={[StyleSheet.absoluteFill, styles.pulseShell]}
         >
           <LinearGradient
-            colors={['rgba(255,232,216,0.16)', 'rgba(255,232,216,0)']}
+            colors={["rgba(255,232,216,0.16)", "rgba(255,232,216,0)"]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={[
@@ -202,7 +207,7 @@ export function GameBackground({ boardSize }: GameBackgroundProps) {
             ]}
           />
           <LinearGradient
-            colors={['rgba(255,190,163,0.12)', 'rgba(255,190,163,0)']}
+            colors={["rgba(255,190,163,0.12)", "rgba(255,190,163,0)"]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={[
@@ -222,14 +227,14 @@ export function GameBackground({ boardSize }: GameBackgroundProps) {
 
 const styles = StyleSheet.create({
   glow: {
-    position: 'absolute',
+    position: "absolute",
   },
   pulseShell: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   pulseCore: {
-    position: 'absolute',
+    position: "absolute",
     opacity: 1,
   },
 });
