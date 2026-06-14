@@ -80,6 +80,42 @@ describe('useGameStore', () => {
     expect(hasSavedGame()).toBe(false);
   });
 
+  it('epoch увеличивается в newGame и loadSaved, но не в reviveGame', () => {
+    const epochAfterSetup = useGameStore.getState().epoch; // уже вызвали newGame в beforeEach
+    // Ещё один newGame → epoch растёт
+    useGameStore.getState().newGame();
+    expect(useGameStore.getState().epoch).toBe(epochAfterSetup + 1);
+
+    // loadSaved с живым сейвом → epoch растёт
+    const epochBeforeLoad = useGameStore.getState().epoch;
+    const ok = useGameStore.getState().loadSaved();
+    expect(ok).toBe(true);
+    expect(useGameStore.getState().epoch).toBe(epochBeforeLoad + 1);
+
+    // reviveGame НЕ должен менять epoch
+    const board = emptyBoard().map(() => 1);
+    for (let r = 0; r < 8; r++) {
+      board[idx(r, r)] = 0;
+      board[idx(r, (r + 1) % 8)] = 0;
+    }
+    useGameStore.setState({
+      game: {
+        board,
+        tray: [{ shape: dot, colorId: 1 }, { shape: sq3, colorId: 2 }, null],
+        score: 50,
+        combo: 0,
+        movesSinceClear: 0,
+        status: 'playing',
+        reviveUsed: false,
+        rngState: 5,
+      },
+    });
+    useGameStore.getState().placePiece(0, 0, 0); // game over
+    const epochBeforeRevive = useGameStore.getState().epoch;
+    useGameStore.getState().reviveGame();
+    expect(useGameStore.getState().epoch).toBe(epochBeforeRevive);
+  });
+
   it('revive возвращает в игру и восстанавливает сейв', () => {
     const board = emptyBoard().map(() => 1);
     for (let r = 0; r < 8; r++) {

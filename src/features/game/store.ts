@@ -20,6 +20,12 @@ interface GameStore {
   linesCleared: number;
   /** Итог партии для GameOver-оверлея (null, пока партия идёт) */
   finalResult: SubmitResult | null;
+  /**
+   * Монотонно растущий счётчик партий. Увеличивается при newGame() и loadSaved()
+   * (начало новой сессии игры). НЕ увеличивается при reviveGame().
+   * Используется маскотом для детекции «новая партия началась → если был потерян, вернуться».
+   */
+  epoch: number;
   newGame: () => void;
   placePiece: (trayIndex: number, r: number, c: number) => PlacementEvent | null;
   reviveGame: () => void;
@@ -44,10 +50,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastEvent: null,
   linesCleared: 0,
   finalResult: null,
+  epoch: 1,
 
   newGame: () => {
     const game = createGame();
-    set({ game, lastEvent: null, linesCleared: 0, finalResult: null });
+    set({ game, lastEvent: null, linesCleared: 0, finalResult: null, epoch: get().epoch + 1 });
     setString(KEYS.gameCurrent, serialize(game));
   },
 
@@ -94,7 +101,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!raw) return false;
     const game = deserialize(raw);
     if (!game || game.status !== 'playing') return false;
-    set({ game, lastEvent: null, linesCleared: 0, finalResult: null });
+    set({ game, lastEvent: null, linesCleared: 0, finalResult: null, epoch: get().epoch + 1 });
     return true;
   },
 }));

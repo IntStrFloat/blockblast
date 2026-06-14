@@ -12,12 +12,16 @@ import Animated, {
 
 import { getBoardMetrics } from '@/ui';
 import { useSettings } from '@/features/settings';
+import { useGameStore } from '@/features/game';
+import { todayISO } from '@/features/streak';
 
 import { useMascotBrain } from '../hooks/useMascotBrain';
+import { canFeed } from '../logic/rules';
 import { progressFor } from '../logic/progression';
 import type { EmoteId } from '../logic/types';
 import { useMascot } from '../store';
 import { Emote } from './Emote';
+import { FeedPrompt } from './FeedPrompt';
 import { LevelUpReveal } from './LevelUpReveal';
 import { Mascot, useMascotMotion } from './Mascot';
 import { MascotChip } from './MascotChip';
@@ -58,6 +62,13 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   const equipped = useMascot((s) => s.equipped);
   const stage = progressFor(totalXp).stage;
 
+  // Потерян ли маскот (Task 15b устанавливает, здесь только читаем).
+  const lost = useMascot((s) => s.lost);
+
+  // Ежедневное кормление: доступно ли сегодня.
+  const lastFedDay = useMascot((s) => s.lastFedDay);
+  const canFeedNow = canFeed(lastFedDay, todayISO());
+
   // Reduce-motion: читаем системную настройку и подписываемся на смену.
   const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
@@ -83,6 +94,37 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   }, []);
 
   useMascotBrain({ motion, stage, reduceMotion, areaWidth, dragActive, onEmote: showEmote });
+
+  // Кормление: обработчик нажатия на FeedPrompt.
+  // Вызывается из JS (Pressable onPress) — shared values устанавливаем напрямую.
+  const handleFeed = useCallback(() => {
+    useMascot.getState().feed();
+    // Пульс «съедает угощение»
+    motion.scaleX.value = withSequence(withTiming(1.12, { duration: 120 }), withSpring(1));
+    motion.scaleY.value = withSequence(withTiming(1.12, { duration: 120 }), withSpring(1));
+    showEmote('heart');
+  }, [motion, showEmote]);
+
+  // Восстановление маскота при начале новой партии (newGame / loadSaved).
+  const epoch = useGameStore((s) => s.epoch);
+  useEffect(() => {
+    if (useMascot.getState().lost) {
+      useMascot.getState().recover();
+      // Вход после возвращения: плавное появление + подпрыжок.
+      // Reanimated shared values устанавливаются напрямую — не setState.
+      motion.opacity.value = withTiming(1, { duration: 200 });
+      motion.bob.value = withSequence(
+        withTiming(-10, { duration: 160 }),
+        withSpring(0),
+      );
+      // showEmote вызывает setState: откладываем на следующий тик,
+      // чтобы избежать каскадного ре-рендера в теле эффекта.
+      const t = setTimeout(() => showEmote('sparkle'), 0);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [epoch]);
 
   // translateX всего слота (тень + маскот + эмоция) — горизонтальный ход Капи.
   const trackStyle = useAnimatedStyle(() => ({ transform: [{ translateX: motion.x.value }] }));
@@ -113,19 +155,27 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
 
         {/* Маскот в нижнем левом углу; горизонтальный ход — через trackStyle (motion.x),
             чтобы тень и эмоция двигались вместе с Капи. */}
-        <Animated.View style={[styles.mascotSlot, trackStyle]} pointerEvents="box-none">
-          {/* Мягкая «тень»-овал под маскотом. */}
-          <View style={styles.shadow} pointerEvents="none" />
-          <GestureDetector gesture={tap}>
-            <View style={styles.mascotHit}>
-              <Mascot motion={motion} stage={stage} equipped={equipped} size={MASCOT_SIZE} />
-              {/* Пузырь-эмоция над маскотом (none → null). */}
-              <View style={styles.emote} pointerEvents="none">
-                <Emote id={emote} />
+        {!lost && (
+          <Animated.View style={[styles.mascotSlot, trackStyle]} pointerEvents="box-none">
+            {/* Угощение: кнопка кормления над маскотом (один раз в сутки). */}
+            {canFeedNow && (
+              <View style={styles.feedPrompt} pointerEvents="box-none">
+                <FeedPrompt onPress={handleFeed} />
               </View>
-            </View>
-          </GestureDetector>
-        </Animated.View>
+            )}
+            {/* Мягкая «тень»-овал под маскотом. */}
+            <View style={styles.shadow} pointerEvents="none" />
+            <GestureDetector gesture={tap}>
+              <View style={styles.mascotHit}>
+                <Mascot motion={motion} stage={stage} equipped={equipped} size={MASCOT_SIZE} />
+                {/* Пузырь-эмоция над маскотом (none → null). */}
+                <View style={styles.emote} pointerEvents="none">
+                  <Emote id={emote} />
+                </View>
+              </View>
+            </GestureDetector>
+          </Animated.View>
+        )}
 
         {/* Тонкая линия «пола». */}
         <View style={styles.floor} pointerEvents="none" />
@@ -161,6 +211,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     left: 0,
+  },
+  feedPrompt: {
+    position: 'absolute',
+    bottom: MASCOT_SIZE,
+    left: 0,
+    zIndex: 3,
   },
   mascotHit: {
     width: MASCOT_SIZE,
