@@ -22,6 +22,7 @@ export const KEYS = {
   entitlements: 'iap.entitlements',
   adsMeta: 'ads.meta',
   tutorialDone: 'tutorial.done',
+  mascot: 'mascot.state',
 } as const;
 
 export function getJSON<T>(key: string): T | null {

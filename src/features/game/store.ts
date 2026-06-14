@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 
-import { createGame, deserialize, place, revive, seedFromTime, serialize } from '@/core/engine';
+import {
+  createGame,
+  deserialize,
+  place,
+  replaceTrayPiece as engineReplaceTrayPiece,
+  revive,
+  seedFromTime,
+  serialize,
+} from '@/core/engine';
 import type { GameState, PlacementEvent } from '@/core/engine';
 import { KEYS, getString, removeKey, setString } from '@/core/storage';
 import { useAnalyticsStore } from '@/features/analytics';
@@ -28,9 +36,23 @@ interface GameStore {
   lastEvent: PlacementEvent | null;
   linesCleared: number;
   finalResult: SubmitResult | null;
+  /**
+   * Монотонно растущий счётчик партий. Увеличивается при newGame()/discardAndStartNew()
+   * и loadSaved() (начало новой сессии игры). НЕ увеличивается при continueGame() (revive).
+   * Используется маскотом для детекции «новая партия началась → если был потерян, вернуться».
+   */
+  epoch: number;
   newGame: (options?: NewGameOptions) => void;
   discardAndStartNew: (options?: NewGameOptions) => void;
   placePiece: (trayIndex: number, r: number, c: number) => PlacementEvent | null;
+  /**
+   * Заменить фигуру в слоте трея на свежую (помощник «свап» маскота).
+   * No-op, если партия не идёт, индекс вне диапазона или слот пуст.
+   * Автосейвит, как placePiece.
+   */
+  replaceTrayPiece: (trayIndex: number) => void;
+  /** Восстановить снимок партии (undo свопа). Автосейвит. */
+  restoreGame: (snapshot: GameState) => void;
   continueGame: () => boolean;
   loadSaved: () => Exclude<ResumeKind, 'none'> | null;
 }
@@ -73,7 +95,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       challengeDate: options?.challengeDate ?? null,
     });
     const game = createGame(proof.seed);
-    set({ game, lastEvent: null, linesCleared: 0, finalResult: null });
+    set({ game, lastEvent: null, linesCleared: 0, finalResult: null, epoch: get().epoch + 1 });
     setString(KEYS.gameCurrent, serialize(game));
     useAnalyticsStore
       .getState()
@@ -85,6 +107,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     lastEvent: null,
     linesCleared: 0,
     finalResult: null,
+    epoch: 1,
 
     newGame: startNew,
     discardAndStartNew: startNew,
@@ -127,6 +150,21 @@ export const useGameStore = create<GameStore>((set, get) => {
       return result.event;
     },
 
+    replaceTrayPiece: (trayIndex) => {
+      const { game } = get();
+      if (game.status !== 'playing') return;
+      if (trayIndex < 0 || trayIndex >= game.tray.length) return;
+      if (game.tray[trayIndex] === null) return;
+      const next = engineReplaceTrayPiece(game, trayIndex);
+      set({ game: next });
+      setString(KEYS.gameCurrent, serialize(next));
+    },
+
+    restoreGame: (snapshot) => {
+      set({ game: snapshot });
+      setString(KEYS.gameCurrent, serialize(snapshot));
+    },
+
     continueGame: () => {
       const next = revive(get().game);
       if (!next) return false;
@@ -145,7 +183,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         return null;
       }
 
-      set({ game, lastEvent: null, linesCleared: 0, finalResult: null });
+      set({ game, lastEvent: null, linesCleared: 0, finalResult: null, epoch: get().epoch + 1 });
       return game.status === 'playing' ? 'active' : 'terminal';
     },
   };

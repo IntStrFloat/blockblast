@@ -227,4 +227,60 @@ describe('Game Over and Continue accounting', () => {
     expect(useGameStore.getState().lastEvent).toBeNull();
     expect(useGameStore.getState().finalResult).toBeNull();
   });
+
+  // --- Маскот «Капи»: epoch-сигнал и помощник «свап» (спека 09) ---
+
+  it('epoch grows on newGame and loadSaved, but not on continueGame', () => {
+    const start = useGameStore.getState().epoch;
+
+    useGameStore.getState().newGame();
+    expect(useGameStore.getState().epoch).toBe(start + 1);
+
+    const beforeLoad = useGameStore.getState().epoch;
+    expect(useGameStore.getState().loadSaved()).toBe('active');
+    expect(useGameStore.getState().epoch).toBe(beforeLoad + 1);
+
+    // continueGame (revive) НЕ меняет epoch — маскот не «возвращается» при оживлении.
+    setNearGameOver(50);
+    useGameStore.getState().placePiece(0, 0, 0); // game over
+    const beforeContinue = useGameStore.getState().epoch;
+    expect(useGameStore.getState().continueGame()).toBe(true);
+    expect(useGameStore.getState().epoch).toBe(beforeContinue);
+  });
+
+  it('replaceTrayPiece swaps the slot piece, autosaves, leaves board/score', () => {
+    const before = useGameStore.getState().game;
+    const otherA = before.tray[1];
+    const otherB = before.tray[2];
+
+    useGameStore.getState().replaceTrayPiece(0);
+    const after = useGameStore.getState().game;
+
+    expect(after.tray[0]).not.toBeNull();
+    expect(after.tray[1]).toEqual(otherA);
+    expect(after.tray[2]).toEqual(otherB);
+    expect(after.board).toEqual(before.board);
+    expect(after.score).toBe(before.score);
+    expect(getString(KEYS.gameCurrent)).toBe(serialize(after));
+  });
+
+  it('replaceTrayPiece is a safe no-op for an empty slot', () => {
+    const g = useGameStore.getState().game;
+    useGameStore.setState({ game: { ...g, tray: [g.tray[0], null, g.tray[2]] } });
+    const before = serialize(useGameStore.getState().game);
+    expect(() => useGameStore.getState().replaceTrayPiece(1)).not.toThrow();
+    expect(serialize(useGameStore.getState().game)).toBe(before);
+  });
+
+  it('restoreGame restores a snapshot and autosaves (swap undo)', () => {
+    const snapshot = useGameStore.getState().game;
+    const snapStr = serialize(snapshot);
+
+    useGameStore.getState().replaceTrayPiece(0);
+    expect(serialize(useGameStore.getState().game)).not.toBe(snapStr);
+
+    useGameStore.getState().restoreGame(snapshot);
+    expect(serialize(useGameStore.getState().game)).toBe(snapStr);
+    expect(getString(KEYS.gameCurrent)).toBe(snapStr);
+  });
 });

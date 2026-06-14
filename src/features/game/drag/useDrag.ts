@@ -86,6 +86,12 @@ export function useDrag({
 
   const gesture = Gesture.Pan()
     .enabled(!disabled)
+    .onBegin(() => {
+      'worklet';
+      // Перф-сигнал: drag начался — мозг маскота встаёт на паузу (спека 09).
+      // Движение/звук захвата — в onStart (см. ниже); здесь только сигнал паузы.
+      ctx.dragActive.value = 1;
+    })
     .onStart(() => {
       'worklet';
       runOnJS(measureForDrag)();
@@ -148,6 +154,8 @@ export function useDrag({
     })
     .onEnd(() => {
       'worklet';
+      // Drag завершён (валидный дроп и возврат — оба пути ниже).
+      ctx.dragActive.value = 0;
       ctx.preview.value = EMPTY_MASK;
       ctx.previewColor.value = 0;
 
@@ -176,6 +184,8 @@ export function useDrag({
     })
     .onFinalize((_event, success) => {
       'worklet';
+      // Гарантированный сброс перф-сигнала на любом завершении (вкл. отмену).
+      ctx.dragActive.value = 0;
       // Всегда чистим превью
       ctx.preview.value = EMPTY_MASK;
       ctx.previewColor.value = 0;

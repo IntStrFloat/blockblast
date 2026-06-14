@@ -21,6 +21,7 @@ import { Hud } from '@/features/game/components/Hud';
 import { PauseOverlay } from '@/features/game/components/PauseOverlay';
 import { TutorialHints } from '@/features/game/components/TutorialHints';
 import { AdBanner } from '@/features/monetization';
+import { MascotLayer } from '@/features/mascot';
 import { useLang, useSettings } from '@/features/settings';
 import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
 
@@ -89,6 +90,8 @@ export default function GameScreen() {
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
+  // Перф-сигнал drag для паузы мозга маскота (спека 09); слой маскота — Task 12.
+  const dragActive = useSharedValue(0);
 
   const loadSaved = useGameStore((s) => s.loadSaved);
   const discardAndStartNew = useGameStore((s) => s.discardAndStartNew);
@@ -150,6 +153,7 @@ export default function GameScreen() {
       boardMirror,
       preview,
       previewColor,
+      dragActive,
       cellColors: theme.cellColors,
       boardBg: theme.boardBg,
       cellEmpty: theme.cellEmpty,
@@ -191,6 +195,10 @@ export default function GameScreen() {
         >
           <Hud onPause={() => setPaused(true)} />
 
+          {/* Слой Капи над доской (спека 09) */}
+          <MascotLayer dragActive={dragActive} />
+
+          {/* Доска + похвалы поверх */}
           <View>
             <BoardView />
             <PraiseBanner />

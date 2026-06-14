@@ -103,4 +103,22 @@ writeWav('record', synth([
   { start: 0.24, freq: 1046.5, dur: 0.16, decay: 0.5 },
 ], { gain: 0.5 }));
 
+// Капи — кормление: мягкий короткий «ам» (низкий бобл вниз-вверх)
+writeWav('feed', synth([
+  { start: 0, freq: 300, freqEnd: 220, dur: 0.07, decay: 0.4 },
+  { start: 0.055, freq: 360, dur: 0.06, vol: 0.6, decay: 0.4 },
+], { gain: 0.3, harmonics: 0.1 }));
+
+// Капи — левел-ап: короткая мажорная фанфара (C-E-G)
+writeWav('levelup', synth([
+  { start: 0, freq: 523.25, dur: 0.08 },
+  { start: 0.07, freq: 659.25, dur: 0.08 },
+  { start: 0.14, freq: 783.99, dur: 0.18, decay: 0.5 },
+], { gain: 0.46 }));
+
+// Капи — потеря: нисходящий мягкий блип
+writeWav('lost', synth([
+  { start: 0, freq: 660, freqEnd: 200, dur: 0.22, decay: 0.5 },
+], { wave: 'triangle', gain: 0.34, harmonics: 0.08 }));
+
 console.log('done');

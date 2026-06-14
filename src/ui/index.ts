@@ -6,6 +6,7 @@ export {
   colors,
   getBlockTheme,
   getBoardMetrics,
+  mascotPalette,
   radii,
   spacing,
 } from './theme';

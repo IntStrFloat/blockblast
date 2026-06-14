@@ -57,6 +57,7 @@ export const en = {
     resetBestConfirm: 'Reset your best score? This cannot be undone.',
     cancel: 'Cancel',
     confirm: 'Reset',
+    showMascot: 'Show Capi',
   },
   profile: {
     title: 'Profile',
@@ -104,5 +105,19 @@ export const en = {
     e13337: 'ok then',
     e69420: 'nice',
     e100001: 'how even?',
+  },
+  mascot: {
+    levelUp: 'Level up!',
+    newItem: 'New item!',
+    newItems: 'New items',
+    wardrobeTitle: 'Wardrobe',
+    helperReady: 'ready',
+    helperCooldown: 'back tomorrow',
+    locked: 'lvl ',
+    introSkip: 'skip',
+    hint: 'hint',
+    swap: 'swap',
+    swapped: 'piece swapped',
+    undo: 'undo',
   },
 } as const;

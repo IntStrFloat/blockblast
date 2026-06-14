@@ -17,6 +17,7 @@
 | [docs/specs/06-audience.md](docs/specs/06-audience.md) | ЦА Gen Z/Alpha, принципы, фишки v1 и v1.1, анти-чеклист |
 | [docs/specs/07-performance.md](docs/specs/07-performance.md) | Бюджеты 60fps, правила рендера/анимаций, решение Views-не-Skia |
 | [docs/specs/08-build-release.md](docs/specs/08-build-release.md) | Локальная сборка APK (prebuild+gradle+JBR), keystore, чек-лист RuStore |
+| [docs/specs/09-mascot.md](docs/specs/09-mascot.md) | Маскот «Капи»: поведение, прокачка/эволюция, помощники, интро, перф (retention) |
 
 План реализации: docs/plans/ (если есть — выполнять по нему).
 

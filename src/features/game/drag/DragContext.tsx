@@ -21,6 +21,8 @@ export interface DragCtx {
   preview: SharedValue<number[]>;
   /** colorId перетаскиваемой фигуры (0 — нет drag) */
   previewColor: SharedValue<number>;
+  /** 1 пока активен drag-жест, иначе 0 — перф-сигнал для паузы маскота (спека 07/09) */
+  dragActive: SharedValue<number>;
   /** Цвета блоков активной темы (для ghost-подсветки) */
   cellColors: string[];
   /** Цвет фона доски активной темы */

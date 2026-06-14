@@ -1,5 +1,5 @@
 import { emptyBoard, idx } from '../board';
-import { createGame, place, revive } from '../game';
+import { createGame, place, replaceTrayPiece, revive } from '../game';
 import { SHAPES_BY_ID } from '../shapes';
 import type { GameState } from '../types';
 
@@ -199,5 +199,70 @@ describe('place: tray refresh and game over', () => {
     const revived = revive(baseState({ status: 'over' }));
     expect(revived).not.toBeNull();
     expect(revive(revived!)).toBeNull();
+  });
+});
+
+describe('replaceTrayPiece', () => {
+  it('меняет только целевой слот, другие слоты не затронуты', () => {
+    const s = baseState({ rngState: 42 });
+    const result = replaceTrayPiece(s, 1);
+    // slot 0 and slot 2 are unchanged (referentially equal)
+    expect(result.tray[0]).toBe(s.tray[0]);
+    expect(result.tray[2]).toBe(s.tray[2]);
+    // slot 1 was replaced
+    expect(result.tray[1]).not.toBe(s.tray[1]);
+    expect(result.tray[1]).not.toBeNull();
+  });
+
+  it('rngState изменяется после вызова', () => {
+    const s = baseState({ rngState: 99 });
+    const result = replaceTrayPiece(s, 0);
+    expect(result.rngState).not.toBe(s.rngState);
+  });
+
+  it('детерминирован: одинаковый вход → одинаковый результат', () => {
+    const s = baseState({ rngState: 7 });
+    const r1 = replaceTrayPiece(s, 2);
+    const r2 = replaceTrayPiece(s, 2);
+    expect(r1.tray[2]).toEqual(r2.tray[2]);
+    expect(r1.rngState).toBe(r2.rngState);
+  });
+
+  it('новый shape.id не совпадает ни с одним другим непустым слотом (exclude работает)', () => {
+    // Use createGame so we have real shapes in all 3 slots
+    const g = createGame(123);
+    // Replace slot 0; the other slots (1, 2) stay, so the new shape must differ from both
+    const result = replaceTrayPiece(g, 0);
+    const newId = result.tray[0]!.shape.id;
+    const otherId1 = result.tray[1]!.shape.id;
+    const otherId2 = result.tray[2]!.shape.id;
+    expect(newId).not.toBe(otherId1);
+    expect(newId).not.toBe(otherId2);
+  });
+
+  it('board и score не меняются', () => {
+    const board = emptyBoard();
+    board[idx(0, 0)] = 3;
+    const s = baseState({ board, score: 250, combo: 2, rngState: 55 });
+    const result = replaceTrayPiece(s, 0);
+    expect(result.board).toBe(s.board); // same reference — not mutated
+    expect(result.score).toBe(250);
+    expect(result.combo).toBe(2);
+  });
+
+  it('colorId валиден (в диапазоне 1..config.colors)', () => {
+    const s = baseState({ rngState: 1337 });
+    const result = replaceTrayPiece(s, 0);
+    expect(result.tray[0]!.colorId).toBeGreaterThanOrEqual(1);
+    expect(result.tray[0]!.colorId).toBeLessThanOrEqual(6);
+  });
+
+  it('работает когда целевой слот null', () => {
+    const s = baseState({ tray: [null, { shape: dot, colorId: 1 }, { shape: h3, colorId: 2 }], rngState: 11 });
+    const result = replaceTrayPiece(s, 0);
+    expect(result.tray[0]).not.toBeNull();
+    // exclude should exclude the shapes in slots 1 and 2
+    expect(result.tray[0]!.shape.id).not.toBe(dot.id);
+    expect(result.tray[0]!.shape.id).not.toBe(h3.id);
   });
 });

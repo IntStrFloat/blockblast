@@ -13,6 +13,8 @@ export const colors = {
   overlayScrim: 'rgba(8,14,28,0.72)',
   surface: 'rgba(255,255,255,0.08)',
   surfacePressed: 'rgba(255,255,255,0.16)',
+  cardGlass: 'rgba(22,36,68,0.5)',
+  hairline: 'rgba(255,255,255,0.12)',
 } as const;
 
 export interface BlockTheme {
@@ -64,6 +66,19 @@ export const radii = {
   cell: 4,
   card: 20,
   button: 16,
+} as const;
+
+export const mascotPalette = {
+  body0: '#B3B9F2',
+  body1: '#7C84E6',
+  ear: '#666FD8',
+  muzzle: '#CDD2F9',
+  blush: '#F2A6D8',
+  ink: '#2B2440',
+  block: '#FFD23F',
+  crown1: '#FF9F1C',
+  crown2: '#3DDC84',
+  blockTint: 'rgba(255,210,63,0.12)',
 } as const;
 
 /** Геометрия доски от ширины экрана (спека 04). */

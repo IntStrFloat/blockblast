@@ -6,6 +6,7 @@ import type { Lang } from './praise';
 
 export { praiseText, fireText } from './praise';
 export type { Lang, PraiseTone } from './praise';
+export { mascotLost, mascotIntro } from './mascot';
 
 export type LangSetting = 'system' | Lang;
 

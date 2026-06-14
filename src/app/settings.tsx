@@ -106,6 +106,14 @@ export default function SettingsScreen() {
           />
         </Row>
 
+        <Row label={`🦫 ${t('settings.showMascot', lang)}`}>
+          <Switch
+            value={settings.showMascot}
+            onValueChange={(v) => settings.update({ showMascot: v })}
+            trackColor={{ true: colors.accent }}
+          />
+        </Row>
+
         <Row label={t('settings.praiseTone', lang)}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Chip

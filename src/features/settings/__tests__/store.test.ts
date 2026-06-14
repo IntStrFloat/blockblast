@@ -18,4 +18,15 @@ describe('useSettings', () => {
     expect(persisted?.praiseTone).toBe('meme');
     expect(persisted?.sound).toBe(false);
   });
+
+  it('showMascot по умолчанию true', () => {
+    expect(useSettings.getState().showMascot).toBe(true);
+  });
+
+  it('update showMascot меняет стор и персистит', () => {
+    useSettings.getState().update({ showMascot: false });
+    expect(useSettings.getState().showMascot).toBe(false);
+    const persisted = getJSON<{ showMascot: boolean }>(KEYS.settings);
+    expect(persisted?.showMascot).toBe(false);
+  });
 });

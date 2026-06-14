@@ -57,6 +57,7 @@ export const ru = {
     resetBestConfirm: 'Точно сбросить рекорд? Это необратимо.',
     cancel: 'Отмена',
     confirm: 'Сбросить',
+    showMascot: 'Показывать Капи',
   },
   profile: {
     title: 'Профиль',
@@ -104,5 +105,19 @@ export const ru = {
     e13337: 'окак',
     e69420: 'найс',
     e100001: 'это как вообще?',
+  },
+  mascot: {
+    levelUp: 'Новый уровень!',
+    newItem: 'Новый предмет!',
+    newItems: 'Новые предметы',
+    wardrobeTitle: 'Гардероб',
+    helperReady: 'готово',
+    helperCooldown: 'снова завтра',
+    locked: 'ур.',
+    introSkip: 'пропустить',
+    hint: 'подсказка',
+    swap: 'замена',
+    swapped: 'фигуру заменили',
+    undo: 'вернуть',
   },
 } as const;
