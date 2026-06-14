@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import Animated, {
+  cancelAnimation,
   FadeIn,
   FadeOut,
   useAnimatedStyle,
@@ -33,6 +34,7 @@ export function FeedPrompt({ onPress }: FeedPromptProps) {
       false,
     );
     return () => {
+      cancelAnimation(bob);
       bob.value = 0;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
