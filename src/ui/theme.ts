@@ -13,6 +13,7 @@ export const colors = {
   overlayScrim: 'rgba(8,14,28,0.72)',
   surface: 'rgba(255,255,255,0.08)',
   surfacePressed: 'rgba(255,255,255,0.16)',
+  cardGlass: 'rgba(22,36,68,0.5)',
 } as const;
 
 export interface BlockTheme {

@@ -18,7 +18,7 @@ import { useMascot } from '../store';
 
 /**
  * Сюрприз-распаковка косметики при левел-апе Капи.
- * Монтируется в MascotLayerInner, само скрывается при reveal === null.
+ * Монтируется в MascotLayer (сиблингом слоя), само скрывается при reveal === null.
  * Авто-закрытие через 1300мс, тап закрывает мгновенно.
  */
 export function LevelUpReveal() {
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 320,
     borderRadius: radii.card,
-    backgroundColor: '#16244480',
+    backgroundColor: colors.cardGlass,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.12)',
     padding: spacing.l,
