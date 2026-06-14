@@ -105,6 +105,7 @@ interface MascotActions {
   drop: () => void;
   recover: () => void;
   equip: (slot: Slot, id: string) => void;
+  unequip: (slot: Slot) => void;
   markIntroDone: () => void;
   bumpRng: (rngState: number) => void;
   clearReveal: () => void;
@@ -176,6 +177,15 @@ export const useMascot = create<MascotStore>((set, get) => ({
     if (!prev.unlocked.includes(id)) return;
 
     const equipped = { ...prev.equipped, [slot]: id };
+    const next: MascotState = { ...prev, equipped };
+    set({ equipped });
+    persist(next);
+  },
+
+  unequip(slot) {
+    const prev = get();
+    const equipped = { ...prev.equipped };
+    delete equipped[slot];
     const next: MascotState = { ...prev, equipped };
     set({ equipped });
     persist(next);

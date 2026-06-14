@@ -70,5 +70,9 @@ export const ru = {
     levelUp: 'Новый уровень!',
     newItem: 'Новый предмет!',
     newItems: 'Новые предметы',
+    wardrobeTitle: 'Гардероб',
+    helperReady: 'готово',
+    helperCooldown: 'снова завтра',
+    locked: 'ур.',
   },
 } as const;

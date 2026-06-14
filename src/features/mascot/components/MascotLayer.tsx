@@ -21,6 +21,7 @@ import { Emote } from './Emote';
 import { LevelUpReveal } from './LevelUpReveal';
 import { Mascot, useMascotMotion } from './Mascot';
 import { MascotChip } from './MascotChip';
+import { Wardrobe } from './Wardrobe';
 
 const MASCOT_SIZE = 56;
 const LAYER_HEIGHT = 70;
@@ -39,16 +40,18 @@ interface MascotLayerProps {
  */
 export function MascotLayer({ dragActive }: MascotLayerProps) {
   const showMascot = useSettings((s) => s.showMascot);
+  const [wardrobeOpen, setWardrobeOpen] = useState(false);
   if (!showMascot) return null;
   return (
     <>
-      <MascotLayerInner dragActive={dragActive} />
+      <MascotLayerInner dragActive={dragActive} onOpenWardrobe={() => setWardrobeOpen(true)} />
       <LevelUpReveal />
+      <Wardrobe visible={wardrobeOpen} onClose={() => setWardrobeOpen(false)} />
     </>
   );
 }
 
-function MascotLayerInner({ dragActive }: MascotLayerProps) {
+function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { onOpenWardrobe: () => void }) {
   const motion = useMascotMotion();
 
   const totalXp = useMascot((s) => s.totalXp);
@@ -105,7 +108,7 @@ function MascotLayerInner({ dragActive }: MascotLayerProps) {
       <View style={[styles.area, { width: boardSize }]} pointerEvents="box-none">
         {/* Чип уровня — верхний левый угол полосы доски. */}
         <View style={styles.chip} pointerEvents="box-none">
-          <MascotChip />
+          <MascotChip onPress={onOpenWardrobe} />
         </View>
 
         {/* Маскот в нижнем левом углу; горизонтальный ход — через trackStyle (motion.x),

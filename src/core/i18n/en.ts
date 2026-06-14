@@ -70,5 +70,9 @@ export const en = {
     levelUp: 'Level up!',
     newItem: 'New item!',
     newItems: 'New items',
+    wardrobeTitle: 'Wardrobe',
+    helperReady: 'ready',
+    helperCooldown: 'back tomorrow',
+    locked: 'lvl ',
   },
 } as const;

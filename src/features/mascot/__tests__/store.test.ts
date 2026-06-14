@@ -246,6 +246,34 @@ describe('equip', () => {
 });
 
 // ---------------------------------------------------------------------------
+// unequip
+// ---------------------------------------------------------------------------
+describe('unequip', () => {
+  it('unequip очищает слот после equip', () => {
+    useMascot.setState({ unlocked: ['hat-casquette'] });
+    useMascot.getState().equip('hat', 'hat-casquette');
+    expect(useMascot.getState().equipped['hat']).toBe('hat-casquette');
+
+    useMascot.getState().unequip('hat');
+    expect(useMascot.getState().equipped['hat']).toBeUndefined();
+  });
+
+  it('unequip персистит изменение', () => {
+    useMascot.setState({ unlocked: ['hat-casquette'] });
+    useMascot.getState().equip('hat', 'hat-casquette');
+    useMascot.getState().unequip('hat');
+
+    const saved = getJSON<{ equipped: Record<string, string> }>(KEYS.mascot);
+    expect(saved!.equipped['hat']).toBeUndefined();
+  });
+
+  it('unequip незанятого слота безопасен', () => {
+    expect(() => useMascot.getState().unequip('hat')).not.toThrow();
+    expect(useMascot.getState().equipped['hat']).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // markIntroDone
 // ---------------------------------------------------------------------------
 describe('markIntroDone', () => {

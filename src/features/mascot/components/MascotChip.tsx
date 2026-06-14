@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText, colors, mascotPalette, radii } from '@/ui';
 
@@ -10,15 +10,15 @@ import { useMascot } from '../store';
  *
  * Ширина заливки бара пересчитывается на рендере (XP меняется редко, НЕ на кадр) —
  * никаких анимаций ширины. На макс-уровне (xpToNext === 0) бар полон.
- * Тап для открытия гардероба — отдельная задача (без onPress).
+ * Если передан onPress — оборачивается в Pressable (≥44pt) для открытия гардероба.
  */
-export function MascotChip() {
+export function MascotChip({ onPress }: { onPress?: () => void }) {
   const totalXp = useMascot((s) => s.totalXp);
   const p = progressFor(totalXp);
 
   const fillPct = (p.xpToNext === 0 ? 1 : p.xpInLevel / p.xpToNext) * 100;
 
-  return (
+  const inner = (
     <View style={styles.pill}>
       <AppText preset="button" style={styles.label}>
         {`🫧 ур.${p.level}`}
@@ -28,9 +28,25 @@ export function MascotChip() {
       </View>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={styles.hitArea}>
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return inner;
 }
 
 const styles = StyleSheet.create({
+  hitArea: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
