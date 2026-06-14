@@ -84,6 +84,8 @@ export default function GameScreen() {
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
+  // Перф-сигнал drag для паузы мозга маскота (спека 09); слой маскота — Task 12.
+  const dragActive = useSharedValue(0);
 
   const loadSaved = useGameStore((s) => s.loadSaved);
   const newGame = useGameStore((s) => s.newGame);
@@ -112,6 +114,7 @@ export default function GameScreen() {
       boardMirror,
       preview,
       previewColor,
+      dragActive,
       cellColors: theme.cellColors,
       boardBg: theme.boardBg,
       cellEmpty: theme.cellEmpty,

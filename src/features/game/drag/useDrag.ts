@@ -75,6 +75,8 @@ export function useDrag({
     .enabled(!disabled)
     .onBegin(() => {
       'worklet';
+      // Перф-сигнал: drag начался — мозг маскота встаёт на паузу (спека 09).
+      ctx.dragActive.value = 1;
       scale.value = withSpring(1.0, { damping: 18, stiffness: 360 });
       elevation.value = withTiming(8, { duration: 150 });
       shadowOpacity.value = withTiming(0.3, { duration: 150 });
@@ -129,6 +131,8 @@ export function useDrag({
     })
     .onEnd(() => {
       'worklet';
+      // Drag завершён (валидный дроп и возврат — оба пути ниже).
+      ctx.dragActive.value = 0;
       ctx.preview.value = EMPTY_MASK;
       ctx.previewColor.value = 0;
 
@@ -156,6 +160,8 @@ export function useDrag({
     })
     .onFinalize((_event, success) => {
       'worklet';
+      // Гарантированный сброс перф-сигнала на любом завершении (вкл. отмену).
+      ctx.dragActive.value = 0;
       // Всегда чистим превью
       ctx.preview.value = EMPTY_MASK;
       ctx.previewColor.value = 0;
