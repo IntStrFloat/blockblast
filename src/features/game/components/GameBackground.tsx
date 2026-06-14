@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, Keyframe } from 'react-native-reanimated';
 
@@ -42,6 +42,7 @@ const VIGNETTE = hexToRgba(SOFT_SUNSET.shadow, 0.18);
 
 interface GameBackgroundProps {
   boardSize: number;
+  boardLayout?: { x: number; y: number; width: number; height: number } | null;
 }
 
 function buildPulseIn(reducedMotion: boolean) {
@@ -64,44 +65,70 @@ function buildPulseOut(reducedMotion: boolean) {
       }).duration(140);
 }
 
-export function GameBackground({ boardSize }: GameBackgroundProps) {
+export function GameBackground({ boardSize, boardLayout }: GameBackgroundProps) {
   const { width, height } = useWindowDimensions();
   const lastEvent = useGameStore((state) => state.lastEvent);
   const reducedMotion = useReducedMotion();
-  const [pulseKey, setPulseKey] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pulseVisible = pulseKey > 0 && lastEvent?.score === pulseKey;
+  const [pulseToken, setPulseToken] = useState<string | null>(null);
+  const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [sessionNonce, bumpSessionNonce] = useReducer((current: number) => current + 1, 0);
+  const pulseSessionArmedRef = useRef(false);
+  const activeEventToken =
+    lastEvent && lastEvent.scoreDelta > 0 && lastEvent.combo >= 2
+      ? `${sessionNonce}:${lastEvent.score}`
+      : null;
+  const pulseVisible = pulseToken !== null && pulseToken === activeEventToken;
 
   useEffect(() => {
     const clearPulseTimer = () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
+      if (startTimerRef.current) {
+        clearTimeout(startTimerRef.current);
+        startTimerRef.current = null;
+      }
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
       }
     };
 
     if (!lastEvent || lastEvent.scoreDelta <= 0 || lastEvent.combo < 2) {
+      if (pulseSessionArmedRef.current) {
+        pulseSessionArmedRef.current = false;
+        bumpSessionNonce();
+      }
       clearPulseTimer();
       return clearPulseTimer;
     }
 
-    const eventKey = lastEvent.score;
+    pulseSessionArmedRef.current = true;
+    const eventToken = `${sessionNonce}:${lastEvent.score}`;
     clearPulseTimer();
-    timerRef.current = setTimeout(() => {
-      setPulseKey(eventKey);
-      timerRef.current = setTimeout(() => {
-        setPulseKey((current) => (current === eventKey ? 0 : current));
-        timerRef.current = null;
+    startTimerRef.current = setTimeout(() => {
+      setPulseToken(eventToken);
+      hideTimerRef.current = setTimeout(() => {
+        setPulseToken((current) => (current === eventToken ? null : current));
+        hideTimerRef.current = null;
       }, reducedMotion ? 220 : 300);
+      startTimerRef.current = null;
     }, 0);
 
     return clearPulseTimer;
-  }, [lastEvent, reducedMotion]);
+  }, [lastEvent, reducedMotion, sessionNonce]);
 
   const haloWidth = boardSize * 1.74;
   const haloHeight = boardSize * 1.18;
-  const haloLeft = (width - haloWidth) / 2;
-  const haloTop = Math.max(height * 0.31, boardSize * 0.82) - haloHeight / 2;
+  const boardAnchor = boardLayout
+    ? {
+        x: boardLayout.x + boardLayout.width / 2,
+        y: boardLayout.y + boardLayout.height / 2,
+      }
+    : {
+        x: width / 2,
+        y: Math.max(height * 0.31, boardSize * 0.82),
+      };
+  const haloLeft = boardAnchor.x - haloWidth / 2;
+  const haloTop = boardAnchor.y - haloHeight / 2;
 
   const pulseIn = buildPulseIn(reducedMotion);
   const pulseOut = buildPulseOut(reducedMotion);
@@ -182,7 +209,7 @@ export function GameBackground({ boardSize }: GameBackgroundProps) {
 
       {pulseVisible ? (
         <Animated.View
-          key={pulseKey}
+          key={pulseToken}
           entering={pulseIn}
           exiting={pulseOut}
           pointerEvents="none"
