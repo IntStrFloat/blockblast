@@ -50,6 +50,7 @@ example
 /web-dist/
 /web-dist.tgz
 /.omx/
+/.superpowers/
 
 # generated backend runtime and local data
 /backend/runtime/
