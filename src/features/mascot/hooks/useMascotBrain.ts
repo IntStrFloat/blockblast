@@ -239,6 +239,9 @@ export function useMascotBrain(params: MascotBrainParams): void {
   const pausedRef = useRef(false);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ссылка на актуальный планировщик — чтобы resume после паузы перезапускал
+  // ровно тот же цикл, без дубля кода.
+  const scheduleNextRef = useRef<() => void>(() => {});
 
   // --- Idle-планировщик + моргание + подписка на игру: ставится один раз ---
   useEffect(() => {
@@ -268,6 +271,7 @@ export function useMascotBrain(params: MascotBrainParams): void {
 
       idleTimerRef.current = setTimeout(scheduleNext, action.durationMs);
     }
+    scheduleNextRef.current = scheduleNext;
 
     function scheduleBlink(): void {
       const { minMs, maxMs } = MASCOT_CONFIG.blink;
@@ -339,48 +343,10 @@ export function useMascotBrain(params: MascotBrainParams): void {
       cancelAnimation(motion.scaleY);
       cancelAnimation(motion.rotate);
     } else {
-      // Возобновление idle-цикла.
-      if (!idleTimerRef.current) scheduleNextResume();
+      // Возобновление idle-цикла тем же планировщиком.
+      if (!idleTimerRef.current) scheduleNextRef.current();
     }
   }
-
-  // Хранилище ссылки на «возобновляющий» вызов, чтобы избежать дубля кода
-  // планировщика: при resume просто перезапускаем цикл с задержкой 0.
-  const resumeRef = useRef<() => void>(() => {});
-  function scheduleNextResume(): void {
-    resumeRef.current();
-  }
-  // Привязываем resumeRef к актуальному циклу через эффект ниже.
-  useEffect(() => {
-    resumeRef.current = () => {
-      // Лёгкий рестарт цикла: одно действие сразу, дальше по таймеру.
-      if (pausedRef.current) return;
-      const p = paramsRef.current;
-      const recent = recentRef.current;
-      const ctx = {
-        stage: p.stage,
-        hourOfDay: new Date().getHours(),
-        reduceMotion: p.reduceMotion,
-        mood: 'neutral' as const,
-      };
-      const now = Date.now();
-      const { action, rngState } = nextAction(
-        recent,
-        now,
-        ctx,
-        useMascot.getState().rngState,
-      );
-      useMascot.getState().bumpRng(rngState);
-      recent.set(action.id, now);
-      applyAction(p.motion, action, p.areaWidth);
-      if (action.emote) p.onEmote(action.emote);
-      const loop = () => {
-        if (pausedRef.current) return;
-        resumeRef.current();
-      };
-      idleTimerRef.current = setTimeout(loop, action.durationMs);
-    };
-  });
 
   useAnimatedReaction(
     () => dragActive.value,
