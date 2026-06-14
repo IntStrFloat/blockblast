@@ -39,8 +39,15 @@ function buildInitial(): MascotState {
 // Персист
 // ---------------------------------------------------------------------------
 
+/** Ключи, которые НЕ надо сохранять (transient поля стора). */
+const TRANSIENT_KEYS: readonly string[] = ['reveal'];
+
 function persist(state: MascotState): void {
-  setJSON(KEYS.mascot, state);
+  // Отфильтровать transient поля перед записью в MMKV.
+  const payload = Object.fromEntries(
+    Object.entries(state).filter(([k]) => !TRANSIENT_KEYS.includes(k)),
+  );
+  setJSON(KEYS.mascot, payload);
 }
 
 // ---------------------------------------------------------------------------
@@ -82,6 +89,15 @@ function gainXp(prev: MascotState, amount: number): GainResult {
 // Интерфейс стора
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Transient reveal (NOT persisted to MMKV)
+// ---------------------------------------------------------------------------
+
+interface RevealPayload {
+  level: number;
+  rewards: LevelReward[];
+}
+
 interface MascotActions {
   applyEvent: (event: PlacementEvent, isRecord: boolean) => { leveledTo: number; rewards: LevelReward[] };
   feed: () => { leveledTo: number; rewards: LevelReward[] } | null;
@@ -91,9 +107,10 @@ interface MascotActions {
   equip: (slot: Slot, id: string) => void;
   markIntroDone: () => void;
   bumpRng: (rngState: number) => void;
+  clearReveal: () => void;
 }
 
-type MascotStore = MascotState & MascotActions;
+type MascotStore = MascotState & MascotActions & { reveal: RevealPayload | null };
 
 // ---------------------------------------------------------------------------
 // Стор
@@ -102,12 +119,15 @@ type MascotStore = MascotState & MascotActions;
 export const useMascot = create<MascotStore>((set, get) => ({
   ...buildInitial(),
 
+  reveal: null,
+
   applyEvent(event, isRecord) {
     const prev = get();
     const gained = xpFromEvent(event, isRecord);
     const { patch, leveledTo, rewards } = gainXp(prev, gained);
     const next: MascotState = { ...prev, ...patch };
-    set(patch);
+    const revealPatch = leveledTo > prev.level ? { reveal: { level: leveledTo, rewards } } : {};
+    set({ ...patch, ...revealPatch });
     persist(next);
     return { leveledTo, rewards };
   },
@@ -119,7 +139,8 @@ export const useMascot = create<MascotStore>((set, get) => ({
 
     const { patch, leveledTo, rewards } = gainXp(prev, MASCOT_CONFIG.xp.dailyFeed);
     const next: MascotState = { ...prev, ...patch, lastFedDay: today };
-    set({ ...patch, lastFedDay: today });
+    const revealPatch = leveledTo > prev.level ? { reveal: { level: leveledTo, rewards } } : {};
+    set({ ...patch, lastFedDay: today, ...revealPatch });
     persist(next);
     return { leveledTo, rewards };
   },
@@ -172,5 +193,9 @@ export const useMascot = create<MascotStore>((set, get) => ({
     const next: MascotState = { ...prev, rngState };
     set({ rngState });
     persist(next);
+  },
+
+  clearReveal() {
+    set({ reveal: null });
   },
 }));

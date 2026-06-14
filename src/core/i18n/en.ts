@@ -66,4 +66,9 @@ export const en = {
     e69420: 'nice',
     e100001: 'how even?',
   },
+  mascot: {
+    levelUp: 'Level up!',
+    newItem: 'New item!',
+    newItems: 'New items',
+  },
 } as const;

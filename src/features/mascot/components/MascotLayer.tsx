@@ -18,6 +18,7 @@ import { progressFor } from '../logic/progression';
 import type { EmoteId } from '../logic/types';
 import { useMascot } from '../store';
 import { Emote } from './Emote';
+import { LevelUpReveal } from './LevelUpReveal';
 import { Mascot, useMascotMotion } from './Mascot';
 import { MascotChip } from './MascotChip';
 
@@ -39,7 +40,12 @@ interface MascotLayerProps {
 export function MascotLayer({ dragActive }: MascotLayerProps) {
   const showMascot = useSettings((s) => s.showMascot);
   if (!showMascot) return null;
-  return <MascotLayerInner dragActive={dragActive} />;
+  return (
+    <>
+      <MascotLayerInner dragActive={dragActive} />
+      <LevelUpReveal />
+    </>
+  );
 }
 
 function MascotLayerInner({ dragActive }: MascotLayerProps) {

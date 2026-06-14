@@ -56,7 +56,7 @@ const DEFAULTS = {
 
 beforeEach(() => {
   // Сбросить стор к дефолтам с фиксированным rng (без replace=true, чтобы сохранить action-функции)
-  useMascot.setState(DEFAULTS);
+  useMascot.setState({ ...DEFAULTS, reveal: null });
   // Убедиться, что KEYS.mascot не содержит загрязнённых данных
   const { removeKey } = require('@/core/storage');
   removeKey(KEYS.mascot);
@@ -279,5 +279,59 @@ describe('persistence', () => {
     useMascot.getState().drop();
     const saved = getJSON<{ lost: boolean }>(KEYS.mascot);
     expect(saved!.lost).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reveal: transient level-up payload (NOT persisted)
+// ---------------------------------------------------------------------------
+describe('reveal', () => {
+  it('applyEvent с левел-апом устанавливает reveal с правильным level и rewards', () => {
+    // +53 XP (1 линия + record bonus) → level 1→2, reward: { kind:'cosmetic', id:'face-glasses' }
+    const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
+    useMascot.getState().applyEvent(e, true);
+
+    const s = useMascot.getState();
+    expect(s.reveal).not.toBeNull();
+    expect(s.reveal!.level).toBe(2);
+    expect(s.reveal!.rewards).toHaveLength(1);
+    expect(s.reveal!.rewards[0]).toEqual({ kind: 'cosmetic', id: 'face-glasses' });
+  });
+
+  it('applyEvent без левел-апа НЕ устанавливает reveal', () => {
+    // Событие без линий и без record → 0 XP, уровень не меняется
+    const e = makeEvent({});
+    useMascot.getState().applyEvent(e, false);
+
+    expect(useMascot.getState().reveal).toBeNull();
+  });
+
+  it('feed() с левел-апом устанавливает reveal', () => {
+    // dailyFeed = 40 XP → level 1→2
+    const result = useMascot.getState().feed();
+    expect(result).not.toBeNull();
+
+    const s = useMascot.getState();
+    expect(s.reveal).not.toBeNull();
+    expect(s.reveal!.level).toBe(2);
+  });
+
+  it('clearReveal() устанавливает reveal в null', () => {
+    // Сначала вызовем левел-ап, чтобы reveal был не null
+    const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
+    useMascot.getState().applyEvent(e, true);
+    expect(useMascot.getState().reveal).not.toBeNull();
+
+    useMascot.getState().clearReveal();
+    expect(useMascot.getState().reveal).toBeNull();
+  });
+
+  it('reveal НЕ записывается в MMKV (не персистится)', () => {
+    const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
+    useMascot.getState().applyEvent(e, true);
+
+    const saved = getJSON<{ reveal?: unknown }>(KEYS.mascot);
+    expect(saved).not.toBeNull();
+    expect(saved!.reveal).toBeUndefined();
   });
 });
