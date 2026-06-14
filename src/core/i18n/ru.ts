@@ -76,5 +76,9 @@ export const ru = {
     helperCooldown: 'снова завтра',
     locked: 'ур.',
     introSkip: 'пропустить',
+    hint: 'подсказка',
+    swap: 'замена',
+    swapped: 'фигуру заменили',
+    undo: 'вернуть',
   },
 } as const;

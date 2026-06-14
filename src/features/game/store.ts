@@ -4,6 +4,7 @@ import {
   createGame,
   deserialize,
   place,
+  replaceTrayPiece as engineReplaceTrayPiece,
   revive,
   serialize,
 } from '@/core/engine';
@@ -28,6 +29,14 @@ interface GameStore {
   epoch: number;
   newGame: () => void;
   placePiece: (trayIndex: number, r: number, c: number) => PlacementEvent | null;
+  /**
+   * Заменить фигуру в слоте трея на свежую (помощник «свап» маскота).
+   * No-op, если партия не идёт, индекс вне диапазона или слот пуст.
+   * Автосейвит, как placePiece.
+   */
+  replaceTrayPiece: (trayIndex: number) => void;
+  /** Восстановить снимок партии (undo свопа). Автосейвит. */
+  restoreGame: (snapshot: GameState) => void;
   reviveGame: () => void;
   /** true, если сохранённая партия загружена */
   loadSaved: () => boolean;
@@ -86,6 +95,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ game: result.state, lastEvent: result.event, linesCleared: lines });
     }
     return result.event;
+  },
+
+  replaceTrayPiece: (trayIndex) => {
+    const { game } = get();
+    if (game.status !== 'playing') return;
+    if (trayIndex < 0 || trayIndex >= game.tray.length) return;
+    if (game.tray[trayIndex] === null) return;
+    const next = engineReplaceTrayPiece(game, trayIndex);
+    set({ game: next });
+    setString(KEYS.gameCurrent, serialize(next));
+  },
+
+  restoreGame: (snapshot) => {
+    set({ game: snapshot });
+    setString(KEYS.gameCurrent, serialize(snapshot));
   },
 
   reviveGame: () => {

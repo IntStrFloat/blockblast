@@ -76,5 +76,9 @@ export const en = {
     helperCooldown: 'back tomorrow',
     locked: 'lvl ',
     introSkip: 'skip',
+    hint: 'hint',
+    swap: 'swap',
+    swapped: 'piece swapped',
+    undo: 'undo',
   },
 } as const;

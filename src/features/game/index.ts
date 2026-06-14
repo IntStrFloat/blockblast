@@ -2,9 +2,9 @@
 export { useGameStore, hasSavedGame, getSavedScore } from './store';
 export { BoardView } from './components/BoardView';
 export { TrayView } from './components/TrayView';
-export { DragProvider } from './drag/DragContext';
+export { DragProvider, useDragCtx } from './drag/DragContext';
 export type { DragCtx, BoardGeometry } from './drag/DragContext';
-export { EMPTY_MASK } from './drag/gridMath';
+export { EMPTY_MASK, previewMask } from './drag/gridMath';
 export { PraiseBanner } from './effects/PraiseBanner';
 export { ComboBadge } from './effects/ComboBadge';
 export { Confetti } from './effects/Confetti';

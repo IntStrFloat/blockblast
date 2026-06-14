@@ -116,6 +116,48 @@ describe('useGameStore', () => {
     expect(useGameStore.getState().epoch).toBe(epochBeforeRevive);
   });
 
+  it('replaceTrayPiece меняет фигуру в слоте, автосейвит, не трогает доску/счёт', () => {
+    const before = useGameStore.getState().game;
+    const otherA = before.tray[1];
+    const otherB = before.tray[2];
+
+    useGameStore.getState().replaceTrayPiece(0);
+    const after = useGameStore.getState().game;
+
+    // Слот 0 заменён на валидную фигуру (не null).
+    expect(after.tray[0]).not.toBeNull();
+    // Соседние слоты не тронуты.
+    expect(after.tray[1]).toEqual(otherA);
+    expect(after.tray[2]).toEqual(otherB);
+    // Доска и счёт без изменений.
+    expect(after.board).toEqual(before.board);
+    expect(after.score).toBe(before.score);
+    // Автосейв отражает новое состояние.
+    expect(getString(KEYS.gameCurrent)).toBe(serialize(after));
+  });
+
+  it('replaceTrayPiece — безопасный no-op для пустого слота', () => {
+    const g = useGameStore.getState().game;
+    useGameStore.setState({
+      game: { ...g, tray: [g.tray[0], null, g.tray[2]] },
+    });
+    const before = serialize(useGameStore.getState().game);
+    expect(() => useGameStore.getState().replaceTrayPiece(1)).not.toThrow();
+    expect(serialize(useGameStore.getState().game)).toBe(before);
+  });
+
+  it('restoreGame восстанавливает снимок и автосейвит (для undo свопа)', () => {
+    const snapshot = useGameStore.getState().game;
+    const snapStr = serialize(snapshot);
+
+    useGameStore.getState().replaceTrayPiece(0);
+    expect(serialize(useGameStore.getState().game)).not.toBe(snapStr);
+
+    useGameStore.getState().restoreGame(snapshot);
+    expect(serialize(useGameStore.getState().game)).toBe(snapStr);
+    expect(getString(KEYS.gameCurrent)).toBe(snapStr);
+  });
+
   it('revive возвращает в игру и восстанавливает сейв', () => {
     const board = emptyBoard().map(() => 1);
     for (let r = 0; r < 8; r++) {

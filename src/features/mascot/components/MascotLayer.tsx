@@ -25,6 +25,8 @@ import type { EmoteId } from '../logic/types';
 import { useMascot } from '../store';
 import { Emote } from './Emote';
 import { FeedPrompt } from './FeedPrompt';
+import { HelperHint } from './HelperHint';
+import { HelperSwap } from './HelperSwap';
 import { LevelUpReveal } from './LevelUpReveal';
 import { Mascot, useMascotMotion } from './Mascot';
 import { MascotChip } from './MascotChip';
@@ -240,6 +242,15 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
           <MascotChip onPress={onOpenWardrobe} />
         </View>
 
+        {/* Мягкие помощники — верхний правый угол. Каждый сам решает, показываться
+            ли (затык / непомещаемая фигура + кулдаун). Недоступны, пока Капи потерян. */}
+        {!lost && (
+          <View style={styles.helpers} pointerEvents="box-none">
+            <HelperHint onEmote={showEmote} reduceMotion={reduceMotion} />
+            <HelperSwap onEmote={showEmote} reduceMotion={reduceMotion} />
+          </View>
+        )}
+
         {/* Маскот в нижнем левом углу; горизонтальный ход — через trackStyle (motion.x),
             чтобы тень и эмоция двигались вместе с Капи. */}
         {!lost && (
@@ -295,6 +306,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     zIndex: 2,
+  },
+  helpers: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    alignItems: 'flex-end',
+    gap: 6,
+    zIndex: 3,
   },
   lostBubble: {
     position: 'absolute',

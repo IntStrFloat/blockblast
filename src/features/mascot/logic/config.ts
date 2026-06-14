@@ -32,7 +32,7 @@ export interface MascotConfigType {
     dailyFeed: number;
   };
   helpers: {
-    hint: { unlockLevel: number };
+    hint: { unlockLevel: number; stuckThreshold: number };
     swap: { unlockLevel: number };
   };
   nightHour: number;
@@ -157,7 +157,9 @@ export const MASCOT_CONFIG: MascotConfigType = {
   },
 
   helpers: {
-    hint: { unlockLevel:  5 },
+    // stuckThreshold — суммарных валидных позиций трея, ниже которых подсказка
+    // уместна (затык). Черновое значение, балансируется без кода.
+    hint: { unlockLevel:  5, stuckThreshold: 12 },
     swap: { unlockLevel: 12 },
   },
 
