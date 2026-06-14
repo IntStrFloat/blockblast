@@ -67,9 +67,11 @@ interface GameState {
 ```ts
 createGame(seed?: number): GameState
 canPlace(board, shape, r, c): boolean
-findPlacements(board, shape): Array<[r, c]>        // для подсветки «фигура никуда не влезает»
+findPlacements(board, shape): Array<[r, c]>        // подсветка/«фигура никуда не влезает»; основа подсказки и «стак»-эвристики маскота (09)
+hasPlacement(board, shape): boolean                // помещается ли фигура; основа помощника «замена» (09)
 hasAnyMove(board, tray): boolean
 place(state, trayIndex, r, c): { state: GameState; event: PlacementEvent }  // throws при невалидном
+replaceTrayPiece(state, trayIndex): GameState       // свежая фигура в слот (помощник «замена» маскота, 09); exclude по другим слотам
 revive(state): GameState                            // очистка доски, reviveUsed=true, счёт/комбо сохраняются
 serialize(state): string / deserialize(s): GameState // версионированный формат для автосейва
 

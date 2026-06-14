@@ -28,6 +28,7 @@ blockblast/
 │   │   └── i18n/              # мини-i18n: словари ru/en, t(key), без либ
 │   ├── features/
 │   │   ├── game/              # игровой UI: Board, Tray, drag, эффекты, оверлеи
+│   │   ├── mascot/            # маскот «Капи»: слой над доской, прогресс, помощники → 09-mascot.md
 │   │   ├── scores/            # best score, статистика партий
 │   │   ├── streak/            # дневной стрик
 │   │   ├── share/             # карточка результата + шеринг
@@ -46,6 +47,7 @@ blockblast/
 ```
 app → features → core, ui
 features/game → core/engine (использует), features/monetization (revive), features/settings (звук/вибро)
+features/mascot → core/engine (findPlacements/hasPlacement/replaceTrayPiece), features/game (preview-подсветка, useGameStore), features/settings (sound/haptics/showMascot)
 core/* → ничего из features/ui/app
 ui → ничего, кроме токенов и RN
 ```
@@ -70,7 +72,8 @@ ui → ничего, кроме токенов и RN
 | `game.current` | сериализованная партия (для «Продолжить») | features/game |
 | `scores.best`, `scores.stats` | рекорд, число партий, сумма очищенных линий | features/scores |
 | `streak.state` | { lastDay, count } | features/streak |
-| `settings.v1` | звук, вибро, тема, язык, тон похвал | features/settings |
+| `settings.v1` | звук, вибро, тема, язык, тон похвал, показывать Капи | features/settings |
+| `mascot.state` | прогресс Капи: XP/уровень, разлоки, экипировка, кормление/кулдауны помощников, lost, introDone | features/mascot |
 | `iap.entitlements` | { removeAds: bool } (кэш) | monetization |
 | `ads.meta` | счётчики частоты показов | monetization |
 
