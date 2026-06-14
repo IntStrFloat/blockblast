@@ -3,18 +3,32 @@ import { View } from 'react-native';
 import type { LayoutChangeEvent, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import type { PlacementEvent } from '@/core/engine';
 import { radii } from '@/ui';
 
 import { buildClearPresentation } from '../animation/clearPresentation';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useDragCtx } from '../drag/DragContext';
 import { ClearLayer } from '../effects/ClearLayer';
+import { GameEffectsLayer } from '../effects/GameEffectsLayer';
 import { useShake } from '../effects/useShake';
 import { useGameStore } from '../store';
 import { BoardCell } from './BoardCell';
 
 interface BoardViewProps {
   style?: ViewStyle;
+}
+
+const clearEventInstanceIds = new WeakMap<PlacementEvent, number>();
+let nextClearEventInstanceId = 1;
+
+function clearEventInstanceKey(event: PlacementEvent, reducedMotion: boolean) {
+  let id = clearEventInstanceIds.get(event);
+  if (!id) {
+    id = nextClearEventInstanceId++;
+    clearEventInstanceIds.set(event, id);
+  }
+  return `${id}-${reducedMotion ? 1 : 0}`;
 }
 
 export function BoardView({ style }: BoardViewProps) {
@@ -30,6 +44,13 @@ export function BoardView({ style }: BoardViewProps) {
         ? buildClearPresentation(lastEvent, geom, ctx.cellColors, reducedMotion)
         : null,
     [ctx.cellColors, geom, lastEvent, reducedMotion],
+  );
+  const clearEffectKey = useMemo(
+    () =>
+      lastEvent && lastEvent.clearedCells.length > 0
+        ? clearEventInstanceKey(lastEvent, reducedMotion)
+        : 'clear-none',
+    [lastEvent, reducedMotion],
   );
 
   // Синхронизация boardMirror для worklet-проверок
@@ -72,7 +93,18 @@ export function BoardView({ style }: BoardViewProps) {
   const { boardBg, cellEmpty } = ctx;
 
   return (
-    <Animated.View style={shakeStyle}>
+    <Animated.View
+      style={[
+        {
+          width: boardSize,
+          height: boardSize,
+          position: 'relative',
+          overflow: 'visible',
+        },
+        shakeStyle,
+        style,
+      ]}
+    >
       <View
         ref={boardRef}
         onLayout={onLayout}
@@ -85,7 +117,6 @@ export function BoardView({ style }: BoardViewProps) {
             backgroundColor: boardBg,
             position: 'relative',
           },
-          style,
         ]}
       >
         {board.map((colorId, index) => {
@@ -103,11 +134,9 @@ export function BoardView({ style }: BoardViewProps) {
             />
           );
         })}
-        <ClearLayer
-          key={lastEvent ? `${lastEvent.score}-${lastEvent.combo}` : 'clear-none'}
-          presentation={presentation}
-        />
+        <ClearLayer key={clearEffectKey} presentation={presentation} />
       </View>
+      <GameEffectsLayer key={clearEffectKey} presentation={presentation} />
     </Animated.View>
   );
 }
