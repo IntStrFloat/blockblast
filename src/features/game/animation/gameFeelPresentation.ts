@@ -36,6 +36,13 @@ export interface ComboFramePresentation {
   reducedMotion: boolean;
 }
 
+export interface PlacementEffectInstance {
+  id: string;
+  placement: PlacementPresentation;
+  comboFrame: ComboFramePresentation;
+  color: string;
+}
+
 function presentationSeed(
   event: PlacementEvent,
   geom: ClearGeometry,
@@ -177,4 +184,27 @@ export function comboFrameFor(
       : clamp(1 + comboShakeProgress * 0.12, 1, GAME_FEEL_MOTION.comboScaleMax),
     reducedMotion,
   };
+}
+
+export function placementEffectLifetimeMs(
+  placement: PlacementPresentation | null,
+  comboFrame: ComboFramePresentation | null,
+): number {
+  if (!placement && !comboFrame) return 0;
+
+  const latestParticle = placement?.particles.reduce(
+    (max, particle) => Math.max(max, particle.delayMs + particle.durationMs),
+    0,
+  ) ?? 0;
+  const flashLifetime = placement ? GAME_FEEL_MOTION.placementFlashDurationMs : 0;
+  const comboLifetime = comboFrame
+    ? Math.max(
+        comboFrame.shakeDurationMs,
+        comboFrame.reducedMotion
+          ? GAME_FEEL_MOTION.comboFrameReducedDurationMs
+          : GAME_FEEL_MOTION.comboFramePulseDurationMs,
+      )
+    : 0;
+
+  return Math.max(latestParticle, flashLifetime, comboLifetime) + 60;
 }

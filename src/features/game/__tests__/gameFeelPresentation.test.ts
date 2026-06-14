@@ -3,6 +3,7 @@ import type { PlacementEvent } from '@/core/engine';
 import {
   buildPlacementPresentation,
   comboFrameFor,
+  placementEffectLifetimeMs,
   scoreScaleFor,
 } from '../animation/gameFeelPresentation';
 import { GAME_FEEL_MOTION } from '../animation/motion';
@@ -143,9 +144,36 @@ describe('comboFrameFor', () => {
 describe('game-feel budgets', () => {
   it('centralizes hard caps used by the presentation helpers', () => {
     expect(GAME_FEEL_MOTION.placementParticleMax).toBe(12);
+    expect(GAME_FEEL_MOTION.placementQueueCap).toBe(3);
     expect(GAME_FEEL_MOTION.recordConfettiMax).toBe(18);
     expect(GAME_FEEL_MOTION.oneLineExternalEffectTargetCap).toBe(64);
     expect(GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap).toBe(128);
     expect(GAME_FEEL_MOTION.scoreScaleMax).toBe(1.25);
+  });
+
+  it('keeps placement overlay lifetime long enough for particle travel and combo pulse cleanup', () => {
+    const placement = buildPlacementPresentation(
+      placementEvent({
+        combo: 3,
+        clearedRows: [2],
+        score: 5400,
+      }),
+      GEOM,
+      CELL_COLORS,
+      false,
+    );
+    const comboFrame = comboFrameFor(
+      placementEvent({
+        combo: 3,
+        clearedRows: [2],
+        boardCleared: true,
+      }),
+      false,
+    );
+
+    const lifetime = placementEffectLifetimeMs(placement, comboFrame);
+
+    expect(lifetime).toBeGreaterThanOrEqual(GAME_FEEL_MOTION.placementParticleDurationMs);
+    expect(lifetime).toBeGreaterThan(comboFrame.shakeDurationMs);
   });
 });

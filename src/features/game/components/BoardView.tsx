@@ -12,6 +12,13 @@ import {
   MAX_ACTIVE_CLEAR_PRESENTATIONS,
   type ClearPresentationInstance,
 } from '../animation/clearPresentation';
+import {
+  buildPlacementPresentation,
+  comboFrameFor,
+  placementEffectLifetimeMs,
+  type PlacementEffectInstance,
+} from '../animation/gameFeelPresentation';
+import { GAME_FEEL_MOTION } from '../animation/motion';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useDragCtx } from '../drag/DragContext';
 import { ClearLayer } from '../effects/ClearLayer';
@@ -26,6 +33,8 @@ interface BoardViewProps {
 
 const clearEventInstanceIds = new WeakMap<PlacementEvent, number>();
 let nextClearEventInstanceId = 1;
+const placementEventInstanceIds = new WeakMap<PlacementEvent, number>();
+let nextPlacementEventInstanceId = 1;
 
 function clearEventInstanceKey(event: PlacementEvent) {
   let id = clearEventInstanceIds.get(event);
@@ -34,6 +43,15 @@ function clearEventInstanceKey(event: PlacementEvent) {
     clearEventInstanceIds.set(event, id);
   }
   return `clear-${id}`;
+}
+
+function placementEventInstanceKey(event: PlacementEvent) {
+  let id = placementEventInstanceIds.get(event);
+  if (!id) {
+    id = nextPlacementEventInstanceId++;
+    placementEventInstanceIds.set(event, id);
+  }
+  return `placement-${id}`;
 }
 
 export function BoardView({ style }: BoardViewProps) {
@@ -71,9 +89,27 @@ export function BoardView({ style }: BoardViewProps) {
         : null,
     [boardGeom, lastEvent, reducedMotion, stableCellColors],
   );
+  const queuedPlacementEffect = useMemo<PlacementEffectInstance | null>(() => {
+    if (!lastEvent) return null;
+
+    return {
+      id: placementEventInstanceKey(lastEvent),
+      placement: buildPlacementPresentation(
+        lastEvent,
+        boardGeom,
+        stableCellColors,
+        reducedMotion,
+      ),
+      comboFrame: comboFrameFor(lastEvent, reducedMotion),
+      color: stableCellColors[Math.max(0, lastEvent.colorId - 1)] ?? '#FFFFFF',
+    };
+  }, [boardGeom, lastEvent, reducedMotion, stableCellColors]);
   const [activePresentations, setActivePresentations] = useState<ClearPresentationInstance[]>([]);
+  const [activePlacementEffects, setActivePlacementEffects] = useState<PlacementEffectInstance[]>([]);
   const presentationTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const enqueuedPresentationIdsRef = useRef<Set<string>>(new Set());
+  const placementTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const enqueuedPlacementIdsRef = useRef<Set<string>>(new Set());
 
   // Синхронизация boardMirror для worklet-проверок
   useEffect(() => {
@@ -83,8 +119,12 @@ export function BoardView({ style }: BoardViewProps) {
   // Screen shake при очистке 2+ линий (спека 04)
   const { shakeStyle, triggerShake } = useShake();
   useEffect(() => {
-    if (queuedPresentation) triggerShake(queuedPresentation.presentation.shake);
-  }, [queuedPresentation, triggerShake]);
+    if (!lastEvent) return;
+    triggerShake({
+      clear: queuedPresentation?.presentation.shake ?? null,
+      combo: queuedPlacementEffect?.comboFrame ?? null,
+    });
+  }, [lastEvent, queuedPlacementEffect, queuedPresentation, triggerShake]);
 
   useEffect(() => {
     if (!queuedPresentation) return;
@@ -108,6 +148,27 @@ export function BoardView({ style }: BoardViewProps) {
   }, [queuedPresentation]);
 
   useEffect(() => {
+    if (!queuedPlacementEffect) return;
+    if (enqueuedPlacementIdsRef.current.has(queuedPlacementEffect.id)) return;
+    enqueuedPlacementIdsRef.current.add(queuedPlacementEffect.id);
+    if (!placementTimersRef.current.has(queuedPlacementEffect.id)) {
+      const timer = setTimeout(() => {
+        placementTimersRef.current.delete(queuedPlacementEffect.id);
+        enqueuedPlacementIdsRef.current.delete(queuedPlacementEffect.id);
+        setActivePlacementEffects((current) =>
+          current.filter((item) => item.id !== queuedPlacementEffect.id),
+        );
+      }, placementEffectLifetimeMs(queuedPlacementEffect.placement, queuedPlacementEffect.comboFrame));
+      placementTimersRef.current.set(queuedPlacementEffect.id, timer);
+    }
+
+    setActivePlacementEffects((current) => {
+      if (current.some((entry) => entry.id === queuedPlacementEffect.id)) return current;
+      return [...current, queuedPlacementEffect].slice(-GAME_FEEL_MOTION.placementQueueCap);
+    });
+  }, [queuedPlacementEffect]);
+
+  useEffect(() => {
     const activeIds = new Set(activePresentations.map((entry) => entry.id));
 
     presentationTimersRef.current.forEach((timer, id) => {
@@ -118,11 +179,25 @@ export function BoardView({ style }: BoardViewProps) {
     });
   }, [activePresentations]);
 
+  useEffect(() => {
+    const activeIds = new Set(activePlacementEffects.map((entry) => entry.id));
+
+    placementTimersRef.current.forEach((timer, id) => {
+      if (activeIds.has(id)) return;
+      clearTimeout(timer);
+      placementTimersRef.current.delete(id);
+      enqueuedPlacementIdsRef.current.delete(id);
+    });
+  }, [activePlacementEffects]);
+
   useEffect(
     () => () => {
       presentationTimersRef.current.forEach((timer) => clearTimeout(timer));
       presentationTimersRef.current.clear();
       enqueuedPresentationIdsRef.current.clear();
+      placementTimersRef.current.forEach((timer) => clearTimeout(timer));
+      placementTimersRef.current.clear();
+      enqueuedPlacementIdsRef.current.clear();
     },
     [],
   );
@@ -199,7 +274,10 @@ export function BoardView({ style }: BoardViewProps) {
         })}
         <ClearLayer presentations={activePresentations} />
       </View>
-      <GameEffectsLayer presentations={activePresentations} />
+      <GameEffectsLayer
+        presentations={activePresentations}
+        placementEffects={activePlacementEffects}
+      />
     </Animated.View>
   );
 }

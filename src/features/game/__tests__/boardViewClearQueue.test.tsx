@@ -1,10 +1,26 @@
 import React from 'react';
 import { act, create } from 'react-test-renderer';
 
+import { GAME_FEEL_MOTION } from '../animation/motion';
+
 type MockPlacementEvent = {
   id: string;
-  lifetimeMs: number;
+  clearLifetimeMs: number;
+  placementLifetimeMs: number;
+  placed: readonly (readonly [number, number])[];
   clearedCells: readonly (readonly [number, number])[];
+  clearedRows: readonly number[];
+  clearedCols: readonly number[];
+  clearedColors: readonly number[];
+  colorId: number;
+  scoreDelta: number;
+  score: number;
+  combo: number;
+  praise: 'none';
+  onFire: boolean;
+  boardCleared: boolean;
+  newTray: boolean;
+  gameOver: boolean;
 };
 
 const mockClearLayerSpy = jest.fn();
@@ -59,10 +75,36 @@ jest.mock('../animation/clearPresentation', () => ({
     shake: { amplitude: 0, scale: 1, durationMs: 0 },
     praiseFontSize: 0,
     reducedMotion: false,
-    __lifetimeMs: event.lifetimeMs,
+    __lifetimeMs: event.clearLifetimeMs,
   }),
   clearPresentationLifetimeMs: (presentation: { __lifetimeMs?: number } | null) =>
     presentation?.__lifetimeMs ?? 0,
+}));
+
+jest.mock('../animation/gameFeelPresentation', () => ({
+  buildPlacementPresentation: (event: MockPlacementEvent) => ({
+    anchor: { x: 12, y: 18 },
+    particles: [],
+    burstScale: 1.04,
+    flashAlpha: 0.2,
+    scoreScale: 1,
+    reducedMotion: false,
+    __lifetimeMs: event.placementLifetimeMs,
+  }),
+  comboFrameFor: (event: MockPlacementEvent) => ({
+    intensity: event.combo >= 2 ? 0.45 : 0,
+    lineStrength: event.clearedRows.length + event.clearedCols.length > 0 ? 0.5 : 0,
+    boardClearStrength: event.boardCleared ? 1 : 0,
+    shakeAmplitude: event.combo >= 3 ? 5 : 0,
+    shakeDurationMs: event.combo >= 3 ? 165 : 0,
+    scale: event.combo >= 3 ? 1.12 : 1,
+    reducedMotion: false,
+    __lifetimeMs: event.placementLifetimeMs,
+  }),
+  placementEffectLifetimeMs: (
+    placement: { __lifetimeMs?: number } | null,
+    comboFrame: { __lifetimeMs?: number } | null,
+  ) => Math.max(placement?.__lifetimeMs ?? 0, comboFrame?.__lifetimeMs ?? 0),
 }));
 
 jest.mock('../store', () => ({
@@ -101,8 +143,26 @@ jest.mock('../effects/GameEffectsLayer', () => ({
 function makeEvent(id: string, lifetimeMs: number): MockPlacementEvent {
   return {
     id,
-    lifetimeMs,
+    clearLifetimeMs: lifetimeMs,
+    placementLifetimeMs: lifetimeMs,
+    placed: [
+      [3, 3],
+      [3, 4],
+      [4, 3],
+    ],
     clearedCells: Array.from({ length: 8 }, (_, col) => [3, col] as const),
+    clearedRows: [3],
+    clearedCols: [],
+    clearedColors: Array.from({ length: 8 }, () => 1),
+    colorId: 1,
+    scoreDelta: 32,
+    score: 512,
+    combo: 1,
+    praise: 'none',
+    onFire: false,
+    boardCleared: false,
+    newTray: false,
+    gameOver: false,
   };
 }
 
@@ -265,5 +325,95 @@ describe('BoardView clear presentation queue', () => {
     });
     expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
     expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
+  });
+
+  it('queues placement effects for accepted no-clear moves and releases them after expiry', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+
+    const noClearMove = {
+      ...makeEvent('placement-a', 260),
+      clearLifetimeMs: 0,
+      placementLifetimeMs: 260,
+      clearedCells: [],
+      clearedRows: [],
+      clearedCols: [],
+      clearedColors: [],
+      combo: 2,
+    };
+
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(<BoardView />);
+    });
+
+    mockBoardState.lastEvent = noClearMove;
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
+    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(1);
+    expect(mockTriggerShakeSpy).toHaveBeenLastCalledWith({
+      clear: null,
+      combo: expect.objectContaining({ intensity: 0.45, shakeAmplitude: 0 }),
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(261);
+    });
+
+    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(0);
+  });
+
+  it('keeps rapid placement bursts bounded by the separate placement queue cap', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(<BoardView />);
+    });
+
+    const events = [
+      { ...makeEvent('p1', 700), clearLifetimeMs: 0, placementLifetimeMs: 700, clearedCells: [], clearedRows: [], clearedCols: [], clearedColors: [], combo: 1 },
+      { ...makeEvent('p2', 800), clearLifetimeMs: 0, placementLifetimeMs: 800, clearedCells: [], clearedRows: [], clearedCols: [], clearedColors: [], combo: 2 },
+      { ...makeEvent('p3', 900), clearLifetimeMs: 0, placementLifetimeMs: 900, clearedCells: [], clearedRows: [], clearedCols: [], clearedColors: [], combo: 3 },
+      { ...makeEvent('p4', 1000), clearLifetimeMs: 0, placementLifetimeMs: 1000, clearedCells: [], clearedRows: [], clearedCols: [], clearedColors: [], combo: 4 },
+    ];
+
+    let firstPlacementEffectId: string | undefined;
+
+    mockBoardState.lastEvent = events[0];
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+    firstPlacementEffectId = mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects?.[0]?.id;
+
+    events.slice(1).forEach((event) => {
+      act(() => {
+        jest.advanceTimersByTime(40);
+      });
+      mockBoardState.lastEvent = event;
+      act(() => {
+        renderer!.update(<BoardView />);
+      });
+    });
+
+    const placementEffects = mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? [];
+    expect(placementEffects).toHaveLength(GAME_FEEL_MOTION.placementQueueCap);
+    expect(
+      placementEffects.map((effect: { id: string }) => effect.id),
+    ).not.toContain(firstPlacementEffectId);
+    expect(mockTriggerShakeSpy).toHaveBeenLastCalledWith({
+      clear: null,
+      combo: expect.objectContaining({ shakeAmplitude: 5, scale: 1.12 }),
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1001);
+    });
+
+    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(0);
   });
 });
