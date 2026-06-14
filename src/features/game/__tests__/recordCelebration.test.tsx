@@ -4,7 +4,7 @@ import { act, create } from 'react-test-renderer';
 
 import { useSettings } from '@/features/settings';
 
-import { buildConfettiPieces } from '../effects/Confetti';
+import { buildConfettiPieces, Confetti } from '../effects/Confetti';
 import { NewRecordCelebration } from '../effects/NewRecordCelebration';
 import { useGameStore } from '../store';
 
@@ -22,11 +22,21 @@ jest.mock('react-native-reanimated', () => {
   const React = require('react');
 
   class MockKeyframe {
+    frames: Record<string, unknown>;
+    durationMs = 0;
+    delayMs = 0;
+
+    constructor(frames: Record<string, unknown>) {
+      this.frames = frames;
+    }
+
     duration() {
+      this.durationMs = arguments[0] as number;
       return this;
     }
 
     delay() {
+      this.delayMs = arguments[0] as number;
       return this;
     }
   }
@@ -103,6 +113,11 @@ describe('record celebration source contract', () => {
     expect(confettiSource).toContain('pieces?:');
     expect(confettiSource).toContain('count?:');
     expect(confettiSource).toContain('palette?:');
+    expect(confettiSource).toContain('reducedMotion?:');
+    expect(confettiSource).toContain('reducedMotion ?');
+    expect(celebrationPath && fs.readFileSync(celebrationPath, 'utf8')).toContain(
+      'reducedMotion={reducedMotion}',
+    );
     expect(confettiSource).not.toContain('Math.random');
   });
 });
@@ -190,6 +205,21 @@ describe('NewRecordCelebration', () => {
     expect(confettiStyles(first)).toHaveLength(18);
   });
 
+  it('keeps the visible celebration score pinned to the captured record score', () => {
+    const renderer = mountCelebration();
+    beginCelebration(256, 200);
+
+    expect(renderer.root.findByProps({ testID: 'new-record-score' }).props.children).toBe(256);
+
+    act(() => {
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 512 },
+      }));
+    });
+
+    expect(renderer.root.findByProps({ testID: 'new-record-score' }).props.children).toBe(256);
+  });
+
   it('does not replay the same record event and clears its timer on unmount', () => {
     const clearTimeoutSpy = jest.spyOn(globalThis, 'clearTimeout');
     const renderer = mountCelebration();
@@ -249,5 +279,48 @@ describe('NewRecordCelebration', () => {
 
     expect(second).toEqual(first);
     expect(first).toHaveLength(18);
+  });
+
+  it('uses reduced-motion confetti with no falling travel or rotation', () => {
+    mockReducedMotion = true;
+
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(
+        React.createElement(Confetti, {
+          count: 1,
+          height: 220,
+          palette: ['#F5C451'],
+          reducedMotion: true,
+          testIdPrefix: 'record-confetti-piece-',
+        }),
+      );
+    });
+    renderers.push(renderer!);
+
+    const piece = renderer!.root.find(
+      (node) =>
+        typeof node.props.testID === 'string' && node.props.testID === 'record-confetti-piece-0',
+    );
+    const entering = piece.props.entering as {
+      frames: Record<string, { transform?: Record<string, number | string>[] }>;
+    };
+
+    expect(buildConfettiPieces({
+      count: 1,
+      height: 220,
+      palette: ['#F5C451'],
+      reducedMotion: true,
+      testIdPrefix: 'record-confetti-piece-',
+    })[0]).toEqual(
+      expect.objectContaining({
+        drift: 0,
+        rotate: '0deg',
+      }),
+    );
+    expect(JSON.stringify(entering.frames)).not.toContain('translateY');
+    expect(JSON.stringify(entering.frames)).not.toContain('translateX');
+    expect(JSON.stringify(entering.frames)).not.toContain('rotate');
+    expect(JSON.stringify(entering.frames)).toContain('scale');
   });
 });

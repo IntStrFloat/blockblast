@@ -11,6 +11,7 @@ const COUNT = 24;
 export interface ConfettiPiece {
   id: number;
   leftPct: number;
+  top: number;
   size: number;
   color: string;
   delay: number;
@@ -23,6 +24,7 @@ interface BuildConfettiPiecesOptions {
   count?: number;
   height?: number;
   palette: readonly string[];
+  reducedMotion?: boolean;
   seed?: number;
   testIdPrefix?: string;
 }
@@ -33,6 +35,7 @@ interface ConfettiProps {
   palette?: string[];
   count?: number;
   pieces?: ConfettiPiece[];
+  reducedMotion?: boolean;
   seed?: number;
   testIdPrefix?: string;
 }
@@ -41,6 +44,7 @@ export function buildConfettiPieces({
   count = COUNT,
   height = 360,
   palette,
+  reducedMotion = false,
   seed,
   testIdPrefix,
 }: BuildConfettiPiecesOptions): ConfettiPiece[] {
@@ -54,11 +58,12 @@ export function buildConfettiPieces({
   return Array.from({ length: count }, (_, i) => ({
     id: i,
     leftPct: 4 + random() * 92,
+    top: reducedMotion ? Math.round(height * (0.08 + random() * 0.26)) : 0,
     size: 6 + random() * 6,
     color: palette[i % palette.length] ?? '#FFFFFF',
-    delay: Math.round(random() * 250),
-    drift: (random() - 0.5) * 80,
-    rotate: `${Math.round((random() - 0.5) * 540)}deg`,
+    delay: Math.round(random() * (reducedMotion ? 90 : 250)),
+    drift: reducedMotion ? 0 : (random() - 0.5) * 80,
+    rotate: reducedMotion ? '0deg' : `${Math.round((random() - 0.5) * 540)}deg`,
     testID: testIdPrefix ? `${testIdPrefix}${i}` : undefined,
   }));
 }
@@ -69,6 +74,7 @@ export function Confetti({
   palette,
   count = COUNT,
   pieces,
+  reducedMotion = false,
   seed,
   testIdPrefix,
 }: ConfettiProps) {
@@ -81,10 +87,11 @@ export function Confetti({
         count,
         height,
         palette: resolvedPalette,
+        reducedMotion,
         seed,
         testIdPrefix,
       }),
-    [count, height, pieces, resolvedPalette, seed, testIdPrefix],
+    [count, height, pieces, reducedMotion, resolvedPalette, seed, testIdPrefix],
   );
 
   return (
@@ -100,29 +107,46 @@ export function Confetti({
       }}
     >
       {resolvedPieces.map((p) => {
-        const kf = new Keyframe({
-          0: {
-            opacity: 1,
-            transform: [{ translateY: -16 }, { translateX: 0 }, { rotate: '0deg' }],
-          },
-          80: {
-            opacity: 1,
-            transform: [
-              { translateY: height * 0.8 },
-              { translateX: p.drift * 0.8 },
-              { rotate: p.rotate },
-            ],
-          },
-          100: {
-            opacity: 0,
-            transform: [
-              { translateY: height },
-              { translateX: p.drift },
-              { rotate: p.rotate },
-            ],
-          },
-        })
-          .duration(1200)
+        const kf = new Keyframe(
+          reducedMotion
+            ? {
+                0: {
+                  opacity: 0,
+                  transform: [{ scale: 0.9 }],
+                },
+                35: {
+                  opacity: 1,
+                  transform: [{ scale: 1.04 }],
+                },
+                100: {
+                  opacity: 0,
+                  transform: [{ scale: 0.98 }],
+                },
+              }
+            : {
+                0: {
+                  opacity: 1,
+                  transform: [{ translateY: -16 }, { translateX: 0 }, { rotate: '0deg' }],
+                },
+                80: {
+                  opacity: 1,
+                  transform: [
+                    { translateY: height * 0.8 },
+                    { translateX: p.drift * 0.8 },
+                    { rotate: p.rotate },
+                  ],
+                },
+                100: {
+                  opacity: 0,
+                  transform: [
+                    { translateY: height },
+                    { translateX: p.drift },
+                    { rotate: p.rotate },
+                  ],
+                },
+              },
+        )
+          .duration(reducedMotion ? 220 : 1200)
           .delay(p.delay);
 
         return (
@@ -133,7 +157,7 @@ export function Confetti({
             style={{
               position: 'absolute',
               left: `${p.leftPct}%`,
-              top: 0,
+              top: p.top,
               width: p.size,
               height: p.size * 0.6,
               borderRadius: 1,

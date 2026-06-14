@@ -76,6 +76,7 @@ describe('score HUD source contract', () => {
   it('reserves a dedicated score shell and derives tier scaling from the locked helper', () => {
     expect(source).toContain('scoreScaleFor(score)');
     expect(source).toContain('GAME_FEEL_MOTION.scoreScaleMax');
+    expect(source).toContain('minWidth');
     expect(source).toContain('testID="hud-score-shell"');
     expect(source).toContain('testID={`hud-score-pulse-${pulseKey}`}');
   });
@@ -163,6 +164,60 @@ describe('score HUD behavior', () => {
     const scoreText = renderer!.root.findByProps({ testID: 'hud-score-text' });
     const scoreTextStyle = StyleSheet.flatten(scoreText.props.style);
     expect(scoreTextStyle.color).toBe(colors.accent);
+
+    act(() => {
+      renderer!.unmount();
+    });
+  });
+
+  it('keeps stable horizontal shell space across 999 -> 1000 and 9999 -> 10000', () => {
+    let renderer: ReturnType<typeof create> | null = null;
+
+    act(() => {
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 999 },
+      }));
+      renderer = create(React.createElement(Hud, { onPause: () => {} }));
+    });
+
+    const shellBefore = StyleSheet.flatten(renderer!.root.findByProps({ testID: 'hud-score-shell' }).props.style);
+    expect(shellBefore.minWidth).toBeGreaterThan(0);
+    expect(shellBefore.transform).toBeUndefined();
+
+    act(() => {
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 1000 },
+      }));
+    });
+    const shellAtThousand = StyleSheet.flatten(
+      renderer!.root.findByProps({ testID: 'hud-score-shell' }).props.style,
+    );
+    expect(shellAtThousand.minWidth).toBe(shellBefore.minWidth);
+    expect(shellAtThousand.transform).toBeUndefined();
+
+    act(() => {
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 9999 },
+      }));
+    });
+    const shellAt9999 = StyleSheet.flatten(renderer!.root.findByProps({ testID: 'hud-score-shell' }).props.style);
+    expect(shellAt9999.minWidth).toBe(shellBefore.minWidth);
+
+    act(() => {
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 10000 },
+      }));
+    });
+    const shellAt10000 = StyleSheet.flatten(
+      renderer!.root.findByProps({ testID: 'hud-score-shell' }).props.style,
+    );
+    expect(shellAt10000.minWidth).toBe(shellBefore.minWidth);
+
+    const pulse = renderer!.root.findByProps({ testID: 'hud-score-pulse-3' });
+    const pulseStyle = StyleSheet.flatten(pulse.props.style);
+    expect(pulseStyle.transform).toEqual(
+      expect.arrayContaining([expect.objectContaining({ scale: 1.25 })]),
+    );
 
     act(() => {
       renderer!.unmount();

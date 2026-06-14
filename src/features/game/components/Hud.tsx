@@ -14,6 +14,7 @@ import { ComboBadge } from '../effects/ComboBadge';
 import { useGameStore } from '../store';
 
 const SCORE_SHELL_HEIGHT = 64;
+const SCORE_SHELL_BASE_WIDTH = 128;
 const SHIMMER_THRESHOLD = 120;
 
 function scorePulseAnimation(reducedMotion: boolean, scoreScale: number, shimmer: boolean) {
@@ -69,6 +70,7 @@ function ScoreCounter() {
       testID="hud-score-shell"
       style={{
         minHeight: Math.ceil(SCORE_SHELL_HEIGHT * GAME_FEEL_MOTION.scoreScaleMax),
+        minWidth: Math.ceil(SCORE_SHELL_BASE_WIDTH * GAME_FEEL_MOTION.scoreScaleMax),
         justifyContent: 'center',
         alignItems: 'center',
         overflow: 'visible',

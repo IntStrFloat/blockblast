@@ -57,7 +57,6 @@ function scoreAnimation(reducedMotion: boolean) {
 export function NewRecordCelebration() {
   const lang = useLang();
   const reducedMotion = useReducedMotion();
-  const score = useGameStore((state) => state.game.score);
   const recordCelebration = useGameStore((state) => state.recordCelebration);
   const recordCelebrated = useGameStore((state) => state.recordCelebrated);
   const [active, setActive] = useState<ActiveCelebration | null>(null);
@@ -119,6 +118,7 @@ export function NewRecordCelebration() {
         height={220}
         count={GAME_FEEL_MOTION.recordConfettiMax}
         palette={[...RECORD_GOLD]}
+        reducedMotion={reducedMotion}
         seed={active.record.score * 31 + active.record.previousBest * 17}
         testIdPrefix="record-confetti-piece-"
       />
@@ -168,7 +168,7 @@ export function NewRecordCelebration() {
             textShadowRadius: 14,
           }}
         >
-          {score}
+          {active.record.score}
         </AppText>
       </Animated.View>
     </View>
