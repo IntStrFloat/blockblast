@@ -8,16 +8,17 @@ import { soundForPlacement } from './soundEvents';
 import { initSounds, playSound } from './sounds';
 
 function haptic(fn: () => Promise<void>): void {
-  fn().catch(() => {}); // на части Android вибромотора нет
+  fn().catch(() => {});
 }
 
 /**
- * Маппинг PlacementEvent → звук + хаптика (таблицы спеки 04).
- * Возвращает onGrab для DragCtx (фидбек захвата фигуры).
+ * Maps PlacementEvent to sound + haptics.
+ * Returns onGrab for DragCtx.
  */
 export function useGameFeedback(): { onGrab: () => void } {
   const lastEvent = useGameStore((s) => s.lastEvent);
-  const finalResult = useGameStore((s) => s.finalResult);
+  const recordCelebration = useGameStore((s) => s.recordCelebration);
+  const recordCelebrated = useGameStore((s) => s.recordCelebrated);
   const sound = useSettings((s) => s.sound);
   const hapticsOn = useSettings((s) => s.haptics);
 
@@ -25,7 +26,7 @@ export function useGameFeedback(): { onGrab: () => void } {
     initSounds();
   }, []);
 
-  // Фидбек хода
+  // Placement feedback
   useEffect(() => {
     if (!lastEvent) return;
     const lines = lastEvent.clearedRows.length + lastEvent.clearedCols.length;
@@ -47,13 +48,15 @@ export function useGameFeedback(): { onGrab: () => void } {
     }
   }, [hapticsOn, lastEvent, sound]);
 
-  // Фанфара нового рекорда
+  // One-shot record celebration for the active run.
   useEffect(() => {
-    if (finalResult?.newRecord && sound) {
-      const timer = setTimeout(() => playSound('record'), 600);
-      return () => clearTimeout(timer);
-    }
-  }, [finalResult, sound]);
+    if (!recordCelebration || recordCelebrated) return;
+    const timer = setTimeout(() => {
+      if (sound) playSound('record');
+      useGameStore.setState({ recordCelebrated: true });
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [recordCelebrated, recordCelebration, sound]);
 
   const onGrab = useCallback(() => {
     if (sound) playSound('pickup');
