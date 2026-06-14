@@ -14,6 +14,7 @@ import { Confetti } from '@/features/game';
 import { useLang } from '@/features/settings';
 import { AppText, colors, radii, spacing } from '@/ui';
 
+import { useMascotFeedback } from '../hooks/useMascotFeedback';
 import { useMascot } from '../store';
 
 /**
@@ -25,6 +26,7 @@ export function LevelUpReveal() {
   const reveal = useMascot((s) => s.reveal);
   const clearReveal = useMascot((s) => s.clearReveal);
   const lang = useLang();
+  const { onLevelUp } = useMascotFeedback();
 
   // Timer ref — читается/пишется только в effect/handler, не при рендере.
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -34,6 +36,9 @@ export function LevelUpReveal() {
 
   useEffect(() => {
     if (reveal === null) return;
+
+    // Фанфара левел-апа (звук+хаптика, гейтятся настройками).
+    onLevelUp();
 
     // Анимация подарка: появление + подскок
     scale.value = withSequence(
@@ -55,7 +60,7 @@ export function LevelUpReveal() {
       scale.value = 0;
       opacity.value = 0;
     };
-  }, [reveal, clearReveal, scale, opacity]);
+  }, [reveal, clearReveal, scale, opacity, onLevelUp]);
 
   const giftStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],

@@ -19,6 +19,7 @@ import { useGameStore } from '@/features/game';
 import { todayISO } from '@/features/streak';
 
 import { useMascotBrain } from '../hooks/useMascotBrain';
+import { useMascotFeedback } from '../hooks/useMascotFeedback';
 import { canFeed } from '../logic/rules';
 import { progressFor } from '../logic/progression';
 import type { EmoteId } from '../logic/types';
@@ -121,15 +122,19 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
 
   useMascotBrain({ motion, stage, reduceMotion, areaWidth, dragActive: brainPaused, onEmote: showEmote });
 
+  // Звук + хаптика моментов Капи (кормление/потеря/тап), гейтятся настройками.
+  const { onFeed, onLost, onTap } = useMascotFeedback();
+
   // Кормление: обработчик нажатия на FeedPrompt.
   // Вызывается из JS (Pressable onPress) — shared values устанавливаем напрямую.
   const handleFeed = useCallback(() => {
     useMascot.getState().feed();
+    onFeed();
     // Пульс «съедает угощение»
     motion.scaleX.value = withSequence(withTiming(1.12, { duration: 120 }), withSpring(1));
     motion.scaleY.value = withSequence(withTiming(1.12, { duration: 120 }), withSpring(1));
     showEmote('heart');
-  }, [motion, showEmote]);
+  }, [motion, showEmote, onFeed]);
 
   // Таймеры падения/реплики — чистим на размонтировании (без чтения ref в рендере).
   const dropTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -146,10 +151,11 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
     motion.opacity.value = withTiming(0, { duration: 450 });
     motion.rotate.value = withTiming(40, { duration: 450 });
     setLostText(mascotLost(praiseTone, lang));
+    onLost();
     const t1 = setTimeout(() => useMascot.getState().drop(), 450);
     const t2 = setTimeout(() => setLostText(null), 2200);
     dropTimers.current.push(t1, t2);
-  }, [motion, praiseTone, lang]);
+  }, [motion, praiseTone, lang, onLost]);
 
   // Восстановление маскота при начале новой партии (newGame / loadSaved).
   const epoch = useGameStore((s) => s.epoch);
@@ -195,6 +201,7 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
       withSpring(0, { damping: 10, stiffness: 220 }),
     );
     runOnJS(showEmote)('heart');
+    runOnJS(onTap)();
   });
 
   const pan = Gesture.Pan()

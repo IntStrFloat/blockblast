@@ -8,9 +8,12 @@ export type SoundName =
   | 'clear2'
   | 'clear3'
   | 'gameover'
-  | 'record';
+  | 'record'
+  | 'feed'
+  | 'levelup'
+  | 'lost';
 
- 
+
 const SOURCES: Record<SoundName, number> = {
   pickup: require('@/assets/sounds/pickup.wav'),
   drop: require('@/assets/sounds/drop.wav'),
@@ -19,6 +22,9 @@ const SOURCES: Record<SoundName, number> = {
   clear3: require('@/assets/sounds/clear3.wav'),
   gameover: require('@/assets/sounds/gameover.wav'),
   record: require('@/assets/sounds/record.wav'),
+  feed: require('@/assets/sounds/feed.wav'),
+  levelup: require('@/assets/sounds/levelup.wav'),
+  lost: require('@/assets/sounds/lost.wav'),
 };
  
 
