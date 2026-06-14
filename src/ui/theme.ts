@@ -14,6 +14,7 @@ export const colors = {
   surface: 'rgba(255,255,255,0.08)',
   surfacePressed: 'rgba(255,255,255,0.16)',
   cardGlass: 'rgba(22,36,68,0.5)',
+  hairline: 'rgba(255,255,255,0.12)',
 } as const;
 
 export interface BlockTheme {
@@ -77,6 +78,7 @@ export const mascotPalette = {
   block: '#FFD23F',
   crown1: '#FF9F1C',
   crown2: '#3DDC84',
+  blockTint: 'rgba(255,210,63,0.12)',
 } as const;
 
 /** Геометрия доски от ширины экрана (спека 04). */

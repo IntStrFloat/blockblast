@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.card,
     backgroundColor: colors.cardGlass,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: colors.hairline,
     padding: spacing.m,
     gap: spacing.m,
   },
@@ -311,12 +311,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: colors.hairline,
   },
   tileEquipped: {
     borderColor: mascotPalette.block,
     borderWidth: 2,
-    backgroundColor: 'rgba(255,210,63,0.12)',
+    backgroundColor: mascotPalette.blockTint,
   },
   tileLocked: {
     opacity: 0.45,
