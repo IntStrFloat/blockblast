@@ -59,7 +59,6 @@ export function NewRecordCelebration() {
   const lang = useLang();
   const reducedMotion = useReducedMotion();
   const recordCelebration = useGameStore((state) => state.recordCelebration);
-  const recordCelebrated = useGameStore((state) => state.recordCelebrated);
   const [active, setActive] = useState<ActiveCelebration | null>(null);
   const counter = useRef(0);
   const handledRef = useRef<RecordCelebration | null>(null);
@@ -75,16 +74,11 @@ export function NewRecordCelebration() {
   );
 
   useEffect(() => {
-    if (
-      !recordCelebration ||
-      handledRef.current === recordCelebration ||
-      recordCelebrated
-    ) {
+    if (!recordCelebration || handledRef.current === recordCelebration) {
       return;
     }
 
     handledRef.current = recordCelebration;
-    useGameStore.setState({ recordCelebrated: true });
 
     const id = ++counter.current;
     setActive({ id, record: recordCelebration });
@@ -98,7 +92,7 @@ export function NewRecordCelebration() {
         setActive(null);
       }
     }, reducedMotion ? REDUCED_HIDE_MS : CELEBRATION_HIDE_MS);
-  }, [recordCelebrated, recordCelebration, reducedMotion]);
+  }, [recordCelebration, reducedMotion]);
 
   if (!active) return null;
 

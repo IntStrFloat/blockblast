@@ -4,6 +4,7 @@ import { act, create } from 'react-test-renderer';
 import type { PlacementEvent } from '@/core/engine';
 import { useSettings } from '@/features/settings';
 
+import { NewRecordCelebration } from '../effects/NewRecordCelebration';
 import { useGameStore } from '../store';
 import { useGameFeedback } from '../sound/useGameFeedback';
 
@@ -37,6 +38,55 @@ const {
   impactAsync: jest.Mock;
 };
 
+jest.mock('react-native-reanimated', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react');
+
+  class MockKeyframe {
+    duration() {
+      return this;
+    }
+
+    delay() {
+      return this;
+    }
+  }
+
+  return {
+    __esModule: true,
+    default: {
+      createAnimatedComponent: (Component: React.ComponentType<any>) => Component,
+      View: ({ children, ...props }: { children?: React.ReactNode }) =>
+        React.createElement('animated-view', props, children),
+    },
+    Keyframe: MockKeyframe,
+  };
+});
+
+jest.mock('../animation/useReducedMotion', () => ({
+  useReducedMotion: () => false,
+}));
+
+jest.mock('@/ui', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Text } = require('react-native');
+
+  return {
+    AppText: ({ children, ...props }: { children?: React.ReactNode }) =>
+      React.createElement(Text, props, children),
+    BLOCK_THEMES: [{ cellColors: ['#F5C451', '#FFE27A', '#FFF6BA', '#FFFFFF'] }],
+    colors: {
+      accent: '#FFC93C',
+      textPrimary: '#FFFFFF',
+    },
+    radii: {
+      button: 16,
+    },
+  };
+});
+
 function placementEvent(overrides: Partial<PlacementEvent> = {}): PlacementEvent {
   return {
     placed: [[0, 0]],
@@ -66,6 +116,11 @@ function Probe() {
   return null;
 }
 
+function IntegratedProbe() {
+  useGameFeedback();
+  return React.createElement(NewRecordCelebration);
+}
+
 function mountProbe() {
   let renderer: ReturnType<typeof create> | null = null;
   act(() => {
@@ -74,11 +129,29 @@ function mountProbe() {
   return renderer!;
 }
 
+function mountIntegratedProbe() {
+  let renderer: ReturnType<typeof create> | null = null;
+  act(() => {
+    renderer = create(React.createElement(IntegratedProbe));
+  });
+  return renderer!;
+}
+
+function activeCelebrationCount(renderer: ReturnType<typeof create>) {
+  return new Set(
+    renderer.root
+      .findAll((node) => node.props.testID === 'new-record-celebration')
+      .map((node) => node.props.testID),
+  ).size;
+}
+
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
-  useSettings.setState({ sound: true, haptics: true });
-  useGameStore.getState().newGame({ seed: 7 });
+  act(() => {
+    useSettings.setState({ sound: true, haptics: true });
+    useGameStore.getState().newGame({ seed: 7 });
+  });
 });
 
 afterEach(() => {
@@ -240,5 +313,72 @@ describe('useGameFeedback', () => {
 
     expect(mockPlaySound).not.toHaveBeenCalled();
     clearTimeoutSpy.mockRestore();
+  });
+
+  it('plays the record sound once while the celebration renders once even across rerenders', () => {
+    const renderer = mountIntegratedProbe();
+
+    act(() => {
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 77 },
+        recordCelebration: recordCelebration(77, 50),
+        recordCelebrated: false,
+      }));
+    });
+
+    expect(useGameStore.getState().recordCelebrated).toBe(true);
+    expect(activeCelebrationCount(renderer)).toBe(1);
+    expect(renderer.root.findByProps({ testID: 'new-record-score' }).props.children).toBe(77);
+
+    act(() => {
+      jest.advanceTimersByTime(600);
+    });
+    expect(mockPlaySound).toHaveBeenCalledWith('record');
+    expect(mockPlaySound.mock.calls.filter(([name]) => name === 'record')).toHaveLength(1);
+
+    act(() => {
+      renderer.update(React.createElement(IntegratedProbe));
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(mockPlaySound.mock.calls.filter(([name]) => name === 'record')).toHaveLength(1);
+    expect(activeCelebrationCount(renderer)).toBeLessThanOrEqual(1);
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it('still shows the record celebration once when sound is off without later replaying audio', () => {
+    const renderer = mountIntegratedProbe();
+
+    act(() => {
+      useSettings.setState({ sound: false });
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 81 },
+        recordCelebration: recordCelebration(81, 50),
+        recordCelebrated: false,
+      }));
+    });
+
+    expect(useGameStore.getState().recordCelebrated).toBe(true);
+    expect(activeCelebrationCount(renderer)).toBe(1);
+
+    act(() => {
+      jest.advanceTimersByTime(1300);
+    });
+    expect(activeCelebrationCount(renderer)).toBe(0);
+    expect(mockPlaySound.mock.calls.filter(([name]) => name === 'record')).toHaveLength(0);
+
+    act(() => {
+      useSettings.setState({ sound: true });
+      renderer.update(React.createElement(IntegratedProbe));
+      jest.advanceTimersByTime(1000);
+    });
+    expect(mockPlaySound.mock.calls.filter(([name]) => name === 'record')).toHaveLength(0);
+
+    act(() => {
+      renderer.unmount();
+    });
   });
 });
