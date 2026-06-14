@@ -17,6 +17,12 @@ jest.mock('react-native-reanimated', () => {
   const React = require('react');
 
   class MockKeyframe {
+    frames: Record<string, unknown>;
+
+    constructor(frames: Record<string, unknown>) {
+      this.frames = frames;
+    }
+
     duration() {
       return this;
     }
@@ -77,6 +83,7 @@ describe('score HUD source contract', () => {
     expect(source).toContain('scoreScaleFor(score)');
     expect(source).toContain('GAME_FEEL_MOTION.scoreScaleMax');
     expect(source).toContain('minWidth');
+    expect(source).toContain('Math.min(');
     expect(source).toContain('testID="hud-score-shell"');
     expect(source).toContain('testID={`hud-score-pulse-${pulseKey}`}');
   });
@@ -96,6 +103,13 @@ describe('score HUD behavior', () => {
       (node) =>
         typeof node.props.testID === 'string' && node.props.testID.startsWith('hud-score-pulse-'),
     ).props.testID as string;
+  }
+
+  function pulseNode(renderer: ReturnType<typeof create>) {
+    return renderer.root.find(
+      (node) =>
+        typeof node.props.testID === 'string' && node.props.testID.startsWith('hud-score-pulse-'),
+    );
   }
 
   it('only remounts the score pulse for accepted score increases', () => {
@@ -218,6 +232,36 @@ describe('score HUD behavior', () => {
     expect(pulseStyle.transform).toEqual(
       expect.arrayContaining([expect.objectContaining({ scale: 1.25 })]),
     );
+
+    act(() => {
+      renderer!.unmount();
+    });
+  });
+
+  it('never peaks above the reserved max score scale during the pulse animation', () => {
+    let renderer: ReturnType<typeof create> | null = null;
+
+    act(() => {
+      renderer = create(React.createElement(Hud, { onPause: () => {} }));
+    });
+
+    act(() => {
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 10000 },
+      }));
+    });
+
+    const pulse = pulseNode(renderer!);
+    const entering = pulse.props.entering as {
+      frames: Record<string, { transform?: Record<string, number | string>[] }>;
+    };
+    const peaks = Object.values(entering.frames)
+      .flatMap((frame) => frame.transform ?? [])
+      .map((entry) => entry.scale)
+      .filter((value): value is number => typeof value === 'number');
+
+    expect(peaks.length).toBeGreaterThan(0);
+    expect(Math.max(...peaks)).toBeLessThanOrEqual(1.25);
 
     act(() => {
       renderer!.unmount();

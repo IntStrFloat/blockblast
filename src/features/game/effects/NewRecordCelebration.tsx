@@ -14,6 +14,7 @@ import { Confetti } from './Confetti';
 const RECORD_GOLD = ['#F5C451', '#FFE27A', '#FFF6BA', '#FFFDF2'] as const;
 const CELEBRATION_HIDE_MS = 1200;
 const REDUCED_HIDE_MS = 360;
+const BANNER_MAX_WIDTH = '88%';
 
 interface ActiveCelebration {
   id: number;
@@ -127,6 +128,10 @@ export function NewRecordCelebration() {
         key={`record-title-${active.id}`}
         entering={titleAnimation(reducedMotion)}
         style={{
+          width: '100%',
+          maxWidth: BANNER_MAX_WIDTH,
+          paddingHorizontal: 16,
+          alignItems: 'center',
           opacity: 0,
           transform: [{ scale: 1 }],
         }}
@@ -134,8 +139,13 @@ export function NewRecordCelebration() {
         <AppText
           testID="new-record-title"
           preset="button"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
           style={{
             color: colors.accent,
+            width: '100%',
+            textAlign: 'center',
             textShadowColor: 'rgba(255, 236, 155, 0.45)',
             textShadowOffset: { width: 0, height: 0 },
             textShadowRadius: 10,
@@ -146,10 +156,13 @@ export function NewRecordCelebration() {
       </Animated.View>
 
       <Animated.View
+        testID="new-record-score-shell"
         key={`record-score-${active.id}`}
         entering={scoreAnimation(reducedMotion)}
         style={{
           marginTop: 6,
+          width: '100%',
+          maxWidth: BANNER_MAX_WIDTH,
           borderRadius: radii.button,
           paddingHorizontal: 16,
           paddingVertical: 6,
@@ -161,8 +174,13 @@ export function NewRecordCelebration() {
         <AppText
           testID="new-record-score"
           preset="score"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.58}
           style={{
             color: colors.accent,
+            width: '100%',
+            textAlign: 'center',
             textShadowColor: 'rgba(255, 214, 64, 0.5)',
             textShadowOffset: { width: 0, height: 0 },
             textShadowRadius: 14,

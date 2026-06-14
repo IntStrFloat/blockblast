@@ -120,6 +120,16 @@ describe('record celebration source contract', () => {
     );
     expect(confettiSource).not.toContain('Math.random');
   });
+
+  it('bounds the banner width and enables single-line text fitting for narrow screens', () => {
+    const celebrationSource = fs.readFileSync(celebrationPath, 'utf8');
+
+    expect(celebrationSource).toContain('maxWidth');
+    expect(celebrationSource).toContain('paddingHorizontal');
+    expect(celebrationSource).toContain('numberOfLines={1}');
+    expect(celebrationSource).toContain('adjustsFontSizeToFit');
+    expect(celebrationSource).toContain('minimumFontScale');
+  });
 });
 
 describe('NewRecordCelebration', () => {
@@ -203,6 +213,25 @@ describe('NewRecordCelebration', () => {
     expect(first.root.findByProps({ testID: 'new-record-title' }).props.children).toBe('New record!');
     expect(first.root.findByProps({ testID: 'new-record-score' }).props.children).toBe(256);
     expect(confettiStyles(first)).toHaveLength(18);
+  });
+
+  it('keeps the visible title and score width-bounded with single-line text fitting', () => {
+    const renderer = mountCelebration();
+    beginCelebration(12345, 12000);
+
+    const title = renderer.root.findByProps({ testID: 'new-record-title' });
+    const score = renderer.root.findByProps({ testID: 'new-record-score' });
+    const scoreBanner = renderer.root.findByProps({ testID: 'new-record-score-shell' });
+    const bannerStyle = StyleSheet.flatten(scoreBanner.props.style);
+
+    expect(title.props.numberOfLines).toBe(1);
+    expect(title.props.adjustsFontSizeToFit).toBe(true);
+    expect(title.props.minimumFontScale).toBeLessThan(1);
+    expect(score.props.numberOfLines).toBe(1);
+    expect(score.props.adjustsFontSizeToFit).toBe(true);
+    expect(score.props.minimumFontScale).toBeLessThan(1);
+    expect(bannerStyle.maxWidth).toBeDefined();
+    expect(bannerStyle.paddingHorizontal).toBeGreaterThan(0);
   });
 
   it('keeps the visible celebration score pinned to the captured record score', () => {

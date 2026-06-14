@@ -17,25 +17,29 @@ const SCORE_SHELL_HEIGHT = 64;
 const SCORE_SHELL_BASE_WIDTH = 128;
 const SHIMMER_THRESHOLD = 120;
 
+function cappedScoreScale(scale: number) {
+  return Math.min(scale, GAME_FEEL_MOTION.scoreScaleMax);
+}
+
 function scorePulseAnimation(reducedMotion: boolean, scoreScale: number, shimmer: boolean) {
   return new Keyframe(
     reducedMotion
       ? {
-          0: { opacity: 0, transform: [{ scale: scoreScale * 0.96 }] },
-          34: { opacity: 1, transform: [{ scale: scoreScale * 1.01 }] },
+          0: { opacity: 0, transform: [{ scale: cappedScoreScale(scoreScale * 0.96) }] },
+          34: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * 1.01) }] },
           100: { opacity: 1, transform: [{ scale: scoreScale }] },
         }
       : shimmer
         ? {
-            0: { opacity: 0.92, transform: [{ scale: scoreScale * 0.84 }] },
-            20: { opacity: 1, transform: [{ scale: scoreScale * 1.08 }] },
-            48: { opacity: 1, transform: [{ scale: scoreScale * 1.02 }] },
-            74: { opacity: 1, transform: [{ scale: scoreScale * 1.06 }] },
+            0: { opacity: 0.92, transform: [{ scale: cappedScoreScale(scoreScale * 0.84) }] },
+            20: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * 1.08) }] },
+            48: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * 1.02) }] },
+            74: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * 1.06) }] },
             100: { opacity: 1, transform: [{ scale: scoreScale }] },
           }
         : {
-            0: { opacity: 0.96, transform: [{ scale: scoreScale * 0.88 }] },
-            28: { opacity: 1, transform: [{ scale: scoreScale * 1.09 }] },
+            0: { opacity: 0.96, transform: [{ scale: cappedScoreScale(scoreScale * 0.88) }] },
+            28: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * 1.09) }] },
             100: { opacity: 1, transform: [{ scale: scoreScale }] },
           },
   ).duration(reducedMotion ? 180 : shimmer ? 360 : 260);
