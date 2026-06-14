@@ -75,5 +75,6 @@ export const en = {
     helperReady: 'ready',
     helperCooldown: 'back tomorrow',
     locked: 'lvl ',
+    introSkip: 'skip',
   },
 } as const;

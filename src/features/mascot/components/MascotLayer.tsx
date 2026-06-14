@@ -28,6 +28,7 @@ import { FeedPrompt } from './FeedPrompt';
 import { LevelUpReveal } from './LevelUpReveal';
 import { Mascot, useMascotMotion } from './Mascot';
 import { MascotChip } from './MascotChip';
+import { MascotIntro } from './MascotIntro';
 import { SpeechBubble } from './SpeechBubble';
 import { Wardrobe } from './Wardrobe';
 
@@ -272,6 +273,9 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
 
         {/* Тонкая линия «пола». */}
         <View style={styles.floor} pointerEvents="none" />
+
+        {/* Интро первого захода: неблокирующее, разовое (self-guards на introDone). */}
+        <MascotIntro onEmote={showEmote} />
       </View>
     </View>
   );

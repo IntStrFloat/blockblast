@@ -75,5 +75,6 @@ export const ru = {
     helperReady: 'готово',
     helperCooldown: 'снова завтра',
     locked: 'ур.',
+    introSkip: 'пропустить',
   },
 } as const;
