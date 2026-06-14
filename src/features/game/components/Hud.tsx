@@ -5,7 +5,7 @@ import Animated, { Keyframe } from 'react-native-reanimated';
 import { t } from '@/core/i18n';
 import { useScores } from '@/features/scores';
 import { useLang } from '@/features/settings';
-import { AppText, colors } from '@/ui';
+import { AppText, colors, CrownIcon } from '@/ui';
 
 import { scoreScaleFor } from '../animation/gameFeelPresentation';
 import { GAME_FEEL_MOTION } from '../animation/motion';
@@ -124,9 +124,10 @@ export function Hud({ onPause }: HudProps) {
         }}
       >
         <View style={{ minWidth: 72 }}>
-          <AppText preset="caption">
-            {'\u{1F451}'} {t('game.best', lang)}
-          </AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <CrownIcon size={13} />
+            <AppText preset="caption">{t('game.best', lang)}</AppText>
+          </View>
           <AppText preset="button" style={{ color: colors.accent }}>
             {best}
           </AppText>
