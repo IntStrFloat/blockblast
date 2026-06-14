@@ -1,41 +1,33 @@
-import { useEffect, useState } from 'react';
+import { Fragment } from 'react';
 import Animated, { Keyframe } from 'react-native-reanimated';
 
-import {
-  clearPresentationLifetimeMs,
-  type ClearPresentation,
-} from '../animation/clearPresentation';
+import type { ClearPresentation, ClearPresentationInstance } from '../animation/clearPresentation';
 import { BlockCrushLayer } from './BlockCrushLayer';
 import { LineHighlightLayer } from './LineHighlightLayer';
 
 interface ClearLayerProps {
-  presentation: ClearPresentation | null;
+  presentations: readonly ClearPresentationInstance[];
 }
 
-export function ClearLayer({ presentation }: ClearLayerProps) {
-  const [expiredKey, setExpiredKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!presentation) return;
-    const timer = setTimeout(
-      () => setExpiredKey(presentation.key),
-      clearPresentationLifetimeMs(presentation),
-    );
-    return () => clearTimeout(timer);
-  }, [presentation]);
-
-  if (!presentation || expiredKey === presentation.key) return null;
-
+export function ClearLayer({ presentations }: ClearLayerProps) {
   return (
     <>
-      <BlockCrushLayer fragments={presentation.fragments} />
-      <LineHighlightLayer presentation={presentation} />
-      <ClearSparkLayer presentation={presentation} />
+      {presentations.map(({ id, presentation }) => (
+        <Fragment key={id}>
+          <BlockCrushLayer fragments={presentation.fragments} />
+          <LineHighlightLayer presentation={presentation} />
+          <ClearSparkLayer presentation={presentation} />
+        </Fragment>
+      ))}
     </>
   );
 }
 
-function ClearSparkLayer({ presentation }: ClearLayerProps) {
+interface ClearSparkLayerProps {
+  presentation: ClearPresentation;
+}
+
+function ClearSparkLayer({ presentation }: ClearSparkLayerProps) {
   if (!presentation) return null;
 
   return (

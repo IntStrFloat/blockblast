@@ -1,8 +1,6 @@
 import React from 'react';
 import { act, create } from 'react-test-renderer';
 
-import { SPECTACLE_MOTION } from '../animation/motion';
-
 declare const __dirname: string;
 
 const fs = jest.requireActual<{
@@ -79,19 +77,13 @@ describe('clear effects layer source contract', () => {
   });
 });
 
-describe('ClearLayer lifecycle', () => {
+describe('clear effect layer rendering', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { ClearLayer } = require('../effects/ClearLayer') as typeof import('../effects/ClearLayer');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { GameEffectsLayer } = require('../effects/GameEffectsLayer') as typeof import('../effects/GameEffectsLayer');
 
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('resets expired state for a new clear presentation after the prior one finishes', () => {
+  it('renders local and external effects for each active presentation without cross-layer duplication', () => {
     const firstPresentation = {
       key: 'clear-1',
       lines: [],
@@ -110,24 +102,22 @@ describe('ClearLayer lifecycle', () => {
       key: 'clear-2',
       centroid: { x: 12, y: 16 },
     };
+    const presentations = [
+      { id: 'instance-1', presentation: firstPresentation },
+      { id: 'instance-2', presentation: secondPresentation },
+    ];
 
-    let renderer: ReturnType<typeof create> | null = null;
+    let clearRenderer: ReturnType<typeof create> | null = null;
+    let effectsRenderer: ReturnType<typeof create> | null = null;
     act(() => {
-      renderer = create(<ClearLayer presentation={firstPresentation as any} />);
+      clearRenderer = create(<ClearLayer presentations={presentations as any} />);
+      effectsRenderer = create(<GameEffectsLayer presentations={presentations as any} />);
     });
 
-    expect(renderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(1);
-
-    act(() => {
-      jest.advanceTimersByTime(SPECTACLE_MOTION.praiseEndMs + 81);
-    });
-    expect(renderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(0);
-
-    act(() => {
-      renderer!.update(<ClearLayer presentation={secondPresentation as any} />);
-    });
-
-    expect(renderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(1);
-    expect(renderer!.root.findAllByProps({ testID: 'line-highlight-layer' })).toHaveLength(1);
+    expect(clearRenderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(2);
+    expect(clearRenderer!.root.findAllByProps({ testID: 'line-highlight-layer' })).toHaveLength(2);
+    expect(clearRenderer!.root.findAllByProps({ testID: 'clear-debris-layer' })).toHaveLength(0);
+    expect(effectsRenderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(2);
+    expect(effectsRenderer!.root.findAllByProps({ testID: 'clear-debris-layer' })).toHaveLength(2);
   });
 });

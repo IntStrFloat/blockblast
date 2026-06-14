@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import type { LayoutChangeEvent, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -6,7 +6,12 @@ import Animated from 'react-native-reanimated';
 import type { PlacementEvent } from '@/core/engine';
 import { radii } from '@/ui';
 
-import { buildClearPresentation } from '../animation/clearPresentation';
+import {
+  buildClearPresentation,
+  clearPresentationLifetimeMs,
+  MAX_ACTIVE_CLEAR_PRESENTATIONS,
+  type ClearPresentationInstance,
+} from '../animation/clearPresentation';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useDragCtx } from '../drag/DragContext';
 import { ClearLayer } from '../effects/ClearLayer';
@@ -22,36 +27,53 @@ interface BoardViewProps {
 const clearEventInstanceIds = new WeakMap<PlacementEvent, number>();
 let nextClearEventInstanceId = 1;
 
-function clearEventInstanceKey(event: PlacementEvent, reducedMotion: boolean) {
+function clearEventInstanceKey(event: PlacementEvent) {
   let id = clearEventInstanceIds.get(event);
   if (!id) {
     id = nextClearEventInstanceId++;
     clearEventInstanceIds.set(event, id);
   }
-  return `${id}-${reducedMotion ? 1 : 0}`;
+  return `clear-${id}`;
 }
 
 export function BoardView({ style }: BoardViewProps) {
   const ctx = useDragCtx();
   const { geom } = ctx;
+  const cellColorsKey = ctx.cellColors.join('\u0000');
+  const boardGeom = useMemo(
+    () => ({
+      boardSize: geom.boardSize,
+      cell: geom.cell,
+      gap: geom.gap,
+    }),
+    [geom.boardSize, geom.cell, geom.gap],
+  );
+  // The derived key already tracks color value changes; memoizing by the key avoids
+  // churn when the drag context object identity changes without changing the colors.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableCellColors = useMemo(() => [...ctx.cellColors], [cellColorsKey]);
 
   const board = useGameStore((s) => s.game.board);
   const lastEvent = useGameStore((s) => s.lastEvent);
   const reducedMotion = useReducedMotion();
-  const presentation = useMemo(
+  const queuedPresentation = useMemo<ClearPresentationInstance | null>(
     () =>
       lastEvent && lastEvent.clearedCells.length > 0
-        ? buildClearPresentation(lastEvent, geom, ctx.cellColors, reducedMotion)
+        ? {
+            id: clearEventInstanceKey(lastEvent),
+            presentation: buildClearPresentation(
+              lastEvent,
+              boardGeom,
+              stableCellColors,
+              reducedMotion,
+            ),
+          }
         : null,
-    [ctx.cellColors, geom, lastEvent, reducedMotion],
+    [boardGeom, lastEvent, reducedMotion, stableCellColors],
   );
-  const clearEffectKey = useMemo(
-    () =>
-      lastEvent && lastEvent.clearedCells.length > 0
-        ? clearEventInstanceKey(lastEvent, reducedMotion)
-        : 'clear-none',
-    [lastEvent, reducedMotion],
-  );
+  const [activePresentations, setActivePresentations] = useState<ClearPresentationInstance[]>([]);
+  const presentationTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const enqueuedPresentationIdsRef = useRef<Set<string>>(new Set());
 
   // Синхронизация boardMirror для worklet-проверок
   useEffect(() => {
@@ -61,8 +83,49 @@ export function BoardView({ style }: BoardViewProps) {
   // Screen shake при очистке 2+ линий (спека 04)
   const { shakeStyle, triggerShake } = useShake();
   useEffect(() => {
-    if (presentation) triggerShake(presentation.shake);
-  }, [presentation, triggerShake]);
+    if (queuedPresentation) triggerShake(queuedPresentation.presentation.shake);
+  }, [queuedPresentation, triggerShake]);
+
+  useEffect(() => {
+    if (!queuedPresentation) return;
+    if (enqueuedPresentationIdsRef.current.has(queuedPresentation.id)) return;
+    enqueuedPresentationIdsRef.current.add(queuedPresentation.id);
+    if (!presentationTimersRef.current.has(queuedPresentation.id)) {
+      const timer = setTimeout(() => {
+        presentationTimersRef.current.delete(queuedPresentation.id);
+        enqueuedPresentationIdsRef.current.delete(queuedPresentation.id);
+        setActivePresentations((current) =>
+          current.filter((item) => item.id !== queuedPresentation.id),
+        );
+      }, clearPresentationLifetimeMs(queuedPresentation.presentation));
+      presentationTimersRef.current.set(queuedPresentation.id, timer);
+    }
+
+    setActivePresentations((current) => {
+      if (current.some((entry) => entry.id === queuedPresentation.id)) return current;
+      return [...current, queuedPresentation].slice(-MAX_ACTIVE_CLEAR_PRESENTATIONS);
+    });
+  }, [queuedPresentation]);
+
+  useEffect(() => {
+    const activeIds = new Set(activePresentations.map((entry) => entry.id));
+
+    presentationTimersRef.current.forEach((timer, id) => {
+      if (activeIds.has(id)) return;
+      clearTimeout(timer);
+      presentationTimersRef.current.delete(id);
+      enqueuedPresentationIdsRef.current.delete(id);
+    });
+  }, [activePresentations]);
+
+  useEffect(
+    () => () => {
+      presentationTimersRef.current.forEach((timer) => clearTimeout(timer));
+      presentationTimersRef.current.clear();
+      enqueuedPresentationIdsRef.current.clear();
+    },
+    [],
+  );
 
   // Запоминаем ref доски для measureInWindow
   const boardRef = useRef<View>(null);
@@ -134,9 +197,9 @@ export function BoardView({ style }: BoardViewProps) {
             />
           );
         })}
-        <ClearLayer key={clearEffectKey} presentation={presentation} />
+        <ClearLayer presentations={activePresentations} />
       </View>
-      <GameEffectsLayer key={clearEffectKey} presentation={presentation} />
+      <GameEffectsLayer presentations={activePresentations} />
     </Animated.View>
   );
 }

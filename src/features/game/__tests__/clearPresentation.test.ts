@@ -2,6 +2,7 @@ import type { PlacementEvent } from '@/core/engine';
 
 import {
   buildClearPresentation,
+  countAnimatedClearNodes,
   praiseFontSize,
   shakeForClear,
 } from '../animation/clearPresentation';
@@ -62,6 +63,34 @@ function crossEvent(): PlacementEvent {
   };
 }
 
+function boardClearEvent(): PlacementEvent {
+  const clearedCells = Array.from({ length: 8 }, (_, row) =>
+    Array.from({ length: 8 }, (_, col) => [row, col] as const),
+  ).flat();
+
+  return {
+    placed: [
+      [3, 3],
+      [3, 4],
+      [4, 3],
+      [4, 4],
+    ],
+    colorId: 3,
+    clearedRows: Array.from({ length: 8 }, (_, row) => row),
+    clearedCols: Array.from({ length: 8 }, (_, col) => col),
+    clearedCells,
+    clearedColors: clearedCells.map((_, index) => (index % 3) + 1),
+    scoreDelta: 1280,
+    score: 5120,
+    combo: 5,
+    praise: 'unbelievable',
+    onFire: true,
+    boardCleared: true,
+    newTray: false,
+    gameOver: false,
+  };
+}
+
 describe('clear presentation geometry', () => {
   it('aligns completed axes to all eight board cells and deduplicates intersections', () => {
     const presentation = buildClearPresentation(crossEvent(), GEOM, CELL_COLORS, false);
@@ -100,7 +129,10 @@ describe('clear presentation geometry', () => {
     const second = buildClearPresentation(crossEvent(), GEOM, CELL_COLORS, false);
 
     expect(second).toEqual(first);
-    expect(first.fragments).toHaveLength(15 * 4);
+    expect(countAnimatedClearNodes(first)).toBeLessThanOrEqual(
+      GAME_FEEL_MOTION.oneLineExternalEffectTargetCap,
+    );
+    expect(first.fragments.length).toBeGreaterThan(0);
     expect(first.fragments.every(({ dx, dy }) => Math.abs(dx) <= 13.5 && Math.abs(dy) <= 13.5)).toBe(
       true,
     );
@@ -134,6 +166,17 @@ describe('clear presentation geometry', () => {
     expect(presentation.debris.length + presentation.fallingFragments.length).toBeLessThanOrEqual(
       GAME_FEEL_MOTION.oneLineExternalEffectTargetCap,
     );
+  });
+
+  it('keeps worst-case simultaneous animated clear nodes under the shared queue budget', () => {
+    const presentation = buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false);
+
+    expect(countAnimatedClearNodes(presentation)).toBeLessThanOrEqual(
+      GAME_FEEL_MOTION.oneLineExternalEffectTargetCap,
+    );
+    expect(presentation.lines).toHaveLength(16);
+    expect(presentation.lines.every((line) => line.segments.length >= 1)).toBe(true);
+    expect(presentation.intersections.length).toBeGreaterThan(0);
   });
 });
 

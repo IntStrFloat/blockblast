@@ -125,6 +125,21 @@ export interface ClearPresentation {
   reducedMotion: boolean;
 }
 
+export interface ClearPresentationInstance {
+  id: string;
+  presentation: ClearPresentation;
+}
+
+export const MAX_ACTIVE_CLEAR_PRESENTATIONS = 2;
+export const CLEAR_PRESENTATION_TOTAL_NODE_CAP = Math.floor(
+  GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap / MAX_ACTIVE_CLEAR_PRESENTATIONS,
+);
+
+interface TaggedEffect<T> {
+  kind: string;
+  value: T;
+}
+
 function cellKey(row: number, col: number) {
   return `${row}:${col}`;
 }
@@ -318,6 +333,175 @@ function sampleEffectCells(
   if (cells.length <= maxCells) return [...cells];
   const stride = cells.length / maxCells;
   return Array.from({ length: maxCells }, (_, index) => cells[Math.floor(index * stride)]!);
+}
+
+function sampleItems<T>(items: readonly T[], maxItems: number): T[] {
+  if (maxItems <= 0 || items.length === 0) return [];
+  if (items.length <= maxItems) return [...items];
+  const stride = items.length / maxItems;
+  return Array.from({ length: maxItems }, (_, index) => items[Math.floor(index * stride)]!);
+}
+
+function interleaveItems<T>(first: readonly T[], second: readonly T[]) {
+  const interleaved: T[] = [];
+  const length = Math.max(first.length, second.length);
+  for (let index = 0; index < length; index += 1) {
+    if (index < first.length) interleaved.push(first[index]!);
+    if (index < second.length) interleaved.push(second[index]!);
+  }
+  return interleaved;
+}
+
+function allocateSharedBudget(
+  firstLength: number,
+  secondLength: number,
+  totalBudget: number,
+) {
+  if (totalBudget <= 0) return { first: 0, second: 0 };
+
+  let first = Math.min(firstLength, Math.ceil(totalBudget / 2));
+  let second = Math.min(secondLength, Math.floor(totalBudget / 2));
+  let remaining = totalBudget - first - second;
+
+  if (remaining > 0 && first < firstLength) {
+    const extra = Math.min(firstLength - first, remaining);
+    first += extra;
+    remaining -= extra;
+  }
+
+  if (remaining > 0 && second < secondLength) {
+    second += Math.min(secondLength - second, remaining);
+  }
+
+  return { first, second };
+}
+
+function countAnimatedLineNodes(lines: readonly ClearLine[]) {
+  return lines.reduce((sum, line) => sum + 2 + line.segments.length, 0);
+}
+
+export function countAnimatedClearNodes(presentation: ClearPresentation) {
+  return (
+    presentation.fragments.length +
+    presentation.fallingFragments.length +
+    presentation.debris.length +
+    presentation.sparks.length +
+    presentation.intersections.length +
+    countAnimatedLineNodes(presentation.lines)
+  );
+}
+
+function budgetLineDetail(
+  lines: readonly ClearLine[],
+  intersections: readonly ClearIntersection[],
+  lineDetailBudget: number,
+) {
+  if (lineDetailBudget <= 0) {
+    return {
+      lines: lines.map((line) => ({ ...line, segments: [] })),
+      intersections: [] as ClearIntersection[],
+    };
+  }
+
+  const lineIndexes = sampleItems(
+    Array.from({ length: lines.length }, (_, index) => index),
+    Math.min(lineDetailBudget, lines.length),
+  );
+  const segmentBudgets = Array.from({ length: lines.length }, () => 0);
+  lineIndexes.forEach((index) => {
+    if (lines[index]!.segments.length > 0) segmentBudgets[index] = 1;
+  });
+
+  let remainingBudget = lineDetailBudget - segmentBudgets.reduce((sum, count) => sum + count, 0);
+  const intersectionCount = Math.min(intersections.length, remainingBudget);
+  remainingBudget -= intersectionCount;
+
+  while (remainingBudget > 0) {
+    let allocated = false;
+    for (let index = 0; index < lines.length && remainingBudget > 0; index += 1) {
+      const line = lines[index]!;
+      if (segmentBudgets[index]! >= line.segments.length) continue;
+      segmentBudgets[index] += 1;
+      remainingBudget -= 1;
+      allocated = true;
+    }
+    if (!allocated) break;
+  }
+
+  return {
+    lines: lines.map((line, index) => ({
+      ...line,
+      segments: sampleItems(line.segments, segmentBudgets[index]!),
+    })),
+    intersections: sampleItems(intersections, intersectionCount),
+  };
+}
+
+function applyPresentationNodeBudget(presentation: ClearPresentation): ClearPresentation {
+  const lineShellNodes = presentation.lines.length * 2;
+  const mandatoryNodes = lineShellNodes;
+  if (mandatoryNodes >= CLEAR_PRESENTATION_TOTAL_NODE_CAP) {
+    const lineBudget = budgetLineDetail(presentation.lines, presentation.intersections, 0);
+    return {
+      ...presentation,
+      lines: lineBudget.lines,
+      intersections: lineBudget.intersections,
+      fragments: [],
+      fallingFragments: [],
+      debris: [],
+      sparks: [],
+    };
+  }
+
+  let remainingBudget = CLEAR_PRESENTATION_TOTAL_NODE_CAP - mandatoryNodes;
+  const totalLineDetailNodes =
+    presentation.lines.reduce((sum, line) => sum + line.segments.length, 0) +
+    presentation.intersections.length;
+  const targetLineDetailBudget = Math.min(
+    totalLineDetailNodes,
+    totalLineDetailNodes <= 24
+      ? totalLineDetailNodes
+      : Math.max(
+          presentation.lines.length + 4,
+          Math.floor(CLEAR_PRESENTATION_TOTAL_NODE_CAP / 3),
+        ),
+  );
+  const lineDetailBudget = Math.min(remainingBudget, targetLineDetailBudget);
+  remainingBudget -= lineDetailBudget;
+
+  const sparkBudget = Math.min(remainingBudget, presentation.sparks.length);
+  remainingBudget -= sparkBudget;
+
+  const { first: localBudget, second: externalBudget } = allocateSharedBudget(
+    presentation.fragments.length,
+    presentation.fallingFragments.length + presentation.debris.length,
+    remainingBudget,
+  );
+
+  const lineBudget = budgetLineDetail(
+    presentation.lines,
+    presentation.intersections,
+    lineDetailBudget,
+  );
+  const externalEffects = interleaveItems<TaggedEffect<FallingFragment | ClearDebris>>(
+    presentation.fallingFragments.map((value) => ({ kind: 'falling', value })),
+    presentation.debris.map((value) => ({ kind: 'debris', value })),
+  );
+  const sampledExternalEffects = sampleItems(externalEffects, externalBudget);
+
+  return {
+    ...presentation,
+    lines: lineBudget.lines,
+    intersections: lineBudget.intersections,
+    fragments: sampleItems(presentation.fragments, localBudget),
+    fallingFragments: sampledExternalEffects
+      .filter((entry): entry is TaggedEffect<FallingFragment> => entry.kind === 'falling')
+      .map((entry) => entry.value),
+    debris: sampledExternalEffects
+      .filter((entry): entry is TaggedEffect<ClearDebris> => entry.kind === 'debris')
+      .map((entry) => entry.value),
+    sparks: sampleItems(presentation.sparks, sparkBudget),
+  };
 }
 
 function fallingTravel(
@@ -515,7 +699,7 @@ export function buildClearPresentation(
   const lineCount = event.clearedRows.length + event.clearedCols.length;
   const presentationKey = `${event.score}-${event.combo}-${eventSeed(event)}-${reducedMotion ? 1 : 0}`;
 
-  return {
+  return applyPresentationNodeBudget({
     key: presentationKey,
     lines: [...rowLines, ...colLines],
     intersections,
@@ -527,7 +711,7 @@ export function buildClearPresentation(
     shake: shakeForClear(lineCount, event.boardCleared, reducedMotion),
     praiseFontSize: praiseFontSize(event.praise, geom.boardSize),
     reducedMotion,
-  };
+  });
 }
 
 export function clearPresentationLifetimeMs(presentation: ClearPresentation | null): number {

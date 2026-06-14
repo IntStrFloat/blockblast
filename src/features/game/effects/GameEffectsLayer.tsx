@@ -1,31 +1,16 @@
-import { useEffect, useState } from 'react';
+import { Fragment } from 'react';
 import { View } from 'react-native';
 
-import {
-  clearPresentationLifetimeMs,
-  type ClearPresentation,
-} from '../animation/clearPresentation';
+import type { ClearPresentationInstance } from '../animation/clearPresentation';
 import { BlockCrushLayer } from './BlockCrushLayer';
 import { ClearDebrisLayer } from './ClearDebrisLayer';
 
 interface GameEffectsLayerProps {
-  presentation: ClearPresentation | null;
+  presentations: readonly ClearPresentationInstance[];
 }
 
-export function GameEffectsLayer({ presentation }: GameEffectsLayerProps) {
-  const [expiredKey, setExpiredKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!presentation) return;
-    const timer = setTimeout(
-      () => setExpiredKey(presentation.key),
-      clearPresentationLifetimeMs(presentation),
-    );
-    return () => clearTimeout(timer);
-  }, [presentation]);
-
-  if (!presentation || expiredKey === presentation.key) return null;
-
+export function GameEffectsLayer({ presentations }: GameEffectsLayerProps) {
+  if (presentations.length === 0) return null;
   return (
     <View
       pointerEvents="none"
@@ -38,8 +23,12 @@ export function GameEffectsLayer({ presentation }: GameEffectsLayerProps) {
         overflow: 'visible',
       }}
     >
-      <BlockCrushLayer fragments={presentation.fallingFragments} />
-      <ClearDebrisLayer debris={presentation.debris} />
+      {presentations.map(({ id, presentation }) => (
+        <Fragment key={id}>
+          <BlockCrushLayer fragments={presentation.fallingFragments} />
+          <ClearDebrisLayer debris={presentation.debris} />
+        </Fragment>
+      ))}
     </View>
   );
 }
