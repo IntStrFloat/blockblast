@@ -46,6 +46,7 @@ jest.mock('../effects/useShake', () => ({
 }));
 
 jest.mock('../animation/clearPresentation', () => ({
+  MAX_ACTIVE_CLEAR_PRESENTATIONS: 2,
   buildClearPresentation: (event: MockPlacementEvent) => ({
     key: `presentation-${event.id}`,
     lines: [],
@@ -203,5 +204,66 @@ describe('BoardView clear presentation queue', () => {
 
     expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations).toHaveLength(1);
     expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations?.[0]?.id).toBeDefined();
+  });
+
+  it('keeps a three-clear burst bounded to two active presentations and 128 theoretical nodes', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(<BoardView />);
+    });
+
+    mockBoardState.lastEvent = makeEvent('a', 300);
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+    const firstBurstPresentation = mockClearLayerSpy.mock.lastCall?.[0]?.presentations?.[0];
+    expect(firstBurstPresentation).toBeDefined();
+
+    await act(async () => {
+      jest.advanceTimersByTime(50);
+    });
+
+    mockBoardState.lastEvent = makeEvent('b', 600);
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(50);
+    });
+
+    mockBoardState.lastEvent = makeEvent('c', 900);
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    const rapidBurstPresentations = mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? [];
+    expect(rapidBurstPresentations).toHaveLength(2);
+    expect(
+      rapidBurstPresentations.map((presentation: { id: string }) => presentation.id),
+    ).not.toContain(
+      firstBurstPresentation?.id,
+    );
+    expect(rapidBurstPresentations.length * 64).toBeLessThanOrEqual(128);
+    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(2);
+
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
+    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(2);
+
+    await act(async () => {
+      jest.advanceTimersByTime(450);
+    });
+    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
+    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
   });
 });
