@@ -80,6 +80,7 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
     ctx,
     slotMeasure,
     measureForDrag,
+    committedOpacity: appearOpacity,
   });
 
   return (

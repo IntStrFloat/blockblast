@@ -24,7 +24,11 @@ import {
 import type { DragCtx } from './DragContext';
 
 const PIECE_LIFT_PX = 60;
-const PREVIEW_LIFT_ROWS = 1;
+// Подъём превью над фигурой, в «рядах» доски (cell+gap). Превью должно быть лишь
+// чуть выше самой фигуры — как в оригинальном Block Blast.
+const PREVIEW_LIFT_ROWS = 0.15;
+// [LIFTCHECK] временный лог — снять после подтверждения, что на устройстве свежее значение.
+if (__DEV__) console.log('[LIFTCHECK] PREVIEW_LIFT_ROWS =', PREVIEW_LIFT_ROWS);
 
 /** Позиция слота в координатах окна — снимается на measureInWindow */
 export interface SlotMeasure {
@@ -48,6 +52,12 @@ export interface UseDragOptions {
   slotMeasure: SharedValue<SlotMeasure>;
   /** Актуализирует позиции слота и доски непосредственно перед drag */
   measureForDrag: () => void;
+  /**
+   * Opacity появления фигуры (appearOpacity у TrayPiece). На валидном дропе
+   * мгновенно гасим её в 0, чтобы фигура не «телепортировалась» в трей на
+   * время round-trip store. При переиспользовании слота appear-эффект вернёт 1.
+   */
+  committedOpacity: SharedValue<number>;
 }
 
 export function useDrag({
@@ -60,6 +70,7 @@ export function useDrag({
   ctx,
   slotMeasure,
   measureForDrag,
+  committedOpacity,
 }: UseDragOptions) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -156,8 +167,11 @@ export function useDrag({
       if (commit) {
         // Валидный дроп — ровно один runOnJS
         runOnJS(onDropJS)(commit.trayIndex, commit.row, commit.col);
-        // Фигура исчезнет из трея через store (tray[trayIndex] = null)
-        // translateX/Y сбросим здесь на случай если компонент переиспользуется
+        // Мгновенно прячем фигуру: иначе при сбросе translate в 0 она на 1–2
+        // кадра «телепортируется» в слот трея, пока store не обнулит/обновит слот.
+        committedOpacity.value = 0;
+        // translate сбрасываем для случая переиспользования слота (последняя
+        // фигура — трей сразу рефилится): новая фигура должна встать по центру.
         translateX.value = 0;
         translateY.value = 0;
         scale.value = TRAY_MOTION.restingScale;

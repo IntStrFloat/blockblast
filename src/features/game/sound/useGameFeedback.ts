@@ -17,7 +17,6 @@ function haptic(fn: () => Promise<void>): void {
  * Returns onGrab for DragCtx.
  */
 export function useGameFeedback(): { onGrab: () => void } {
-  const lastEvent = useGameStore((s) => s.lastEvent);
   const recordCelebration = useGameStore((s) => s.recordCelebration);
   const sound = useSettings((s) => s.sound);
   const hapticsOn = useSettings((s) => s.haptics);
@@ -42,29 +41,44 @@ export function useGameFeedback(): { onGrab: () => void } {
     }
   }, [hapticsOn, sound]);
 
-  // Placement feedback is one-shot per event reference.
+  // Звук/хаптику по ходу шлём через СИНХРОННУЮ подписку на стор, а не через
+  // useEffect([lastEvent]). useEffect сработал бы только после тяжёлого ре-рендера
+  // доски (buildClearPresentation, монтирование частиц) + commit + paint, из-за чего
+  // звук ощутимо запаздывал относительно дропа. Подписка Zustand вызывается
+  // синхронно внутри set() — до ре-рендера React, поэтому play() уходит в нативный
+  // аудиопоток сразу, не дожидаясь отрисовки эффектов. One-shot на ссылку события.
   useEffect(() => {
-    if (!lastEvent || handledPlacementEventRef.current === lastEvent) return;
-    handledPlacementEventRef.current = lastEvent;
+    const handlePlacement = (event: PlacementEvent) => {
+      if (handledPlacementEventRef.current === event) return;
+      handledPlacementEventRef.current = event;
 
-    const lines = lastEvent.clearedRows.length + lastEvent.clearedCols.length;
+      const lines = event.clearedRows.length + event.clearedCols.length;
 
-    if (soundRef.current) playSound(soundForPlacement(lastEvent));
+      if (soundRef.current) playSound(soundForPlacement(event));
 
-    if (hapticsRef.current) {
-      if (lastEvent.gameOver) {
-        haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
-      } else if (lines >= 3 || lastEvent.onFire) {
-        haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
-      } else if (lines === 2) {
-        haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
-      } else if (lines === 1) {
-        haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
-      } else {
-        haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+      if (hapticsRef.current) {
+        if (event.gameOver) {
+          haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
+        } else if (lines >= 3 || event.onFire) {
+          haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+        } else if (lines === 2) {
+          haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+        } else if (lines === 1) {
+          haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+        } else {
+          haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+        }
       }
-    }
-  }, [lastEvent]);
+    };
+
+    // Если экран смонтировался уже после хода — проиграть текущее событие один раз.
+    const initial = useGameStore.getState().lastEvent;
+    if (initial) handlePlacement(initial);
+
+    return useGameStore.subscribe((state) => {
+      if (state.lastEvent) handlePlacement(state.lastEvent);
+    });
+  }, []);
 
   // One-shot record celebration for the active run.
   useEffect(() => {

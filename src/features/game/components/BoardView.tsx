@@ -23,6 +23,7 @@ import {
 import { GAME_FEEL_MOTION } from '../animation/motion';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useDragCtx } from '../drag/DragContext';
+import { ClearBurstLayer } from '../effects/ClearBurstLayer';
 import { ClearLayer } from '../effects/ClearLayer';
 import { GameEffectsLayer } from '../effects/GameEffectsLayer';
 import { useShake } from '../effects/useShake';
@@ -288,6 +289,10 @@ export function BoardView({ style }: BoardViewProps) {
         presentations={activePresentations}
         placementEffects={budgetedPlacementEffects}
       />
+      {/* Пул разрушения — сиблинг вне клиппинга доски (осколки разлетаются за её
+          края). Монтируется один раз и переиспользует вью, поэтому не даёт
+          «рывка» от массового mount на каждой очистке. */}
+      <ClearBurstLayer presentations={activePresentations} />
     </Animated.View>
   );
 }

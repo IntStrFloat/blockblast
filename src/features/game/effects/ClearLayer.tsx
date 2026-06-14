@@ -2,19 +2,20 @@ import { Fragment } from 'react';
 import Animated, { Keyframe } from 'react-native-reanimated';
 
 import type { ClearPresentation, ClearPresentationInstance } from '../animation/clearPresentation';
-import { BlockCrushLayer } from './BlockCrushLayer';
 import { LineHighlightLayer } from './LineHighlightLayer';
 
 interface ClearLayerProps {
   presentations: readonly ClearPresentationInstance[];
 }
 
+// Разрушение ячеек ушло в пуловый ClearBurstLayer (см. BoardView): он переиспользует
+// фиксированный набор вью и не монтирует Animated.View на каждый фрагмент. Здесь
+// остаётся только дешёвая вспышка линии и искры — они живут внутри клиппинга доски.
 export function ClearLayer({ presentations }: ClearLayerProps) {
   return (
     <>
       {presentations.map(({ id, presentation }) => (
         <Fragment key={id}>
-          <BlockCrushLayer fragments={presentation.fragments} />
           <LineHighlightLayer presentation={presentation} />
           <ClearSparkLayer presentation={presentation} />
         </Fragment>

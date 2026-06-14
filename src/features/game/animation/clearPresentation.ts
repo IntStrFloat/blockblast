@@ -105,6 +105,19 @@ export interface ClearSpark {
   delay: number;
 }
 
+/** Частица пула разрушения (ClearBurstLayer): стартует как сама ячейка. */
+export interface ClearBurstCell {
+  id: string;
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  dx: number;
+  dy: number;
+  rotate: number;
+  delay: number;
+}
+
 export interface ShakePresentation {
   amplitude: number;
   scale: number;
@@ -119,6 +132,8 @@ export interface ClearPresentation {
   fallingFragments: FallingFragment[];
   debris: ClearDebris[];
   sparks: ClearSpark[];
+  /** Частицы пула разрушения (рендерит ClearBurstLayer, без mount в hot-path). */
+  cells: ClearBurstCell[];
   centroid: { x: number; y: number };
   shake: ShakePresentation;
   praiseFontSize: number;
@@ -643,6 +658,49 @@ function buildSparks(
   });
 }
 
+/**
+ * Частицы пула разрушения: одна на очищенную ячейку (сэмпл до 12 — два
+ * перекрывающихся клира укладываются в пул из 24). Стартуют как сама ячейка и
+ * разлетаются от центроида с «гравитацией» вниз.
+ */
+function buildBurstCells(
+  event: PlacementEvent,
+  geom: ClearGeometry,
+  getColor: (row: number, col: number) => string,
+  random: () => number,
+  center: { x: number; y: number },
+  reducedMotion: boolean,
+): ClearBurstCell[] {
+  if (event.clearedCells.length === 0) return [];
+  const step = geom.cell + geom.gap;
+  const maxCells = Math.min(event.clearedCells.length, 12);
+  const sampled = sampleEffectCells(event.clearedCells, maxCells);
+
+  return sampled.map(([row, col], index) => {
+    const x = col * step;
+    const y = row * step;
+    const base = {
+      id: `burst-${index}`,
+      x,
+      y,
+      size: geom.cell,
+      color: getColor(row, col),
+    };
+    if (reducedMotion) {
+      return { ...base, dx: 0, dy: 0, rotate: 0, delay: 0 };
+    }
+    const awayX = x + geom.cell / 2 - center.x;
+    const awayY = y + geom.cell / 2 - center.y;
+    return {
+      ...base,
+      dx: awayX * 0.6 + (random() - 0.5) * geom.cell * 0.9,
+      dy: awayY * 0.35 + geom.cell * (0.7 + random() * 1.1),
+      rotate: (random() - 0.5) * 60,
+      delay: Math.round(random() * 45),
+    };
+  });
+}
+
 export function shakeForClear(
   lineCount: number,
   boardCleared: boolean,
@@ -707,6 +765,7 @@ export function buildClearPresentation(
     fallingFragments: buildFallingFragments(event, geom, getColor, random, reducedMotion),
     debris: buildDebris(event, geom, getColor, random, reducedMotion),
     sparks: buildSparks(centroidPoint, geom, random, reducedMotion),
+    cells: buildBurstCells(event, geom, getColor, random, centroidPoint, reducedMotion),
     centroid: centroidPoint,
     shake: shakeForClear(lineCount, event.boardCleared, reducedMotion),
     praiseFontSize: praiseFontSize(event.praise, geom.boardSize),
@@ -742,6 +801,10 @@ export function clearPresentationLifetimeMs(presentation: ClearPresentation | nu
     (max, spark) => Math.max(max, spark.delay + 260),
     0,
   );
+  const latestBurst = presentation.cells.reduce(
+    (max, cell) => Math.max(max, cell.delay + (presentation.reducedMotion ? 240 : 360)),
+    0,
+  );
 
   return Math.max(
     SPECTACLE_MOTION.praiseEndMs,
@@ -751,5 +814,6 @@ export function clearPresentationLifetimeMs(presentation: ClearPresentation | nu
     latestFallingFragment,
     latestDebris,
     latestSpark,
+    latestBurst,
   ) + 80;
 }
