@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,7 +24,7 @@ import { TutorialHints } from '@/features/game/components/TutorialHints';
 import { NewRecordCelebration } from '@/features/game/effects/NewRecordCelebration';
 import { AdBanner } from '@/features/monetization';
 import { useLang, useSettings } from '@/features/settings';
-import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
+import { AppText, ConfirmDialog, getBlockTheme, getBoardMetrics, radii } from '@/ui';
 
 function EggToast() {
   const lastEvent = useGameStore((s) => s.lastEvent);
@@ -168,12 +168,8 @@ export default function GameScreen() {
     useGameStore.getState().discardAndStartNew();
     setPaused(false);
   }, []);
-  const confirmRestart = useCallback(() => {
-    Alert.alert(t('pause.restart', lang), t('home.newGameConfirm', lang), [
-      { text: t('common.cancel', lang), style: 'cancel' },
-      { text: t('pause.restart', lang), style: 'destructive', onPress: startFresh },
-    ]);
-  }, [lang, startFresh]);
+  const [restartOpen, setRestartOpen] = useState(false);
+  const confirmRestart = useCallback(() => setRestartOpen(true), []);
   if (!entryReady) {
     return <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']} />;
   }
@@ -215,6 +211,20 @@ export default function GameScreen() {
         ) : null}
 
         <GameOverOverlay onPlayAgain={startFresh} onHome={goHome} />
+
+        <ConfirmDialog
+          visible={restartOpen}
+          title={t('pause.restart', lang)}
+          message={t('home.newGameConfirm', lang)}
+          confirmLabel={t('pause.restart', lang)}
+          cancelLabel={t('settings.cancel', lang)}
+          destructive
+          onConfirm={() => {
+            setRestartOpen(false);
+            startFresh();
+          }}
+          onCancel={() => setRestartOpen(false)}
+        />
       </SafeAreaView>
     </DragProvider>
   );
