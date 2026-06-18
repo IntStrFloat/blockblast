@@ -112,9 +112,10 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   // Сигнал перетаскивания самого Капи и общая пауза мозга: мозг встаёт на
   // паузу, когда активен ЛЮБОЙ drag — фигуры (dragActive) или маскота.
   const mascotDragging = useSharedValue(0);
+  const mascotDropping = useSharedValue(0);
   const brainPaused = useSharedValue(0);
   useAnimatedReaction(
-    () => Math.max(dragActive.value, mascotDragging.value),
+    () => Math.max(dragActive.value, mascotDragging.value, mascotDropping.value),
     (v) => {
       brainPaused.value = v;
     },
@@ -147,6 +148,7 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   // pan.onEnd. Анимация падения — на shared values, lost-состояние персистим
   // с задержкой (после падения), реплика автоскрывается.
   const handleDrop = useCallback(() => {
+    mascotDropping.value = 1;
     motion.bob.value = withTiming(240, { duration: 450 });
     motion.opacity.value = withTiming(0, { duration: 450 });
     motion.rotate.value = withTiming(40, { duration: 450 });
@@ -155,13 +157,15 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
     const t1 = setTimeout(() => useMascot.getState().drop(), 450);
     const t2 = setTimeout(() => setLostText(null), 2200);
     dropTimers.current.push(t1, t2);
-  }, [motion, praiseTone, lang, onLost]);
+  }, [mascotDropping, motion, praiseTone, lang, onLost]);
 
   // Восстановление маскота при начале новой партии (newGame / loadSaved).
   const epoch = useGameStore((s) => s.epoch);
   useEffect(() => {
     if (useMascot.getState().lost) {
       useMascot.getState().recover();
+      mascotDragging.value = 0;
+      mascotDropping.value = 0;
       // Вход после возвращения: плавное появление + подпрыжок.
       // Reanimated shared values устанавливаются напрямую — не setState.
       // Полный сброс позы после падения: прозрачность/боб + поворот/масштаб.
@@ -221,7 +225,8 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
     .onEnd((e) => {
       'worklet';
       if (e.translationY > DROP_THRESHOLD) {
-        // Бросок вниз за пол → «потеря». mascotDragging сбросит onFinalize.
+        // Бросок вниз за пол → «потеря». Отдельный dropping-флаг держит мозг на паузе.
+        mascotDropping.value = 1;
         runOnJS(handleDrop)();
       } else {
         // Возврат на место.
@@ -234,7 +239,7 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
     .onFinalize(() => {
       'worklet';
       // Подстраховка: мозг не должен остаться на паузе, если onEnd не «потерял».
-      mascotDragging.value = 0;
+      if (!mascotDropping.value) mascotDragging.value = 0;
     });
 
   // Гонка: быстрый тап → tap, протяжка → pan.
