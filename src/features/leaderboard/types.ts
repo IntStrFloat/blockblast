@@ -31,6 +31,13 @@ export interface RunProof {
   frozenScore: number | null;
   ranked: boolean;
   ticketId: string | null;
+  /**
+   * Ран продолжен после ревайва (просмотр рекламы). Такой ран нельзя честно
+   * перепроверить реплеем (ревайв чистит доску посреди партии), поэтому он
+   * обновляет только локальный недельный результат, но не ranked-сабмит и не
+   * увеличивает счётчик партий повторно.
+   */
+  continued?: boolean;
 }
 
 export interface PendingSubmission {
@@ -41,6 +48,13 @@ export interface PendingSubmission {
   durationMs: number;
   moves: RunMove[];
   queuedAt: string;
+}
+
+export interface LocalWeeklyResult {
+  weekKey: string;
+  bestScore: number;
+  runsCount: number;
+  achievedAt: string;
 }
 
 export interface VerifiedRun {

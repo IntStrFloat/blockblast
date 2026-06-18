@@ -8,7 +8,7 @@ describe('useSettings', () => {
     expect(s.sound).toBe(true);
     expect(s.haptics).toBe(true);
     expect(s.praiseTone).toBe('classic');
-    expect(s.lang).toBe('system');
+    expect(s.lang).toBe('ru');
   });
 
   it('update меняет и персистит', () => {

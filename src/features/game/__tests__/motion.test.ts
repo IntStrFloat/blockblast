@@ -3,8 +3,10 @@ import {
   PARTICLE_MOTION,
   TRAY_ACTIVATION,
   TRAY_MOTION,
+  TRAY_SLOT_INNER_GAP,
   clearCellDelay,
   particleSourceIndexes,
+  trayRestingScale,
 } from '../animation/motion';
 
 describe('tray interaction motion', () => {
@@ -23,6 +25,32 @@ describe('tray interaction motion', () => {
     expect(TRAY_MOTION.grabScale).toBeLessThan(1);
     expect(TRAY_MOTION.returnDurationMs).toBeLessThanOrEqual(140);
     expect(TRAY_MOTION.returnScaleDurationMs).toBeLessThanOrEqual(110);
+  });
+});
+
+describe('tray resting scale (fit to slot)', () => {
+  const slotWidth = 125; // ~(390-16)/3 на типичном телефоне
+  const narrowFigW = 88; // h2: 2*43 + 2
+  const wideFigW = 223; // h5: 5*43 + 4*2
+
+  it('keeps narrow pieces at the base resting scale', () => {
+    expect(trayRestingScale(narrowFigW, slotWidth)).toBe(TRAY_MOTION.restingScale);
+  });
+
+  it('shrinks wide pieces so they fit inside their slot', () => {
+    const scale = trayRestingScale(wideFigW, slotWidth);
+    expect(scale).toBeLessThan(TRAY_MOTION.restingScale);
+    // Фигура целиком помещается в слот с зазором → две соседние не налезают.
+    expect(wideFigW * scale).toBeLessThanOrEqual(slotWidth - TRAY_SLOT_INNER_GAP + 1e-9);
+  });
+
+  it('never collapses below the floor for a pathologically narrow slot', () => {
+    expect(trayRestingScale(1000, 5)).toBe(0.2);
+  });
+
+  it('falls back to the base scale on degenerate input', () => {
+    expect(trayRestingScale(0, slotWidth)).toBe(TRAY_MOTION.restingScale);
+    expect(trayRestingScale(wideFigW, Number.NaN)).toBe(TRAY_MOTION.restingScale);
   });
 });
 

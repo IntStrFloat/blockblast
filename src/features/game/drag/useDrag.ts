@@ -24,7 +24,9 @@ import {
 import type { DragCtx } from './DragContext';
 
 const PIECE_LIFT_PX = 60;
-const PREVIEW_LIFT_ROWS = 1;
+// Подъём превью над фигурой, в «рядах» доски (cell+gap). Превью должно быть лишь
+// чуть выше самой фигуры — как в оригинальном Block Blast.
+const PREVIEW_LIFT_ROWS = 0.15;
 
 /** Позиция слота в координатах окна — снимается на measureInWindow */
 export interface SlotMeasure {
@@ -48,6 +50,18 @@ export interface UseDragOptions {
   slotMeasure: SharedValue<SlotMeasure>;
   /** Актуализирует позиции слота и доски непосредственно перед drag */
   measureForDrag: () => void;
+  /**
+   * Opacity появления фигуры (appearOpacity у TrayPiece). На валидном дропе
+   * мгновенно гасим её в 0, чтобы фигура не «телепортировалась» в трей на
+   * время round-trip store. При переиспользовании слота appear-эффект вернёт 1.
+   */
+  committedOpacity: SharedValue<number>;
+  /**
+   * Масштаб фигуры в покое. Считается под ширину слота (узкие — базовый
+   * restingScale, широкие — ужимаются, чтобы не вылезать за слот и не
+   * налезать на соседнюю фигуру). На захвате фигура подрастает до grabScale.
+   */
+  restingScale: number;
 }
 
 export function useDrag({
@@ -60,10 +74,12 @@ export function useDrag({
   ctx,
   slotMeasure,
   measureForDrag,
+  committedOpacity,
+  restingScale,
 }: UseDragOptions) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
-  const scale = useSharedValue<number>(TRAY_MOTION.restingScale);
+  const scale = useSharedValue<number>(restingScale);
   // Тень при захвате: elevation (Android) и shadowOpacity (iOS)
   const elevation = useSharedValue(0);
   const shadowOpacity = useSharedValue(0);
@@ -77,9 +93,15 @@ export function useDrag({
 
   const onDropJS = useCallback(
     (ti: number, r: number, c: number) => {
-      ctx.onDrop(ti, r, c);
+      const placed = ctx.onDrop(ti, r, c);
+      // Дроп оптимистично прячет фигуру (committedOpacity=0). Если движок его
+      // отклонил (позиция занята) — слот остаётся прежним и без отката фигура
+      // «пропала бы» из трея. Возвращаем её видимой.
+      if (!placed) {
+        committedOpacity.value = withTiming(1, { duration: TRAY_MOTION.appearDurationMs });
+      }
     },
-    [ctx],
+    [ctx, committedOpacity],
   );
 
   const onGrabJS = ctx.onGrab;
@@ -95,6 +117,11 @@ export function useDrag({
     .onStart(() => {
       'worklet';
       runOnJS(measureForDrag)();
+      // Подстраховка: чистим возможную «застрявшую» тень от прерванного жеста и
+      // забираем владение превью (last-wins — переживает залипшего владельца).
+      ctx.preview.value = EMPTY_MASK;
+      ctx.previewColor.value = 0;
+      ctx.dragOwner.value = trayIndex;
       scale.value = withTiming(TRAY_MOTION.grabScale, { duration: TRAY_MOTION.grabDurationMs });
       elevation.value = withTiming(8, { duration: TRAY_MOTION.grabDurationMs });
       shadowOpacity.value = withTiming(0.3, { duration: TRAY_MOTION.grabDurationMs });
@@ -106,6 +133,10 @@ export function useDrag({
       'worklet';
       translateX.value = event.translationX;
       translateY.value = event.translationY - PIECE_LIFT_PX;
+
+      // Превью и валидную позицию дропа ведёт только владелец: при мультитаче
+      // чужая фигура следует за пальцем, но не пишет тень и не ставится.
+      if (ctx.dragOwner.value !== trayIndex) return;
 
       const { geom, boardOrigin, boardMirror, preview, previewColor } = ctx;
       const cellPx = geom.cell;
@@ -154,28 +185,32 @@ export function useDrag({
     })
     .onEnd(() => {
       'worklet';
-      // Drag завершён (валидный дроп и возврат — оба пути ниже).
-      ctx.dragActive.value = 0;
-      ctx.preview.value = EMPTY_MASK;
-      ctx.previewColor.value = 0;
+      const isOwner = ctx.dragOwner.value === trayIndex;
+      if (isOwner) {
+        ctx.preview.value = EMPTY_MASK;
+        ctx.previewColor.value = 0;
+      }
 
-      const commit = dropCommitFor(trayIndex, dropR.value, dropC.value);
+      const commit = isOwner ? dropCommitFor(trayIndex, dropR.value, dropC.value) : null;
 
       if (commit) {
         // Валидный дроп — ровно один runOnJS
         runOnJS(onDropJS)(commit.trayIndex, commit.row, commit.col);
-        // Фигура исчезнет из трея через store (tray[trayIndex] = null)
-        // translateX/Y сбросим здесь на случай если компонент переиспользуется
+        // Мгновенно прячем фигуру: иначе при сбросе translate в 0 она на 1–2
+        // кадра «телепортируется» в слот трея, пока store не обнулит/обновит слот.
+        committedOpacity.value = 0;
+        // translate сбрасываем для случая переиспользования слота (последняя
+        // фигура — трей сразу рефилится): новая фигура должна встать по центру.
         translateX.value = 0;
         translateY.value = 0;
-        scale.value = TRAY_MOTION.restingScale;
+        scale.value = restingScale;
         elevation.value = 0;
         shadowOpacity.value = 0;
       } else {
         // Невалидно — короткий timing назад в слот без overshoot
         translateX.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
         translateY.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
-        scale.value = withTiming(TRAY_MOTION.restingScale, {
+        scale.value = withTiming(restingScale, {
           duration: TRAY_MOTION.returnScaleDurationMs,
         });
         elevation.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });
@@ -184,11 +219,16 @@ export function useDrag({
     })
     .onFinalize((_event, success) => {
       'worklet';
-      // Гарантированный сброс перф-сигнала на любом завершении (вкл. отмену).
-      ctx.dragActive.value = 0;
-      // Всегда чистим превью
-      ctx.preview.value = EMPTY_MASK;
-      ctx.previewColor.value = 0;
+      // Чистим превью и отпускаем владение только если владелец — иначе затрём
+      // активную тень другого (ещё перетаскиваемого) пальца.
+      if (ctx.dragOwner.value === trayIndex) {
+        ctx.preview.value = EMPTY_MASK;
+        ctx.previewColor.value = 0;
+        ctx.dragOwner.value = -1;
+        ctx.dragActive.value = 0;
+      } else if (ctx.dragOwner.value < 0) {
+        ctx.dragActive.value = 0;
+      }
 
       // Если жест был отменён/перехвачен (не был onEnd) — возвращаем в слот
       if (!success) {
@@ -196,7 +236,7 @@ export function useDrag({
         dropC.value = -1;
         translateX.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
         translateY.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
-        scale.value = withTiming(TRAY_MOTION.restingScale, {
+        scale.value = withTiming(restingScale, {
           duration: TRAY_MOTION.returnScaleDurationMs,
         });
         elevation.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });

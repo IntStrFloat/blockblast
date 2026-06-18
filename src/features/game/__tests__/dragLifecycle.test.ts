@@ -35,6 +35,36 @@ describe('drag update source contract', () => {
   });
 });
 
+describe('drag safety-net source contract', () => {
+  const dragSource = fs.readFileSync(`${__dirname}/../drag/useDrag.ts`, 'utf8');
+  const traySource = fs.readFileSync(`${__dirname}/../components/TrayPiece.tsx`, 'utf8');
+
+  it('clears a stale preview and claims drag ownership on start (anti stuck-ghost)', () => {
+    const startBody = dragSource.match(/\.onStart\(\(\) => \{([\s\S]*?)\r?\n    \}\)\r?\n    \.onUpdate/)?.[1];
+    expect(startBody).toBeDefined();
+    expect(startBody).toContain('ctx.preview.value = EMPTY_MASK');
+    expect(startBody).toContain('ctx.dragOwner.value = trayIndex');
+  });
+
+  it('lets only the drag owner write the preview (serialises multitouch)', () => {
+    expect(dragSource).toContain('if (ctx.dragOwner.value !== trayIndex) return;');
+    expect(dragSource).toContain('ctx.dragOwner.value = -1;');
+  });
+
+  it('restores the hidden tray piece when the engine rejects the drop', () => {
+    expect(dragSource).toContain('if (!placed)');
+    expect(dragSource).toContain('committedOpacity.value = withTiming(1');
+  });
+
+  it('refreshes the board mirror from the live store before each drag', () => {
+    expect(traySource).toContain('ctx.boardMirror.value = [...useGameStore.getState().game.board]');
+  });
+
+  it('re-runs the appearance effect per piece instance, not per shape id', () => {
+    expect(traySource).toContain('}, [piece]);');
+  });
+});
+
 describe('layout measurement source contract', () => {
   const boardSource = fs.readFileSync(`${__dirname}/../components/BoardView.tsx`, 'utf8');
   const traySource = fs.readFileSync(`${__dirname}/../components/TrayPiece.tsx`, 'utf8');

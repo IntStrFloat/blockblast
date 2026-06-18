@@ -87,6 +87,112 @@ describe('leaderboard store', () => {
     expect(store.getState().tickets).toEqual([]);
   });
 
+  it('plays each weekly run on its ticket seed and rotates tickets across re-issues', async () => {
+    const pool = [
+      { ticketId: 'ticket-1', seed: 111, expiresAt: '2026-06-20T00:00:00.000Z' },
+      { ticketId: 'ticket-2', seed: 222, expiresAt: '2026-06-20T00:00:00.000Z' },
+    ];
+    const client: LeaderboardClient = {
+      kind: 'remote',
+      bootstrapProfile: async () => null,
+      renameProfile: async ({ nickname }) => ({ nickname, tag: 'SRV' }),
+      issueTickets: async () => pool.map((ticket) => ({ ...ticket })),
+      getWeeklySnapshot: async () => null,
+      submitRun: async () => null,
+    };
+    const store = createLeaderboardStore({ client });
+    await store.getState().issueTickets('auth-1');
+
+    const p1 = store.getState().startRun({ startedAt: NOW.toISOString(), mode: 'weekly', seed: 999 });
+    // Сид игры = сид тикета (сервер требует совпадения), а не переданный 999.
+    expect(p1.seed).toBe(111);
+    expect(p1.ranked).toBe(true);
+    expect(p1.ticketId).toBe('ticket-1');
+
+    // Возврат на домашний экран переаутвыдаёт тот же серверный пул; уже
+    // использованный ticket-1 не должен переиспользоваться → другой сид.
+    await store.getState().issueTickets('auth-1');
+    const p2 = store.getState().startRun({ startedAt: NOW.toISOString(), mode: 'weekly', seed: 999 });
+    expect(p2.seed).toBe(222);
+    expect(p2.ticketId).toBe('ticket-2');
+  });
+
+  it('reopens a finished run after a revive so it raises the local weekly best only', async () => {
+    const client: LeaderboardClient = {
+      kind: 'remote',
+      bootstrapProfile: async () => null,
+      renameProfile: async ({ nickname }) => ({ nickname, tag: 'SRV' }),
+      issueTickets: async () => [
+        { ticketId: 'ticket-1', seed: 5, expiresAt: '2026-06-20T00:00:00.000Z' },
+      ],
+      getWeeklySnapshot: async () => null,
+      submitRun: async () => {
+        throw new Error('offline');
+      },
+    };
+    const store = createLeaderboardStore({ client });
+    await store.getState().issueTickets('auth-1');
+
+    store.getState().startRun({ startedAt: NOW.toISOString(), mode: 'weekly', seed: 1 });
+    await store.getState().finishActiveRun(1000, NOW);
+    expect(store.getState().localWeeklyResult).toMatchObject({ bestScore: 1000, runsCount: 1 });
+    expect(store.getState().pendingSubmissions).toHaveLength(1);
+
+    // Ревайв: ран переоткрыт и снят с ranked.
+    store.getState().reopenActiveRun();
+    expect(store.getState().activeProof?.frozenScore).toBeNull();
+    expect(store.getState().activeProof?.ranked).toBe(false);
+    expect(store.getState().activeProof?.continued).toBe(true);
+
+    store.getState().recordMove({ trayIndex: 0, row: 0, col: 0 });
+    await store.getState().finishActiveRun(1500, NOW);
+
+    // Локальный недельный best поднят, без второй партии и без второго сабмита.
+    expect(store.getState().localWeeklyResult).toMatchObject({ bestScore: 1500, runsCount: 1 });
+    expect(store.getState().pendingSubmissions).toHaveLength(1);
+    expect(store.getState().pendingSubmissions[0].score).toBe(1000);
+  });
+
+  it('replaces tickets from an obsolete auth session with the current pool', async () => {
+    const client: LeaderboardClient = {
+      kind: 'remote',
+      bootstrapProfile: async () => null,
+      renameProfile: async ({ nickname }) => ({ nickname, tag: 'SRV' }),
+      issueTickets: async () => [
+        { ticketId: 'current-ticket', seed: 777, expiresAt: '2026-06-20T00:00:00.000Z' },
+      ],
+      getWeeklySnapshot: async () => null,
+      submitRun: async () => null,
+    };
+    const store = createLeaderboardStore({ client });
+    store.setState({
+      tickets: [
+        { ticketId: 'obsolete-ticket', seed: 501, expiresAt: '2026-06-20T00:00:00.000Z' },
+      ],
+    });
+
+    await store.getState().issueTickets('current-auth');
+
+    expect(store.getState().tickets).toEqual([
+      { ticketId: 'current-ticket', seed: 777, expiresAt: '2026-06-20T00:00:00.000Z' },
+    ]);
+  });
+
+  it('tracks a local weekly best even when a run starts without a ranked ticket', async () => {
+    const store = createLeaderboardStore();
+
+    store.getState().startRun({ startedAt: NOW.toISOString(), mode: 'weekly', seed: 501 });
+    await store.getState().finishActiveRun(2400, NOW);
+
+    expect(store.getState().localWeeklyResult).toEqual({
+      weekKey: '2026-06-08',
+      bestScore: 2400,
+      runsCount: 1,
+      achievedAt: NOW.toISOString(),
+    });
+    expect(getJSON(KEYS.leaderboardRuns)).toEqual(store.getState().localWeeklyResult);
+  });
+
   it('bounds the pending submission queue to twenty newest items', async () => {
     const client: LeaderboardClient = {
       kind: 'remote',
@@ -196,5 +302,49 @@ describe('leaderboard store', () => {
     expect(store.getState().pendingSubmissions).toEqual([]);
     expect(store.getState().snapshot?.source).toBe('remote');
     expect(getJSON(KEYS.leaderboardSnapshot)).toEqual(store.getState().snapshot);
+  });
+
+  it('drops permanently rejected pending submissions but keeps transient failures', async () => {
+    const submitRun = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('request_failed:404'))
+      .mockRejectedValueOnce(new Error('network unavailable'));
+    const client: LeaderboardClient = {
+      kind: 'remote',
+      bootstrapProfile: async () => null,
+      renameProfile: async ({ nickname }) => ({ nickname, tag: 'SRV' }),
+      issueTickets: async () => [],
+      getWeeklySnapshot: async () => null,
+      submitRun,
+    };
+    const store = createLeaderboardStore({ client });
+    store.setState({
+      pendingSubmissions: [
+        {
+          proofId: 'obsolete-proof',
+          ticketId: 'obsolete-ticket',
+          seed: 501,
+          score: 1000,
+          durationMs: 120000,
+          moves: [],
+          queuedAt: NOW.toISOString(),
+        },
+        {
+          proofId: 'retry-proof',
+          ticketId: 'retry-ticket',
+          seed: 502,
+          score: 1100,
+          durationMs: 120000,
+          moves: [],
+          queuedAt: NOW.toISOString(),
+        },
+      ],
+    });
+
+    await store.getState().flushPending('current-auth');
+
+    expect(store.getState().pendingSubmissions.map((submission) => submission.proofId)).toEqual([
+      'retry-proof',
+    ]);
   });
 });

@@ -65,6 +65,7 @@ export function createProfileStore(options: CreateProfileStoreOptions = {}) {
   const storedAuth = getString(KEYS.profileAuth);
   const storedProfile = getJSON<GeneratedProfile>(KEYS.profileLocal);
   const initialProfile = storedProfile ?? createGeneratedProfile(initialSeed);
+  let bootstrapPromise: Promise<BackendProfileSession | null> | null = null;
   persistProfile(initialProfile, storedAuth);
 
   const store = create<ProfileState>((set, get) => ({
@@ -155,34 +156,43 @@ export function createProfileStore(options: CreateProfileStoreOptions = {}) {
       }
     },
 
-    bootstrapRemote: async () => {
-      if (client.kind === 'local') return null;
-      set({ syncStatus: 'syncing', lastError: null });
-      try {
-        const session = await client.bootstrapProfile({
-          nickname: get().profile.nickname,
-          authToken: get().authToken,
-        });
-        if (!session) {
-          set({ syncStatus: 'idle', lastError: null });
+    bootstrapRemote: () => {
+      if (client.kind === 'local') return Promise.resolve(null);
+      if (bootstrapPromise) return bootstrapPromise;
+
+      bootstrapPromise = (async () => {
+        set({ syncStatus: 'syncing', lastError: null });
+        try {
+          const session = await client.bootstrapProfile({
+            nickname: get().profile.nickname,
+            authToken: get().authToken,
+          });
+          if (!session) {
+            set({ syncStatus: 'idle', lastError: null });
+            return null;
+          }
+          const profile = applyRemoteProfile(get().profile, session.profile);
+          persistProfile(profile, session.authToken);
+          set({
+            profile,
+            authToken: session.authToken,
+            syncStatus: 'ready',
+            lastError: null,
+          });
+          return session;
+        } catch {
+          set({ syncStatus: 'error', lastError: 'remote_unavailable' });
           return null;
+        } finally {
+          bootstrapPromise = null;
         }
-        const profile = applyRemoteProfile(get().profile, session.profile);
-        persistProfile(profile, session.authToken);
-        set({
-          profile,
-          authToken: session.authToken,
-          syncStatus: 'ready',
-          lastError: null,
-        });
-        return session;
-      } catch {
-        set({ syncStatus: 'error', lastError: 'remote_unavailable' });
-        return null;
-      }
+      })();
+
+      return bootstrapPromise;
     },
 
     resetForTests: (profile = createGeneratedProfile(7)) => {
+      bootstrapPromise = null;
       persistProfile(profile, null);
       set({
         profile,

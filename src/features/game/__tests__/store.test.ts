@@ -318,6 +318,12 @@ describe('Game Over and Continue accounting', () => {
     expect(useScores.getState().gamesPlayed).toBe(1);
     expect(useScores.getState().best).toBe(1501);
     expect(useStreak.getState().count).toBe(1);
+    // Счёт после ревайва обновляет локальный недельный результат (видимый best),
+    // но не плодит вторую партию и не уходит в ranked-очередь повторно.
+    expect(useLeaderboardStore.getState().localWeeklyResult).toMatchObject({
+      bestScore: 1501,
+      runsCount: 1,
+    });
     expect(getSavedGameSummary()).toEqual({
       kind: 'terminal',
       score: 1501,

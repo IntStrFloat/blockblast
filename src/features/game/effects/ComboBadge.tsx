@@ -2,7 +2,7 @@ import Animated, { ZoomIn } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
 import { useLang } from '@/features/settings';
-import { AppText, colors, radii } from '@/ui';
+import { AppText, colors, FireIcon, radii } from '@/ui';
 
 import { useGameStore } from '../store';
 
@@ -27,8 +27,9 @@ export function ComboBadge() {
         gap: 4,
       }}
     >
+      <FireIcon size={13} />
       <AppText preset="caption" style={{ color: colors.accent }}>
-        🔥 {t('game.combo', lang)} ×{combo}
+        {t('game.combo', lang)} ×{combo}
       </AppText>
     </Animated.View>
   );

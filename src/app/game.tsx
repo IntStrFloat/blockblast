@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -25,7 +25,7 @@ import { NewRecordCelebration } from '@/features/game/effects/NewRecordCelebrati
 import { MascotLayer } from '@/features/mascot';
 import { AdBanner } from '@/features/monetization';
 import { useLang, useSettings } from '@/features/settings';
-import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
+import { AppText, ConfirmDialog, getBlockTheme, getBoardMetrics, radii } from '@/ui';
 
 type BoardLayout = {
   x: number;
@@ -100,6 +100,7 @@ export default function GameScreen() {
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
   const dragActive = useSharedValue(0);
+  const dragOwner = useSharedValue(-1);
 
   const loadSaved = useGameStore((s) => s.loadSaved);
   const discardAndStartNew = useGameStore((s) => s.discardAndStartNew);
@@ -150,9 +151,11 @@ export default function GameScreen() {
   ]);
 
   const { onGrab } = useGameFeedback();
-  const onDrop = useCallback((trayIndex: number, r: number, c: number) => {
-    useGameStore.getState().placePiece(trayIndex, r, c);
-  }, []);
+  const onDrop = useCallback(
+    (trayIndex: number, r: number, c: number) =>
+      useGameStore.getState().placePiece(trayIndex, r, c) !== null,
+    [],
+  );
 
   const dragCtx: DragCtx = useMemo(
     () => ({
@@ -163,6 +166,7 @@ export default function GameScreen() {
       preview,
       previewColor,
       dragActive,
+      dragOwner,
       cellColors: theme.cellColors,
       boardBg: theme.boardBg,
       cellEmpty: theme.cellEmpty,
@@ -179,12 +183,8 @@ export default function GameScreen() {
     useGameStore.getState().discardAndStartNew();
     setPaused(false);
   }, []);
-  const confirmRestart = useCallback(() => {
-    Alert.alert(t('pause.restart', lang), t('home.newGameConfirm', lang), [
-      { text: t('common.cancel', lang), style: 'cancel' },
-      { text: t('pause.restart', lang), style: 'destructive', onPress: startFresh },
-    ]);
-  }, [lang, startFresh]);
+  const [restartOpen, setRestartOpen] = useState(false);
+  const confirmRestart = useCallback(() => setRestartOpen(true), []);
   const handleBoardLayout = useCallback((event: LayoutChangeEvent) => {
     const { x, y, width, height } = event.nativeEvent.layout;
     setBoardLayout((current) => {
@@ -244,7 +244,21 @@ export default function GameScreen() {
           />
         ) : null}
 
-        <GameOverOverlay onPlayAgain={startFresh} onHome={goHome} />
+        <GameOverOverlay onPlayAgain={startFresh} />
+
+        <ConfirmDialog
+          visible={restartOpen}
+          title={t('pause.restart', lang)}
+          message={t('home.newGameConfirm', lang)}
+          confirmLabel={t('pause.restart', lang)}
+          cancelLabel={t('settings.cancel', lang)}
+          destructive
+          onConfirm={() => {
+            setRestartOpen(false);
+            startFresh();
+          }}
+          onCancel={() => setRestartOpen(false)}
+        />
       </SafeAreaView>
     </DragProvider>
   );

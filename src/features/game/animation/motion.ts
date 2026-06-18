@@ -73,6 +73,26 @@ export const GAME_FEEL_MOTION = {
   recordConfettiMax: 18,
 } as const;
 
+/** Зазор внутри слота трея, чтобы широкие фигуры не касались соседних. */
+export const TRAY_SLOT_INNER_GAP = 10;
+
+/**
+ * Масштаб фигуры в трее в покое. Узкие фигуры держат базовый restingScale,
+ * широкие (h4/h5) ужимаются под ширину слота (минус зазор), чтобы целиком
+ * помещаться в свой слот и не налезать на соседнюю фигуру. floor страхует от
+ * вырожденно узкого слота. На захвате фигура подрастает до grabScale.
+ */
+export function trayRestingScale(
+  figureWidth: number,
+  slotWidth: number,
+  innerGap = TRAY_SLOT_INNER_GAP,
+  baseScale = TRAY_MOTION.restingScale,
+  floor = 0.2,
+): number {
+  if (figureWidth <= 0 || !Number.isFinite(slotWidth)) return baseScale;
+  return Math.min(baseScale, Math.max(floor, (slotWidth - innerGap) / figureWidth));
+}
+
 type Cell = readonly [number, number];
 
 export function clearCellDelay(cell: Cell, placed: readonly Cell[]): number {

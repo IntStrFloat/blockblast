@@ -37,7 +37,9 @@
       ],
       "expo-audio",
       "expo-localization",
-      "expo-asset"
+      "expo-asset",
+      "./plugins/withHuaweiAgconnect",
+      "./plugins/withAppMetrica"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,11 +14,12 @@ import {
   shouldShowDailyChallenge,
   useLeaderboardStore,
 } from '@/features/leaderboard';
+import { AdBanner, MONETIZATION } from '@/features/monetization';
 import { ProfileChip, ProfileOverlay, useProfileStore } from '@/features/profile';
 import { useScores } from '@/features/scores';
 import { useLang, useSettings } from '@/features/settings';
 import { isStreakAlive, todayISO, useStreak } from '@/features/streak';
-import { AppText, GameButton, colors, getBlockTheme, radii, spacing } from '@/ui';
+import { AppText, ConfirmDialog, GameButton, colors, getBlockTheme, radii, spacing } from '@/ui';
 
 const LOGO_ROWS = ['BLOCK', 'BLAST'];
 
@@ -69,6 +70,7 @@ export default function HomeScreen() {
     canContinue: false,
   });
   const [profileOpen, setProfileOpen] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<'new' | 'daily' | null>(null);
 
   const dailyChallenge = createDailyChallenge(new Date().toISOString().slice(0, 10));
   const showDailyChallenge = shouldShowDailyChallenge(gamesPlayed);
@@ -95,16 +97,15 @@ export default function HomeScreen() {
     }, [showDailyChallenge]),
   );
 
-  const startNew = useCallback(() => {
+  const startNew = useCallback(async () => {
+    const session = await useProfileStore.getState().bootstrapRemote();
+    await useLeaderboardStore.getState().issueTickets(session?.authToken);
     router.push({ pathname: '/game', params: { entry: 'new' } });
   }, [router]);
 
   const confirmNew = useCallback(() => {
-    Alert.alert(t('home.newGame', lang), t('home.newGameConfirm', lang), [
-      { text: t('settings.cancel', lang), style: 'cancel' },
-      { text: t('home.newGame', lang), style: 'destructive', onPress: startNew },
-    ]);
-  }, [lang, startNew]);
+    setPendingConfirm('new');
+  }, []);
 
   const startDaily = useCallback(() => {
     useAnalyticsStore.getState().track('daily_challenge_started', { source: 'home_card' });
@@ -123,11 +124,8 @@ export default function HomeScreen() {
       startDaily();
       return;
     }
-    Alert.alert(t('home.dailyChallenge', lang), t('home.newGameConfirm', lang), [
-      { text: t('settings.cancel', lang), style: 'cancel' },
-      { text: t('home.dailyChallenge', lang), style: 'destructive', onPress: startDaily },
-    ]);
-  }, [lang, savedGame.kind, startDaily]);
+    setPendingConfirm('daily');
+  }, [savedGame.kind, startDaily]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -221,7 +219,25 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      <AdBanner adUnitId={MONETIZATION.yandex.homeBannerAdUnitId} />
+
       <ProfileOverlay visible={profileOpen} onClose={() => setProfileOpen(false)} />
+
+      <ConfirmDialog
+        visible={pendingConfirm !== null}
+        title={pendingConfirm === 'daily' ? t('home.dailyChallenge', lang) : t('home.newGame', lang)}
+        message={t('home.newGameConfirm', lang)}
+        confirmLabel={pendingConfirm === 'daily' ? t('home.dailyChallenge', lang) : t('home.newGame', lang)}
+        cancelLabel={t('settings.cancel', lang)}
+        destructive
+        onConfirm={() => {
+          const which = pendingConfirm;
+          setPendingConfirm(null);
+          if (which === 'daily') startDaily();
+          else startNew();
+        }}
+        onCancel={() => setPendingConfirm(null)}
+      />
     </SafeAreaView>
   );
 }

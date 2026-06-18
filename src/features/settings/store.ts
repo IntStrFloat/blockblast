@@ -22,7 +22,7 @@ const DEFAULTS: SettingsData = {
   haptics: true,
   praiseTone: 'classic',
   themeId: 'classic',
-  lang: 'system',
+  lang: 'ru',
   showMascot: true,
 };
 

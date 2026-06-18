@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Signed AAB"
+  short_description: "Build and verify store-ready signed Android AAB"
+  default_prompt: "Use $build-signed-aab to prepare and verify a signed Android App Bundle release."

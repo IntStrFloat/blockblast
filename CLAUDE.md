@@ -16,7 +16,8 @@
 | [docs/specs/05-monetization.md](docs/specs/05-monetization.md) | AdsProvider/IapProvider, флаги, частоты, Yandex Ads + RuStore Billing |
 | [docs/specs/06-audience.md](docs/specs/06-audience.md) | ЦА Gen Z/Alpha, принципы, фишки v1 и v1.1, анти-чеклист |
 | [docs/specs/07-performance.md](docs/specs/07-performance.md) | Бюджеты 60fps, правила рендера/анимаций, решение Views-не-Skia |
-| [docs/specs/08-build-release.md](docs/specs/08-build-release.md) | Локальная сборка APK (prebuild+gradle+JBR), keystore, чек-лист RuStore |
+| [docs/specs/08-build-release.md](docs/specs/08-build-release.md) | Локальная сборка AAB (prebuild+gradle+JBR), keystore, чек-лист RuStore |
+| [docs/runbooks/android-app-signing.md](docs/runbooks/android-app-signing.md) | PEPK, upload certificate и обязательная проверка подписи AAB |
 | [docs/specs/09-mascot.md](docs/specs/09-mascot.md) | Маскот «Капи»: поведение, прокачка/эволюция, помощники, интро, перф (retention) |
 
 План реализации: docs/plans/ (если есть — выполнять по нему).
@@ -38,7 +39,8 @@
 npm test                  # Jest (движок + сторы)
 npx tsc --noEmit          # типы
 npx expo start            # dev
-npx expo prebuild -p android && cd android && .\gradlew assembleRelease   # APK (см. 08)
+npx expo prebuild -p android && node scripts/patch-signing.js
+cd android && .\gradlew bundleRelease   # signed AAB (см. 08)
 ```
 
 ## Чего НЕ делать
@@ -46,3 +48,5 @@ npx expo prebuild -p android && cd android && .\gradlew assembleRelease   # APK 
 - Не добавлять нативные зависимости без обоснования в 07 (бюджет: только mmkv сверх Expo).
 - Не показывать рекламу/попапы вопреки анти-чеклисту из 06.
 - Не коммитить credentials/ (keystore, пароли) и серверные креды.
+- Не собирать `assembleRelease` для публикации: релизный артефакт — подписанный AAB.
+- Не создавать новый release keystore: обновления подписываются существующим `credentials/release.jks`.
