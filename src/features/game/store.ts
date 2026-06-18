@@ -175,8 +175,13 @@ export const useGameStore = create<GameStore>((set, get) => {
           ? useScores.getState().submitGame(result.event.score, lines)
           : useScores.getState().improveBest(result.event.score);
 
+        // Лидерборд финализируем при КАЖДОМ game-over: первый раз — обычный
+        // (ranked) финал; после ревайва ран переоткрыт reopenActiveRun() в
+        // continueGame, поэтому финализируется снова и поднимает локальный
+        // недельный результат финальным счётом (см. баг «лидерборд после рекламы»).
+        void useLeaderboardStore.getState().finishActiveRun(result.event.score, new Date());
+
         if (firstCompletion) {
-          void useLeaderboardStore.getState().finishActiveRun(result.event.score, new Date());
           useStreak.getState().markPlayedToday();
         }
 
@@ -202,6 +207,9 @@ export const useGameStore = create<GameStore>((set, get) => {
     continueGame: () => {
       const next = revive(get().game);
       if (!next) return false;
+      // Переоткрываем ран лидерборда, чтобы продолженная партия дописывала ходы
+      // и финализировалась заново — иначе счёт после ревайва не попадал в результат.
+      useLeaderboardStore.getState().reopenActiveRun();
       set({ game: next, finalResult: null, lastEvent: null, linesCleared: 0 });
       setString(KEYS.gameCurrent, serialize(next));
       return true;

@@ -11,6 +11,20 @@ describe('explicit game entry intents', () => {
     expect(homeSource).toContain("entry: 'daily'");
   });
 
+  it('waits for the remote profile and ranked tickets before starting a new game', () => {
+    const startNewSource = homeSource.slice(
+      homeSource.indexOf('const startNew'),
+      homeSource.indexOf('const confirmNew'),
+    );
+
+    expect(startNewSource.indexOf('bootstrapRemote()')).toBeLessThan(
+      startNewSource.indexOf('issueTickets'),
+    );
+    expect(startNewSource.indexOf('issueTickets')).toBeLessThan(
+      startNewSource.indexOf("entry: 'new'"),
+    );
+  });
+
   it('requires confirmation before daily replacement when a save exists', () => {
     expect(homeSource).toContain('const confirmDaily');
     expect(homeSource).toContain('onPress={confirmDaily}');

@@ -14,6 +14,7 @@ import {
   shouldShowDailyChallenge,
   useLeaderboardStore,
 } from '@/features/leaderboard';
+import { AdBanner, MONETIZATION } from '@/features/monetization';
 import { ProfileChip, ProfileOverlay, useProfileStore } from '@/features/profile';
 import { useScores } from '@/features/scores';
 import { useLang, useSettings } from '@/features/settings';
@@ -96,7 +97,9 @@ export default function HomeScreen() {
     }, [showDailyChallenge]),
   );
 
-  const startNew = useCallback(() => {
+  const startNew = useCallback(async () => {
+    const session = await useProfileStore.getState().bootstrapRemote();
+    await useLeaderboardStore.getState().issueTickets(session?.authToken);
     router.push({ pathname: '/game', params: { entry: 'new' } });
   }, [router]);
 
@@ -215,6 +218,8 @@ export default function HomeScreen() {
           )}
         </View>
       </View>
+
+      <AdBanner adUnitId={MONETIZATION.yandex.homeBannerAdUnitId} />
 
       <ProfileOverlay visible={profileOpen} onClose={() => setProfileOpen(false)} />
 

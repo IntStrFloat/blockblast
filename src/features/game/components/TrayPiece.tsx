@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -9,7 +9,7 @@ import Animated, {
 
 import { hasPlacement } from '@/core/engine';
 import type { PieceInstance } from '@/core/engine';
-import { TRAY_ACTIVATION, TRAY_MOTION } from '../animation/motion';
+import { TRAY_ACTIVATION, TRAY_MOTION, trayRestingScale } from '../animation/motion';
 import { useDragCtx } from '../drag/DragContext';
 import type { SlotMeasure } from '../drag/useDrag';
 import { useDrag } from '../drag/useDrag';
@@ -41,13 +41,16 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
   const appearScale = useSharedValue<number>(TRAY_MOTION.appearFromScale);
   const appearOpacity = useSharedValue<number>(0.7);
 
+  // Зависим от идентичности фигуры (новый PieceInstance на каждой выдаче), а не
+  // от shape.id+colorId: иначе при рефилле слота такой же формой того же цвета
+  // эффект не срабатывал и фигура оставалась невидимой (committedOpacity=0).
   useEffect(() => {
     appearScale.value = TRAY_MOTION.appearFromScale;
     appearOpacity.value = 0.7;
     appearScale.value = withTiming(1, { duration: TRAY_MOTION.appearDurationMs });
     appearOpacity.value = withTiming(1, { duration: TRAY_MOTION.appearDurationMs });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [piece.shape.id, piece.colorId]);
+  }, [piece]);
 
   const appearStyle = useAnimatedStyle(() => ({
     opacity: appearOpacity.value,
@@ -57,6 +60,12 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
   // Полный размер фигуры при scale=1
   const figW = w * cell + (w > 1 ? (w - 1) * gap : 0);
   const figH = h * cell + (h > 1 ? (h - 1) * gap : 0);
+
+  // Масштаб в покое под ширину слота: TrayView = 100% экрана, paddingHorizontal 8,
+  // три равных слота. Широкие фигуры ужимаются, чтобы не налезать на соседнюю.
+  const { width: screenWidth } = useWindowDimensions();
+  const slotWidth = (screenWidth - 16) / 3;
+  const restingScale = trayRestingScale(figW, slotWidth);
 
   const measureSlot = useCallback(() => {
     // measureInWindow нельзя вызывать в worklet — снимаем на JS при layout
@@ -68,7 +77,11 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
   const measureForDrag = useCallback(() => {
     measureSlot();
     ctx.boardMeasureRef.current?.();
-  }, [ctx.boardMeasureRef, measureSlot]);
+    // Свежее зеркало доски на старт drag: worklet проверяет позицию по нему, а не
+    // по отстающему useEffect. Иначе под лагами тень ложится на занятые клетки и
+    // дроп отклоняется движком (баги наслаивания на доске и пропажи фигуры).
+    ctx.boardMirror.value = [...useGameStore.getState().game.board];
+  }, [ctx.boardMeasureRef, ctx.boardMirror, measureSlot]);
 
   const { gesture, animatedStyle } = useDrag({
     trayIndex,
@@ -81,6 +94,7 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
     slotMeasure,
     measureForDrag,
     committedOpacity: appearOpacity,
+    restingScale,
   });
 
   return (

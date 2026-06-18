@@ -19,7 +19,7 @@ npx tsc --noEmit
 npx expo start        # dev-сервер (нужен dev-client: в проекте mmkv/nitro, Expo Go не подойдёт)
 ```
 
-## Сборка release APK (Windows, локально)
+## Сборка release AAB (Windows, локально)
 
 ```powershell
 node scripts/gen-assets.js                  # иконки/сплеш (если менялись)
@@ -28,12 +28,13 @@ node scripts/patch-signing.js               # подпись из credentials/ke
 'sdk.dir=C:\\Users\\<user>\\AppData\\Local\\Android\\Sdk' | Set-Content android\local.properties -Encoding ascii
 cd android
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'   # JDK 21
-.\gradlew assembleRelease
-# → android/app/build/outputs/apk/release/app-release.apk
+.\gradlew bundleRelease
+# → android/app/build/outputs/bundle/release/app-release.aab
 ```
 
 Keystore: `credentials/release.jks` + `credentials/keystore.properties` — не в git,
 **обязательно сделать бэкап** (без него не обновить приложение в сторе).
+PEPK и проверка подписи: `docs/runbooks/android-app-signing.md`.
 
 ## Структура
 

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable } from 'react-native';
 
 import { t } from '@/core/i18n';
-import { useLeaderboardStore } from '@/features/leaderboard';
 import {
   MONETIZATION,
   getAds,
@@ -14,24 +13,22 @@ import {
   useEntitlements,
 } from '@/features/monetization';
 import { useLang } from '@/features/settings';
-import { shareScore } from '@/features/share';
-import { AppText, GameButton, Overlay, colors } from '@/ui';
+import { AppText, Overlay } from '@/ui';
 
 import { Confetti } from '../effects/Confetti';
 import { gameOverPresentationFor } from '../gameOverPresentation';
 import { useGameStore } from '../store';
+import { ReviveButton } from './ReviveButton';
 
 interface GameOverOverlayProps {
   onPlayAgain: () => void;
-  onHome: () => void;
 }
 
-export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
+export function GameOverOverlay({ onPlayAgain }: GameOverOverlayProps) {
   const game = useGameStore((s) => s.game);
   const lastEvent = useGameStore((s) => s.lastEvent);
   const finalResult = useGameStore((s) => s.finalResult);
   const continueGame = useGameStore((s) => s.continueGame);
-  const latestImpact = useLeaderboardStore((state) => state.latestImpact);
   const removeAds = useEntitlements((s) => s.removeAds);
   const lang = useLang();
 
@@ -70,7 +67,7 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
   if (!isOver || (presentation.fresh && !visible)) return null;
 
   const newRecord = finalResult?.newRecord ?? false;
-  const canRevive = !game.reviveUsed && rewardedReady;
+  const canOfferRevive = !game.reviveUsed;
 
   const closeWithInterstitial = async (after: () => void) => {
     if (busy) return;
@@ -111,75 +108,30 @@ export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
       {newRecord ? <Confetti height={280} /> : null}
 
       <AppText preset="title" style={{ textAlign: 'center' }}>
-        {newRecord ? t('gameOver.newRecord', lang) : t('gameOver.title', lang)}
+        {canOfferRevive ? t('gameOver.revivePrompt', lang) : t('gameOver.title', lang)}
       </AppText>
 
-      <View style={{ alignItems: 'center', gap: 4 }}>
-        <AppText preset="caption">{t('gameOver.score', lang)}</AppText>
-        <AppText preset="score">{game.score}</AppText>
-        {newRecord && finalResult && finalResult.delta > 0 ? (
-          <AppText preset="caption" style={{ color: colors.accent }}>
-            +{finalResult.delta} {t('gameOver.recordDelta', lang)}
-          </AppText>
-        ) : null}
-      </View>
-
-      {latestImpact ? (
-        <View
-          style={{
-            borderRadius: 16,
-            backgroundColor: colors.surface,
-            padding: 12,
-            gap: 4,
-          }}
-        >
-          <AppText preset="caption">{t('gameOver.weeklyImpact', lang)}</AppText>
-          <AppText preset="body">
-            {latestImpact.queued
-              ? t('gameOver.queued', lang)
-              : `${t('gameOver.weeklyBestLabel', lang)}: ${latestImpact.score}`}
-          </AppText>
-          {!latestImpact.queued ? (
-            <AppText preset="caption">
-              {latestImpact.rank !== null ? `#${latestImpact.rank}` : t('leaderboard.unranked', lang)}
-              {latestImpact.rankDelta && latestImpact.rankDelta > 0
-                ? ` / ${t('gameOver.rankDelta', lang)} ${latestImpact.rankDelta}`
-                : ''}
-            </AppText>
-          ) : null}
-        </View>
-      ) : null}
-
-      {canRevive ? (
-        <GameButton
-          label={`▶ ${t('gameOver.revive', lang)}`}
+      {canOfferRevive ? (
+        <ReviveButton
+          label={t('gameOver.revive', lang)}
           onPress={handleRevive}
-          disabled={busy}
+          disabled={busy || !rewardedReady}
         />
       ) : null}
 
-      <GameButton
-        label={t('gameOver.playAgain', lang)}
-        variant={canRevive ? 'ghost' : 'primary'}
+      <Pressable
         disabled={busy}
         onPress={() => closeWithInterstitial(onPlayAgain)}
-      />
-
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <GameButton
-          label={t('gameOver.share', lang)}
-          variant="ghost"
-          style={{ flex: 1 }}
-          onPress={() => shareScore(game.score, newRecord, lang)}
-        />
-        <GameButton
-          label={t('gameOver.home', lang)}
-          variant="ghost"
-          style={{ flex: 1 }}
-          disabled={busy}
-          onPress={() => closeWithInterstitial(onHome)}
-        />
-      </View>
+        hitSlop={12}
+        style={{ alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 4 }}
+      >
+        <AppText
+          preset="body"
+          style={{ textDecorationLine: 'underline', opacity: busy ? 0.4 : 1 }}
+        >
+          {canOfferRevive ? t('gameOver.decline', lang) : t('gameOver.ok', lang)}
+        </AppText>
+      </Pressable>
     </Overlay>
   );
 }

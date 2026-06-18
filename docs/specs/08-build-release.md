@@ -1,15 +1,16 @@
-# 08 — Сборка и релиз (APK, RuStore)
+# 08 — Сборка и релиз (AAB, RuStore)
 
-Статус: утверждено · Обновлено: 2026-06-12
+Статус: утверждено · Обновлено: 2026-06-15
 
 ## Пайплайн (локальный, без EAS — проверен на прошлом RuStore-релизе)
 
 1. `npx expo prebuild --platform android` — генерация `android/` (CNG; папка в .gitignore, источник истины — app.json + plugins).
 2. JDK: **JBR 21** (`C:\Program Files\Android\Android Studio\jbr`) через `JAVA_HOME` на время сборки. Android SDK: `%LOCALAPPDATA%\Android\Sdk` (local.properties генерится).
-3. Release keystore: `credentials/release.jks` — **только локально, в .gitignore, обязателен бэкап**. Генерация: `keytool -genkeypair -v -keystore credentials/release.jks -alias blockblast -keyalg RSA -keysize 2048 -validity 10000`. Пароли — в `credentials/keystore.properties` (тоже в .gitignore).
+3. Release keystore: `credentials/release.jks` — **только локально, в .gitignore, обязателен бэкап**. Это ключ уже опубликованной версии: его нельзя генерировать заново или заменять. Пароли — в `credentials/keystore.properties` (тоже в .gitignore).
 4. Подпись: signingConfig в `android/app/build.gradle` подхватывается из `keystore.properties` (патчится скриптом `scripts/patch-signing.js` после prebuild, чтобы prebuild оставался воспроизводимым).
-5. Сборка: `cd android && .\gradlew assembleRelease` → `android/app/build/outputs/apk/release/app-release.apk`.
-6. Для RuStore нужен APK (не AAB) — `assembleRelease` это и даёт.
+5. Сборка: `cd android && .\gradlew bundleRelease` → `android/app/build/outputs/bundle/release/app-release.aab`.
+6. Для публикации используется подписанный AAB. `assembleRelease` допустим только для отдельного локального APK-теста.
+7. PEPK и сертификат загрузки: [docs/runbooks/android-app-signing.md](../runbooks/android-app-signing.md).
 
 ## app.json (ключевое)
 

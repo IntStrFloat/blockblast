@@ -4,6 +4,7 @@ import {
   decodeChallengeCode,
   getUtcWeekCountdown,
   getUtcWeekWindow,
+  getVisibleWeeklyBest,
   getWeeklyGoal,
   shouldShowDailyChallenge,
 } from '../week';
@@ -47,5 +48,32 @@ describe('leaderboard week helpers', () => {
   it('derives a gentle weekly goal from the current weekly best', () => {
     expect(getWeeklyGoal(0)).toEqual({ current: 0, target: 1500, progress: 0 });
     expect(getWeeklyGoal(2480)).toEqual({ current: 2480, target: 3000, progress: 2480 });
+  });
+
+  it('uses the current local weekly best while remote sync is behind', () => {
+    expect(
+      getVisibleWeeklyBest(
+        1200,
+        {
+          weekKey: '2026-06-08',
+          bestScore: 2480,
+          runsCount: 2,
+          achievedAt: '2026-06-13T12:00:00.000Z',
+        },
+        new Date('2026-06-14T12:00:00.000Z'),
+      ),
+    ).toBe(2480);
+    expect(
+      getVisibleWeeklyBest(
+        1200,
+        {
+          weekKey: '2026-06-08',
+          bestScore: 2480,
+          runsCount: 2,
+          achievedAt: '2026-06-13T12:00:00.000Z',
+        },
+        new Date('2026-06-15T12:00:00.000Z'),
+      ),
+    ).toBe(1200);
   });
 });

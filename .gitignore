@@ -32,6 +32,7 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env.local.bak
 
 # typescript
 *.tsbuildinfo
@@ -45,7 +46,7 @@ example
 # signing & secrets (только локально, бэкапить вручную!)
 /credentials/
 
-# local build artifacts (APKs)
+# local build and signing artifacts (APK/AAB/PEPK)
 /dist/
 /web-dist/
 /web-dist.tgz
@@ -55,3 +56,5 @@ example
 # generated backend runtime and local data
 /backend/runtime/
 /backend/data/
+pepk.jar
+agconnect-services.json

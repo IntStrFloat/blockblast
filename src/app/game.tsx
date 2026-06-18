@@ -91,6 +91,7 @@ export default function GameScreen() {
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
+  const dragOwner = useSharedValue(-1);
 
   const loadSaved = useGameStore((s) => s.loadSaved);
   const discardAndStartNew = useGameStore((s) => s.discardAndStartNew);
@@ -140,9 +141,11 @@ export default function GameScreen() {
   ]);
 
   const { onGrab } = useGameFeedback();
-  const onDrop = useCallback((trayIndex: number, r: number, c: number) => {
-    useGameStore.getState().placePiece(trayIndex, r, c);
-  }, []);
+  const onDrop = useCallback(
+    (trayIndex: number, r: number, c: number) =>
+      useGameStore.getState().placePiece(trayIndex, r, c) !== null,
+    [],
+  );
 
   const dragCtx: DragCtx = useMemo(
     () => ({
@@ -152,6 +155,7 @@ export default function GameScreen() {
       boardMirror,
       preview,
       previewColor,
+      dragOwner,
       cellColors: theme.cellColors,
       boardBg: theme.boardBg,
       cellEmpty: theme.cellEmpty,
@@ -210,7 +214,7 @@ export default function GameScreen() {
           />
         ) : null}
 
-        <GameOverOverlay onPlayAgain={startFresh} onHome={goHome} />
+        <GameOverOverlay onPlayAgain={startFresh} />
 
         <ConfirmDialog
           visible={restartOpen}
