@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, useWindowDimensions, View } from 'react-native';
+import { Alert, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,14 +16,23 @@ import {
   useGameStore,
 } from '@/features/game';
 import type { DragCtx } from '@/features/game';
+import { GameBackground } from '@/features/game/components/GameBackground';
 import { GameOverOverlay } from '@/features/game/components/GameOverOverlay';
 import { Hud } from '@/features/game/components/Hud';
 import { PauseOverlay } from '@/features/game/components/PauseOverlay';
 import { TutorialHints } from '@/features/game/components/TutorialHints';
-import { AdBanner } from '@/features/monetization';
+import { NewRecordCelebration } from '@/features/game/effects/NewRecordCelebration';
 import { MascotLayer } from '@/features/mascot';
+import { AdBanner } from '@/features/monetization';
 import { useLang, useSettings } from '@/features/settings';
 import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
+
+type BoardLayout = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 function EggToast() {
   const lastEvent = useGameStore((s) => s.lastEvent);
@@ -90,7 +99,6 @@ export default function GameScreen() {
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
-  // Перф-сигнал drag для паузы мозга маскота (спека 09); слой маскота — Task 12.
   const dragActive = useSharedValue(0);
 
   const loadSaved = useGameStore((s) => s.loadSaved);
@@ -99,6 +107,7 @@ export default function GameScreen() {
   const status = useGameStore((s) => s.game.status);
   const [entryReady, setEntryReady] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [boardLayout, setBoardLayout] = useState<BoardLayout | null>(null);
   const entryHandled = useRef(false);
 
   useEffect(() => {
@@ -176,6 +185,21 @@ export default function GameScreen() {
       { text: t('pause.restart', lang), style: 'destructive', onPress: startFresh },
     ]);
   }, [lang, startFresh]);
+  const handleBoardLayout = useCallback((event: LayoutChangeEvent) => {
+    const { x, y, width, height } = event.nativeEvent.layout;
+    setBoardLayout((current) => {
+      if (
+        current &&
+        current.x === x &&
+        current.y === y &&
+        current.width === width &&
+        current.height === height
+      ) {
+        return current;
+      }
+      return { x, y, width, height };
+    });
+  }, []);
 
   if (!entryReady) {
     return <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']} />;
@@ -184,6 +208,7 @@ export default function GameScreen() {
   return (
     <DragProvider value={dragCtx}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        <GameBackground boardSize={boardSize} />
         <View
           pointerEvents={status === 'over' ? 'none' : 'auto'}
           style={{
@@ -193,13 +218,12 @@ export default function GameScreen() {
             paddingVertical: 16,
           }}
         >
+          <GameBackground boardSize={boardSize} boardLayout={boardLayout} />
           <Hud onPause={() => setPaused(true)} />
 
-          {/* Слой Капи над доской (спека 09) */}
           <MascotLayer dragActive={dragActive} />
 
-          {/* Доска + похвалы поверх */}
-          <View>
+          <View onLayout={handleBoardLayout}>
             <BoardView />
             <PraiseBanner />
           </View>
@@ -210,6 +234,7 @@ export default function GameScreen() {
 
         <TutorialHints />
         <EggToast />
+        <NewRecordCelebration />
 
         {paused ? (
           <PauseOverlay

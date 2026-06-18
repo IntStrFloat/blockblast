@@ -1,6 +1,7 @@
 import { BOARD_SIZE, type PlacementEvent, type PraiseTier } from '@/core/engine';
 
-import { SPECTACLE_MOTION, clearCellDelay } from './motion';
+import { centroid, createSeedHasher, seededRandom, type Cell } from './presentationMath';
+import { GAME_FEEL_MOTION, SPECTACLE_MOTION, clearCellDelay } from './motion';
 
 export interface ClearGeometry {
   boardSize: number;
@@ -44,6 +45,7 @@ export interface ClearIntersection {
 }
 
 export interface CrushFragment {
+  kind: 'local';
   id: string;
   x: number;
   y: number;
@@ -58,6 +60,26 @@ export interface CrushFragment {
   rotateDeg: number;
   delay: number;
   reducedMotion: boolean;
+}
+
+export interface FallingFragment {
+  kind: 'falling';
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  sourceX: number;
+  sourceY: number;
+  sourceSize: number;
+  color: string;
+  impulseX: number;
+  impulseY: number;
+  dx: number;
+  dy: number;
+  rotateDeg: number;
+  delay: number;
+  duration: number;
 }
 
 export interface ClearDebris {
@@ -90,9 +112,11 @@ export interface ShakePresentation {
 }
 
 export interface ClearPresentation {
+  key: string;
   lines: ClearLine[];
   intersections: ClearIntersection[];
   fragments: CrushFragment[];
+  fallingFragments: FallingFragment[];
   debris: ClearDebris[];
   sparks: ClearSpark[];
   centroid: { x: number; y: number };
@@ -101,40 +125,38 @@ export interface ClearPresentation {
   reducedMotion: boolean;
 }
 
-type Cell = readonly [number, number];
+export interface ClearPresentationInstance {
+  id: string;
+  presentation: ClearPresentation;
+}
+
+export const MAX_ACTIVE_CLEAR_PRESENTATIONS = 2;
+export const CLEAR_PRESENTATION_TOTAL_NODE_CAP = Math.floor(
+  GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap / MAX_ACTIVE_CLEAR_PRESENTATIONS,
+);
+
+interface TaggedEffect<T> {
+  kind: string;
+  value: T;
+}
 
 function cellKey(row: number, col: number) {
   return `${row}:${col}`;
 }
 
 function eventSeed(event: PlacementEvent): number {
-  let hash = 2166136261;
-  const feed = (value: number) => {
-    hash ^= value | 0;
-    hash = Math.imul(hash, 16777619);
-  };
-
-  event.clearedRows.forEach(feed);
-  event.clearedCols.forEach(feed);
+  const hash = createSeedHasher();
+  event.clearedRows.forEach((value) => hash.feedNumber(value));
+  event.clearedCols.forEach((value) => hash.feedNumber(value));
   event.clearedCells.forEach(([row, col]) => {
-    feed(row);
-    feed(col);
+    hash.feedNumber(row);
+    hash.feedNumber(col);
   });
-  event.clearedColors.forEach(feed);
-  feed(event.score);
-  feed(event.scoreDelta);
-  feed(event.combo);
-  return hash >>> 0 || 1;
-}
-
-function seededRandom(seed: number) {
-  let state = seed >>> 0 || 1;
-  return () => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return (state >>> 0) / 4294967296;
-  };
+  event.clearedColors.forEach((color) => hash.feedNumber(color));
+  hash.feedNumber(event.score);
+  hash.feedNumber(event.scoreDelta);
+  hash.feedNumber(event.combo);
+  return hash.value();
 }
 
 function colorLookup(event: PlacementEvent, cellColors: readonly string[]) {
@@ -192,21 +214,6 @@ function makeLine(
   };
 }
 
-function cellCentroid(cells: readonly Cell[], geom: ClearGeometry) {
-  if (cells.length === 0) {
-    return { x: geom.boardSize / 2, y: geom.boardSize / 2 };
-  }
-  const step = geom.cell + geom.gap;
-  const total = cells.reduce(
-    (sum, [row, col]) => ({
-      x: sum.x + col * step + geom.cell / 2,
-      y: sum.y + row * step + geom.cell / 2,
-    }),
-    { x: 0, y: 0 },
-  );
-  return { x: total.x / cells.length, y: total.y / cells.length };
-}
-
 function fragmentTravel(
   rowCleared: boolean,
   colCleared: boolean,
@@ -253,6 +260,7 @@ function buildFragments(
 
     if (reducedMotion) {
       return [{
+        kind: 'local',
         id: `cell-${cellIndex}`,
         x: baseX,
         y: baseY,
@@ -292,6 +300,7 @@ function buildFragments(
         random,
       );
       return {
+        kind: 'local',
         id: `cell-${cellIndex}-part-${quadrantIndex}`,
         x: baseX + offsetX,
         y: baseY + offsetY,
@@ -311,28 +320,268 @@ function buildFragments(
   });
 }
 
-function debrisTravel(
+function externalEffectCap(event: PlacementEvent) {
+  return event.clearedRows.length + event.clearedCols.length <= 1
+    ? GAME_FEEL_MOTION.oneLineExternalEffectTargetCap
+    : GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap;
+}
+
+function sampleEffectCells(
+  cells: readonly (readonly [number, number])[],
+  maxCells: number,
+) {
+  if (cells.length <= maxCells) return [...cells];
+  const stride = cells.length / maxCells;
+  return Array.from({ length: maxCells }, (_, index) => cells[Math.floor(index * stride)]!);
+}
+
+function sampleItems<T>(items: readonly T[], maxItems: number): T[] {
+  if (maxItems <= 0 || items.length === 0) return [];
+  if (items.length <= maxItems) return [...items];
+  const stride = items.length / maxItems;
+  return Array.from({ length: maxItems }, (_, index) => items[Math.floor(index * stride)]!);
+}
+
+function interleaveItems<T>(first: readonly T[], second: readonly T[]) {
+  const interleaved: T[] = [];
+  const length = Math.max(first.length, second.length);
+  for (let index = 0; index < length; index += 1) {
+    if (index < first.length) interleaved.push(first[index]!);
+    if (index < second.length) interleaved.push(second[index]!);
+  }
+  return interleaved;
+}
+
+function allocateSharedBudget(
+  firstLength: number,
+  secondLength: number,
+  totalBudget: number,
+) {
+  if (totalBudget <= 0) return { first: 0, second: 0 };
+
+  let first = Math.min(firstLength, Math.ceil(totalBudget / 2));
+  let second = Math.min(secondLength, Math.floor(totalBudget / 2));
+  let remaining = totalBudget - first - second;
+
+  if (remaining > 0 && first < firstLength) {
+    const extra = Math.min(firstLength - first, remaining);
+    first += extra;
+    remaining -= extra;
+  }
+
+  if (remaining > 0 && second < secondLength) {
+    second += Math.min(secondLength - second, remaining);
+  }
+
+  return { first, second };
+}
+
+function countAnimatedLineNodes(lines: readonly ClearLine[]) {
+  return lines.reduce((sum, line) => sum + 2 + line.segments.length, 0);
+}
+
+export function countAnimatedClearNodes(presentation: ClearPresentation) {
+  return (
+    presentation.fragments.length +
+    presentation.fallingFragments.length +
+    presentation.debris.length +
+    presentation.sparks.length +
+    presentation.intersections.length +
+    countAnimatedLineNodes(presentation.lines)
+  );
+}
+
+function budgetLineDetail(
+  lines: readonly ClearLine[],
+  intersections: readonly ClearIntersection[],
+  lineDetailBudget: number,
+) {
+  if (lineDetailBudget <= 0) {
+    return {
+      lines: lines.map((line) => ({ ...line, segments: [] })),
+      intersections: [] as ClearIntersection[],
+    };
+  }
+
+  const lineIndexes = sampleItems(
+    Array.from({ length: lines.length }, (_, index) => index),
+    Math.min(lineDetailBudget, lines.length),
+  );
+  const segmentBudgets = Array.from({ length: lines.length }, () => 0);
+  lineIndexes.forEach((index) => {
+    if (lines[index]!.segments.length > 0) segmentBudgets[index] = 1;
+  });
+
+  let remainingBudget = lineDetailBudget - segmentBudgets.reduce((sum, count) => sum + count, 0);
+  const intersectionCount = Math.min(intersections.length, remainingBudget);
+  remainingBudget -= intersectionCount;
+
+  while (remainingBudget > 0) {
+    let allocated = false;
+    for (let index = 0; index < lines.length && remainingBudget > 0; index += 1) {
+      const line = lines[index]!;
+      if (segmentBudgets[index]! >= line.segments.length) continue;
+      segmentBudgets[index] += 1;
+      remainingBudget -= 1;
+      allocated = true;
+    }
+    if (!allocated) break;
+  }
+
+  return {
+    lines: lines.map((line, index) => ({
+      ...line,
+      segments: sampleItems(line.segments, segmentBudgets[index]!),
+    })),
+    intersections: sampleItems(intersections, intersectionCount),
+  };
+}
+
+function applyPresentationNodeBudget(presentation: ClearPresentation): ClearPresentation {
+  const lineShellNodes = presentation.lines.length * 2;
+  const mandatoryNodes = lineShellNodes;
+  if (mandatoryNodes >= CLEAR_PRESENTATION_TOTAL_NODE_CAP) {
+    const lineBudget = budgetLineDetail(presentation.lines, presentation.intersections, 0);
+    return {
+      ...presentation,
+      lines: lineBudget.lines,
+      intersections: lineBudget.intersections,
+      fragments: [],
+      fallingFragments: [],
+      debris: [],
+      sparks: [],
+    };
+  }
+
+  let remainingBudget = CLEAR_PRESENTATION_TOTAL_NODE_CAP - mandatoryNodes;
+  const totalLineDetailNodes =
+    presentation.lines.reduce((sum, line) => sum + line.segments.length, 0) +
+    presentation.intersections.length;
+  const targetLineDetailBudget = Math.min(
+    totalLineDetailNodes,
+    totalLineDetailNodes <= 24
+      ? totalLineDetailNodes
+      : Math.max(
+          presentation.lines.length + 4,
+          Math.floor(CLEAR_PRESENTATION_TOTAL_NODE_CAP / 3),
+        ),
+  );
+  const lineDetailBudget = Math.min(remainingBudget, targetLineDetailBudget);
+  remainingBudget -= lineDetailBudget;
+
+  const sparkBudget = Math.min(remainingBudget, presentation.sparks.length);
+  remainingBudget -= sparkBudget;
+
+  const { first: localBudget, second: externalBudget } = allocateSharedBudget(
+    presentation.fragments.length,
+    presentation.fallingFragments.length + presentation.debris.length,
+    remainingBudget,
+  );
+
+  const lineBudget = budgetLineDetail(
+    presentation.lines,
+    presentation.intersections,
+    lineDetailBudget,
+  );
+  const externalEffects = interleaveItems<TaggedEffect<FallingFragment | ClearDebris>>(
+    presentation.fallingFragments.map((value) => ({ kind: 'falling', value })),
+    presentation.debris.map((value) => ({ kind: 'debris', value })),
+  );
+  const sampledExternalEffects = sampleItems(externalEffects, externalBudget);
+
+  return {
+    ...presentation,
+    lines: lineBudget.lines,
+    intersections: lineBudget.intersections,
+    fragments: sampleItems(presentation.fragments, localBudget),
+    fallingFragments: sampledExternalEffects
+      .filter((entry): entry is TaggedEffect<FallingFragment> => entry.kind === 'falling')
+      .map((entry) => entry.value),
+    debris: sampledExternalEffects
+      .filter((entry): entry is TaggedEffect<ClearDebris> => entry.kind === 'debris')
+      .map((entry) => entry.value),
+    sparks: sampleItems(presentation.sparks, sparkBudget),
+  };
+}
+
+function fallingTravel(
   rowCleared: boolean,
   colCleared: boolean,
   cell: number,
+  boardSize: number,
   random: () => number,
 ) {
+  const horizontalBias = rowCleared && !colCleared ? 1.15 : colCleared && !rowCleared ? 0.55 : 0.9;
   const sign = random() < 0.5 ? -1 : 1;
-  if (rowCleared && !colCleared) {
-    return {
-      dx: sign * cell * (0.7 + random() * 1.55),
-      dy: (random() - 0.5) * cell * 0.7,
-    };
-  }
-  if (colCleared && !rowCleared) {
-    return {
-      dx: (random() - 0.5) * cell * 0.7,
-      dy: sign * cell * (0.7 + random() * 1.55),
-    };
-  }
-  const angle = random() * Math.PI * 2;
-  const distance = cell * (0.75 + random() * 1.35);
-  return { dx: Math.cos(angle) * distance, dy: Math.sin(angle) * distance };
+  return {
+    impulseX: sign * cell * (0.16 + random() * 0.24) * horizontalBias,
+    impulseY: -cell * (0.16 + random() * 0.2),
+    dx: sign * cell * (0.65 + random() * 1.8) * horizontalBias,
+    dy: boardSize + cell * (0.9 + random() * 1.8),
+  };
+}
+
+function buildFallingFragments(
+  event: PlacementEvent,
+  geom: ClearGeometry,
+  getColor: (row: number, col: number) => string,
+  random: () => number,
+  reducedMotion: boolean,
+): FallingFragment[] {
+  if (reducedMotion || event.clearedCells.length === 0) return [];
+
+  const cap = externalEffectCap(event);
+  const fragmentsPerCell = 2;
+  const maxCells = Math.max(1, Math.floor(cap / (fragmentsPerCell + 2)));
+  const sampledCells = sampleEffectCells(event.clearedCells, maxCells);
+  const step = geom.cell + geom.gap;
+  const clearedRows = new Set(event.clearedRows);
+  const clearedCols = new Set(event.clearedCols);
+  const leftWidth = Math.ceil(geom.cell / 2);
+  const rightWidth = geom.cell - leftWidth;
+  const topHeight = Math.ceil(geom.cell / 2);
+  const bottomHeight = geom.cell - topHeight;
+
+  return sampledCells.flatMap<FallingFragment>(([row, col], cellIndex) => {
+    const baseX = col * step;
+    const baseY = row * step;
+    const delay =
+      SPECTACLE_MOTION.debrisStartMs - 16 + clearCellDelay([row, col], event.placed as readonly Cell[]);
+
+    return [0, 1].map((fragmentIndex) => {
+      const travel = fallingTravel(
+        clearedRows.has(row),
+        clearedCols.has(col),
+        geom.cell,
+        geom.boardSize,
+        random,
+      );
+      const rightHalf = fragmentIndex === 1;
+      const bottomHalf = random() < 0.5;
+      const offsetX = rightHalf ? leftWidth : 0;
+      const offsetY = bottomHalf ? topHeight : 0;
+
+      return {
+        kind: 'falling',
+        id: `falling-${cellIndex}-${fragmentIndex}`,
+        x: baseX + offsetX,
+        y: baseY + offsetY,
+        width: rightHalf ? rightWidth : leftWidth,
+        height: bottomHalf ? bottomHeight : topHeight,
+        sourceX: -offsetX,
+        sourceY: -offsetY,
+        sourceSize: geom.cell,
+        color: getColor(row, col),
+        impulseX: travel.impulseX,
+        impulseY: travel.impulseY,
+        dx: travel.dx,
+        dy: travel.dy,
+        rotateDeg: (random() - 0.5) * 90,
+        delay,
+        duration: 520 + Math.round(random() * 120),
+      };
+    });
+  });
 }
 
 function buildDebris(
@@ -343,30 +592,31 @@ function buildDebris(
   reducedMotion: boolean,
 ): ClearDebris[] {
   if (event.clearedCells.length === 0) return [];
-  const limit = reducedMotion
-    ? Math.min(SPECTACLE_MOTION.reducedDebris, event.clearedCells.length)
-    : Math.min(SPECTACLE_MOTION.maxDebris, event.clearedCells.length * 3);
-  const clearedRows = new Set(event.clearedRows);
-  const clearedCols = new Set(event.clearedCols);
+  const cap = externalEffectCap(event);
+  const debrisPerCell = 2;
+  const maxCells = Math.max(1, Math.floor(cap / (debrisPerCell + 2)));
   const step = geom.cell + geom.gap;
+  const sampledCells = sampleEffectCells(event.clearedCells, maxCells);
+  const limit = reducedMotion
+    ? Math.min(SPECTACLE_MOTION.reducedDebris, sampledCells.length)
+    : sampledCells.length * debrisPerCell;
 
   return Array.from({ length: limit }, (_, index) => {
-    const [row, col] = event.clearedCells[index % event.clearedCells.length];
+    const [row, col] = sampledCells[index % sampledCells.length]!;
     const size = Math.max(2, geom.cell * (0.09 + random() * 0.1));
-    const travel = reducedMotion
-      ? { dx: 0, dy: 0 }
-      : debrisTravel(clearedRows.has(row), clearedCols.has(col), geom.cell, random);
+    const outwardX = (random() - 0.5) * geom.cell * 1.1;
+    const impulseY = -geom.cell * (0.12 + random() * 0.12);
     return {
       id: `debris-${index}`,
       x: col * step + geom.cell * (0.18 + random() * 0.64),
       y: row * step + geom.cell * (0.18 + random() * 0.64),
       size,
       color: getColor(row, col),
-      dx: travel.dx,
-      dy: travel.dy,
+      dx: reducedMotion ? 0 : outwardX,
+      dy: reducedMotion ? 0 : geom.boardSize + impulseY + geom.cell * (0.55 + random() * 1.2),
       rotateDeg: reducedMotion ? 0 : (random() - 0.5) * 360,
       delay: SPECTACLE_MOTION.debrisStartMs + Math.round(random() * 60),
-      duration: reducedMotion ? 180 : 300 + Math.round(random() * 175),
+      duration: reducedMotion ? 180 : 340 + Math.round(random() * 160),
     };
   });
 }
@@ -445,18 +695,61 @@ export function buildClearPresentation(
       colors: [getColor(row, col), '#FFFFFF'] as [string, string],
     })),
   );
-  const centroid = cellCentroid(event.clearedCells as readonly Cell[], geom);
+  const centroidPoint = centroid(event.clearedCells as readonly Cell[], geom);
   const lineCount = event.clearedRows.length + event.clearedCols.length;
+  const presentationKey = `${event.score}-${event.combo}-${eventSeed(event)}-${reducedMotion ? 1 : 0}`;
 
-  return {
+  return applyPresentationNodeBudget({
+    key: presentationKey,
     lines: [...rowLines, ...colLines],
     intersections,
     fragments: buildFragments(event, geom, getColor, random, reducedMotion),
+    fallingFragments: buildFallingFragments(event, geom, getColor, random, reducedMotion),
     debris: buildDebris(event, geom, getColor, random, reducedMotion),
-    sparks: buildSparks(centroid, geom, random, reducedMotion),
-    centroid,
+    sparks: buildSparks(centroidPoint, geom, random, reducedMotion),
+    centroid: centroidPoint,
     shake: shakeForClear(lineCount, event.boardCleared, reducedMotion),
     praiseFontSize: praiseFontSize(event.praise, geom.boardSize),
     reducedMotion,
-  };
+  });
+}
+
+export function clearPresentationLifetimeMs(presentation: ClearPresentation | null): number {
+  if (!presentation) return 0;
+
+  const latestLine = presentation.lines.reduce((max, line) => {
+    const segmentEnd = line.delay + line.segments.length * 5 + (presentation.reducedMotion ? 205 : 345);
+    const lineEnd = line.delay + (presentation.reducedMotion ? 440 : 460);
+    return Math.max(max, segmentEnd, lineEnd);
+  }, 0);
+  const latestIntersection = presentation.intersections.length === 0
+    ? 0
+    : 90 + (presentation.reducedMotion ? 190 : 315);
+  const latestFragment = presentation.fragments.reduce(
+    (max, fragment) =>
+      Math.max(max, fragment.delay + (fragment.reducedMotion ? 180 : 210)),
+    0,
+  );
+  const latestFallingFragment = presentation.fallingFragments.reduce(
+    (max, fragment) => Math.max(max, fragment.delay + fragment.duration),
+    0,
+  );
+  const latestDebris = presentation.debris.reduce(
+    (max, debris) => Math.max(max, debris.delay + debris.duration),
+    0,
+  );
+  const latestSpark = presentation.sparks.reduce(
+    (max, spark) => Math.max(max, spark.delay + 260),
+    0,
+  );
+
+  return Math.max(
+    SPECTACLE_MOTION.praiseEndMs,
+    latestLine,
+    latestIntersection,
+    latestFragment,
+    latestFallingFragment,
+    latestDebris,
+    latestSpark,
+  ) + 80;
 }

@@ -31,30 +31,76 @@ export interface SavedGameSummary {
   canContinue: boolean;
 }
 
+export interface RecordCelebration {
+  score: number;
+  previousBest: number;
+}
+
 interface GameStore {
   game: GameState;
   lastEvent: PlacementEvent | null;
   linesCleared: number;
   finalResult: SubmitResult | null;
-  /**
-   * Монотонно растущий счётчик партий. Увеличивается при newGame()/discardAndStartNew()
-   * и loadSaved() (начало новой сессии игры). НЕ увеличивается при continueGame() (revive).
-   * Используется маскотом для детекции «новая партия началась → если был потерян, вернуться».
-   */
   epoch: number;
+  runBestAtStart: number;
+  recordCelebration: RecordCelebration | null;
+  recordCelebrated: boolean;
   newGame: (options?: NewGameOptions) => void;
   discardAndStartNew: (options?: NewGameOptions) => void;
   placePiece: (trayIndex: number, r: number, c: number) => PlacementEvent | null;
-  /**
-   * Заменить фигуру в слоте трея на свежую (помощник «свап» маскота).
-   * No-op, если партия не идёт, индекс вне диапазона или слот пуст.
-   * Автосейвит, как placePiece.
-   */
   replaceTrayPiece: (trayIndex: number) => void;
-  /** Восстановить снимок партии (undo свопа). Автосейвит. */
   restoreGame: (snapshot: GameState) => void;
   continueGame: () => boolean;
   loadSaved: () => Exclude<ResumeKind, 'none'> | null;
+}
+
+function buildFreshPresentationState(best: number): Pick<
+  GameStore,
+  'runBestAtStart' | 'recordCelebration' | 'recordCelebrated'
+> {
+  return {
+    runBestAtStart: best,
+    recordCelebration: null,
+    recordCelebrated: false,
+  };
+}
+
+function buildLoadedPresentationState(
+  best: number,
+  score: number,
+): Pick<GameStore, 'runBestAtStart' | 'recordCelebration' | 'recordCelebrated'> {
+  return {
+    runBestAtStart: best,
+    recordCelebration: null,
+    recordCelebrated: score > best,
+  };
+}
+
+function buildPlacementPresentationState(
+  previous: Pick<GameStore, 'runBestAtStart' | 'recordCelebration' | 'recordCelebrated'>,
+  score: number,
+): Pick<GameStore, 'recordCelebration' | 'recordCelebrated'> {
+  if (previous.recordCelebration || previous.recordCelebrated) {
+    return {
+      recordCelebration: previous.recordCelebration,
+      recordCelebrated: previous.recordCelebrated,
+    };
+  }
+
+  if (score > previous.runBestAtStart) {
+    return {
+      recordCelebration: {
+        score,
+        previousBest: previous.runBestAtStart,
+      },
+      recordCelebrated: false,
+    };
+  }
+
+  return {
+    recordCelebration: null,
+    recordCelebrated: false,
+  };
 }
 
 export function getSavedGameSummary(): SavedGameSummary {
@@ -88,6 +134,7 @@ export function getSavedScore(): number | null {
 
 export const useGameStore = create<GameStore>((set, get) => {
   const startNew = (options?: NewGameOptions) => {
+    const best = useScores.getState().best;
     const proof = useLeaderboardStore.getState().startRun({
       startedAt: new Date().toISOString(),
       mode: options?.mode ?? 'weekly',
@@ -95,7 +142,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       challengeDate: options?.challengeDate ?? null,
     });
     const game = createGame(proof.seed);
-    set({ game, lastEvent: null, linesCleared: 0, finalResult: null, epoch: get().epoch + 1 });
+    set({
+      game,
+      lastEvent: null,
+      linesCleared: 0,
+      finalResult: null,
+      epoch: get().epoch + 1,
+      ...buildFreshPresentationState(best),
+    });
     setString(KEYS.gameCurrent, serialize(game));
     useAnalyticsStore
       .getState()
@@ -108,6 +162,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     linesCleared: 0,
     finalResult: null,
     epoch: 1,
+    ...buildFreshPresentationState(useScores.getState().best),
 
     newGame: startNew,
     discardAndStartNew: startNew,
@@ -121,6 +176,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         return null;
       }
 
+      const presentation = buildPlacementPresentationState(get(), result.event.score);
       const lines =
         linesCleared + result.event.clearedRows.length + result.event.clearedCols.length;
       useLeaderboardStore.getState().recordMove({ trayIndex, row: r, col: c });
@@ -142,9 +198,15 @@ export const useGameStore = create<GameStore>((set, get) => {
           lastEvent: result.event,
           linesCleared: 0,
           finalResult: final,
+          ...presentation,
         });
       } else {
-        set({ game: result.state, lastEvent: result.event, linesCleared: lines });
+        set({
+          game: result.state,
+          lastEvent: result.event,
+          linesCleared: lines,
+          ...presentation,
+        });
       }
 
       return result.event;
@@ -183,7 +245,14 @@ export const useGameStore = create<GameStore>((set, get) => {
         return null;
       }
 
-      set({ game, lastEvent: null, linesCleared: 0, finalResult: null, epoch: get().epoch + 1 });
+      set({
+        game,
+        lastEvent: null,
+        linesCleared: 0,
+        finalResult: null,
+        epoch: get().epoch + 1,
+        ...buildLoadedPresentationState(useScores.getState().best, game.score),
+      });
       return game.status === 'playing' ? 'active' : 'terminal';
     },
   };

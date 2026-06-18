@@ -1,15 +1,15 @@
 import Animated, { Keyframe } from 'react-native-reanimated';
 
-import type { ClearPresentation } from '../animation/clearPresentation';
+import type { ClearDebris } from '../animation/clearPresentation';
 
 interface ClearDebrisLayerProps {
-  presentation: ClearPresentation;
+  debris: readonly ClearDebris[];
 }
 
-export function ClearDebrisLayer({ presentation }: ClearDebrisLayerProps) {
+export function ClearDebrisLayer({ debris }: ClearDebrisLayerProps) {
   return (
     <>
-      {presentation.debris.map((debris) => {
+      {debris.map((debris) => {
         const animation = new Keyframe({
           0: {
             opacity: 0,
@@ -23,10 +23,10 @@ export function ClearDebrisLayer({ presentation }: ClearDebrisLayerProps) {
           16: {
             opacity: 1,
             transform: [
-              { translateX: 0 },
-              { translateY: 0 },
-              { rotate: '0deg' },
-              { scale: 1 },
+              { translateX: debris.dx * 0.12 },
+              { translateY: debris.dy * 0.08 },
+              { rotate: `${debris.rotateDeg * 0.12}deg` },
+              { scale: 1.04 },
             ],
           },
           62: {
@@ -66,50 +66,6 @@ export function ClearDebrisLayer({ presentation }: ClearDebrisLayerProps) {
               borderWidth: Math.max(0.5, debris.size * 0.08),
               borderColor: 'rgba(255,255,255,0.72)',
               backgroundColor: debris.color,
-            }}
-          />
-        );
-      })}
-
-      {presentation.sparks.map((spark) => {
-        const animation = new Keyframe({
-          0: {
-            opacity: 0,
-            transform: [{ translateX: 0 }, { translateY: 0 }, { scale: 0.2 }],
-          },
-          24: {
-            opacity: 1,
-            transform: [
-              { translateX: spark.dx * 0.25 },
-              { translateY: spark.dy * 0.25 },
-              { scale: 1.4 },
-            ],
-          },
-          100: {
-            opacity: 0,
-            transform: [
-              { translateX: spark.dx },
-              { translateY: spark.dy },
-              { scale: 0.1 },
-            ],
-          },
-        })
-          .duration(260)
-          .delay(spark.delay);
-
-        return (
-          <Animated.View
-            key={spark.id}
-            entering={animation}
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: spark.x - spark.size / 2,
-              top: spark.y - spark.size * 1.8,
-              width: spark.size,
-              height: spark.size * 3.6,
-              borderRadius: 999,
-              backgroundColor: '#FFFFFF',
             }}
           />
         );

@@ -36,6 +36,28 @@ function setNearGameOver(score: number, reviveUsed = false): void {
   });
 }
 
+function setDotRun(score: number): void {
+  useGameStore.setState({
+    game: {
+      board: emptyBoard(),
+      tray: [
+        { shape: dot, colorId: 1 },
+        { shape: dot, colorId: 2 },
+        { shape: dot, colorId: 3 },
+      ],
+      score,
+      combo: 0,
+      movesSinceClear: 0,
+      status: 'playing',
+      reviveUsed: false,
+      rngState: 11,
+    },
+    linesCleared: 0,
+    finalResult: null,
+    lastEvent: null,
+  });
+}
+
 beforeEach(() => {
   removeKey(KEYS.gameCurrent);
   removeKey(KEYS.leaderboardActiveProof);
@@ -59,6 +81,95 @@ describe('saved run lifecycle', () => {
   it('creates and persists a new run explicitly', () => {
     expect(hasSavedGame()).toBe(true);
     expect(useGameStore.getState().game.score).toBe(0);
+  });
+
+  it('captures the starting best for a new run and starts uncelebrated', () => {
+    useScores.setState({ best: 42, gamesPlayed: 0, totalLinesCleared: 0 });
+
+    useGameStore.getState().newGame({ seed: 7 });
+
+    expect(useGameStore.getState().runBestAtStart).toBe(42);
+    expect(useGameStore.getState().recordCelebration).toBeNull();
+    expect(useGameStore.getState().recordCelebrated).toBe(false);
+  });
+
+  it('captures the first score crossing once and keeps it through later growth', () => {
+    useScores.setState({ best: 0, gamesPlayed: 0, totalLinesCleared: 0 });
+    useGameStore.getState().newGame({ seed: 11 });
+    setDotRun(0);
+
+    expect(useGameStore.getState().placePiece(0, 0, 0)).not.toBeNull();
+    const firstCelebration = useGameStore.getState().recordCelebration;
+    expect(firstCelebration).toEqual({ score: 1, previousBest: 0 });
+    expect(useGameStore.getState().recordCelebrated).toBe(false);
+
+    expect(useGameStore.getState().placePiece(1, 0, 1)).not.toBeNull();
+    expect(useGameStore.getState().recordCelebration).toBe(firstCelebration);
+    expect(useGameStore.getState().recordCelebrated).toBe(false);
+  });
+
+  it('loads a saved run without replaying a historical crossing', () => {
+    useScores.setState({ best: 10, gamesPlayed: 0, totalLinesCleared: 0 });
+
+    setString(
+      KEYS.gameCurrent,
+      serialize({
+        board: emptyBoard(),
+        tray: [
+          { shape: dot, colorId: 1 },
+          { shape: dot, colorId: 2 },
+          { shape: dot, colorId: 3 },
+        ],
+        score: 12,
+        combo: 0,
+        movesSinceClear: 0,
+        status: 'playing',
+        reviveUsed: false,
+        rngState: 9,
+      }),
+    );
+
+    expect(useGameStore.getState().loadSaved()).toBe('active');
+    expect(useGameStore.getState().runBestAtStart).toBe(10);
+    expect(useGameStore.getState().recordCelebration).toBeNull();
+    expect(useGameStore.getState().recordCelebrated).toBe(true);
+  });
+
+  it('keeps a loaded run eligible to celebrate after crossing the current best later', () => {
+    useScores.setState({ best: 10, gamesPlayed: 0, totalLinesCleared: 0 });
+
+    setString(
+      KEYS.gameCurrent,
+      serialize({
+        board: emptyBoard(),
+        tray: [
+          { shape: dot, colorId: 1 },
+          { shape: dot, colorId: 2 },
+          { shape: dot, colorId: 3 },
+        ],
+        score: 9,
+        combo: 0,
+        movesSinceClear: 0,
+        status: 'playing',
+        reviveUsed: false,
+        rngState: 13,
+      }),
+    );
+
+    expect(useGameStore.getState().loadSaved()).toBe('active');
+    expect(useGameStore.getState().recordCelebration).toBeNull();
+    expect(useGameStore.getState().recordCelebrated).toBe(false);
+
+    expect(useGameStore.getState().placePiece(0, 0, 0)).not.toBeNull();
+    expect(useGameStore.getState().recordCelebration).toBeNull();
+    expect(useGameStore.getState().recordCelebrated).toBe(false);
+
+    expect(useGameStore.getState().placePiece(1, 0, 1)).not.toBeNull();
+    expect(useGameStore.getState().recordCelebration).toEqual({
+      score: 11,
+      previousBest: 10,
+    });
+    expect(useGameStore.getState().recordCelebrated).toBe(false);
   });
 
   it('autosaves only a successful placement', () => {
@@ -162,6 +273,7 @@ describe('Game Over and Continue accounting', () => {
     setNearGameOver(100);
     useGameStore.getState().placePiece(0, 0, 0);
     const terminal = useGameStore.getState().game;
+    useGameStore.setState({ recordCelebration: { score: 101, previousBest: 100 }, recordCelebrated: true });
 
     expect(useGameStore.getState().continueGame()).toBe(true);
     const continued = useGameStore.getState().game;
@@ -175,6 +287,11 @@ describe('Game Over and Continue accounting', () => {
     expect(continued.movesSinceClear).toBe(0);
     expect(useGameStore.getState().lastEvent).toBeNull();
     expect(useGameStore.getState().finalResult).toBeNull();
+    expect(useGameStore.getState().recordCelebration).toEqual({
+      score: 101,
+      previousBest: 100,
+    });
+    expect(useGameStore.getState().recordCelebrated).toBe(true);
     expect(getString(KEYS.gameCurrent)).toBe(serialize(continued));
 
     useGameStore.setState({ game: { ...continued, status: 'over' } });

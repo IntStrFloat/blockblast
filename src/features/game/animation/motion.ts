@@ -47,6 +47,32 @@ export const SPECTACLE_MOTION = {
   sparkCount: 6,
 } as const;
 
+export const GAME_FEEL_MOTION = {
+  scoreScaleMax: 1.25,
+  placementParticleMin: 6,
+  placementParticleMax: 12,
+  placementQueueCap: 3,
+  oneLineExternalEffectTargetCap: 64,
+  crossMultiLineExternalEffectHardCap: 128,
+  placementParticleTravelCells: 1.05,
+  placementParticleDriftCells: 0.32,
+  placementParticleDelayMaxMs: 70,
+  placementParticleDurationMs: 420,
+  placementFlashDurationMs: 220,
+  placementBurstScaleMax: 1.16,
+  reducedPlacementBurstScale: 1.02,
+  reducedPlacementFlashAlpha: 0.16,
+  comboIntensityMax: 1,
+  comboLineStrengthMax: 1,
+  comboBoardClearStrengthMax: 1,
+  comboFramePulseDurationMs: 260,
+  comboFrameReducedDurationMs: 180,
+  comboShakeMax: 6,
+  comboShakeDurationMs: 165,
+  comboScaleMax: 1.12,
+  recordConfettiMax: 18,
+} as const;
+
 type Cell = readonly [number, number];
 
 export function clearCellDelay(cell: Cell, placed: readonly Cell[]): number {
