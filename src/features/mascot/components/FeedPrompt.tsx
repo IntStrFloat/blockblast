@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { AppText } from '@/ui';
+import { CandyGlyph } from './MascotArt';
 
 interface FeedPromptProps {
   onPress: () => void;
@@ -52,9 +52,7 @@ export function FeedPrompt({ onPress }: FeedPromptProps) {
         accessibilityLabel="Покормить маскота"
         accessibilityRole="button"
       >
-        <AppText preset="body" style={styles.icon}>
-          🍬
-        </AppText>
+        <CandyGlyph size={24} />
       </Pressable>
     </Animated.View>
   );
@@ -66,9 +64,5 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 22,
-    lineHeight: 26,
   },
 });

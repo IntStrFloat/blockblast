@@ -4,6 +4,7 @@ import { AppText, colors, mascotPalette, radii } from '@/ui';
 
 import { progressFor } from '../logic/progression';
 import { useMascot } from '../store';
+import { MascotMark } from './MascotArt';
 
 /**
  * Компактный пилюль-чип: уровень Капи + тонкий XP-бар.
@@ -20,8 +21,9 @@ export function MascotChip({ onPress }: { onPress?: () => void }) {
 
   const inner = (
     <View style={styles.pill}>
+      <MascotMark size={18} />
       <AppText preset="button" style={styles.label}>
-        {`🫧 ур.${p.level}`}
+        {`ур.${p.level}`}
       </AppText>
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${fillPct}%` }]} />

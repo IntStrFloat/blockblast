@@ -16,6 +16,7 @@ import { AppText, colors, radii, spacing } from '@/ui';
 
 import { useMascotFeedback } from '../hooks/useMascotFeedback';
 import { useMascot } from '../store';
+import { GiftGlyph, MascotMark } from './MascotArt';
 
 /**
  * Сюрприз-распаковка косметики при левел-апе Капи.
@@ -87,14 +88,15 @@ export function LevelUpReveal() {
 
       <View style={styles.card}>
         <Animated.View style={giftStyle}>
-          <AppText preset="score" style={styles.giftEmoji}>
-            🎁
-          </AppText>
+          <GiftGlyph size={58} />
         </Animated.View>
 
-        <AppText preset="title" style={styles.title}>
-          {`${t('mascot.levelUp', lang)} 🫧 ур.${reveal.level}`}
-        </AppText>
+        <View style={styles.titleRow}>
+          <MascotMark size={22} />
+          <AppText preset="title" style={styles.title}>
+            {`${t('mascot.levelUp', lang)} ур.${reveal.level}`}
+          </AppText>
+        </View>
 
         {subtitle.length > 0 ? (
           <AppText preset="caption" style={styles.subtitle}>
@@ -130,10 +132,14 @@ const styles = StyleSheet.create({
     gap: spacing.m,
     alignItems: 'center',
   },
-  giftEmoji: {
-    fontSize: 56,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.s,
   },
   title: {
+    flexShrink: 1,
     textAlign: 'center',
     fontSize: 20,
   },

@@ -13,10 +13,7 @@ import { canUseHelper } from '../logic/rules';
 import type { Slot } from '../logic/types';
 import { useMascot } from '../store';
 import { Mascot, useMascotMotion } from './Mascot';
-
-// ---------------------------------------------------------------------------
-// Reverse-lookup: cosmetic id → unlock level
-// ---------------------------------------------------------------------------
+import { CosmeticIcon, HelperGlyph, LockGlyph, MascotMark, SlotGlyph } from './MascotArt';
 
 const COSMETIC_UNLOCK_LEVEL: Record<string, number> = (() => {
   const map: Record<string, number> = {};
@@ -27,22 +24,6 @@ const COSMETIC_UNLOCK_LEVEL: Record<string, number> = (() => {
   }
   return map;
 })();
-
-// ---------------------------------------------------------------------------
-// Slot icons
-// ---------------------------------------------------------------------------
-
-const SLOT_ICON: Record<Slot, string> = {
-  hat: '🎩',
-  face: '🕶️',
-  accessory: '🎧',
-  skin: '🎨',
-  aura: '✨',
-};
-
-// ---------------------------------------------------------------------------
-// Wardrobe
-// ---------------------------------------------------------------------------
 
 interface WardrobeProps {
   visible: boolean;
@@ -82,7 +63,8 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
               {t('mascot.wardrobeTitle', lang)}
             </AppText>
             <View style={styles.levelRow}>
-              <AppText preset="caption">{`🫧 ур.${p.level}`}</AppText>
+              <MascotMark size={18} />
+              <AppText preset="caption">{`ур.${p.level}`}</AppText>
               <View style={styles.xpTrack}>
                 <View style={[styles.xpFill, { width: `${fillPct}%` }]} />
               </View>
@@ -107,7 +89,8 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
             return (
               <CosmeticTile
                 key={item.id}
-                slotIcon={SLOT_ICON[item.slot]}
+                itemId={item.id}
+                slot={item.slot}
                 isUnlocked={isUnlocked}
                 isEquipped={isEquipped}
                 unlockLevel={unlockLevel}
@@ -128,7 +111,6 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
         {/* Helper status row */}
         <View style={styles.helpersRow}>
           <HelperStatus
-            label="💡"
             helperId="hint"
             level={p.level}
             helpersUsedDay={helpersUsedDay}
@@ -136,7 +118,6 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
             lang={lang}
           />
           <HelperStatus
-            label="🔀"
             helperId="swap"
             level={p.level}
             helpersUsedDay={helpersUsedDay}
@@ -154,7 +135,8 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
 // ---------------------------------------------------------------------------
 
 interface CosmeticTileProps {
-  slotIcon: string;
+  itemId: string;
+  slot: Slot;
   isUnlocked: boolean;
   isEquipped: boolean;
   unlockLevel: number | undefined;
@@ -163,7 +145,8 @@ interface CosmeticTileProps {
 }
 
 function CosmeticTile({
-  slotIcon,
+  itemId,
+  slot,
   isUnlocked,
   isEquipped,
   unlockLevel,
@@ -181,13 +164,17 @@ function CosmeticTile({
       ]}
       accessibilityRole="button"
     >
-      <AppText style={styles.tileIcon}>{slotIcon}</AppText>
+      <View style={styles.slotBadge} pointerEvents="none">
+        <SlotGlyph slot={slot} size={12} />
+      </View>
+      <CosmeticIcon id={itemId} size={36} muted={!isUnlocked} />
       {!isUnlocked && (
-        <AppText preset="caption" style={styles.lockLabel}>
-          {unlockLevel !== undefined
-            ? `🔒 ${t('mascot.locked', lang)}${unlockLevel}`
-            : '🔒'}
-        </AppText>
+        <View style={styles.lockRow}>
+          <LockGlyph size={10} />
+          <AppText preset="caption" style={styles.lockLabel}>
+            {unlockLevel !== undefined ? `${t('mascot.locked', lang)}${unlockLevel}` : ''}
+          </AppText>
+        </View>
       )}
       {isEquipped && (
         <View style={styles.checkDot} />
@@ -201,7 +188,6 @@ function CosmeticTile({
 // ---------------------------------------------------------------------------
 
 interface HelperStatusProps {
-  label: string;
   helperId: 'hint' | 'swap';
   level: number;
   helpersUsedDay: Partial<Record<'hint' | 'swap', string>>;
@@ -209,12 +195,12 @@ interface HelperStatusProps {
   lang: Lang;
 }
 
-function HelperStatus({ label, helperId, level, helpersUsedDay, today, lang }: HelperStatusProps) {
+function HelperStatus({ helperId, level, helpersUsedDay, today, lang }: HelperStatusProps) {
   const unlockLevel = MASCOT_CONFIG.helpers[helperId].unlockLevel;
 
   let statusText: string;
   if (level < unlockLevel) {
-    statusText = `🔒 ${t('mascot.locked', lang)}${unlockLevel}`;
+    statusText = `${t('mascot.locked', lang)}${unlockLevel}`;
   } else if (!canUseHelper(helpersUsedDay[helperId], today, level, helperId)) {
     statusText = t('mascot.helperCooldown', lang);
   } else {
@@ -223,7 +209,7 @@ function HelperStatus({ label, helperId, level, helpersUsedDay, today, lang }: H
 
   return (
     <View style={styles.helperItem}>
-      <AppText style={styles.helperIcon}>{label}</AppText>
+      <HelperGlyph helperId={helperId} size={20} />
       <AppText preset="caption" style={styles.helperStatus}>
         {statusText}
       </AppText>
@@ -319,18 +305,38 @@ const styles = StyleSheet.create({
     backgroundColor: mascotPalette.blockTint,
   },
   tileLocked: {
-    opacity: 0.45,
+    backgroundColor: 'rgba(11,18,36,0.72)',
+    borderColor: 'rgba(255,255,255,0.09)',
   },
   tilePressed: {
     backgroundColor: colors.surfacePressed,
   },
-  tileIcon: {
-    fontSize: 22,
+  slotBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.cardGlass,
+  },
+  lockRow: {
+    position: 'absolute',
+    left: 4,
+    right: 4,
+    bottom: 3,
+    minHeight: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
   },
   lockLabel: {
-    fontSize: 9,
+    flexShrink: 1,
+    fontSize: 8,
     textAlign: 'center',
-    marginTop: 2,
   },
   checkDot: {
     position: 'absolute',
@@ -355,9 +361,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.s,
     paddingVertical: spacing.xs,
     minHeight: 44,
-  },
-  helperIcon: {
-    fontSize: 18,
   },
   helperStatus: {
     flex: 1,
