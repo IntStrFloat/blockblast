@@ -11,10 +11,10 @@ import { COSMETICS } from '../logic/cosmetics';
 import { MASCOT_CONFIG } from '../logic/config';
 import { progressFor } from '../logic/progression';
 import { canUseHelper } from '../logic/rules';
-import type { Cosmetic, Slot } from '../logic/types';
+import type { Cosmetic } from '../logic/types';
 import { useMascot } from '../store';
 import { Mascot, useMascotMotion } from './Mascot';
-import { CosmeticIcon, HelperGlyph, LockGlyph, MascotMark, SlotGlyph } from './MascotArt';
+import { CosmeticIcon, HelperGlyph, MascotMark } from './MascotArt';
 
 const COSMETIC_UNLOCK_LEVEL: Record<string, number> = (() => {
   const map: Record<string, number> = {};
@@ -163,7 +163,6 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
               <CosmeticTile
                 key={item.id}
                 itemId={item.id}
-                slot={item.slot}
                 isUnlocked={isUnlocked}
                 isEquipped={isEquipped}
                 unlockLevel={unlockLevel}
@@ -209,7 +208,6 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
 
 interface CosmeticTileProps {
   itemId: string;
-  slot: Slot;
   isUnlocked: boolean;
   isEquipped: boolean;
   unlockLevel: number | undefined;
@@ -220,7 +218,6 @@ interface CosmeticTileProps {
 
 function CosmeticTile({
   itemId,
-  slot,
   isUnlocked,
   isEquipped,
   unlockLevel,
@@ -241,22 +238,11 @@ function CosmeticTile({
       accessibilityLabel={`${isUnlocked ? '' : `${t('mascot.locked', lang)}${unlockLevel ?? ''} `}${itemId}`}
       accessibilityState={{ disabled: !isUnlocked, selected: isEquipped }}
     >
-      <View style={styles.slotBadge} pointerEvents="none">
-        <SlotGlyph slot={slot} size={12} />
-      </View>
       <CosmeticIcon id={itemId} size={Math.round(size * 0.52)} muted={!isUnlocked} simple />
       {!isUnlocked && (
         <View style={styles.lockRow}>
-          <LockGlyph size={10} />
           <AppText preset="caption" style={styles.lockLabel}>
-            {unlockLevel !== undefined ? `${t('mascot.locked', lang)}${unlockLevel}` : ''}
-          </AppText>
-        </View>
-      )}
-      {isEquipped && (
-        <View style={styles.equippedRibbon}>
-          <AppText preset="caption" style={styles.equippedText}>
-            ON
+            {unlockLevel !== undefined ? unlockLevel.toString() : ''}
           </AppText>
         </View>
       )}
@@ -491,49 +477,21 @@ const styles = StyleSheet.create({
   tilePressed: {
     backgroundColor: colors.surfacePressed,
   },
-  slotBadge: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(4,10,22,0.64)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
   lockRow: {
     position: 'absolute',
-    left: 4,
-    right: 4,
-    bottom: 3,
-    minHeight: 12,
-    flexDirection: 'row',
+    left: 0,
+    right: 0,
+    bottom: 5,
+    minHeight: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
   },
   lockLabel: {
-    flexShrink: 1,
-    fontSize: 8,
+    color: '#DCE7FF',
+    fontSize: 12,
+    fontWeight: '900',
+    lineHeight: 14,
     textAlign: 'center',
-    color: '#D4DDF6',
-  },
-  equippedRibbon: {
-    position: 'absolute',
-    right: 5,
-    bottom: 5,
-    borderRadius: 999,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    backgroundColor: mascotPalette.block,
-  },
-  equippedText: {
-    color: '#1E2E66',
-    fontSize: 8,
-    fontWeight: '800',
   },
   helpersRow: {
     flexDirection: 'row',
