@@ -52,6 +52,50 @@ describe('profile store', () => {
     });
   });
 
+  it('shares one in-flight bootstrap across concurrent callers', async () => {
+    type BootstrapSession = {
+      profile: { nickname: string; tag: string };
+      authToken: string;
+    };
+    let resolveBootstrap: (session: BootstrapSession) => void = () => {
+      throw new Error('bootstrap promise was not initialized');
+    };
+    const bootstrapProfile = jest.fn(
+      () =>
+        new Promise<BootstrapSession>((resolve) => {
+          resolveBootstrap = resolve;
+        }),
+    );
+    const client: LeaderboardClient = {
+      kind: 'remote',
+      bootstrapProfile,
+      renameProfile: async ({ nickname }) => ({ nickname, tag: 'SRV' }),
+      issueTickets: async () => [],
+      getWeeklySnapshot: async () => null,
+      submitRun: async () => null,
+    };
+
+    const store = createProfileStore({ initialSeed: 7, client, autoBootstrap: false });
+    const first = store.getState().bootstrapRemote();
+    const second = store.getState().bootstrapRemote();
+
+    expect(bootstrapProfile).toHaveBeenCalledTimes(1);
+    resolveBootstrap({
+      profile: { nickname: 'LimeComet', tag: 'SRV' },
+      authToken: 'token-123',
+    });
+
+    await expect(first).resolves.toEqual({
+      profile: { nickname: 'LimeComet', tag: 'SRV' },
+      authToken: 'token-123',
+    });
+    await expect(second).resolves.toEqual({
+      profile: { nickname: 'LimeComet', tag: 'SRV' },
+      authToken: 'token-123',
+    });
+    expect(store.getState().authToken).toBe('token-123');
+  });
+
   it('rename waits for remote success and does not send or change the tag', async () => {
     const renameProfile = jest.fn(async ({ nickname }: { nickname: string }) => ({
       nickname,

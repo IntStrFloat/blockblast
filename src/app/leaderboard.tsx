@@ -9,6 +9,8 @@ import {
   LeaderboardRow,
   Podium,
   getUtcWeekCountdown,
+  getVisibleLeaderboardEntry,
+  getVisibleWeeklyBest,
   useLeaderboardStore,
   weeklyStatusLabel,
 } from '@/features/leaderboard';
@@ -29,6 +31,7 @@ export default function LeaderboardScreen() {
   const router = useRouter();
   const lang = useLang();
   const snapshot = useLeaderboardStore((state) => state.snapshot);
+  const localWeeklyResult = useLeaderboardStore((state) => state.localWeeklyResult);
   const viewState = useLeaderboardStore((state) => state.viewState);
   const lastError = useLeaderboardStore((state) => state.lastError);
   const [loading, setLoading] = useState(false);
@@ -50,14 +53,25 @@ export default function LeaderboardScreen() {
 
   useFocusEffect(refresh);
 
-  const entries = snapshot?.entries ?? [];
+  const statusLabel = weeklyStatusLabel(viewState, snapshot?.source, lang);
+  const visibleAt = new Date();
+  const visibleWeeklyBest = getVisibleWeeklyBest(
+    snapshot?.currentPlayer.weeklyBest ?? 0,
+    localWeeklyResult,
+    visibleAt,
+  );
+  const currentPlayer = snapshot
+    ? getVisibleLeaderboardEntry(snapshot.currentPlayer, localWeeklyResult, visibleAt)
+    : null;
+  const entries = (snapshot?.entries ?? []).map((entry) =>
+    getVisibleLeaderboardEntry(entry, localWeeklyResult, visibleAt),
+  );
   const podium = entries.slice(0, 3);
   const listData = entries.slice(3);
   const showPinnedCurrent =
-    Boolean(snapshot?.currentPlayer) &&
-    !entries.some((entry) => entry.tag === snapshot?.currentPlayer.tag) &&
-    snapshot?.currentPlayer.rank !== null;
-  const statusLabel = weeklyStatusLabel(viewState, snapshot?.source, lang);
+    Boolean(currentPlayer) &&
+    !entries.some((entry) => entry.tag === currentPlayer?.tag) &&
+    currentPlayer?.rank !== null;
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -107,7 +121,7 @@ export default function LeaderboardScreen() {
                 <AppText preset="body">{t('leaderboard.error', lang)}</AppText>
               ) : (
                 <AppText preset="body">
-                  {t('leaderboard.weeklyBest', lang)}: {snapshot?.currentPlayer.weeklyBest ?? 0}
+                  {t('leaderboard.weeklyBest', lang)}: {visibleWeeklyBest}
                 </AppText>
               )}
             </View>
@@ -117,7 +131,7 @@ export default function LeaderboardScreen() {
         }
         ListFooterComponent={
           <View style={{ gap: spacing.m, paddingBottom: spacing.l }}>
-            {showPinnedCurrent && snapshot ? (
+            {showPinnedCurrent && currentPlayer ? (
               <View
                 style={{
                   borderRadius: radii.card,
@@ -127,7 +141,7 @@ export default function LeaderboardScreen() {
                 }}
               >
                 <AppText preset="caption">{t('leaderboard.currentPlayer', lang)}</AppText>
-                <LeaderboardRow entry={snapshot.currentPlayer} />
+                <LeaderboardRow entry={currentPlayer} />
               </View>
             ) : null}
 

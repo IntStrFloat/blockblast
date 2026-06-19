@@ -159,6 +159,39 @@ afterEach(() => {
 });
 
 describe('useGameFeedback', () => {
+  it('dispatches the placement sound synchronously on the store update (no render gating)', () => {
+    const renderer = mountProbe();
+
+    const event = placementEvent();
+    // Намеренно БЕЗ act(): подписка на стор обязана вызвать playSound синхронно
+    // внутри setState — до какого-либо ре-рендера доски и flush эффектов. Если бы
+    // звук по-прежнему жил в useEffect([lastEvent]), на этой строке он ещё не сыграл
+    // бы (ждал бы paint + passive effects). Это и есть суть фикса задержки звука.
+    useGameStore.setState({ lastEvent: event });
+    expect(mockPlaySound).toHaveBeenCalledTimes(1);
+    expect(mockPlaySound).toHaveBeenLastCalledWith('drop');
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it('plays the current event once on mount when the screen mounts mid-run', () => {
+    // Событие уже лежит в сторе ДО монтирования экрана (например, пере-маунт).
+    act(() => {
+      useGameStore.setState({ lastEvent: placementEvent({ clearedRows: [0] }) });
+    });
+    expect(mockPlaySound).not.toHaveBeenCalled();
+
+    const renderer = mountProbe();
+    expect(mockPlaySound).toHaveBeenCalledTimes(1);
+    expect(mockPlaySound).toHaveBeenLastCalledWith('clear1');
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
+
   it('does not replay a handled placement event when settings toggle', () => {
     const renderer = mountProbe();
 

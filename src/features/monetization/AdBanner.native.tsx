@@ -5,7 +5,11 @@ import { BannerAdSize, BannerView } from 'yandex-mobile-ads';
 import { MONETIZATION } from './config';
 import { useEntitlements } from './entitlements';
 
-export function AdBanner() {
+type AdBannerProps = {
+  adUnitId?: string;
+};
+
+export function AdBanner({ adUnitId = MONETIZATION.yandex.bannerAdUnitId }: AdBannerProps = {}) {
   const { width } = useWindowDimensions();
   const removeAds = useEntitlements((state) => state.removeAds);
   const [size, setSize] = useState<BannerAdSize | null>(null);
@@ -33,7 +37,10 @@ export function AdBanner() {
     <View style={{ width: '100%', height: size.height, alignItems: 'center' }}>
       <BannerView
         size={size}
-        adRequest={{ adUnitId: MONETIZATION.yandex.bannerAdUnitId }}
+        adRequest={{ adUnitId }}
+        onAdFailedToLoad={(event) => {
+          console.warn('[ads] Yandex banner failed to load', event.nativeEvent);
+        }}
       />
     </View>
   );

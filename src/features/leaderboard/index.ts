@@ -17,11 +17,14 @@ export {
   decodeChallengeCode,
   getUtcWeekCountdown,
   getUtcWeekWindow,
+  getVisibleLeaderboardEntry,
+  getVisibleWeeklyBest,
   getWeeklyGoal,
   shouldShowDailyChallenge,
 } from './week';
 export type {
   LeaderboardEntry,
+  LocalWeeklyResult,
   ProfileIdentity,
   RunMode,
   RunMove,

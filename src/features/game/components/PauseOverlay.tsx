@@ -25,14 +25,14 @@ export function PauseOverlay({ onResume, onRestart, onHome }: PauseOverlayProps)
       {/* Быстрые тогглы */}
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <GameButton
-          label={`${sound ? '🔊' : '🔇'} ${t('pause.sound', lang)}`}
-          variant="ghost"
+          label={t('pause.sound', lang)}
+          variant={sound ? 'primary' : 'ghost'}
           onPress={() => update({ sound: !sound })}
           style={{ flex: 1 }}
         />
         <GameButton
-          label={`${haptics ? '📳' : '🚫'} ${t('pause.haptics', lang)}`}
-          variant="ghost"
+          label={t('pause.haptics', lang)}
+          variant={haptics ? 'primary' : 'ghost'}
           onPress={() => update({ haptics: !haptics })}
           style={{ flex: 1 }}
         />

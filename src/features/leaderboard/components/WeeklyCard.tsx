@@ -8,7 +8,7 @@ import { AppText, colors, radii, spacing } from '@/ui';
 
 import { useLeaderboardStore } from '../store';
 import { weeklyStatusLabel } from '../presentation';
-import { getWeeklyGoal } from '../week';
+import { getVisibleWeeklyBest, getWeeklyGoal } from '../week';
 
 interface WeeklyCardProps {
   onPress: () => void;
@@ -17,8 +17,12 @@ interface WeeklyCardProps {
 export function WeeklyCard({ onPress }: WeeklyCardProps) {
   const lang = useLang();
   const snapshot = useLeaderboardStore((state) => state.snapshot);
+  const localWeeklyResult = useLeaderboardStore((state) => state.localWeeklyResult);
   const viewState = useLeaderboardStore((state) => state.viewState);
-  const weeklyBest = snapshot?.currentPlayer.weeklyBest ?? 0;
+  const weeklyBest = getVisibleWeeklyBest(
+    snapshot?.currentPlayer.weeklyBest ?? 0,
+    localWeeklyResult,
+  );
   const goal = getWeeklyGoal(weeklyBest);
   const goalCurrent = goal.current;
   const goalTarget = goal.target;

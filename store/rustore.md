@@ -49,23 +49,24 @@
 > попадает лучший результат игрока за неделю, а партия проверяется сервером
 > по seed и журналу ходов. Игра и очередь результатов продолжают работать офлайн.
 
-## Артефакты сборки (2026-06-13, локально в dist/, не в git)
+## Релизный артефакт
 
-| Файл | ABI | Размер | Назначение |
-|---|---|---|---|
-| `dist/bloxx-v1.1.0-arm64.apk` | arm64-v8a | 48.6 МБ | **загрузка в RuStore** |
-| `dist/bloxx-v1.1.0-universal.apk` | все ABI | 112.5 МБ | эмулятор/расширенное тестирование |
+Для новых публикаций используется подписанный Android App Bundle:
 
-Команда arm64-сборки: `.\gradlew assembleRelease "-PreactNativeArchitectures=arm64-v8a"`.
-Смоук release-сборки на эмуляторе пройден: Home → партия → drag-размещение (+4 очка) →
-force-stop → «Continue · 4» (автосейв). Скриншоты: `store/smoke-*.png`.
+```powershell
+cd android
+.\gradlew bundleRelease
+```
 
-Для 1.1.0 дополнительно проверены: создание серверного анонимного профиля, получение
-tag, статус Live backend, открытие недельного лидерборда и offline fallback.
+Результат: `android/app/build/outputs/bundle/release/app-release.aab`.
+PEPK, сертификат загрузки и проверка подписи описаны в
+`docs/runbooks/android-app-signing.md`.
 
 ## Чек-лист перед загрузкой
 
-- [ ] APK подписан release-ключом (`credentials/release.jks` — **сделать бэкап ключа!**)
+- [ ] AAB подписан существующим release-ключом (`credentials/release.jks` — **сделать бэкап ключа!**)
+- [ ] `versionCode` больше предыдущей опубликованной версии
+- [ ] `jarsigner -verify` успешно проверяет AAB, fingerprint совпадает с release-ключом
 - [ ] Политика доступна по публичному URL (см. выше)
 - [ ] Скриншоты: 5+ портретных (Home, игра с превью, очистка с похвалой, Game Over с рекордом, настройки)
 - [ ] Иконка 512×512 (взять `assets/images/icon.png`, уменьшить)

@@ -6,12 +6,16 @@ export const MONETIZATION = {
   /** Покупки RuStore (remove_ads) */
   iapEnabled: false,
   yandex: {
+    // Demo units keep local/repository builds testable. Store builds must inject
+    // active production units through EXPO_PUBLIC_YANDEX_*_AD_UNIT_ID.
+    homeBannerAdUnitId:
+      process.env.EXPO_PUBLIC_YANDEX_HOME_BANNER_AD_UNIT_ID ?? 'R-M-19446153-4',
     bannerAdUnitId:
-      process.env.EXPO_PUBLIC_YANDEX_BANNER_AD_UNIT_ID ?? 'R-M-19434156-1',
+      process.env.EXPO_PUBLIC_YANDEX_BANNER_AD_UNIT_ID ?? 'demo-banner-yandex',
     rewardedAdUnitId:
-      process.env.EXPO_PUBLIC_YANDEX_REWARDED_AD_UNIT_ID ?? 'R-M-19434156-3',
+      process.env.EXPO_PUBLIC_YANDEX_REWARDED_AD_UNIT_ID ?? 'demo-rewarded-yandex',
     interstitialAdUnitId:
-      process.env.EXPO_PUBLIC_YANDEX_INTERSTITIAL_AD_UNIT_ID ?? 'R-M-19434156-4',
+      process.env.EXPO_PUBLIC_YANDEX_INTERSTITIAL_AD_UNIT_ID ?? 'demo-interstitial-yandex',
   },
   interstitial: {
     /** Первый показ на третьем проигрыше */

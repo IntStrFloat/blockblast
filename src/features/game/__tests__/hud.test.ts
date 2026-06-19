@@ -52,6 +52,8 @@ jest.mock('@/ui', () => {
   return {
     AppText: ({ children, ...props }: { children?: React.ReactNode }) =>
       React.createElement(Text, props, children),
+    CrownIcon: () => null,
+    FireIcon: () => null,
     colors: {
       accent: '#FFC93C',
       textPrimary: '#FFFFFF',

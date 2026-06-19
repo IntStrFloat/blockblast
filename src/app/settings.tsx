@@ -1,8 +1,8 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { Alert, Linking, Pressable, ScrollView, Switch, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { t } from '@/core/i18n';
 import type { LangSetting } from '@/core/i18n';
@@ -10,7 +10,7 @@ import { useAnalyticsStore } from '@/features/analytics';
 import { MONETIZATION } from '@/features/monetization';
 import { useScores } from '@/features/scores';
 import { useLang, useSettings } from '@/features/settings';
-import { AppText, BLOCK_THEMES, GameButton, colors, radii, spacing } from '@/ui';
+import { AppText, BLOCK_THEMES, ConfirmDialog, GameButton, colors, radii, spacing } from '@/ui';
 
 const PRIVACY_URL = 'https://bloxx.193.160.208.95.nip.io/privacy.html';
 
@@ -67,12 +67,8 @@ export default function SettingsScreen() {
   const setAnalyticsOptOut = useAnalyticsStore((state) => state.setOptOut);
   const resetBest = useScores((s) => s.resetBest);
 
-  const confirmReset = () => {
-    Alert.alert(t('settings.resetBest', lang), t('settings.resetBestConfirm', lang), [
-      { text: t('settings.cancel', lang), style: 'cancel' },
-      { text: t('settings.confirm', lang), style: 'destructive', onPress: resetBest },
-    ]);
-  };
+  const [resetOpen, setResetOpen] = useState(false);
+  const confirmReset = () => setResetOpen(true);
 
   const langOptions: { value: LangSetting; label: string }[] = [
     { value: 'system', label: t('settings.langSystem', lang) },
@@ -197,6 +193,20 @@ export default function SettingsScreen() {
           />
         </View>
       </ScrollView>
+
+      <ConfirmDialog
+        visible={resetOpen}
+        title={t('settings.resetBest', lang)}
+        message={t('settings.resetBestConfirm', lang)}
+        confirmLabel={t('settings.confirm', lang)}
+        cancelLabel={t('settings.cancel', lang)}
+        destructive
+        onConfirm={() => {
+          setResetOpen(false);
+          resetBest();
+        }}
+        onCancel={() => setResetOpen(false)}
+      />
     </SafeAreaView>
   );
 }

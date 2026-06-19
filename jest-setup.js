@@ -38,3 +38,29 @@ jest.mock('react-native-mmkv', () => {
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageCode: 'ru', languageTag: 'ru-RU' }],
 }));
+
+/* react-native-svg: лёгкие host-стабы, чтобы UI-импорты (иконки) грузились в jest. */
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  const stub = (name) => {
+    const Comp = ({ children, ...props }) => React.createElement(name, props, children);
+    Comp.displayName = name;
+    return Comp;
+  };
+  const Svg = stub('Svg');
+  return {
+    __esModule: true,
+    default: Svg,
+    Svg,
+    Path: stub('Path'),
+    G: stub('G'),
+    Circle: stub('Circle'),
+    Rect: stub('Rect'),
+    Defs: stub('Defs'),
+    LinearGradient: stub('LinearGradient'),
+    RadialGradient: stub('RadialGradient'),
+    Stop: stub('Stop'),
+    Polygon: stub('Polygon'),
+    Line: stub('Line'),
+  };
+});

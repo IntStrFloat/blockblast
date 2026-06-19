@@ -5,9 +5,10 @@ import { useAnalyticsStore } from '@/features/analytics';
 import { createGeneratedProfile } from '@/features/profile/nickname';
 
 import { createLeaderboardClient, type LeaderboardClient } from './client';
-import { appendRunMove, beginRunProof, finalizeRunProof } from './runProof';
+import { appendRunMove, beginRunProof, finalizeRunProof, reopenRunProof } from './runProof';
 import type {
   LeaderboardViewState,
+  LocalWeeklyResult,
   PendingSubmission,
   ProfileIdentity,
   RankedTicket,
@@ -28,8 +29,11 @@ interface LeaderboardState {
   snapshot: WeeklyLeaderboardSnapshot | null;
   activeProof: RunProof | null;
   latestImpact: WeeklyImpact | null;
+  localWeeklyResult: LocalWeeklyResult | null;
   dailyResults: Record<string, DailyResult>;
   tickets: RankedTicket[];
+  /** ticketId тикетов, уже использованных в этой сессии (ротация сидов). */
+  consumedTicketIds: string[];
   pendingSubmissions: PendingSubmission[];
   viewState: LeaderboardViewState;
   lastError: 'offline' | 'remote_error' | null;
@@ -40,6 +44,7 @@ interface LeaderboardState {
     challengeDate?: string | null;
   }) => RunProof;
   recordMove: (move: RunMove) => void;
+  reopenActiveRun: () => void;
   finishActiveRun: (score: number, now?: Date) => Promise<WeeklyImpact | null>;
   issueTickets: (authToken?: string | null) => Promise<RankedTicket[]>;
   flushPending: (authToken?: string | null) => Promise<void>;
@@ -53,9 +58,10 @@ interface CreateLeaderboardStoreOptions {
   client?: LeaderboardClient;
 }
 
-function persistState(state: Pick<LeaderboardState, 'activeProof' | 'snapshot' | 'dailyResults' | 'tickets' | 'pendingSubmissions'>) {
+function persistState(state: Pick<LeaderboardState, 'activeProof' | 'snapshot' | 'localWeeklyResult' | 'dailyResults' | 'tickets' | 'pendingSubmissions'>) {
   setJSON(KEYS.leaderboardActiveProof, state.activeProof);
   setJSON(KEYS.leaderboardSnapshot, state.snapshot);
+  setJSON(KEYS.leaderboardRuns, state.localWeeklyResult);
   setJSON(KEYS.leaderboardDaily, state.dailyResults);
   setJSON(KEYS.leaderboardTickets, state.tickets);
   setJSON(KEYS.leaderboardPending, state.pendingSubmissions);
@@ -89,6 +95,28 @@ function createEmptySnapshot(profile: ProfileIdentity, now: Date, cached: boolea
 
 function clampPendingQueue(pendingSubmissions: PendingSubmission[]) {
   return pendingSubmissions.slice(-20);
+}
+
+function updateLocalWeeklyResult(
+  previous: LocalWeeklyResult | null,
+  score: number,
+  now: Date,
+  countRun = true,
+): LocalWeeklyResult {
+  const weekKey = getUtcWeekWindow(now).weekKey;
+  const current = previous?.weekKey === weekKey ? previous : null;
+  const improved = score > (current?.bestScore ?? 0);
+  return {
+    weekKey,
+    bestScore: Math.max(current?.bestScore ?? 0, score),
+    runsCount: (current?.runsCount ?? 0) + (countRun ? 1 : 0),
+    achievedAt: improved ? now.toISOString() : (current?.achievedAt ?? now.toISOString()),
+  };
+}
+
+function isPermanentSubmissionError(error: unknown) {
+  const message = error instanceof Error ? error.message : '';
+  return /request_failed:(400|401|403|404|409|410|422)\b/.test(message);
 }
 
 function applyRemoteSnapshot(
@@ -129,8 +157,19 @@ function buildSuccessImpact(previous: WeeklyLeaderboardSnapshot | null, snapshot
   };
 }
 
-function consumeNextTicket(tickets: RankedTicket[], startedAt: string) {
-  const nextTicket = tickets.find((ticket) => new Date(ticket.expiresAt).getTime() > new Date(startedAt).getTime()) ?? null;
+function consumeNextTicket(
+  tickets: RankedTicket[],
+  startedAt: string,
+  consumedTicketIds: readonly string[] = [],
+) {
+  const startedMs = new Date(startedAt).getTime();
+  const consumed = new Set(consumedTicketIds);
+  const nextTicket =
+    tickets.find(
+      (ticket) =>
+        !consumed.has(ticket.ticketId) &&
+        new Date(ticket.expiresAt).getTime() > startedMs,
+    ) ?? null;
   return {
     ticket: nextTicket,
     remaining: nextTicket ? tickets.filter((ticket) => ticket.ticketId !== nextTicket.ticketId) : tickets,
@@ -145,6 +184,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
   const client = options.client ?? createLeaderboardClient();
   const initialActiveProof = getJSON<RunProof>(KEYS.leaderboardActiveProof);
   const initialSnapshot = getJSON<WeeklyLeaderboardSnapshot>(KEYS.leaderboardSnapshot);
+  const initialLocalWeeklyResult = getJSON<LocalWeeklyResult>(KEYS.leaderboardRuns);
   const initialDaily = getJSON<Record<string, DailyResult>>(KEYS.leaderboardDaily) ?? {};
   const initialTickets = getJSON<RankedTicket[]>(KEYS.leaderboardTickets) ?? [];
   const initialPending = getJSON<PendingSubmission[]>(KEYS.leaderboardPending) ?? [];
@@ -153,8 +193,10 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
     snapshot: initialSnapshot,
     activeProof: initialActiveProof,
     latestImpact: null,
+    localWeeklyResult: initialLocalWeeklyResult,
     dailyResults: initialDaily,
     tickets: initialTickets,
+    consumedTicketIds: [],
     pendingSubmissions: initialPending,
     viewState: initialSnapshot ? (initialSnapshot.isCached ? 'cached' : initialSnapshot.entries.length > 0 ? 'ready' : 'empty') : 'idle',
     lastError: null,
@@ -164,16 +206,30 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       const explicitSeed = input.seed ?? Math.floor(Date.now() % 2147483647);
       const ticketConsumption =
         input.mode === 'weekly'
-          ? consumeNextTicket(get().tickets, startedAt)
+          ? consumeNextTicket(get().tickets, startedAt, get().consumedTicketIds)
           : { ticket: null, remaining: get().tickets };
       const proof = beginRunProof({
+        // Сид игры = сид тикета. Сервер требует seed == ticket.seed (backend
+        // verify-run + server.cjs: seed_mismatch), и реплеит ходы по этому сиду —
+        // иначе ranked-сабмит отклоняется. Разнообразие первых фигур даёт РОТАЦИЯ
+        // тикетов (у каждого свой случайный серверный сид): каждая новая партия
+        // берёт следующий неиспользованный тикет (см. consumedTicketIds).
+        // Без тикета (пул исчерпан) — explicitSeed, но такой ран unranked.
         seed: ticketConsumption.ticket?.seed ?? explicitSeed,
         startedAt,
         mode: input.mode,
         challengeDate: input.challengeDate ?? null,
         ticket: ticketConsumption.ticket,
       });
-      set({ activeProof: proof, latestImpact: null, tickets: ticketConsumption.remaining });
+      const consumedTicketIds = ticketConsumption.ticket
+        ? [...get().consumedTicketIds, ticketConsumption.ticket.ticketId]
+        : get().consumedTicketIds;
+      set({
+        activeProof: proof,
+        latestImpact: null,
+        tickets: ticketConsumption.remaining,
+        consumedTicketIds,
+      });
       persistState({ ...get(), activeProof: proof, tickets: ticketConsumption.remaining });
       return proof;
     },
@@ -184,6 +240,14 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       const nextProof = appendRunMove(activeProof, move);
       set({ activeProof: nextProof });
       persistState({ ...get(), activeProof: nextProof });
+    },
+
+    reopenActiveRun: () => {
+      const activeProof = get().activeProof;
+      if (!activeProof || activeProof.frozenScore === null) return;
+      const reopened = reopenRunProof(activeProof);
+      set({ activeProof: reopened });
+      persistState({ ...get(), activeProof: reopened });
     },
 
     finishActiveRun: async (score, now = new Date()) => {
@@ -217,10 +281,21 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
         return null;
       }
 
+      const localWeeklyResult = updateLocalWeeklyResult(
+        get().localWeeklyResult,
+        finishedProof.frozenScore,
+        now,
+        !finishedProof.continued,
+      );
+      set({ localWeeklyResult });
+      persistState({ ...get(), activeProof: finishedProof, localWeeklyResult });
+
       if (!finishedProof.ranked || !finishedProof.ticketId) {
-        set({ latestImpact: null });
+        // Продолженный после ревайва ран не ranked: сохраняем прежний impact от
+        // проверяемого финала (локальный недельный результат уже поднят выше).
+        if (!finishedProof.continued) set({ latestImpact: null });
         persistState({ ...get(), activeProof: finishedProof });
-        return null;
+        return get().latestImpact;
       }
 
       const pending = clampPendingQueue([
@@ -293,12 +368,17 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       if (client.kind !== 'remote' || !authToken) return get().tickets;
       try {
         const issuedTickets = await client.issueTickets({ authToken });
-        const merged = [...get().tickets, ...issuedTickets].filter(
-          (ticket, index, list) => list.findIndex((candidate) => candidate.ticketId === ticket.ticketId) === index,
-        );
-        set({ tickets: merged });
-        persistState({ ...get(), tickets: merged });
-        return merged;
+        // Не возвращаем в пул тикеты, уже использованные в этой сессии — иначе
+        // новая партия снова взяла бы тот же тикет с тем же сидом (баг «одинаковые
+        // первые фигуры» после возврата на домашний экран). Список использованных
+        // чистим от тикетов, которые сервер больше не отдаёт (consumed/expired).
+        const issuedIds = new Set(issuedTickets.map((ticket) => ticket.ticketId));
+        const consumedTicketIds = get().consumedTicketIds.filter((id) => issuedIds.has(id));
+        const consumed = new Set(consumedTicketIds);
+        const tickets = issuedTickets.filter((ticket) => !consumed.has(ticket.ticketId));
+        set({ tickets, consumedTicketIds });
+        persistState({ ...get(), tickets });
+        return tickets;
       } catch {
         return get().tickets;
       }
@@ -326,8 +406,10 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
           } else if (snapshot) {
             latestImpact = buildSuccessImpact(get().snapshot, snapshot, submission.score);
           }
-        } catch {
-          remaining.push(submission);
+        } catch (error) {
+          if (!isPermanentSubmissionError(error)) {
+            remaining.push(submission);
+          }
         }
       }
 
@@ -399,6 +481,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       removeKey(KEYS.profileAuth);
       removeKey(KEYS.leaderboardActiveProof);
       removeKey(KEYS.leaderboardSnapshot);
+      removeKey(KEYS.leaderboardRuns);
       removeKey(KEYS.leaderboardDaily);
       removeKey(KEYS.leaderboardPending);
       removeKey(KEYS.leaderboardTickets);
@@ -406,8 +489,10 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
         snapshot: null,
         activeProof: null,
         latestImpact: null,
+        localWeeklyResult: null,
         dailyResults: {},
         tickets: [],
+        consumedTicketIds: [],
         pendingSubmissions: [],
         viewState: 'idle',
         lastError: null,

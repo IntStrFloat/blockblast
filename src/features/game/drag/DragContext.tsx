@@ -21,14 +21,24 @@ export interface DragCtx {
   preview: SharedValue<number[]>;
   /** colorId перетаскиваемой фигуры (0 — нет drag) */
   previewColor: SharedValue<number>;
+  /**
+   * trayIndex фигуры, владеющей превью прямо сейчас (-1 — нет drag). Сериализует
+   * перетаскивания: при мультитаче превью пишет только владелец, чужие маски не
+   * «застревают». last-wins на onStart — защита от залипшего владельца.
+   */
+  dragOwner: SharedValue<number>;
   /** Цвета блоков активной темы (для ghost-подсветки) */
   cellColors: string[];
   /** Цвет фона доски активной темы */
   boardBg: string;
   /** Цвет пустой ячейки активной темы */
   cellEmpty: string;
-  /** Дроп на JS-поток; вызывается один раз на отпускание валидной позиции */
-  onDrop: (trayIndex: number, r: number, c: number) => void;
+  /**
+   * Дроп на JS-поток; вызывается один раз на отпускание валидной позиции.
+   * Возвращает true, если движок реально поставил фигуру (false — отклонено,
+   * напр. позиция занята: тогда трей-слот надо вернуть видимым).
+   */
+  onDrop: (trayIndex: number, r: number, c: number) => boolean;
   /** Фидбек захвата фигуры (звук+хаптика) — один runOnJS на начало жеста */
   onGrab?: () => void;
 }

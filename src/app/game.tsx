@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,14 +24,7 @@ import { TutorialHints } from '@/features/game/components/TutorialHints';
 import { NewRecordCelebration } from '@/features/game/effects/NewRecordCelebration';
 import { AdBanner } from '@/features/monetization';
 import { useLang, useSettings } from '@/features/settings';
-import { AppText, getBlockTheme, getBoardMetrics, radii } from '@/ui';
-
-type BoardLayout = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
+import { AppText, ConfirmDialog, getBlockTheme, getBoardMetrics, radii } from '@/ui';
 
 function EggToast() {
   const lastEvent = useGameStore((s) => s.lastEvent);
@@ -98,6 +91,7 @@ export default function GameScreen() {
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
+  const dragOwner = useSharedValue(-1);
 
   const loadSaved = useGameStore((s) => s.loadSaved);
   const discardAndStartNew = useGameStore((s) => s.discardAndStartNew);
@@ -105,7 +99,6 @@ export default function GameScreen() {
   const status = useGameStore((s) => s.game.status);
   const [entryReady, setEntryReady] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [boardLayout, setBoardLayout] = useState<BoardLayout | null>(null);
   const entryHandled = useRef(false);
 
   useEffect(() => {
@@ -148,9 +141,11 @@ export default function GameScreen() {
   ]);
 
   const { onGrab } = useGameFeedback();
-  const onDrop = useCallback((trayIndex: number, r: number, c: number) => {
-    useGameStore.getState().placePiece(trayIndex, r, c);
-  }, []);
+  const onDrop = useCallback(
+    (trayIndex: number, r: number, c: number) =>
+      useGameStore.getState().placePiece(trayIndex, r, c) !== null,
+    [],
+  );
 
   const dragCtx: DragCtx = useMemo(
     () => ({
@@ -160,6 +155,7 @@ export default function GameScreen() {
       boardMirror,
       preview,
       previewColor,
+      dragOwner,
       cellColors: theme.cellColors,
       boardBg: theme.boardBg,
       cellEmpty: theme.cellEmpty,
@@ -176,28 +172,8 @@ export default function GameScreen() {
     useGameStore.getState().discardAndStartNew();
     setPaused(false);
   }, []);
-  const confirmRestart = useCallback(() => {
-    Alert.alert(t('pause.restart', lang), t('home.newGameConfirm', lang), [
-      { text: t('common.cancel', lang), style: 'cancel' },
-      { text: t('pause.restart', lang), style: 'destructive', onPress: startFresh },
-    ]);
-  }, [lang, startFresh]);
-  const handleBoardLayout = useCallback((event: LayoutChangeEvent) => {
-    const { x, y, width, height } = event.nativeEvent.layout;
-    setBoardLayout((current) => {
-      if (
-        current &&
-        current.x === x &&
-        current.y === y &&
-        current.width === width &&
-        current.height === height
-      ) {
-        return current;
-      }
-      return { x, y, width, height };
-    });
-  }, []);
-
+  const [restartOpen, setRestartOpen] = useState(false);
+  const confirmRestart = useCallback(() => setRestartOpen(true), []);
   if (!entryReady) {
     return <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']} />;
   }
@@ -215,10 +191,9 @@ export default function GameScreen() {
             paddingVertical: 16,
           }}
         >
-          <GameBackground boardSize={boardSize} boardLayout={boardLayout} />
           <Hud onPause={() => setPaused(true)} />
 
-          <View onLayout={handleBoardLayout}>
+          <View>
             <BoardView />
             <PraiseBanner />
           </View>
@@ -239,7 +214,21 @@ export default function GameScreen() {
           />
         ) : null}
 
-        <GameOverOverlay onPlayAgain={startFresh} onHome={goHome} />
+        <GameOverOverlay onPlayAgain={startFresh} />
+
+        <ConfirmDialog
+          visible={restartOpen}
+          title={t('pause.restart', lang)}
+          message={t('home.newGameConfirm', lang)}
+          confirmLabel={t('pause.restart', lang)}
+          cancelLabel={t('settings.cancel', lang)}
+          destructive
+          onConfirm={() => {
+            setRestartOpen(false);
+            startFresh();
+          }}
+          onCancel={() => setRestartOpen(false)}
+        />
       </SafeAreaView>
     </DragProvider>
   );

@@ -3,6 +3,7 @@ import {
   canPlace,
   clearLines,
   emptyBoard,
+  findPlacements,
   findFullLines,
   hasAnyMove,
   idx,
@@ -14,6 +15,7 @@ import { SHAPES } from './shapes';
 import { praiseFor, scorePlacement } from './scoring';
 import { TRAY_SIZE } from './types';
 import type {
+  Board,
   GameConfig,
   GameState,
   PieceInstance,
@@ -37,7 +39,7 @@ function pickWeighted(
   return { shape: pool[pool.length - 1], state: r.state };
 }
 
-function makeWave(
+function makeRandomWave(
   rngState: number,
   colors: number,
 ): { tray: PieceInstance[]; rngState: number } {
@@ -55,13 +57,138 @@ function makeWave(
   return { tray, rngState: s };
 }
 
+function boardAfterPlacement(
+  board: Board,
+  shape: Shape,
+  r: number,
+  c: number,
+): Board {
+  const placed = applyPlacement(board, shape, r, c, 1).board;
+  const { rows, cols } = findFullLines(placed);
+  return rows.length > 0 || cols.length > 0
+    ? clearLines(placed, rows, cols).board
+    : placed;
+}
+
+function canPlayEntireTray(
+  board: Board,
+  tray: readonly PieceInstance[],
+): boolean {
+  const search = (
+    currentBoard: Board,
+    remaining: readonly PieceInstance[],
+  ): boolean => {
+    if (remaining.length === 0) return true;
+
+    return remaining.some((piece, pieceIndex) =>
+      findPlacements(currentBoard, piece.shape).some(([r, c]) =>
+        search(
+          boardAfterPlacement(currentBoard, piece.shape, r, c),
+          remaining.filter((_, index) => index !== pieceIndex),
+        ),
+      ),
+    );
+  };
+
+  return search(board, tray);
+}
+
+function weightedShapeOrder(
+  rngState: number,
+): { shapes: Shape[]; rngState: number } {
+  const shapes: Shape[] = [];
+  const exclude = new Set<string>();
+  let s = rngState;
+
+  while (shapes.length < SHAPES.length) {
+    const picked = pickWeighted(s, exclude);
+    shapes.push(picked.shape);
+    exclude.add(picked.shape.id);
+    s = picked.state;
+  }
+
+  return { shapes, rngState: s };
+}
+
+function findPlayableShapeSequence(
+  board: Board,
+  shapeOrder: readonly Shape[],
+  allowDuplicates: boolean,
+): Shape[] | null {
+  const failed = new Set<string>();
+
+  const search = (
+    currentBoard: Board,
+    selected: readonly Shape[],
+    used: ReadonlySet<string>,
+  ): Shape[] | null => {
+    if (selected.length === TRAY_SIZE) return selected.slice();
+
+    const occupied = currentBoard.map((cell) => (cell === 0 ? '0' : '1')).join('');
+    const usedKey = allowDuplicates ? '' : [...used].sort().join(',');
+    const memoKey = `${selected.length}:${usedKey}:${occupied}`;
+    if (failed.has(memoKey)) return null;
+
+    for (const shape of shapeOrder) {
+      if (!allowDuplicates && used.has(shape.id)) continue;
+
+      for (const [r, c] of findPlacements(currentBoard, shape)) {
+        const nextUsed = allowDuplicates
+          ? used
+          : new Set([...used, shape.id]);
+        const result = search(
+          boardAfterPlacement(currentBoard, shape, r, c),
+          [...selected, shape],
+          nextUsed,
+        );
+        if (result) return result;
+      }
+    }
+
+    failed.add(memoKey);
+    return null;
+  };
+
+  return search(board, [], new Set<string>());
+}
+
+function makeWave(
+  board: Board,
+  rngState: number,
+  colors: number,
+): { tray: PieceInstance[]; rngState: number; playable: boolean } {
+  const randomWave = makeRandomWave(rngState, colors);
+  if (canPlayEntireTray(board, randomWave.tray)) {
+    return { ...randomWave, playable: true };
+  }
+
+  // Keep normal weighted randomness; search only when that deal is unwinnable.
+  const ordered = weightedShapeOrder(randomWave.rngState);
+  const shapes =
+    findPlayableShapeSequence(board, ordered.shapes, false) ??
+    findPlayableShapeSequence(board, ordered.shapes, true);
+
+  if (!shapes) {
+    return { ...randomWave, rngState: ordered.rngState, playable: false };
+  }
+
+  let s = ordered.rngState;
+  const tray = shapes.map((shape) => {
+    const color = rngInt(s, colors);
+    s = color.state;
+    return { shape, colorId: color.value + 1 };
+  });
+  return { tray, rngState: s, playable: true };
+}
+
 export function createGame(
   seed: number = seedFromTime(),
   config: GameConfig = DEFAULT_CONFIG,
 ): GameState {
-  const wave = makeWave(seed, config.colors);
+  const board = emptyBoard();
+  const wave = makeWave(board, seed, config.colors);
   return {
-    board: emptyBoard(),
+    board,
     tray: wave.tray,
     score: 0,
     combo: 0,
@@ -126,14 +253,16 @@ export function place(
   tray[trayIndex] = null;
   let rngState = state.rngState;
   let newTray = false;
+  let newTrayPlayable = true;
   if (tray.every((p) => p === null)) {
-    const wave = makeWave(rngState, config.colors);
+    const wave = makeWave(board, rngState, config.colors);
     tray = wave.tray;
     rngState = wave.rngState;
     newTray = true;
+    newTrayPlayable = wave.playable;
   }
 
-  const gameOver = !hasAnyMove(board, tray);
+  const gameOver = newTray ? !newTrayPlayable : !hasAnyMove(board, tray);
 
   const next: GameState = {
     board,

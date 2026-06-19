@@ -11,8 +11,8 @@ interface OverlayProps {
 /** Полноэкранный затемняющий оверлей с карточкой по центру. */
 export function Overlay({ children }: OverlayProps) {
   return (
-    <Animated.View entering={FadeIn.duration(180)} style={styles.scrim}>
-      <Animated.View entering={ZoomIn.springify().damping(16)} style={styles.card}>
+    <Animated.View entering={FadeIn.duration(120)} style={styles.scrim}>
+      <Animated.View entering={ZoomIn.duration(150)} style={styles.card}>
         {children}
       </Animated.View>
     </Animated.View>

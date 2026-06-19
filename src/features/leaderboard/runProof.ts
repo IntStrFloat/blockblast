@@ -44,3 +44,20 @@ export function finalizeRunProof(proof: RunProof, input: FinalizeRunProofInput):
     finishedAt: input.finishedAt,
   };
 }
+
+/**
+ * Переоткрывает завершённый ран после ревайва: снимает заморозку, чтобы можно
+ * было дописать ходы и финализировать с финальным счётом. Ран помечается как
+ * продолженный и снимается с ranked — реплей такого рана не сойдётся (ревайв
+ * очищает доску посреди партии), поэтому он обновляет лишь локальный результат.
+ */
+export function reopenRunProof(proof: RunProof): RunProof {
+  return {
+    ...proof,
+    frozenScore: null,
+    finishedAt: null,
+    ranked: false,
+    ticketId: null,
+    continued: true,
+  };
+}

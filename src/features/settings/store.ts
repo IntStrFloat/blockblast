@@ -21,7 +21,7 @@ const DEFAULTS: SettingsData = {
   haptics: true,
   praiseTone: 'classic',
   themeId: 'classic',
-  lang: 'system',
+  lang: 'ru',
 };
 
 const saved = getJSON<Partial<SettingsData>>(KEYS.settings);

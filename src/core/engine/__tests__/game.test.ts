@@ -1,7 +1,14 @@
-import { emptyBoard, idx } from '../board';
+import {
+  applyPlacement,
+  clearLines,
+  emptyBoard,
+  findFullLines,
+  findPlacements,
+  idx,
+} from '../board';
 import { createGame, place, revive } from '../game';
 import { SHAPES_BY_ID } from '../shapes';
-import type { GameState } from '../types';
+import type { Board, GameState, PieceInstance } from '../types';
 
 const dot = SHAPES_BY_ID.get('dot')!;
 const h3 = SHAPES_BY_ID.get('h3')!;
@@ -24,6 +31,27 @@ function baseState(over: Partial<GameState> = {}): GameState {
     rngState: 1,
     ...over,
   };
+}
+
+function canPlayEntireTray(
+  board: Board,
+  tray: readonly (PieceInstance | null)[],
+): boolean {
+  const remaining = tray.filter((piece): piece is PieceInstance => piece !== null);
+  if (remaining.length === 0) return true;
+
+  return remaining.some((piece, pieceIndex) =>
+    findPlacements(board, piece.shape).some(([r, c]) => {
+      const placed = applyPlacement(board, piece.shape, r, c, piece.colorId).board;
+      const { rows, cols } = findFullLines(placed);
+      const nextBoard =
+        rows.length > 0 || cols.length > 0
+          ? clearLines(placed, rows, cols).board
+          : placed;
+      const nextTray = remaining.filter((_, index) => index !== pieceIndex);
+      return canPlayEntireTray(nextBoard, nextTray);
+    }),
+  );
 }
 
 describe('createGame', () => {
@@ -147,6 +175,27 @@ describe('place: tray refresh and game over', () => {
     expect(event.newTray).toBe(true);
     expect(state.tray.filter(Boolean).length).toBe(3);
     expect(state.rngState).not.toBe(s.rngState);
+  });
+
+  it('deals only trays that can be played completely in some order', () => {
+    const board = emptyBoard().map(() => 1);
+    for (let r = 0; r < 8; r += 1) {
+      board[idx(r, r)] = 0;
+      board[idx(r, (r + 1) % 8)] = 0;
+    }
+
+    for (let seed = 1; seed <= 64; seed += 1) {
+      const s = baseState({
+        board,
+        tray: [{ shape: dot, colorId: 1 }, null, null],
+        rngState: seed,
+      });
+      const { state, event } = place(s, 0, 0, 0);
+
+      expect(event.newTray).toBe(true);
+      expect(state.status).toBe('playing');
+      expect(canPlayEntireTray(state.board, state.tray)).toBe(true);
+    }
   });
 
   it('ends the game when the remaining pieces have no legal placements', () => {

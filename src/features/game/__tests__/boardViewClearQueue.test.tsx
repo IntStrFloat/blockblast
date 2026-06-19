@@ -177,6 +177,10 @@ jest.mock('../effects/GameEffectsLayer', () => ({
   },
 }));
 
+jest.mock('../effects/ClearBurstLayer', () => ({
+  ClearBurstLayer: () => null,
+}));
+
 function makeEvent(id: string, lifetimeMs: number): MockPlacementEvent {
   return {
     id,

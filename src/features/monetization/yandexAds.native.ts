@@ -18,6 +18,10 @@ let interstitialLoadPromise: Promise<void> | null = null;
 let rewardedLoadPromise: Promise<void> | null = null;
 let sdkInitPromise: Promise<void> | null = null;
 
+function reportAdsError(stage: string, error: unknown): void {
+  console.warn(`[ads] Yandex ${stage} failed`, error);
+}
+
 async function preloadInterstitial(): Promise<void> {
   if (interstitialAd) return;
   if (!interstitialLoadPromise) {
@@ -27,7 +31,8 @@ async function preloadInterstitial(): Promise<void> {
         interstitialAd = await loader.loadAd({
           adUnitId: MONETIZATION.yandex.interstitialAdUnitId,
         });
-      } catch {
+      } catch (error) {
+        reportAdsError('interstitial load', error);
         interstitialAd = null;
       } finally {
         interstitialLoadPromise = null;
@@ -46,7 +51,8 @@ async function preloadRewarded(): Promise<void> {
         rewardedAd = await loader.loadAd({
           adUnitId: MONETIZATION.yandex.rewardedAdUnitId,
         });
-      } catch {
+      } catch (error) {
+        reportAdsError('rewarded load', error);
         rewardedAd = null;
       } finally {
         rewardedLoadPromise = null;
@@ -58,7 +64,8 @@ async function preloadRewarded(): Promise<void> {
 
 async function initialize(): Promise<void> {
   if (!sdkInitPromise) {
-    sdkInitPromise = MobileAds.initialize().catch(() => {
+    sdkInitPromise = MobileAds.initialize().catch((error: unknown) => {
+      reportAdsError('SDK initialization', error);
       sdkInitPromise = null;
     });
   }
@@ -84,8 +91,14 @@ async function showInterstitial(): Promise<InterstitialResult> {
     };
 
     ad.onAdDismissed = () => finish('shown');
-    ad.onAdFailedToShow = () => finish('unavailable');
-    ad.show().catch(() => finish('unavailable'));
+    ad.onAdFailedToShow = (error) => {
+      reportAdsError('interstitial show', error);
+      finish('unavailable');
+    };
+    ad.show().catch((error) => {
+      reportAdsError('interstitial show', error);
+      finish('unavailable');
+    });
   });
 }
 
@@ -111,8 +124,14 @@ async function showRewarded(): Promise<RewardedResult> {
       earnedReward = true;
     };
     ad.onAdDismissed = () => finish(earnedReward ? 'rewarded' : 'dismissed');
-    ad.onAdFailedToShow = () => finish('unavailable');
-    ad.show().catch(() => finish('unavailable'));
+    ad.onAdFailedToShow = (error) => {
+      reportAdsError('rewarded show', error);
+      finish('unavailable');
+    };
+    ad.show().catch((error) => {
+      reportAdsError('rewarded show', error);
+      finish('unavailable');
+    });
   });
 }
 

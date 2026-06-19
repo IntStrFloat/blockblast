@@ -92,8 +92,11 @@ describe('clear effects layer source contract', () => {
     expect(boardSource).toContain("overflow: 'hidden'");
     expect(boardSource).toContain('<ClearLayer');
     expect(boardSource).toContain('<GameEffectsLayer');
+    expect(boardSource).toContain('<ClearBurstLayer');
     expect(boardSource).toContain('placementEffects=');
     expect(clearLayerSource).not.toContain('ClearDebrisLayer');
+    // Разрушение ячеек ушло в пуловый ClearBurstLayer — ClearLayer больше не монтирует крушение.
+    expect(clearLayerSource).not.toContain('BlockCrushLayer');
     expect(gameEffectsSource).toContain('ClearDebrisLayer');
     expect(gameEffectsSource).toContain('PlacementParticleLayer');
     expect(gameEffectsSource).toContain('BoardFramePulse');
@@ -193,7 +196,9 @@ describe('clear effect layer rendering', () => {
       );
     });
 
-    expect(clearRenderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(2);
+    // Разрушение ячеек переехало в пуловый ClearBurstLayer (монтируется в BoardView,
+    // не на презентацию), поэтому ClearLayer больше не рендерит BlockCrushLayer.
+    expect(clearRenderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(0);
     expect(clearRenderer!.root.findAllByProps({ testID: 'line-highlight-layer' })).toHaveLength(2);
     expect(clearRenderer!.root.findAllByProps({ testID: 'clear-debris-layer' })).toHaveLength(0);
     expect(effectsRenderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(2);
