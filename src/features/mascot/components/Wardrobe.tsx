@@ -3,18 +3,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { t } from '@/core/i18n';
 import type { Lang } from '@/core/i18n';
-import { todayISO } from '@/features/streak';
 import { useLang } from '@/features/settings';
 import { AppText, colors, mascotPalette, spacing } from '@/ui';
 
 import { COSMETICS } from '../logic/cosmetics';
 import { MASCOT_CONFIG } from '../logic/config';
 import { progressFor } from '../logic/progression';
-import { canUseHelper } from '../logic/rules';
 import type { Cosmetic } from '../logic/types';
 import { useMascot } from '../store';
 import { Mascot, useMascotMotion } from './Mascot';
-import { CosmeticIcon, HelperGlyph, MascotMark } from './MascotArt';
+import { CosmeticIcon, MascotMark } from './MascotArt';
 
 const COSMETIC_UNLOCK_LEVEL: Record<string, number> = (() => {
   const map: Record<string, number> = {};
@@ -55,7 +53,6 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
   const totalXp = useMascot((s) => s.totalXp);
   const unlocked = useMascot((s) => s.unlocked);
   const equipped = useMascot((s) => s.equipped);
-  const helpersUsedDay = useMascot((s) => s.helpersUsedDay);
 
   const p = progressFor(totalXp);
   const fillPct = p.xpToNext === 0 ? 100 : (p.xpInLevel / p.xpToNext) * 100;
@@ -72,8 +69,6 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
     p.xpToNext === 0 ? copy.maxed : `${p.xpInLevel}/${p.xpToNext} XP`;
   const nextLabel = nextRewardLevel ? `${copy.next} ${copy.levelShort}${nextRewardLevel}` : copy.maxed;
 
-  const today = todayISO();
-
   // Preview motion (neutral, static)
   const motion = useMascotMotion();
 
@@ -83,69 +78,71 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
         style={[styles.card, { width: panelWidth, maxHeight: panelMaxHeight }]}
         onPress={(e) => e.stopPropagation()}
       >
-        <LinearGradient
-          colors={['rgba(126,231,255,0.22)', 'rgba(255,210,63,0.08)', 'rgba(13,22,45,0)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.cardGlow}
-          pointerEvents="none"
-        />
+        <View style={styles.headerPanel}>
+          <LinearGradient
+            colors={['rgba(126,231,255,0.22)', 'rgba(255,210,63,0.08)', 'rgba(13,22,45,0.84)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGlow}
+            pointerEvents="none"
+          />
 
-        <View style={styles.hero}>
-          <View style={styles.heroText}>
-            <View style={styles.eyebrowRow}>
-              <MascotMark size={18} />
-              <AppText preset="caption" style={styles.eyebrow}>
-                {copy.currentLevel}
-              </AppText>
-            </View>
-            <View style={styles.levelHeadlineRow}>
-              <AppText preset="score" style={styles.levelNumber}>
-                {p.level}
-              </AppText>
-              <View style={styles.levelMeta}>
-                <AppText preset="button" style={styles.title}>
-                  {t('mascot.wardrobeTitle', lang)}
+          <View style={styles.hero}>
+            <View style={styles.heroText}>
+              <View style={styles.eyebrowRow}>
+                <MascotMark size={18} />
+                <AppText preset="caption" style={styles.eyebrow}>
+                  {copy.currentLevel}
                 </AppText>
-                <AppText preset="caption" style={styles.stageText}>
-                  {`${copy.stage} ${p.stage} / ${copy.maxLevel} ${MASCOT_CONFIG.maxLevel}`}
+              </View>
+              <View style={styles.levelHeadlineRow}>
+                <AppText preset="score" style={styles.levelNumber}>
+                  {p.level}
+                </AppText>
+                <View style={styles.levelMeta}>
+                  <AppText preset="button" style={styles.title}>
+                    {t('mascot.wardrobeTitle', lang)}
+                  </AppText>
+                  <AppText preset="caption" style={styles.stageText}>
+                    {`${copy.stage} ${p.stage} / ${copy.maxLevel} ${MASCOT_CONFIG.maxLevel}`}
+                  </AppText>
+                </View>
+              </View>
+              <View style={styles.xpTrackLarge}>
+                <View style={[styles.xpFill, { width: `${fillPct}%` }]} />
+              </View>
+              <View style={styles.levelStats}>
+                <AppText preset="caption" style={styles.statText}>
+                  {xpLabel}
+                </AppText>
+                <AppText preset="caption" style={styles.statText}>
+                  {nextLabel}
                 </AppText>
               </View>
             </View>
-            <View style={styles.xpTrackLarge}>
-              <View style={[styles.xpFill, { width: `${fillPct}%` }]} />
-            </View>
-            <View style={styles.levelStats}>
-              <AppText preset="caption" style={styles.statText}>
-                {xpLabel}
-              </AppText>
-              <AppText preset="caption" style={styles.statText}>
-                {nextLabel}
-              </AppText>
+            <View style={styles.previewPod}>
+              <View style={styles.previewHalo} />
+              <Mascot motion={motion} stage={p.stage} equipped={equipped} size={84} />
             </View>
           </View>
-          <View style={styles.previewPod}>
-            <View style={styles.previewHalo} />
-            <Mascot motion={motion} stage={p.stage} equipped={equipped} size={84} />
-          </View>
-        </View>
 
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryPill}>
-            <AppText preset="caption" style={styles.summaryLabel}>
-              {copy.unlocked}
-            </AppText>
-            <AppText preset="button" style={styles.summaryValue}>
-              {`${unlockedCount}/${WARDROBE_COSMETICS.length}`}
-            </AppText>
-          </View>
-          <View style={styles.summaryPill}>
-            <AppText preset="caption" style={styles.summaryLabel}>
-              {copy.equipped}
-            </AppText>
-            <AppText preset="button" style={styles.summaryValue}>
-              {Object.keys(equipped).length.toString()}
-            </AppText>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryPill}>
+              <AppText preset="caption" style={styles.summaryLabel}>
+                {copy.unlocked}
+              </AppText>
+              <AppText preset="button" style={styles.summaryValue}>
+                {`${unlockedCount}/${WARDROBE_COSMETICS.length}`}
+              </AppText>
+            </View>
+            <View style={styles.summaryPill}>
+              <AppText preset="caption" style={styles.summaryLabel}>
+                {copy.equipped}
+              </AppText>
+              <AppText preset="button" style={styles.summaryValue}>
+                {Object.keys(equipped).length.toString()}
+              </AppText>
+            </View>
           </View>
         </View>
 
@@ -180,23 +177,6 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
             );
           })}
         </ScrollView>
-
-        <View style={styles.helpersRow}>
-          <HelperStatus
-            helperId="hint"
-            level={p.level}
-            helpersUsedDay={helpersUsedDay}
-            today={today}
-            lang={lang}
-          />
-          <HelperStatus
-            helperId="swap"
-            level={p.level}
-            helpersUsedDay={helpersUsedDay}
-            today={today}
-            lang={lang}
-          />
-        </View>
       </Pressable>
     </Pressable>
   );
@@ -250,40 +230,6 @@ function CosmeticTile({
   );
 }
 
-// ---------------------------------------------------------------------------
-// HelperStatus
-// ---------------------------------------------------------------------------
-
-interface HelperStatusProps {
-  helperId: 'hint' | 'swap';
-  level: number;
-  helpersUsedDay: Partial<Record<'hint' | 'swap', string>>;
-  today: string;
-  lang: Lang;
-}
-
-function HelperStatus({ helperId, level, helpersUsedDay, today, lang }: HelperStatusProps) {
-  const unlockLevel = MASCOT_CONFIG.helpers[helperId].unlockLevel;
-
-  let statusText: string;
-  if (level < unlockLevel) {
-    statusText = `${t('mascot.locked', lang)}${unlockLevel}`;
-  } else if (!canUseHelper(helpersUsedDay[helperId], today, level, helperId)) {
-    statusText = t('mascot.helperCooldown', lang);
-  } else {
-    statusText = t('mascot.helperReady', lang);
-  }
-
-  return (
-    <View style={styles.helperItem}>
-      <HelperGlyph helperId={helperId} size={20} />
-      <AppText preset="caption" style={styles.helperStatus}>
-        {statusText}
-      </AppText>
-    </View>
-  );
-}
-
 function wardrobeCopy(lang: Lang) {
   if (lang === 'ru') {
     return {
@@ -328,6 +274,11 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 24,
+    backgroundColor: 'transparent',
+    gap: spacing.s,
+  },
+  headerPanel: {
+    borderRadius: 24,
     backgroundColor: 'rgba(13,22,45,0.94)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(126,231,255,0.24)',
@@ -335,12 +286,12 @@ const styles = StyleSheet.create({
     gap: spacing.s,
     overflow: 'hidden',
   },
-  cardGlow: {
+  headerGlow: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 190,
+    bottom: 0,
   },
   hero: {
     flexDirection: 'row',
@@ -453,6 +404,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.s,
+    paddingHorizontal: spacing.m,
     paddingBottom: spacing.xs,
   },
   tile: {
@@ -492,27 +444,5 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     lineHeight: 14,
     textAlign: 'center',
-  },
-  helpersRow: {
-    flexDirection: 'row',
-    gap: spacing.s,
-    marginTop: spacing.xs,
-  },
-  helperItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 14,
-    paddingHorizontal: spacing.s,
-    paddingVertical: spacing.xs,
-    minHeight: 48,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  helperStatus: {
-    flex: 1,
-    fontSize: 12,
   },
 });
