@@ -146,37 +146,39 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
           </View>
         </View>
 
-        <ScrollView
-          style={styles.scrollArea}
-          contentContainerStyle={styles.grid}
-          showsVerticalScrollIndicator={false}
-        >
-          {WARDROBE_COSMETICS.map((item) => {
-            const isUnlocked = unlocked.includes(item.id);
-            const isEquipped = equipped[item.slot] === item.id;
-            const unlockLevel = COSMETIC_UNLOCK_LEVEL[item.id];
+        <View style={styles.gridPanel}>
+          <ScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={styles.grid}
+            showsVerticalScrollIndicator={false}
+          >
+            {WARDROBE_COSMETICS.map((item) => {
+              const isUnlocked = unlocked.includes(item.id);
+              const isEquipped = equipped[item.slot] === item.id;
+              const unlockLevel = COSMETIC_UNLOCK_LEVEL[item.id];
 
-            return (
-              <CosmeticTile
-                key={item.id}
-                itemId={item.id}
-                isUnlocked={isUnlocked}
-                isEquipped={isEquipped}
-                unlockLevel={unlockLevel}
-                lang={lang}
-                size={tileSize}
-                onPress={() => {
-                  if (!isUnlocked) return;
-                  if (isEquipped) {
-                    useMascot.getState().unequip(item.slot);
-                  } else {
-                    useMascot.getState().equip(item.slot, item.id);
-                  }
-                }}
-              />
-            );
-          })}
-        </ScrollView>
+              return (
+                <CosmeticTile
+                  key={item.id}
+                  itemId={item.id}
+                  isUnlocked={isUnlocked}
+                  isEquipped={isEquipped}
+                  unlockLevel={unlockLevel}
+                  lang={lang}
+                  size={tileSize}
+                  onPress={() => {
+                    if (!isUnlocked) return;
+                    if (isEquipped) {
+                      useMascot.getState().unequip(item.slot);
+                    } else {
+                      useMascot.getState().equip(item.slot, item.id);
+                    }
+                  }}
+                />
+              );
+            })}
+          </ScrollView>
+        </View>
       </Pressable>
     </Pressable>
   );
@@ -398,14 +400,22 @@ const styles = StyleSheet.create({
   },
   scrollArea: {
     maxHeight: 326,
+  },
+  gridPanel: {
     marginTop: spacing.xs,
+    borderRadius: 22,
+    backgroundColor: 'rgba(2,13,28,0.76)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(126,231,255,0.18)',
+    overflow: 'hidden',
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.s,
     paddingHorizontal: spacing.m,
-    paddingBottom: spacing.xs,
+    paddingTop: spacing.s,
+    paddingBottom: spacing.s,
   },
   tile: {
     minWidth: 44,
