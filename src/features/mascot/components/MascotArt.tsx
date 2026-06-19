@@ -73,6 +73,7 @@ export function MascotFigure({ stage, equipped, size, eyeStyle }: MascotFigurePr
 
         {renderAura(equipped?.aura, stage)}
         {renderBackAccessory(equipped?.accessory)}
+        {renderAccessoryBehindHead(equipped?.accessory)}
 
         <Path
           d="M24 35c0-12 10-22 26-22s26 10 26 22v5c8 5 13 13 13 23 0 19-16 29-39 29S11 82 11 63c0-10 5-18 13-23v-5z"
@@ -109,7 +110,7 @@ export function MascotFigure({ stage, equipped, size, eyeStyle }: MascotFigurePr
         {renderFace(faceItem)}
       </Svg>
 
-      {faceItem === 'face-star-eyes' || faceItem === 'face-vr-visor' ? null : (
+      {faceItem ? null : (
         <View pointerEvents="none" style={styles.eyeRow}>
           <Animated.View style={[styles.eye, eyeStyle]}>
             <View style={styles.eyeSpark} />
@@ -440,14 +441,37 @@ function renderBackAccessory(id: string | undefined): ReactNode {
   return null;
 }
 
+function renderAccessoryBehindHead(id: string | undefined): ReactNode {
+  if (id === 'acc-headphones') {
+    return (
+      <G>
+        <Path
+          d="M24 46c0-25 52-25 52 0"
+          stroke={P.hatDeep}
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M30 42c7-15 33-18 43 0"
+          stroke={P.auraBlue}
+          strokeOpacity="0.28"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      </G>
+    );
+  }
+  return null;
+}
+
 function renderHat(id: string | undefined): ReactNode {
   if (!id) return null;
   if (id === 'hat-casquette') {
     return (
       <G>
-        <Path d="M28 25c8-10 29-13 43-1l-5 16H30l-2-15z" fill={P.hatBlue} />
-        <Path d="M59 36c16-1 25 4 28 11-11 3-22 1-31-5l3-6z" fill={P.hatDeep} />
-        <Path d="M32 27c8 5 22 6 34 1" stroke={P.lens} strokeWidth="4" strokeLinecap="round" />
+        <Path d="M27 30c8-12 30-15 45-2l-5 15H31l-4-13z" fill={P.hatBlue} />
+        <Path d="M59 40c15-1 24 3 29 10-12 4-24 1-34-5l5-5z" fill={P.lens} />
+        <Path d="M33 31c8 5 22 6 34 1" stroke={P.eyeSpark} strokeOpacity="0.75" strokeWidth="3" strokeLinecap="round" />
       </G>
     );
   }
@@ -457,9 +481,9 @@ function renderHat(id: string | undefined): ReactNode {
   if (id === 'hat-panama') {
     return (
       <G>
-        <Ellipse cx="50" cy="35" rx="35" ry="9" fill={P.furLight} />
-        <Path d="M32 34c1-17 8-24 18-24s17 7 18 24H32z" fill={P.furLight} />
-        <Path d="M34 27h32" stroke={P.hatOrange} strokeWidth="6" strokeLinecap="round" />
+        <Ellipse cx="50" cy="39" rx="35" ry="9" fill={P.furLight} />
+        <Path d="M32 38c1-17 8-25 18-25s17 8 18 25H32z" fill={P.furLight} />
+        <Path d="M34 31h32" stroke={P.hatOrange} strokeWidth="6" strokeLinecap="round" />
       </G>
     );
   }
@@ -491,12 +515,16 @@ function renderFace(id: string | undefined): ReactNode {
   if (!id) return null;
   if (id === 'face-glasses' || id === 'face-sunglasses') {
     const fill = id === 'face-sunglasses' ? P.glasses : P.lens;
-    const opacity = id === 'face-sunglasses' ? 0.95 : 0.42;
+    const opacity = id === 'face-sunglasses' ? 0.95 : 0.5;
     return (
       <G>
-        <Rect x="26" y="40" width="20" height="14" rx="6" fill={fill} opacity={opacity} stroke={P.glasses} strokeWidth="4" />
-        <Rect x="54" y="40" width="20" height="14" rx="6" fill={fill} opacity={opacity} stroke={P.glasses} strokeWidth="4" />
-        <Line x1="46" y1="47" x2="54" y2="47" stroke={P.glasses} strokeWidth="4" strokeLinecap="round" />
+        <Circle cx="36" cy="48" r="5.6" fill={P.ink} />
+        <Circle cx="64" cy="48" r="5.6" fill={P.ink} />
+        <Circle cx="38" cy="45" r="1.8" fill={P.eyeSpark} opacity={id === 'face-sunglasses' ? 0.45 : 0.95} />
+        <Circle cx="66" cy="45" r="1.8" fill={P.eyeSpark} opacity={id === 'face-sunglasses' ? 0.45 : 0.95} />
+        <Rect x="25" y="40" width="22" height="16" rx="7" fill={fill} opacity={opacity} stroke={P.glasses} strokeWidth="3.4" />
+        <Rect x="53" y="40" width="22" height="16" rx="7" fill={fill} opacity={opacity} stroke={P.glasses} strokeWidth="3.4" />
+        <Line x1="47" y1="48" x2="53" y2="48" stroke={P.glasses} strokeWidth="3.4" strokeLinecap="round" />
       </G>
     );
   }
@@ -511,8 +539,10 @@ function renderFace(id: string | undefined): ReactNode {
   if (id === 'face-monocle') {
     return (
       <G>
-        <Circle cx="64" cy="47" r="11" fill={P.lens} opacity="0.35" stroke={P.block} strokeWidth="4" />
-        <Path d="M73 55c6 7 8 14 4 20" stroke={P.block} strokeWidth="3" strokeLinecap="round" />
+        <Circle cx="36" cy="48" r="5.8" fill={P.ink} />
+        <Circle cx="64" cy="48" r="5.8" fill={P.ink} />
+        <Circle cx="64" cy="48" r="12" fill={P.lens} opacity="0.38" stroke={P.block} strokeWidth="4" />
+        <Path d="M73 56c6 7 8 14 4 20" stroke={P.block} strokeWidth="3" strokeLinecap="round" />
       </G>
     );
   }
@@ -532,11 +562,11 @@ function renderAccessoryFront(id: string | undefined): ReactNode {
   if (id === 'acc-headphones') {
     return (
       <G>
-        <Path d="M25 45c0-22 50-22 50 0" stroke={P.hatDeep} strokeWidth="7" strokeLinecap="round" />
-        <Rect x="16" y="43" width="17" height="24" rx="7" fill={P.hatDeep} />
-        <Rect x="67" y="43" width="17" height="24" rx="7" fill={P.hatDeep} />
-        <Rect x="20" y="49" width="9" height="13" rx="4" fill={P.accessoryTeal} />
-        <Rect x="71" y="49" width="9" height="13" rx="4" fill={P.accessoryTeal} />
+        <Rect x="13" y="43" width="17" height="25" rx="8" fill={P.hatDeep} />
+        <Rect x="70" y="43" width="17" height="25" rx="8" fill={P.hatDeep} />
+        <Rect x="18" y="49" width="8" height="13" rx="4" fill={P.accessoryTeal} />
+        <Rect x="74" y="49" width="8" height="13" rx="4" fill={P.accessoryTeal} />
+        <Path d="M28 47c2-5 5-8 9-10M72 47c-2-5-5-8-9-10" stroke={P.hatDeep} strokeWidth="3.5" strokeLinecap="round" />
       </G>
     );
   }
