@@ -1,25 +1,7 @@
-import type { PlacementEvent } from '@/core/engine';
 import type { HelperId } from './types';
 import { MASCOT_CONFIG } from './config';
 
-const { xp: XP, helpers: HELPERS } = MASCOT_CONFIG;
-
-/**
- * XP, начисляемый маскоту за одно событие размещения фигуры.
- *
- * - lines * perClearedLine
- * - если combo > 1: + combo * comboTierBonus
- * - если boardCleared: + boardClear
- * - если isRecord: + newRecord
- */
-export function xpFromEvent(e: PlacementEvent, isRecord: boolean): number {
-  const lines = e.clearedRows.length + e.clearedCols.length;
-  let total = lines * XP.perClearedLine;
-  if (e.combo > 1) total += e.combo * XP.comboTierBonus;
-  if (e.boardCleared) total += XP.boardClear;
-  if (isRecord) total += XP.newRecord;
-  return total;
-}
+const { helpers: HELPERS } = MASCOT_CONFIG;
 
 /**
  * Можно ли кормить маскота сегодня.

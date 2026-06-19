@@ -8,6 +8,7 @@ const read = (relativePath: string) =>
   fs.readFileSync(`${__dirname}/${relativePath}`, 'utf8');
 
 const layerSource = read('../components/MascotLayer.tsx');
+const brainSource = read('../hooks/useMascotBrain.ts');
 
 describe('MascotLayer drag/drop contract', () => {
   it('keeps the mascot brain paused while the loss drop is resolving', () => {
@@ -26,5 +27,11 @@ describe('MascotLayer drag/drop contract', () => {
     expect(layerSource).toContain('mascotReturning.value = 1');
     expect(layerSource).toContain('motion.bob.value = withTiming(0, { duration: LIFT_RETURN_MS }');
     expect(layerSource).not.toContain('motion.bob.value = withSpring(0);');
+  });
+
+  it('awards mascot progress only from the final game score', () => {
+    expect(brainSource).toContain('if (event.gameOver) {');
+    expect(brainSource).toContain('useMascot.getState().applyScore(event.score);');
+    expect(brainSource).not.toContain('applyEvent');
   });
 });

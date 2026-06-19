@@ -5,8 +5,7 @@
  *  - состояние стора сбрасывается к дефолтам (фиксированный rngState=42)
  *  - KEYS.mascot очищается из MMKV
  */
-import type { PlacementEvent } from '@/core/engine';
-import { KEYS, getJSON } from '@/core/storage';
+import { KEYS, getJSON, removeKey } from '@/core/storage';
 import { todayISO } from '@/features/streak';
 
 import { useMascot } from '../store';
@@ -16,31 +15,6 @@ import { useMascot } from '../store';
 // Level 5 reward: { kind: 'helper', id: 'hint' }
 
 const FIXED_RNG = 42;
-
-/** Минимальный PlacementEvent, который читает rules.ts */
-function makeEvent(
-  overrides: Partial<
-    Pick<PlacementEvent, 'clearedRows' | 'clearedCols' | 'combo' | 'boardCleared'>
-  >,
-): PlacementEvent {
-  return {
-    clearedRows: [],
-    clearedCols: [],
-    combo: 0,
-    boardCleared: false,
-    placed: [],
-    colorId: 0,
-    clearedCells: [],
-    clearedColors: [],
-    scoreDelta: 0,
-    score: 0,
-    praise: 'none',
-    onFire: false,
-    newTray: false,
-    gameOver: false,
-    ...overrides,
-  } as PlacementEvent;
-}
 
 const DEFAULTS = {
   totalXp: 0,
@@ -58,7 +32,6 @@ beforeEach(() => {
   // Сбросить стор к дефолтам с фиксированным rng (без replace=true, чтобы сохранить action-функции)
   useMascot.setState({ ...DEFAULTS, reveal: null });
   // Убедиться, что KEYS.mascot не содержит загрязнённых данных
-  const { removeKey } = require('@/core/storage');
   removeKey(KEYS.mascot);
 });
 
@@ -79,13 +52,11 @@ describe('defaults', () => {
 });
 
 // ---------------------------------------------------------------------------
-// applyEvent
+// applyScore
 // ---------------------------------------------------------------------------
-describe('applyEvent', () => {
-  it('одно record-событие с 1 линией дает 53 XP, но не повышает уровень', () => {
-    // xpFromEvent: 1 линия * 3 + 50 (record) = 53
-    const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
-    const result = useMascot.getState().applyEvent(e, true);
+describe('applyScore', () => {
+  it('итоговые 53 очка копятся, но не повышают уровень', () => {
+    const result = useMascot.getState().applyScore(53);
 
     expect(result.leveledTo).toBe(1);
     expect(result.rewards).toEqual([]);
@@ -96,28 +67,25 @@ describe('applyEvent', () => {
     expect(s.unlocked).not.toContain('face-glasses');
   });
 
-  it('повторный applyEvent не дублирует id косметики в unlocked', () => {
-    const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
-    useMascot.getState().applyEvent(e, true); // +53 XP → еще level 1
-    useMascot.getState().applyEvent(e, true); // +53 XP → 106 XP → level 2
+  it('повторное начисление очков не дублирует id косметики в unlocked', () => {
+    useMascot.getState().applyScore(53); // +53 очка → еще level 1
+    useMascot.getState().applyScore(53); // +53 очка → 106 очков → level 2
 
     const s = useMascot.getState();
     const count = s.unlocked.filter((id) => id === 'face-glasses').length;
     expect(count).toBe(1);
   });
 
-  it('событие без линий и без record → 0 XP, уровень не меняется', () => {
-    const e = makeEvent({});
-    const result = useMascot.getState().applyEvent(e, false);
+  it('нулевые очки не меняют уровень', () => {
+    const result = useMascot.getState().applyScore(0);
 
     expect(result.leveledTo).toBe(1);
     expect(result.rewards).toEqual([]);
     expect(useMascot.getState().totalXp).toBe(0);
   });
 
-  it('applyEvent персистит новое состояние', () => {
-    const e = makeEvent({ clearedRows: [0], combo: 1 });
-    useMascot.getState().applyEvent(e, true);
+  it('applyScore персистит новое состояние', () => {
+    useMascot.getState().applyScore(53);
 
     const saved = getJSON<{ totalXp: number }>(KEYS.mascot);
     expect(saved).not.toBeNull();
@@ -129,13 +97,12 @@ describe('applyEvent', () => {
 // feed
 // ---------------------------------------------------------------------------
 describe('feed', () => {
-  it('первый вызов добавляет dailyFeed XP и устанавливает lastFedDay', () => {
-    // dailyFeed = 40 XP, новый xpToNext(1)=80 → остается level 1
+  it('первый вызов устанавливает lastFedDay без начисления очков прогресса', () => {
     const result = useMascot.getState().feed();
 
     expect(result).not.toBeNull();
     const s = useMascot.getState();
-    expect(s.totalXp).toBe(40);
+    expect(s.totalXp).toBe(0);
     expect(s.level).toBe(1);
     expect(s.lastFedDay).toBe(todayISO());
   });
@@ -160,7 +127,7 @@ describe('feed', () => {
     const saved = getJSON<{ lastFedDay: string; totalXp: number }>(KEYS.mascot);
     expect(saved).not.toBeNull();
     expect(saved!.lastFedDay).toBe(todayISO());
-    expect(saved!.totalXp).toBe(40);
+    expect(saved!.totalXp).toBe(0);
   });
 });
 
@@ -318,11 +285,9 @@ describe('persistence', () => {
 // reveal: transient level-up payload (NOT persisted)
 // ---------------------------------------------------------------------------
 describe('reveal', () => {
-  it('applyEvent с левел-апом устанавливает reveal с правильным level и rewards', () => {
-    // 2 * 53 XP (1 линия + record bonus) → level 1→2, reward: { kind:'cosmetic', id:'face-glasses' }
-    const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
-    useMascot.getState().applyEvent(e, true);
-    useMascot.getState().applyEvent(e, true);
+  it('applyScore с левел-апом устанавливает reveal с правильным level и rewards', () => {
+    // 106 очков → level 1→2, reward: { kind:'cosmetic', id:'face-glasses' }
+    useMascot.getState().applyScore(106);
 
     const s = useMascot.getState();
     expect(s.reveal).not.toBeNull();
@@ -331,30 +296,24 @@ describe('reveal', () => {
     expect(s.reveal!.rewards[0]).toEqual({ kind: 'cosmetic', id: 'face-glasses' });
   });
 
-  it('applyEvent без левел-апа НЕ устанавливает reveal', () => {
-    // Событие без линий и без record → 0 XP, уровень не меняется
-    const e = makeEvent({});
-    useMascot.getState().applyEvent(e, false);
+  it('applyScore без левел-апа НЕ устанавливает reveal', () => {
+    useMascot.getState().applyScore(53);
 
     expect(useMascot.getState().reveal).toBeNull();
   });
 
-  it('feed() с левел-апом устанавливает reveal', () => {
-    // dailyFeed = 40 XP; стартуем с 40 XP, чтобы добрать порог 80.
+  it('feed() не устанавливает reveal, даже если очков уже хватает до порога', () => {
     useMascot.setState({ totalXp: 40 });
     const result = useMascot.getState().feed();
     expect(result).not.toBeNull();
 
-    const s = useMascot.getState();
-    expect(s.reveal).not.toBeNull();
-    expect(s.reveal!.level).toBe(2);
+    expect(useMascot.getState().reveal).toBeNull();
+    expect(useMascot.getState().level).toBe(1);
   });
 
   it('clearReveal() устанавливает reveal в null', () => {
     // Сначала вызовем левел-ап, чтобы reveal был не null
-    const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
-    useMascot.getState().applyEvent(e, true);
-    useMascot.getState().applyEvent(e, true);
+    useMascot.getState().applyScore(106);
     expect(useMascot.getState().reveal).not.toBeNull();
 
     useMascot.getState().clearReveal();
@@ -362,9 +321,7 @@ describe('reveal', () => {
   });
 
   it('reveal НЕ записывается в MMKV (не персистится)', () => {
-    const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
-    useMascot.getState().applyEvent(e, true);
-    useMascot.getState().applyEvent(e, true);
+    useMascot.getState().applyScore(106);
 
     const saved = getJSON<{ reveal?: unknown }>(KEYS.mascot);
     expect(saved).not.toBeNull();

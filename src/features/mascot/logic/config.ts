@@ -24,13 +24,6 @@ export interface StageBound {
 export interface MascotConfigType {
   maxLevel: number;
   stageBounds: StageBound[];
-  xp: {
-    perClearedLine: number;
-    comboTierBonus: number;
-    newRecord: number;
-    boardClear: number;
-    dailyFeed: number;
-  };
   helpers: {
     hint: { unlockLevel: number; stuckThreshold: number };
     swap: { unlockLevel: number };
@@ -148,14 +141,6 @@ export const MASCOT_CONFIG: MascotConfigType = {
     { stage: 4, from: 20, to: 24 },
   ],
 
-  xp: {
-    perClearedLine:  3,
-    comboTierBonus:  1,
-    newRecord:      50,
-    boardClear:     20,
-    dailyFeed:      40,
-  },
-
   helpers: {
     // stuckThreshold — суммарных валидных позиций трея, ниже которых подсказка
     // уместна (затык). Черновое значение, балансируется без кода.
@@ -173,7 +158,7 @@ export const MASCOT_CONFIG: MascotConfigType = {
 };
 
 /**
- * XP, необходимое для перехода с уровня `level` на следующий.
+ * Очки прогресса, необходимые для перехода с уровня `level` на следующий.
  * Строго возрастающая функция; xpToNext(1) === 80.
  */
 export function xpToNext(level: number): number {

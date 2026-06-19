@@ -299,10 +299,9 @@ export function useMascotBrain(params: MascotBrainParams): void {
       prevEvent = event;
       if (!event) return;
 
-      const isRecord = event.gameOver
-        ? !!useGameStore.getState().finalResult?.newRecord
-        : false;
-      useMascot.getState().applyEvent(event, isRecord);
+      if (event.gameOver) {
+        useMascot.getState().applyScore(event.score);
+      }
 
       // Поза-реакция не запускается во время drag.
       if (pausedRef.current) return;

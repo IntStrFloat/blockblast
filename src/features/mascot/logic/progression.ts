@@ -22,7 +22,7 @@ export function stageForLevel(level: number): Stage {
 
 /**
  * Вычисляет текущий уровень, стадию и прогресс внутри уровня
- * на основе суммарного накопленного XP.
+ * на основе суммарных накопленных очков прогресса.
  * При достижении maxLevel: xpToNext = 0, xpInLevel = 0 (прогресс-бар заморожен).
  */
 export function progressFor(totalXp: number): ProgressInfo {

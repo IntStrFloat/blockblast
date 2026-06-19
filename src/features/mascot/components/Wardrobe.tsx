@@ -66,7 +66,7 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
     .filter((level) => level > p.level)
     .sort((a, b) => a - b)[0];
   const xpLabel =
-    p.xpToNext === 0 ? copy.maxed : `${p.xpInLevel}/${p.xpToNext} XP`;
+    p.xpToNext === 0 ? copy.maxed : `${p.xpInLevel}/${p.xpToNext} ${copy.pointsShort}`;
   const nextLabel = nextRewardLevel ? `${copy.next} ${copy.levelShort}${nextRewardLevel}` : copy.maxed;
 
   // Preview motion (neutral, static)
@@ -241,6 +241,7 @@ function wardrobeCopy(lang: Lang) {
       stage: 'стадия',
       maxed: 'максимум',
       next: 'следующая награда',
+      pointsShort: 'очк.',
       unlocked: 'открыто',
       equipped: 'надето',
     };
@@ -252,6 +253,7 @@ function wardrobeCopy(lang: Lang) {
     stage: 'stage',
     maxed: 'maxed',
     next: 'next reward',
+    pointsShort: 'pts',
     unlocked: 'unlocked',
     equipped: 'equipped',
   };

@@ -1,13 +1,12 @@
 import { create } from 'zustand';
 
-import { seedFromTime, type PlacementEvent } from '@/core/engine';
+import { seedFromTime } from '@/core/engine';
 import { KEYS, getJSON, setJSON } from '@/core/storage';
 import { todayISO } from '@/features/streak';
 
-import { MASCOT_CONFIG } from './logic/config';
 import { COSMETICS } from './logic/cosmetics';
 import { progressFor, rewardForLevel } from './logic/progression';
-import { canFeed, canUseHelper, xpFromEvent } from './logic/rules';
+import { canFeed, canUseHelper } from './logic/rules';
 import type { HelperId, LevelReward, MascotState, Slot } from './logic/types';
 
 // ---------------------------------------------------------------------------
@@ -81,7 +80,7 @@ function persist(state: MascotState): void {
 }
 
 // ---------------------------------------------------------------------------
-// Общий хелпер: начисление XP с уровень-апом и разблокировкой косметики
+// Общий хелпер: начисление очков прогресса с уровень-апом и разблокировкой косметики
 // ---------------------------------------------------------------------------
 
 interface GainResult {
@@ -129,7 +128,7 @@ interface RevealPayload {
 }
 
 interface MascotActions {
-  applyEvent: (event: PlacementEvent, isRecord: boolean) => { leveledTo: number; rewards: LevelReward[] };
+  applyScore: (score: number) => { leveledTo: number; rewards: LevelReward[] };
   feed: () => { leveledTo: number; rewards: LevelReward[] } | null;
   useHelper: (id: HelperId) => boolean;
   drop: () => void;
@@ -152,9 +151,9 @@ export const useMascot = create<MascotStore>((set, get) => ({
 
   reveal: null,
 
-  applyEvent(event, isRecord) {
+  applyScore(score) {
     const prev = get();
-    const gained = xpFromEvent(event, isRecord);
+    const gained = Math.max(0, Math.floor(score));
     const { patch, leveledTo, rewards } = gainXp(prev, gained);
     const next: MascotState = { ...prev, ...patch };
     const revealPatch = leveledTo > prev.level ? { reveal: { level: leveledTo, rewards } } : {};
@@ -168,12 +167,10 @@ export const useMascot = create<MascotStore>((set, get) => ({
     const today = todayISO();
     if (!canFeed(prev.lastFedDay, today)) return null;
 
-    const { patch, leveledTo, rewards } = gainXp(prev, MASCOT_CONFIG.xp.dailyFeed);
-    const next: MascotState = { ...prev, ...patch, lastFedDay: today };
-    const revealPatch = leveledTo > prev.level ? { reveal: { level: leveledTo, rewards } } : {};
-    set({ ...patch, lastFedDay: today, ...revealPatch });
+    const next: MascotState = { ...prev, lastFedDay: today };
+    set({ lastFedDay: today });
     persist(next);
-    return { leveledTo, rewards };
+    return { leveledTo: prev.level, rewards: [] };
   },
 
   useHelper(id) {

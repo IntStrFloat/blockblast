@@ -1,7 +1,7 @@
 import { MASCOT_CONFIG, xpToNext } from '../logic/config';
 import { stageForLevel, progressFor, rewardForLevel } from '../logic/progression';
 
-// Вычисляем общий XP, достаточный для достижения максимального уровня
+// Вычисляем общее количество очков, достаточное для достижения максимального уровня
 // Сумма xpToNext(1) + xpToNext(2) + ... + xpToNext(maxLevel-1) переводит с уровня 1 до maxLevel
 function totalXpForMaxLevel(): number {
   let sum = 0;
@@ -67,11 +67,11 @@ describe('progressFor', () => {
     });
   });
 
-  it('accumulating XP across multiple thresholds yields correct level and remainder', () => {
-    // XP to advance from level 1 → 3: xpToNext(1) + xpToNext(2)
-    const xpForLevel3 = xpToNext(1) + xpToNext(2);
-    // Adding 5 more XP into level 3
-    const totalXp = xpForLevel3 + 5;
+  it('accumulating points across multiple thresholds yields correct level and remainder', () => {
+    // Points to advance from level 1 → 3: xpToNext(1) + xpToNext(2)
+    const pointsForLevel3 = xpToNext(1) + xpToNext(2);
+    // Adding 5 more points into level 3
+    const totalXp = pointsForLevel3 + 5;
     expect(progressFor(totalXp)).toEqual({
       level: 3,
       stage: 1,
@@ -80,8 +80,8 @@ describe('progressFor', () => {
     });
   });
 
-  it('XP crossing stage boundary (levels 1→5) lands in stage 2', () => {
-    // XP to reach level 5: sum xpToNext(1..4)
+  it('points crossing stage boundary (levels 1→5) lands in stage 2', () => {
+    // Points to reach level 5: sum xpToNext(1..4)
     let xp = 0;
     for (let lvl = 1; lvl <= 4; lvl++) {
       xp += xpToNext(lvl);
@@ -93,12 +93,12 @@ describe('progressFor', () => {
     expect(result.xpToNext).toBe(xpToNext(5));
   });
 
-  it('at or above total XP for max level → level 24, stage 4, xpToNext 0, xpInLevel 0', () => {
+  it('at or above total points for max level → level 24, stage 4, xpToNext 0, xpInLevel 0', () => {
     const maxXp = totalXpForMaxLevel();
     expect(progressFor(maxXp)).toEqual({ level: 24, stage: 4, xpInLevel: 0, xpToNext: 0 });
   });
 
-  it('XP well above max level also clamps to level 24', () => {
+  it('points well above max level also clamps to level 24', () => {
     const maxXp = totalXpForMaxLevel();
     expect(progressFor(maxXp + 9999)).toEqual({ level: 24, stage: 4, xpInLevel: 0, xpToNext: 0 });
   });
