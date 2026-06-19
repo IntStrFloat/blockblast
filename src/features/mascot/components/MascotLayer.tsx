@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  cancelAnimation,
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -39,6 +40,7 @@ const MASCOT_SIZE = 56;
 const LAYER_HEIGHT = 70;
 /** Сдвиг вниз (≈ собственный рост), за которым отпускание = «потеря». */
 const DROP_THRESHOLD = MASCOT_SIZE;
+const LIFT_RETURN_MS = 180;
 
 interface MascotLayerProps {
   dragActive: SharedValue<number>;
@@ -113,9 +115,10 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   // паузу, когда активен ЛЮБОЙ drag — фигуры (dragActive) или маскота.
   const mascotDragging = useSharedValue(0);
   const mascotDropping = useSharedValue(0);
+  const mascotReturning = useSharedValue(0);
   const brainPaused = useSharedValue(0);
   useAnimatedReaction(
-    () => Math.max(dragActive.value, mascotDragging.value, mascotDropping.value),
+    () => Math.max(dragActive.value, mascotDragging.value, mascotDropping.value, mascotReturning.value),
     (v) => {
       brainPaused.value = v;
     },
@@ -147,8 +150,17 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   // «Потеря» Капи: бросок вниз за пределы пола. Вызывается через runOnJS из
   // pan.onEnd. Анимация падения — на shared values, lost-состояние персистим
   // с задержкой (после падения), реплика автоскрывается.
+  const dropInFlightRef = useRef(false);
   const handleDrop = useCallback(() => {
+    if (dropInFlightRef.current) return;
+    dropInFlightRef.current = true;
+    dropTimers.current.forEach(clearTimeout);
+    dropTimers.current = [];
     mascotDropping.value = 1;
+    mascotReturning.value = 0;
+    cancelAnimation(motion.bob);
+    cancelAnimation(motion.opacity);
+    cancelAnimation(motion.rotate);
     motion.bob.value = withTiming(240, { duration: 450 });
     motion.opacity.value = withTiming(0, { duration: 450 });
     motion.rotate.value = withTiming(40, { duration: 450 });
@@ -157,7 +169,7 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
     const t1 = setTimeout(() => useMascot.getState().drop(), 450);
     const t2 = setTimeout(() => setLostText(null), 2200);
     dropTimers.current.push(t1, t2);
-  }, [mascotDropping, motion, praiseTone, lang, onLost]);
+  }, [mascotDropping, mascotReturning, motion, praiseTone, lang, onLost]);
 
   // Восстановление маскота при начале новой партии (newGame / loadSaved).
   const epoch = useGameStore((s) => s.epoch);
@@ -166,6 +178,8 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
       useMascot.getState().recover();
       mascotDragging.value = 0;
       mascotDropping.value = 0;
+      mascotReturning.value = 0;
+      dropInFlightRef.current = false;
       // Вход после возвращения: плавное появление + подпрыжок.
       // Reanimated shared values устанавливаются напрямую — не setState.
       // Полный сброс позы после падения: прозрачность/боб + поворот/масштаб.
@@ -211,12 +225,19 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   const pan = Gesture.Pan()
     .onBegin(() => {
       'worklet';
+      if (mascotDropping.value) return;
+      mascotReturning.value = 0;
+      cancelAnimation(motion.bob);
+      cancelAnimation(motion.scaleX);
+      cancelAnimation(motion.scaleY);
+      cancelAnimation(motion.rotate);
       mascotDragging.value = 1;
       motion.scaleX.value = withTiming(1.1, { duration: 120 });
       motion.scaleY.value = withTiming(1.1, { duration: 120 });
     })
     .onChange((e) => {
       'worklet';
+      if (mascotDropping.value) return;
       // Горизонталь — в пределах пола; вертикаль (bob) следует за пальцем,
       // положительный bob = вниз, ниже пола.
       motion.x.value = Math.max(0, Math.min(areaWidth, motion.x.value + e.changeX));
@@ -224,22 +245,31 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
     })
     .onEnd((e) => {
       'worklet';
-      if (e.translationY > DROP_THRESHOLD) {
+      if (mascotDropping.value) return;
+      if (motion.bob.value > DROP_THRESHOLD || e.translationY > DROP_THRESHOLD) {
         // Бросок вниз за пол → «потеря». Отдельный dropping-флаг держит мозг на паузе.
         mascotDropping.value = 1;
         runOnJS(handleDrop)();
       } else {
         // Возврат на место.
-        motion.bob.value = withSpring(0);
-        motion.scaleX.value = withSpring(1);
-        motion.scaleY.value = withSpring(1);
+        mascotReturning.value = 1;
+        cancelAnimation(motion.bob);
+        cancelAnimation(motion.scaleX);
+        cancelAnimation(motion.scaleY);
+        cancelAnimation(motion.rotate);
+        motion.bob.value = withTiming(0, { duration: LIFT_RETURN_MS }, (finished) => {
+          if (finished) mascotReturning.value = 0;
+        });
+        motion.scaleX.value = withTiming(1, { duration: LIFT_RETURN_MS });
+        motion.scaleY.value = withTiming(1, { duration: LIFT_RETURN_MS });
+        motion.rotate.value = withTiming(0, { duration: LIFT_RETURN_MS });
         mascotDragging.value = 0;
       }
     })
     .onFinalize(() => {
       'worklet';
       // Подстраховка: мозг не должен остаться на паузе, если onEnd не «потерял».
-      if (!mascotDropping.value) mascotDragging.value = 0;
+      if (!mascotDropping.value && !mascotReturning.value) mascotDragging.value = 0;
     });
 
   // Гонка: быстрый тап → tap, протяжка → pan.
