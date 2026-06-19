@@ -277,10 +277,12 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 24,
     backgroundColor: 'transparent',
-    gap: spacing.s,
+    gap: 0,
   },
   headerPanel: {
     borderRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     backgroundColor: 'rgba(13,22,45,0.94)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(126,231,255,0.24)',
@@ -402,10 +404,12 @@ const styles = StyleSheet.create({
     maxHeight: 326,
   },
   gridPanel: {
-    marginTop: spacing.xs,
     borderRadius: 22,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
     backgroundColor: 'rgba(2,13,28,0.76)',
     borderWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0,
     borderColor: 'rgba(126,231,255,0.18)',
     overflow: 'hidden',
   },
