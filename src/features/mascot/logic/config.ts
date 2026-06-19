@@ -174,8 +174,8 @@ export const MASCOT_CONFIG: MascotConfigType = {
 
 /**
  * XP, необходимое для перехода с уровня `level` на следующий.
- * Строго возрастающая функция; xpToNext(1) === 40.
+ * Строго возрастающая функция; xpToNext(1) === 80.
  */
 export function xpToNext(level: number): number {
-  return Math.round(40 * Math.pow(1.18, level - 1));
+  return Math.round(80 * Math.pow(1.18, level - 1));
 }

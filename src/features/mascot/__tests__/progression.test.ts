@@ -38,16 +38,16 @@ describe('stageForLevel', () => {
 });
 
 describe('progressFor', () => {
-  it('progressFor(0) → level 1, stage 1, xpInLevel 0, xpToNext 40', () => {
-    expect(progressFor(0)).toEqual({ level: 1, stage: 1, xpInLevel: 0, xpToNext: 40 });
+  it('progressFor(0) → level 1, stage 1, xpInLevel 0, xpToNext 80', () => {
+    expect(progressFor(0)).toEqual({ level: 1, stage: 1, xpInLevel: 0, xpToNext: 80 });
   });
 
-  it('progressFor(-100) clamps to level 1, stage 1, xpInLevel 0, xpToNext 40', () => {
-    expect(progressFor(-100)).toEqual({ level: 1, stage: 1, xpInLevel: 0, xpToNext: 40 });
+  it('progressFor(-100) clamps to level 1, stage 1, xpInLevel 0, xpToNext 80', () => {
+    expect(progressFor(-100)).toEqual({ level: 1, stage: 1, xpInLevel: 0, xpToNext: 80 });
   });
 
   it('totalXp just below first threshold keeps level 1 with correct xpInLevel', () => {
-    const threshold = xpToNext(1); // 40
+    const threshold = xpToNext(1); // 80
     const xp = threshold - 1;
     expect(progressFor(xp)).toEqual({
       level: 1,
@@ -58,7 +58,7 @@ describe('progressFor', () => {
   });
 
   it('totalXp exactly at first threshold advances to level 2', () => {
-    const threshold = xpToNext(1); // 40
+    const threshold = xpToNext(1); // 80
     expect(progressFor(threshold)).toEqual({
       level: 2,
       stage: 1,

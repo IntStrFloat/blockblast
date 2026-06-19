@@ -66,8 +66,8 @@ describe('MASCOT_CONFIG.rewards', () => {
 });
 
 describe('xpToNext', () => {
-  it('xpToNext(1) === 40', () => {
-    expect(xpToNext(1)).toBe(40);
+  it('xpToNext(1) === 80', () => {
+    expect(xpToNext(1)).toBe(80);
   });
 
   it('is strictly increasing for levels 1..24', () => {

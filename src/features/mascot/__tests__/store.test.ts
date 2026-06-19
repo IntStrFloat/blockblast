@@ -11,7 +11,7 @@ import { todayISO } from '@/features/streak';
 
 import { useMascot } from '../store';
 
-// xpToNext(1) = 40  → переход 1→2 при totalXp >= 40
+// xpToNext(1) = 80  → переход 1→2 при totalXp >= 80
 // Level 2 reward: { kind: 'cosmetic', id: 'face-glasses' }
 // Level 5 reward: { kind: 'helper', id: 'hint' }
 
@@ -82,27 +82,24 @@ describe('defaults', () => {
 // applyEvent
 // ---------------------------------------------------------------------------
 describe('applyEvent', () => {
-  it('event с isRecord=true и 1 линией → 53 XP, уровень > 1, rewards содержит косметику', () => {
+  it('одно record-событие с 1 линией дает 53 XP, но не повышает уровень', () => {
     // xpFromEvent: 1 линия * 3 + 50 (record) = 53
-    // xpToNext(1) = 40 → новый level = 2
-    // rewardForLevel(2) = { kind: 'cosmetic', id: 'face-glasses' }
     const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
     const result = useMascot.getState().applyEvent(e, true);
 
-    expect(result.leveledTo).toBe(2);
-    expect(result.rewards).toHaveLength(1);
-    expect(result.rewards[0]).toEqual({ kind: 'cosmetic', id: 'face-glasses' });
+    expect(result.leveledTo).toBe(1);
+    expect(result.rewards).toEqual([]);
 
     const s = useMascot.getState();
     expect(s.totalXp).toBe(53);
-    expect(s.level).toBe(2);
-    expect(s.unlocked).toContain('face-glasses');
+    expect(s.level).toBe(1);
+    expect(s.unlocked).not.toContain('face-glasses');
   });
 
   it('повторный applyEvent не дублирует id косметики в unlocked', () => {
     const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
-    useMascot.getState().applyEvent(e, true); // +53 XP → level 2
-    useMascot.getState().applyEvent(e, true); // +53 XP → 106 XP → но level 2 reward уже в unlocked
+    useMascot.getState().applyEvent(e, true); // +53 XP → еще level 1
+    useMascot.getState().applyEvent(e, true); // +53 XP → 106 XP → level 2
 
     const s = useMascot.getState();
     const count = s.unlocked.filter((id) => id === 'face-glasses').length;
@@ -133,12 +130,13 @@ describe('applyEvent', () => {
 // ---------------------------------------------------------------------------
 describe('feed', () => {
   it('первый вызов добавляет dailyFeed XP и устанавливает lastFedDay', () => {
-    // dailyFeed = 40 XP → level 1→2 (xpToNext(1)=40 → достигает 40 → level 2)
+    // dailyFeed = 40 XP, новый xpToNext(1)=80 → остается level 1
     const result = useMascot.getState().feed();
 
     expect(result).not.toBeNull();
     const s = useMascot.getState();
     expect(s.totalXp).toBe(40);
+    expect(s.level).toBe(1);
     expect(s.lastFedDay).toBe(todayISO());
   });
 
@@ -321,8 +319,9 @@ describe('persistence', () => {
 // ---------------------------------------------------------------------------
 describe('reveal', () => {
   it('applyEvent с левел-апом устанавливает reveal с правильным level и rewards', () => {
-    // +53 XP (1 линия + record bonus) → level 1→2, reward: { kind:'cosmetic', id:'face-glasses' }
+    // 2 * 53 XP (1 линия + record bonus) → level 1→2, reward: { kind:'cosmetic', id:'face-glasses' }
     const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
+    useMascot.getState().applyEvent(e, true);
     useMascot.getState().applyEvent(e, true);
 
     const s = useMascot.getState();
@@ -341,7 +340,8 @@ describe('reveal', () => {
   });
 
   it('feed() с левел-апом устанавливает reveal', () => {
-    // dailyFeed = 40 XP → level 1→2
+    // dailyFeed = 40 XP; стартуем с 40 XP, чтобы добрать порог 80.
+    useMascot.setState({ totalXp: 40 });
     const result = useMascot.getState().feed();
     expect(result).not.toBeNull();
 
@@ -354,6 +354,7 @@ describe('reveal', () => {
     // Сначала вызовем левел-ап, чтобы reveal был не null
     const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
     useMascot.getState().applyEvent(e, true);
+    useMascot.getState().applyEvent(e, true);
     expect(useMascot.getState().reveal).not.toBeNull();
 
     useMascot.getState().clearReveal();
@@ -362,6 +363,7 @@ describe('reveal', () => {
 
   it('reveal НЕ записывается в MMKV (не персистится)', () => {
     const e = makeEvent({ clearedRows: [0], clearedCols: [], combo: 1 });
+    useMascot.getState().applyEvent(e, true);
     useMascot.getState().applyEvent(e, true);
 
     const saved = getJSON<{ reveal?: unknown }>(KEYS.mascot);
