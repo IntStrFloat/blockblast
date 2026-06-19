@@ -11,7 +11,7 @@ import { COSMETICS } from '../logic/cosmetics';
 import { MASCOT_CONFIG } from '../logic/config';
 import { progressFor } from '../logic/progression';
 import { canUseHelper } from '../logic/rules';
-import type { Slot } from '../logic/types';
+import type { Cosmetic, Slot } from '../logic/types';
 import { useMascot } from '../store';
 import { Mascot, useMascotMotion } from './Mascot';
 import { CosmeticIcon, HelperGlyph, LockGlyph, MascotMark, SlotGlyph } from './MascotArt';
@@ -25,6 +25,18 @@ const COSMETIC_UNLOCK_LEVEL: Record<string, number> = (() => {
   }
   return map;
 })();
+
+const COSMETIC_BY_ID = new Map(COSMETICS.map((item) => [item.id, item]));
+
+const WARDROBE_COSMETICS: Cosmetic[] = Object.entries(MASCOT_CONFIG.rewards)
+  .map(([level, reward]) => ({
+    level: Number(level),
+    reward,
+  }))
+  .filter(({ reward }) => reward?.kind === 'cosmetic')
+  .sort((a, b) => a.level - b.level)
+  .map(({ reward }) => COSMETIC_BY_ID.get(reward!.id))
+  .filter((item): item is Cosmetic => item !== undefined);
 
 interface WardrobeProps {
   visible: boolean;
@@ -51,7 +63,7 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
   const panelWidth = Math.min(width - spacing.m * 2, 392);
   const panelMaxHeight = Math.min(height - spacing.l * 2, 680);
   const tileSize = Math.floor((panelWidth - spacing.m * 2 - spacing.s * 3) / 4);
-  const unlockedCount = COSMETICS.filter((item) => unlocked.includes(item.id)).length;
+  const unlockedCount = WARDROBE_COSMETICS.filter((item) => unlocked.includes(item.id)).length;
   const nextRewardLevel = Object.keys(MASCOT_CONFIG.rewards)
     .map(Number)
     .filter((level) => level > p.level)
@@ -124,7 +136,7 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
               {copy.unlocked}
             </AppText>
             <AppText preset="button" style={styles.summaryValue}>
-              {`${unlockedCount}/${COSMETICS.length}`}
+              {`${unlockedCount}/${WARDROBE_COSMETICS.length}`}
             </AppText>
           </View>
           <View style={styles.summaryPill}>
@@ -142,7 +154,7 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
           contentContainerStyle={styles.grid}
           showsVerticalScrollIndicator={false}
         >
-          {COSMETICS.map((item) => {
+          {WARDROBE_COSMETICS.map((item) => {
             const isUnlocked = unlocked.includes(item.id);
             const isEquipped = equipped[item.slot] === item.id;
             const unlockLevel = COSMETIC_UNLOCK_LEVEL[item.id];
@@ -232,7 +244,7 @@ function CosmeticTile({
       <View style={styles.slotBadge} pointerEvents="none">
         <SlotGlyph slot={slot} size={12} />
       </View>
-      <CosmeticIcon id={itemId} size={Math.round(size * 0.58)} muted={!isUnlocked} />
+      <CosmeticIcon id={itemId} size={Math.round(size * 0.52)} muted={!isUnlocked} simple />
       {!isUnlocked && (
         <View style={styles.lockRow}>
           <LockGlyph size={10} />

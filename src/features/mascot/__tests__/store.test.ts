@@ -236,6 +236,12 @@ describe('equip', () => {
     expect(useMascot.getState().equipped['hat']).toBe('hat-casquette');
   });
 
+  it('equip игнорируется если id не принадлежит указанному слоту', () => {
+    useMascot.setState({ unlocked: ['hat-casquette'] });
+    useMascot.getState().equip('face', 'hat-casquette');
+    expect(useMascot.getState().equipped['face']).toBeUndefined();
+  });
+
   it('equip персистит equipped', () => {
     useMascot.setState({ unlocked: ['hat-casquette'] });
     useMascot.getState().equip('hat', 'hat-casquette');

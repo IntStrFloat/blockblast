@@ -5,6 +5,7 @@ import { KEYS, getJSON, setJSON } from '@/core/storage';
 import { todayISO } from '@/features/streak';
 
 import { MASCOT_CONFIG } from './logic/config';
+import { COSMETICS } from './logic/cosmetics';
 import { progressFor, rewardForLevel } from './logic/progression';
 import { canFeed, canUseHelper, xpFromEvent } from './logic/rules';
 import type { HelperId, LevelReward, MascotState, Slot } from './logic/types';
@@ -26,6 +27,9 @@ const DEFAULTS: MascotState = {
 };
 
 const saved = getJSON<Partial<MascotState>>(KEYS.mascot);
+const COSMETIC_SLOT: Record<string, Slot> = Object.fromEntries(
+  COSMETICS.map((item) => [item.id, item.slot]),
+);
 
 function unlockedThroughLevel(current: readonly string[], level: number): string[] {
   const unlocked = [...current];
@@ -38,12 +42,26 @@ function unlockedThroughLevel(current: readonly string[], level: number): string
   return unlocked;
 }
 
+function normalizeEquipped(
+  equipped: Partial<Record<Slot, string>>,
+  unlocked: readonly string[],
+): Partial<Record<Slot, string>> {
+  const normalized: Partial<Record<Slot, string>> = {};
+  for (const [slot, id] of Object.entries(equipped) as [Slot, string][]) {
+    if (unlocked.includes(id) && COSMETIC_SLOT[id] === slot) {
+      normalized[slot] = id;
+    }
+  }
+  return normalized;
+}
+
 /** Начальное состояние: дефолты + сохранённые поверх; level пересчитывается защитно */
 function buildInitial(): MascotState {
   const merged: MascotState = { ...DEFAULTS, ...saved };
   // Привести кеш level в соответствие с totalXp (защита от рассинхрона)
   merged.level = progressFor(merged.totalXp).level;
   merged.unlocked = unlockedThroughLevel(merged.unlocked, merged.level);
+  merged.equipped = normalizeEquipped(merged.equipped, merged.unlocked);
   return merged;
 }
 
@@ -187,6 +205,7 @@ export const useMascot = create<MascotStore>((set, get) => ({
   equip(slot, id) {
     const prev = get();
     if (!prev.unlocked.includes(id)) return;
+    if (COSMETIC_SLOT[id] !== slot) return;
 
     const equipped = { ...prev.equipped, [slot]: id };
     const next: MascotState = { ...prev, equipped };

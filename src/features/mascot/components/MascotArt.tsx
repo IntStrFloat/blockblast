@@ -29,6 +29,7 @@ interface CosmeticIconProps {
   id: string;
   size?: number;
   muted?: boolean;
+  simple?: boolean;
 }
 
 interface SlotGlyphProps {
@@ -122,11 +123,11 @@ export function MascotFigure({ stage, equipped, size, eyeStyle }: MascotFigurePr
   );
 }
 
-export function CosmeticIcon({ id, size = 34, muted = false }: CosmeticIconProps) {
+export function CosmeticIcon({ id, size = 34, muted = false, simple = false }: CosmeticIconProps) {
   const opacity = muted ? 0.58 : 1;
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none" opacity={opacity}>
-      {renderCosmeticPreview(id)}
+      {simple || size <= 48 ? renderSimpleCosmeticPreview(id) : renderCosmeticPreview(id)}
     </Svg>
   );
 }
@@ -134,9 +135,9 @@ export function CosmeticIcon({ id, size = 34, muted = false }: CosmeticIconProps
 export function SlotGlyph({ slot, size = 18 }: SlotGlyphProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      {slot === 'hat' ? renderHat('hat-panama') : null}
-      {slot === 'face' ? renderFace('face-glasses') : null}
-      {slot === 'accessory' ? renderAccessoryFront('acc-headphones') : null}
+      {slot === 'hat' ? renderSimpleCosmeticPreview('hat-panama') : null}
+      {slot === 'face' ? renderSimpleCosmeticPreview('face-glasses') : null}
+      {slot === 'accessory' ? renderSimpleCosmeticPreview('acc-headphones') : null}
       {slot === 'skin' ? (
         <>
           <Circle cx="36" cy="45" r="18" fill={P.skinMint1} />
@@ -144,7 +145,7 @@ export function SlotGlyph({ slot, size = 18 }: SlotGlyphProps) {
           <Circle cx="52" cy="62" r="18" fill={P.block} />
         </>
       ) : null}
-      {slot === 'aura' ? renderAura('aura-stars', 4) : null}
+      {slot === 'aura' ? renderSimpleCosmeticPreview('aura-stars') : null}
     </Svg>
   );
 }
@@ -245,6 +246,151 @@ function renderCosmeticPreview(id: string): ReactNode {
   return renderHat(id) ?? renderFace(id) ?? renderAccessoryFront(id) ?? renderBackAccessory(id);
 }
 
+function renderSimpleCosmeticPreview(id: string): ReactNode {
+  const skin = SKINS[id] ?? SKINS.default;
+  if (id === 'hat-casquette') {
+    return (
+      <G>
+        <Path d="M24 44c8-18 35-22 52-6l-6 17H27l-3-11z" fill={P.hatBlue} />
+        <Path d="M58 51c15-1 25 3 31 10-13 4-25 2-36-5l5-5z" fill={P.lens} />
+      </G>
+    );
+  }
+  if (id === 'hat-block-crown') {
+    return <Path d="M18 65l10-32 18 20 10-30 16 30 17-20 5 32H18z" fill={P.block} />;
+  }
+  if (id === 'hat-panama') {
+    return (
+      <G>
+        <Ellipse cx="50" cy="58" rx="39" ry="10" fill={P.furLight} />
+        <Path d="M30 56c2-25 11-35 20-35s18 10 20 35H30z" fill={P.furLight} />
+        <Path d="M31 48h38" stroke={P.hatOrange} strokeWidth="9" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (id === 'hat-beanie') {
+    return (
+      <G>
+        <Circle cx="50" cy="22" r="9" fill={P.auraPink} />
+        <Path d="M21 64c4-28 16-42 29-42s25 14 29 42H21z" fill={P.hatPurple} />
+        <Path d="M26 62h48" stroke={P.auraPink} strokeWidth="10" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (id === 'hat-tophat') {
+    return (
+      <G>
+        <Rect x="35" y="18" width="30" height="46" rx="6" fill={P.hatDeep} />
+        <Rect x="21" y="58" width="58" height="13" rx="7" fill={P.hatDeep} />
+        <Rect x="35" y="50" width="30" height="9" fill={P.block} />
+      </G>
+    );
+  }
+  if (id === 'hat-halo') {
+    return <Ellipse cx="50" cy="50" rx="34" ry="11" stroke={P.block} strokeWidth="9" />;
+  }
+  if (id === 'face-glasses' || id === 'face-sunglasses') {
+    const fill = id === 'face-sunglasses' ? P.glasses : P.lens;
+    const opacity = id === 'face-sunglasses' ? 1 : 0.56;
+    return (
+      <G>
+        <Rect x="17" y="39" width="27" height="22" rx="9" fill={fill} opacity={opacity} />
+        <Rect x="56" y="39" width="27" height="22" rx="9" fill={fill} opacity={opacity} />
+        <Path d="M43 50h14" stroke={P.glasses} strokeWidth="7" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (id === 'face-star-eyes') {
+    return (
+      <G>
+        <Star cx={34} cy={50} r={17} fill={P.block} />
+        <Star cx={66} cy={50} r={17} fill={P.block} />
+      </G>
+    );
+  }
+  if (id === 'face-monocle') {
+    return (
+      <G>
+        <Circle cx="48" cy="45" r="21" fill={P.lens} opacity="0.5" stroke={P.block} strokeWidth="8" />
+        <Path d="M63 61c12 10 15 20 10 29" stroke={P.block} strokeWidth="7" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (id === 'face-vr-visor') {
+    return (
+      <G>
+        <Rect x="17" y="35" width="66" height="31" rx="14" fill={P.hatDeep} />
+        <Path d="M29 50c13-7 29-7 42 0" stroke={P.auraBlue} strokeWidth="8" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (id === 'acc-headphones') {
+    return (
+      <G>
+        <Path d="M24 47c0-27 52-27 52 0" stroke={P.hatDeep} strokeWidth="9" strokeLinecap="round" />
+        <Rect x="15" y="45" width="19" height="31" rx="8" fill={P.accessoryTeal} />
+        <Rect x="66" y="45" width="19" height="31" rx="8" fill={P.accessoryTeal} />
+      </G>
+    );
+  }
+  if (id === 'acc-scarf') {
+    return (
+      <G>
+        <Path d="M18 52c19 14 44 15 64 0v18c-23 12-43 11-64 0V52z" fill={P.scarf} />
+        <Path d="M58 62l27 24 8-15-27-16-8 7z" fill={P.hatOrange} />
+      </G>
+    );
+  }
+  if (id === 'acc-backpack') {
+    return (
+      <G>
+        <Rect x="27" y="25" width="46" height="58" rx="16" fill={P.hatPurple} />
+        <Path d="M37 40h26M37 55h18" stroke={P.block} strokeWidth="7" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (id === 'acc-cape') {
+    return <Path d="M33 18c20 11 32 33 39 70-20-2-38-10-54-24 6-20 11-35 15-46z" fill={P.cape} />;
+  }
+  if (id === 'acc-jetpack') {
+    return (
+      <G>
+        <Rect x="25" y="20" width="18" height="51" rx="8" fill={P.metal} />
+        <Rect x="57" y="20" width="18" height="51" rx="8" fill={P.metal} />
+        <Path d="M28 73l6 18 6-18M60 73l6 18 6-18" fill={P.hatOrange} />
+      </G>
+    );
+  }
+  if (id.startsWith('skin-')) {
+    return (
+      <G>
+        <Circle cx="50" cy="50" r="36" fill={skin.mid} />
+        <Path d="M22 42c15-17 44-20 60-2-19-6-39-5-60 2z" fill={skin.light} opacity="0.72" />
+      </G>
+    );
+  }
+  if (id === 'aura-sparkles' || id === 'aura-stars') {
+    return (
+      <G>
+        <Star cx={29} cy={34} r={14} fill={P.block} />
+        <Star cx={65} cy={53} r={17} fill={id === 'aura-stars' ? P.auraPink : P.auraBlue} />
+      </G>
+    );
+  }
+  if (id === 'aura-rainbow') {
+    return (
+      <G>
+        <Path d="M17 68a33 33 0 0166 0" stroke={P.auraPink} strokeWidth="10" strokeLinecap="round" />
+        <Path d="M29 68a21 21 0 0142 0" stroke={P.block} strokeWidth="10" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (id === 'aura-fire') {
+    return <Path d="M25 84c-9-22 8-33 10-55 9 13 8 23 18 31 4-22 20-29 18-49 21 24 24 50 5 73H25z" fill={P.auraFire} />;
+  }
+  return <Circle cx="50" cy="50" r="28" fill={P.block} />;
+}
+
 function renderAura(id: string | undefined, stage: Stage): ReactNode {
   if (!id && stage < 4) return null;
   if (id === 'aura-fire') {
@@ -277,19 +423,19 @@ function renderAura(id: string | undefined, stage: Stage): ReactNode {
 
 function renderBackAccessory(id: string | undefined): ReactNode {
   if (id === 'acc-cape') {
-    return <Path d="M29 48c-14 13-17 31-7 43 17-3 31-10 42-25L29 48z" fill={P.cape} opacity="0.82" />;
+    return <Path d="M27 48c-16 14-20 32-10 43 19-2 34-10 48-25L27 48z" fill={P.cape} opacity="0.86" />;
   }
   if (id === 'acc-jetpack') {
     return (
       <G>
-        <Rect x="15" y="43" width="16" height="34" rx="7" fill={P.metal} />
-        <Rect x="69" y="43" width="16" height="34" rx="7" fill={P.metal} />
-        <Path d="M18 78l5 13 5-13M72 78l5 13 5-13" fill={P.hatOrange} />
+        <Rect x="10" y="43" width="18" height="36" rx="7" fill={P.metal} />
+        <Rect x="72" y="43" width="18" height="36" rx="7" fill={P.metal} />
+        <Path d="M14 79l5 14 5-14M76 79l5 14 5-14" fill={P.hatOrange} />
       </G>
     );
   }
   if (id === 'acc-backpack') {
-    return <Rect x="7" y="49" width="25" height="34" rx="10" fill={P.hatPurple} />;
+    return <Rect x="8" y="47" width="27" height="38" rx="11" fill={P.hatPurple} />;
   }
   return null;
 }
@@ -404,6 +550,16 @@ function renderAccessoryFront(id: string | undefined): ReactNode {
   }
   if (id === 'acc-backpack') {
     return <Path d="M24 52c10 3 15 12 14 27" stroke={P.block} strokeWidth="5" strokeLinecap="round" />;
+  }
+  if (id === 'acc-cape') {
+    return <Path d="M34 70c9 5 23 5 32 0" stroke={P.block} strokeWidth="5" strokeLinecap="round" />;
+  }
+  if (id === 'acc-jetpack') {
+    return (
+      <G opacity="0.92">
+        <Path d="M31 55c5 9 8 17 8 27M69 55c-5 9-8 17-8 27" stroke={P.hatDeep} strokeWidth="4" strokeLinecap="round" />
+      </G>
+    );
   }
   return null;
 }
