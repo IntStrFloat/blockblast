@@ -27,11 +27,23 @@ const DEFAULTS: MascotState = {
 
 const saved = getJSON<Partial<MascotState>>(KEYS.mascot);
 
+function unlockedThroughLevel(current: readonly string[], level: number): string[] {
+  const unlocked = [...current];
+  for (let L = 1; L <= level; L++) {
+    const reward = rewardForLevel(L);
+    if (reward?.kind === 'cosmetic' && !unlocked.includes(reward.id)) {
+      unlocked.push(reward.id);
+    }
+  }
+  return unlocked;
+}
+
 /** Начальное состояние: дефолты + сохранённые поверх; level пересчитывается защитно */
 function buildInitial(): MascotState {
   const merged: MascotState = { ...DEFAULTS, ...saved };
   // Привести кеш level в соответствие с totalXp (защита от рассинхрона)
   merged.level = progressFor(merged.totalXp).level;
+  merged.unlocked = unlockedThroughLevel(merged.unlocked, merged.level);
   return merged;
 }
 
@@ -66,7 +78,7 @@ function gainXp(prev: MascotState, amount: number): GainResult {
   const newLevel = progressFor(newTotal).level;
 
   const rewards: LevelReward[] = [];
-  const unlocked = [...prev.unlocked];
+  const unlocked = unlockedThroughLevel(prev.unlocked, oldLevel);
 
   for (let L = oldLevel + 1; L <= newLevel; L++) {
     const r = rewardForLevel(L);

@@ -45,7 +45,7 @@ function makeEvent(
 const DEFAULTS = {
   totalXp: 0,
   level: 1,
-  unlocked: [],
+  unlocked: ['hat-casquette'],
   equipped: {},
   lastFedDay: null,
   helpersUsedDay: {},
@@ -66,13 +66,13 @@ beforeEach(() => {
 // Дефолтные значения
 // ---------------------------------------------------------------------------
 describe('defaults', () => {
-  it('totalXp=0, level=1, lost=false, introDone=false, unlocked=[]', () => {
+  it('totalXp=0, level=1, lost=false, introDone=false, unlocked=level 1 reward', () => {
     const s = useMascot.getState();
     expect(s.totalXp).toBe(0);
     expect(s.level).toBe(1);
     expect(s.lost).toBe(false);
     expect(s.introDone).toBe(false);
-    expect(s.unlocked).toEqual([]);
+    expect(s.unlocked).toEqual(['hat-casquette']);
     expect(s.lastFedDay).toBeNull();
     expect(s.helpersUsedDay).toEqual({});
   });
@@ -226,7 +226,7 @@ describe('drop / recover', () => {
 // ---------------------------------------------------------------------------
 describe('equip', () => {
   it('equip игнорируется если id не в unlocked', () => {
-    useMascot.getState().equip('hat', 'hat-casquette');
+    useMascot.getState().equip('hat', 'hat-panama');
     expect(useMascot.getState().equipped['hat']).toBeUndefined();
   });
 
