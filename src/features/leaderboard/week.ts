@@ -1,4 +1,4 @@
-import type { LocalWeeklyResult } from './types';
+import type { LeaderboardEntry, LocalWeeklyResult } from './types';
 
 export function getUtcWeekWindow(now: Date) {
   const date = new Date(now.getTime());
@@ -79,4 +79,14 @@ export function getVisibleWeeklyBest(
   return localResult?.weekKey === currentWeekKey
     ? Math.max(remoteBest, localResult.bestScore)
     : remoteBest;
+}
+
+export function getVisibleLeaderboardEntry(
+  entry: LeaderboardEntry,
+  localResult: LocalWeeklyResult | null,
+  now = new Date(),
+): LeaderboardEntry {
+  if (!entry.isCurrentPlayer) return entry;
+  const weeklyBest = getVisibleWeeklyBest(entry.weeklyBest, localResult, now);
+  return weeklyBest === entry.weeklyBest ? entry : { ...entry, weeklyBest };
 }

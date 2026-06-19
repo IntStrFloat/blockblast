@@ -4,6 +4,7 @@ import {
   decodeChallengeCode,
   getUtcWeekCountdown,
   getUtcWeekWindow,
+  getVisibleLeaderboardEntry,
   getVisibleWeeklyBest,
   getWeeklyGoal,
   shouldShowDailyChallenge,
@@ -75,5 +76,28 @@ describe('leaderboard week helpers', () => {
         new Date('2026-06-15T12:00:00.000Z'),
       ),
     ).toBe(1200);
+  });
+
+  it('uses the current local weekly best for the current player row', () => {
+    expect(
+      getVisibleLeaderboardEntry(
+        {
+          nickname: 'LimeComet',
+          tag: '00H',
+          rank: 7,
+          weeklyBest: 1200,
+          runsCount: 2,
+          achievedAt: '2026-06-13T11:00:00.000Z',
+          isCurrentPlayer: true,
+        },
+        {
+          weekKey: '2026-06-08',
+          bestScore: 2480,
+          runsCount: 3,
+          achievedAt: '2026-06-13T12:00:00.000Z',
+        },
+        new Date('2026-06-14T12:00:00.000Z'),
+      ).weeklyBest,
+    ).toBe(2480);
   });
 });
