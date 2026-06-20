@@ -24,6 +24,7 @@ import { TutorialHints } from '@/features/game/components/TutorialHints';
 import { NewRecordCelebration } from '@/features/game/effects/NewRecordCelebration';
 import { MascotLayer } from '@/features/mascot';
 import { AdBanner } from '@/features/monetization';
+import { useProgressionSync } from '@/features/progression/hooks/useProgressionSync';
 import { useLang, useSettings } from '@/features/settings';
 import { AppText, ConfirmDialog, getBlockTheme, getBoardMetrics, radii } from '@/ui';
 
@@ -80,6 +81,8 @@ function EggToast() {
 export default function GameScreen() {
   const router = useRouter();
   const lang = useLang();
+  // Начисляет очки в Уровень Игры на game-over и сверяет гардероб Капи (спека 11 §6).
+  useProgressionSync();
   const params = useLocalSearchParams<{
     entry?: string | string[];
     seed?: string | string[];
