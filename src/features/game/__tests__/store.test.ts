@@ -301,7 +301,7 @@ describe('Game Over and Continue accounting', () => {
 
   it('freezes ranked and game-count accounting at first Game Over', () => {
     useLeaderboardStore.setState({
-      tickets: [{ ticketId: 'ticket-1', seed: 5, expiresAt: '2026-06-20T00:00:00.000Z' }],
+      tickets: [{ ticketId: 'ticket-1', seed: 5, expiresAt: '2099-06-20T00:00:00.000Z' }],
     });
     useGameStore.getState().newGame({ mode: 'weekly' });
     setNearGameOver(777);
