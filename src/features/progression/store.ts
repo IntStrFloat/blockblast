@@ -43,15 +43,27 @@ function themesThroughWorld(world: number): string[] {
   return ids;
 }
 
-function migratedPoints(saved: Partial<ProgressionState> | null): number {
-  if (saved && typeof saved.lifetimePoints === 'number') return saved.lifetimePoints;
-  const oldMascot = getJSON<{ totalXp?: number }>(KEYS.mascot);
-  return oldMascot && typeof oldMascot.totalXp === 'number' ? oldMascot.totalXp : 0;
+/**
+ * Чистая логика выбора стартовых очков: сохранённый прогресс приоритетнее;
+ * иначе миграция со старой XP Капи (она фактически = накопленный счёт); иначе 0.
+ */
+export function resolveLifetimePoints(
+  savedProgression: { lifetimePoints?: number } | null,
+  savedMascot: { totalXp?: number } | null,
+): number {
+  if (savedProgression && typeof savedProgression.lifetimePoints === 'number') {
+    return Math.max(0, savedProgression.lifetimePoints);
+  }
+  if (savedMascot && typeof savedMascot.totalXp === 'number') {
+    return Math.max(0, savedMascot.totalXp);
+  }
+  return 0;
 }
 
 function buildInitial(): ProgressionState {
   const saved = getJSON<Partial<ProgressionState>>(KEYS.progression);
-  const lifetimePoints = Math.max(0, migratedPoints(saved));
+  const savedMascot = getJSON<{ totalXp?: number }>(KEYS.mascot);
+  const lifetimePoints = resolveLifetimePoints(saved, savedMascot);
   const info = progressFor(lifetimePoints);
   const unlockedThemes = themesThroughWorld(info.world);
   const fallbackTheme = unlockedThemes[unlockedThemes.length - 1] ?? 'classic';

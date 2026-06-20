@@ -1,4 +1,4 @@
-import { useProgression } from '../store';
+import { useProgression, resolveLifetimePoints } from '../store';
 import { thresholdForLevel } from '../logic/levels';
 
 function reset() {
@@ -52,5 +52,23 @@ describe('useProgression.setActiveTheme', () => {
     expect(useProgression.getState().activeTheme).toBe('neon');
     useProgression.getState().setActiveTheme('galaxy');
     expect(useProgression.getState().activeTheme).toBe('neon');
+  });
+});
+
+describe('resolveLifetimePoints (миграция)', () => {
+  it('сохранённый прогресс приоритетнее старой XP Капи', () => {
+    expect(resolveLifetimePoints({ lifetimePoints: 1234 }, { totalXp: 9999 })).toBe(1234);
+  });
+
+  it('мигрирует из mascot.totalXp при отсутствии прогресса', () => {
+    expect(resolveLifetimePoints(null, { totalXp: 5000 })).toBe(5000);
+  });
+
+  it('ноль, если нет ни прогресса, ни маскота', () => {
+    expect(resolveLifetimePoints(null, null)).toBe(0);
+  });
+
+  it('клампит отрицательное к 0', () => {
+    expect(resolveLifetimePoints({ lifetimePoints: -10 }, null)).toBe(0);
   });
 });
