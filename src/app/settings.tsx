@@ -8,9 +8,21 @@ import { t } from '@/core/i18n';
 import type { LangSetting } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
 import { MONETIZATION } from '@/features/monetization';
+import { PROGRESSION_CONFIG } from '@/features/progression';
 import { useScores } from '@/features/scores';
 import { useLang, useSettings } from '@/features/settings';
-import { AppText, BLOCK_THEMES, ConfirmDialog, GameButton, colors, radii, spacing } from '@/ui';
+import {
+  WORLD_THEMES,
+  setActiveWorldTheme,
+  useActiveWorldTheme,
+  useUnlockedWorldThemes,
+} from '@/features/themes';
+import { AppText, ConfirmDialog, GameButton, colors, radii, spacing } from '@/ui';
+
+/** Мир, на котором открывается тема (для подсказки на закрытых). */
+const THEME_WORLD: Record<string, number> = Object.fromEntries(
+  Object.entries(PROGRESSION_CONFIG.worldThemeId).map(([world, id]) => [id, Number(world)]),
+);
 
 const PRIVACY_URL = 'https://bloxx.193.160.208.95.nip.io/privacy.html';
 
@@ -66,6 +78,8 @@ export default function SettingsScreen() {
   const analyticsOptOut = useAnalyticsStore((state) => state.optOut);
   const setAnalyticsOptOut = useAnalyticsStore((state) => state.setOptOut);
   const resetBest = useScores((s) => s.resetBest);
+  const activeThemeId = useActiveWorldTheme().id;
+  const unlockedThemeIds = new Set(useUnlockedWorldThemes().map((theme) => theme.id));
 
   const [resetOpen, setResetOpen] = useState(false);
   const confirmReset = () => setResetOpen(true);
@@ -125,30 +139,49 @@ export default function SettingsScreen() {
           </View>
         </Row>
 
-        <Row label={t('settings.blockTheme', lang)}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {BLOCK_THEMES.map((theme) => (
-              <Pressable
-                key={theme.id}
-                onPress={() => settings.update({ themeId: theme.id })}
-                style={{
-                  padding: 6,
-                  borderRadius: radii.button,
-                  backgroundColor: settings.themeId === theme.id ? colors.accent : colors.surface,
-                }}
-              >
-                <View style={{ flexDirection: 'row', gap: 3 }}>
-                  {theme.cellColors.slice(0, 4).map((color) => (
-                    <View
-                      key={color}
-                      style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: color }}
-                    />
-                  ))}
-                </View>
-              </Pressable>
-            ))}
+        <View style={{ paddingVertical: 12, gap: 8 }}>
+          <AppText preset="body">{t('settings.worldTheme', lang)}</AppText>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {WORLD_THEMES.map((theme) => {
+              const unlocked = unlockedThemeIds.has(theme.id);
+              const active = theme.id === activeThemeId;
+              const label = unlocked
+                ? t(theme.nameKey, lang)
+                : `${t('settings.themeLocked', lang)} ${THEME_WORLD[theme.id] ?? ''}`.trim();
+              return (
+                <Pressable
+                  key={theme.id}
+                  disabled={!unlocked}
+                  onPress={() => setActiveWorldTheme(theme.id)}
+                  style={{
+                    minWidth: 44,
+                    padding: 8,
+                    gap: 6,
+                    alignItems: 'center',
+                    borderRadius: radii.button,
+                    backgroundColor: active ? colors.accent : colors.surface,
+                    opacity: unlocked ? 1 : 0.4,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', gap: 3 }}>
+                    {theme.cellColors.slice(0, 4).map((color) => (
+                      <View
+                        key={color}
+                        style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: color }}
+                      />
+                    ))}
+                  </View>
+                  <AppText
+                    preset="caption"
+                    style={{ color: active ? '#1B2A4A' : colors.textPrimary }}
+                  >
+                    {label}
+                  </AppText>
+                </Pressable>
+              );
+            })}
           </View>
-        </Row>
+        </View>
 
         <Row label={t('settings.language', lang)}>
           <View style={{ flexDirection: 'row', gap: 8 }}>

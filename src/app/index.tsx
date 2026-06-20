@@ -17,15 +17,15 @@ import {
 import { AdBanner, MONETIZATION } from '@/features/monetization';
 import { ProfileChip, ProfileOverlay, useProfileStore } from '@/features/profile';
 import { useScores } from '@/features/scores';
-import { useLang, useSettings } from '@/features/settings';
+import { useLang } from '@/features/settings';
 import { isStreakAlive, todayISO, useStreak } from '@/features/streak';
-import { AppText, ConfirmDialog, GameButton, colors, getBlockTheme, radii, spacing } from '@/ui';
+import { useActiveWorldTheme } from '@/features/themes';
+import { AppText, ConfirmDialog, GameButton, colors, radii, spacing } from '@/ui';
 
 const LOGO_ROWS = ['BLOCK', 'BLAST'];
 
 function Logo() {
-  const themeId = useSettings((s) => s.themeId);
-  const palette = getBlockTheme(themeId).cellColors;
+  const palette = useActiveWorldTheme().cellColors;
   return (
     <View style={{ gap: 8, alignItems: 'center' }}>
       {LOGO_ROWS.map((row, rowIdx) => (

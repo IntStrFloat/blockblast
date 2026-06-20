@@ -25,8 +25,9 @@ import { NewRecordCelebration } from '@/features/game/effects/NewRecordCelebrati
 import { MascotLayer } from '@/features/mascot';
 import { AdBanner } from '@/features/monetization';
 import { useProgressionSync } from '@/features/progression/hooks/useProgressionSync';
-import { useLang, useSettings } from '@/features/settings';
-import { AppText, ConfirmDialog, getBlockTheme, getBoardMetrics, radii } from '@/ui';
+import { useLang } from '@/features/settings';
+import { useActiveWorldTheme } from '@/features/themes';
+import { AppText, ConfirmDialog, getBoardMetrics, radii } from '@/ui';
 
 type BoardLayout = {
   x: number;
@@ -89,8 +90,7 @@ export default function GameScreen() {
     challengeDate?: string | string[];
   }>();
   const { width: screenWidth } = useWindowDimensions();
-  const themeId = useSettings((s) => s.themeId);
-  const theme = getBlockTheme(themeId);
+  const theme = useActiveWorldTheme();
   const { boardSize, cellSize, cellGap } = getBoardMetrics(screenWidth);
   const geom = useMemo(
     () => ({ boardSize, cell: cellSize, gap: cellGap, pad: 0 }),

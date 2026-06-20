@@ -143,7 +143,6 @@ describe('NewRecordCelebration', () => {
         sound: true,
         haptics: true,
         praiseTone: 'classic',
-        themeId: 'classic',
         lang: 'en',
       });
       useGameStore.getState().newGame({ seed: 7 });
