@@ -25,6 +25,7 @@ export const KEYS = {
   mascot: 'mascot.state',
   progression: 'progression.state',
   daily: 'daily.state',
+  onboardingMeta: 'onboarding.meta.v1',
 } as const;
 
 export function getJSON<T>(key: string): T | null {

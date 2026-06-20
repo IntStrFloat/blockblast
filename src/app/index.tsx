@@ -16,6 +16,7 @@ import {
   useLeaderboardStore,
 } from '@/features/leaderboard';
 import { AdBanner, MONETIZATION } from '@/features/monetization';
+import { OnboardingOverlay } from '@/features/onboarding';
 import { ProfileChip, ProfileOverlay, useProfileStore } from '@/features/profile';
 import { useScores } from '@/features/scores';
 import { useLang } from '@/features/settings';
@@ -228,6 +229,8 @@ export default function HomeScreen() {
       </ScrollView>
 
       <AdBanner adUnitId={MONETIZATION.yandex.homeBannerAdUnitId} />
+
+      <OnboardingOverlay />
 
       <ProfileOverlay visible={profileOpen} onClose={() => setProfileOpen(false)} />
 
