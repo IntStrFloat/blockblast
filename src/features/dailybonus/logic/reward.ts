@@ -16,6 +16,23 @@ export interface DailyResult {
   rngState: number;
 }
 
+export interface DailyPreview {
+  /** День стрика, ограниченный потолком (1..len). */
+  day: number;
+  multiplier: number;
+  points: number;
+}
+
+/**
+ * Превью награды дня для UI (без расхода rng): день/множитель/бонус-очки.
+ * Дроп не предсказывается — он определяется только в момент claim().
+ */
+export function dailyPreview(streakCount: number, cfg: DailyConfig = DAILY_CONFIG): DailyPreview {
+  const day = Math.min(Math.max(streakCount, 1), cfg.streakMultiplier.length);
+  const multiplier = cfg.streakMultiplier[day - 1];
+  return { day, multiplier, points: Math.round(cfg.basePoints * multiplier) };
+}
+
 function pick<T>(arr: readonly T[], r: number): T {
   return arr[Math.min(arr.length - 1, Math.floor(r * arr.length))];
 }

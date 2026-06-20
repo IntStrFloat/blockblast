@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
+import { DailyCard } from '@/features/dailybonus';
 import { getSavedGameSummary } from '@/features/game';
 import type { SavedGameSummary } from '@/features/game';
 import {
@@ -179,7 +180,14 @@ export default function HomeScreen() {
               {streakVisible} {t('home.streakDays', lang)}
             </AppText>
           ) : null}
+          <Pressable onPress={() => router.push('/map')} hitSlop={8}>
+            <AppText preset="caption" style={{ color: colors.accent, textDecorationLine: 'underline' }}>
+              {t('home.map', lang)}
+            </AppText>
+          </Pressable>
         </View>
+
+        <DailyCard />
 
         <WeeklyCard onPress={() => router.push('/leaderboard')} />
 

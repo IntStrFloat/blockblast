@@ -8,6 +8,7 @@ export const ru = {
     newGameConfirm: 'Начать заново? Текущая партия будет потеряна.',
     dailyChallenge: 'Испытание дня',
     dailyCode: 'Код испытания',
+    map: 'Карта достижений',
   },
   game: {
     score: 'Счет',
@@ -130,5 +131,15 @@ export const ru = {
     aqua: 'Аква',
     galaxy: 'Галактика',
     gold: 'Золото',
+  },
+  daily: {
+    title: 'Дейли-бонус',
+    day: 'День',
+    claim: 'Забрать',
+    comeBack: 'Возвращайся завтра',
+    tomorrow: 'завтра',
+    protected: 'цепочку прикрыли',
+    dropItem: 'Новый предмет!',
+    dropCharge: 'Заряд помощника!',
   },
 } as const;

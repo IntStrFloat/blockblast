@@ -8,6 +8,7 @@ export const en = {
     newGameConfirm: 'Start over? Current game will be lost.',
     dailyChallenge: 'Daily challenge',
     dailyCode: 'Challenge code',
+    map: 'Achievements map',
   },
   game: {
     score: 'Score',
@@ -130,5 +131,15 @@ export const en = {
     aqua: 'Aqua',
     galaxy: 'Galaxy',
     gold: 'Gold',
+  },
+  daily: {
+    title: 'Daily bonus',
+    day: 'Day',
+    claim: 'Claim',
+    comeBack: 'Come back tomorrow',
+    tomorrow: 'tomorrow',
+    protected: 'streak protected',
+    dropItem: 'New item!',
+    dropCharge: 'Helper charge!',
   },
 } as const;
