@@ -17,8 +17,6 @@ export {
   decodeChallengeCode,
   getUtcWeekCountdown,
   getUtcWeekWindow,
-  getVisibleLeaderboardEntry,
-  getVisibleWeeklyBest,
   getWeeklyGoal,
   shouldShowDailyChallenge,
 } from './week';

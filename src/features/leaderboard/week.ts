@@ -1,5 +1,3 @@
-import type { LeaderboardEntry, LocalWeeklyResult } from './types';
-
 export function getUtcWeekWindow(now: Date) {
   const date = new Date(now.getTime());
   const day = date.getUTCDay();
@@ -68,25 +66,4 @@ export function getWeeklyGoal(current: number) {
   if (current <= 0) return { current, target: 1500, progress: 0 };
   const target = Math.ceil((current + 400) / 500) * 500;
   return { current, target, progress: current };
-}
-
-export function getVisibleWeeklyBest(
-  remoteBest: number,
-  localResult: LocalWeeklyResult | null,
-  now = new Date(),
-) {
-  const currentWeekKey = getUtcWeekWindow(now).weekKey;
-  return localResult?.weekKey === currentWeekKey
-    ? Math.max(remoteBest, localResult.bestScore)
-    : remoteBest;
-}
-
-export function getVisibleLeaderboardEntry(
-  entry: LeaderboardEntry,
-  localResult: LocalWeeklyResult | null,
-  now = new Date(),
-): LeaderboardEntry {
-  if (!entry.isCurrentPlayer) return entry;
-  const weeklyBest = getVisibleWeeklyBest(entry.weeklyBest, localResult, now);
-  return weeklyBest === entry.weeklyBest ? entry : { ...entry, weeklyBest };
 }

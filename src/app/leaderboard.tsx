@@ -9,8 +9,6 @@ import {
   LeaderboardRow,
   Podium,
   getUtcWeekCountdown,
-  getVisibleLeaderboardEntry,
-  getVisibleWeeklyBest,
   useLeaderboardStore,
   weeklyStatusLabel,
 } from '@/features/leaderboard';
@@ -31,7 +29,6 @@ export default function LeaderboardScreen() {
   const router = useRouter();
   const lang = useLang();
   const snapshot = useLeaderboardStore((state) => state.snapshot);
-  const localWeeklyResult = useLeaderboardStore((state) => state.localWeeklyResult);
   const viewState = useLeaderboardStore((state) => state.viewState);
   const lastError = useLeaderboardStore((state) => state.lastError);
   const [loading, setLoading] = useState(false);
@@ -54,18 +51,9 @@ export default function LeaderboardScreen() {
   useFocusEffect(refresh);
 
   const statusLabel = weeklyStatusLabel(viewState, snapshot?.source, lang);
-  const visibleAt = new Date();
-  const visibleWeeklyBest = getVisibleWeeklyBest(
-    snapshot?.currentPlayer.weeklyBest ?? 0,
-    localWeeklyResult,
-    visibleAt,
-  );
-  const currentPlayer = snapshot
-    ? getVisibleLeaderboardEntry(snapshot.currentPlayer, localWeeklyResult, visibleAt)
-    : null;
-  const entries = (snapshot?.entries ?? []).map((entry) =>
-    getVisibleLeaderboardEntry(entry, localWeeklyResult, visibleAt),
-  );
+  const weeklyBest = snapshot?.currentPlayer.weeklyBest ?? 0;
+  const currentPlayer = snapshot?.currentPlayer ?? null;
+  const entries = snapshot?.entries ?? [];
   const podium = entries.slice(0, 3);
   const listData = entries.slice(3);
   const showPinnedCurrent =
@@ -121,7 +109,7 @@ export default function LeaderboardScreen() {
                 <AppText preset="body">{t('leaderboard.error', lang)}</AppText>
               ) : (
                 <AppText preset="body">
-                  {t('leaderboard.weeklyBest', lang)}: {visibleWeeklyBest}
+                  {t('leaderboard.weeklyBest', lang)}: {weeklyBest}
                 </AppText>
               )}
             </View>
