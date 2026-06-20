@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -129,45 +129,45 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-      <View
-        style={{
-          position: 'absolute',
-          top: 56,
-          left: 20,
-          right: 20,
-          zIndex: 10,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Pressable
-          onPress={() => router.push('/settings')}
-          hitSlop={8}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            backgroundColor: colors.surface,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <AppText preset="body">S</AppText>
-        </Pressable>
-
-        <ProfileChip onPress={() => setProfileOpen(true)} />
-      </View>
-
-      <View
-        style={{
-          flex: 1,
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          padding: spacing.l,
+          paddingHorizontal: spacing.l,
+          paddingVertical: spacing.m,
           gap: spacing.xl,
         }}
+        showsVerticalScrollIndicator={false}
       >
+        <View
+          style={{
+            width: '100%',
+            maxWidth: 320,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Pressable
+            onPress={() => router.push('/settings')}
+            hitSlop={8}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              backgroundColor: colors.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <AppText preset="body">S</AppText>
+          </Pressable>
+
+          <ProfileChip onPress={() => setProfileOpen(true)} />
+        </View>
+
         <Logo />
 
         <View style={{ alignItems: 'center', gap: 6 }}>
@@ -185,11 +185,11 @@ export default function HomeScreen() {
 
         {showDailyChallenge ? (
           <View style={{ width: '100%', maxWidth: 320, gap: spacing.xs }}>
-              <GameButton
-                label={t('home.dailyChallenge', lang)}
-                variant="ghost"
-                onPress={confirmDaily}
-              />
+            <GameButton
+              label={t('home.dailyChallenge', lang)}
+              variant="ghost"
+              onPress={confirmDaily}
+            />
             <AppText preset="caption" style={{ textAlign: 'center' }}>
               {t('home.dailyCode', lang)}: {dailyChallenge.code}
             </AppText>
@@ -217,7 +217,7 @@ export default function HomeScreen() {
             <GameButton label={t('home.play', lang)} onPress={startNew} />
           )}
         </View>
-      </View>
+      </ScrollView>
 
       <AdBanner adUnitId={MONETIZATION.yandex.homeBannerAdUnitId} />
 
