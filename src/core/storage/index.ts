@@ -24,6 +24,7 @@ export const KEYS = {
   tutorialDone: 'tutorial.done',
   mascot: 'mascot.state',
   progression: 'progression.state',
+  daily: 'daily.state',
 } as const;
 
 export function getJSON<T>(key: string): T | null {
