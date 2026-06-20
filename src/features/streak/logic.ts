@@ -2,6 +2,8 @@ export interface StreakState {
   /** Локальная дата YYYY-MM-DD последнего дня с партией */
   lastDay: string | null;
   count: number;
+  /** Локальная дата YYYY-MM-DD последнего срабатывания защитника стрика */
+  protectorLastUsedDay?: string | null;
 }
 
 export function todayISO(d: Date = new Date()): string {
@@ -33,4 +35,37 @@ export function isStreakAlive(state: StreakState, today: string): boolean {
   if (state.lastDay === null) return false;
   const d = diffDays(state.lastDay, today);
   return d === 0 || d === 1;
+}
+
+/** Защитник доступен, если ни разу не использовался или прошло >= perDays дней. */
+export function canUseProtector(state: StreakState, today: string, perDays = 7): boolean {
+  const last = state.protectorLastUsedDay ?? null;
+  if (last === null) return true;
+  return diffDays(last, today) >= perDays;
+}
+
+/**
+ * Засчитать партию с учётом защитника стрика (1 прощённый пропуск на perDays дней).
+ * Тот же день — без изменений; вчера — +1; пропуск одного дня при доступном защитнике —
+ * +1 и расход защитника; больше — сброс на 1. Прогресс (count) при сбросе не «штрафует» иное состояние.
+ */
+export function bumpStreakWithProtector(
+  prev: StreakState,
+  today: string,
+  perDays = 7,
+): StreakState {
+  const protectorLastUsedDay = prev.protectorLastUsedDay ?? null;
+  if (prev.lastDay === today) {
+    return { lastDay: prev.lastDay, count: prev.count, protectorLastUsedDay };
+  }
+  if (prev.lastDay !== null) {
+    const d = diffDays(prev.lastDay, today);
+    if (d === 1) {
+      return { lastDay: today, count: prev.count + 1, protectorLastUsedDay };
+    }
+    if (d === 2 && canUseProtector(prev, today, perDays)) {
+      return { lastDay: today, count: prev.count + 1, protectorLastUsedDay: today };
+    }
+  }
+  return { lastDay: today, count: 1, protectorLastUsedDay };
 }
