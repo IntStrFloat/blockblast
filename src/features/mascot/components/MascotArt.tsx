@@ -103,7 +103,6 @@ export function MascotFigure({ stage, equipped, size, eyeStyle }: MascotFigurePr
           strokeLinecap="round"
         />
 
-        {stage >= 2 ? <BlockMark stage={stage} /> : null}
         {stage >= 4 ? <Path d="M39 17l6 7 5-10 5 10 6-7 1 13H38l1-13z" fill={P.block} /> : null}
         {renderHat(equipped?.hat)}
         {renderAccessoryFront(equipped?.accessory)}
@@ -592,16 +591,6 @@ function renderAccessoryFront(id: string | undefined): ReactNode {
     );
   }
   return null;
-}
-
-function BlockMark({ stage }: { stage: Stage }) {
-  const color = stage >= 3 ? P.accessoryTeal : P.block;
-  return (
-    <G>
-      <Rect x="43" y="18" width="14" height="14" rx="3" fill={color} />
-      {stage >= 3 ? <Rect x="59" y="22" width="10" height="10" rx="2" fill={P.block} /> : null}
-    </G>
-  );
 }
 
 function Star({ cx, cy, r, fill }: { cx: number; cy: number; r: number; fill: string }) {

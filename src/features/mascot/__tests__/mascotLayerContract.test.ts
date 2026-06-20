@@ -9,6 +9,7 @@ const read = (relativePath: string) =>
 
 const layerSource = read('../components/MascotLayer.tsx');
 const brainSource = read('../hooks/useMascotBrain.ts');
+const artSource = read('../components/MascotArt.tsx');
 
 describe('MascotLayer drag/drop contract', () => {
   it('keeps the mascot brain paused while the loss drop is resolving', () => {
@@ -33,5 +34,10 @@ describe('MascotLayer drag/drop contract', () => {
     expect(brainSource).toContain('if (event.gameOver) {');
     expect(brainSource).toContain('useMascot.getState().applyScore(event.score);');
     expect(brainSource).not.toContain('applyEvent');
+  });
+
+  it('does not paint a stage marker over the mascot forehead', () => {
+    expect(artSource).not.toContain('<BlockMark');
+    expect(artSource).not.toContain('function BlockMark');
   });
 });
