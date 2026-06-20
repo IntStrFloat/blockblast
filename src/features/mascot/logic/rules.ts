@@ -25,3 +25,8 @@ export function canUseHelper(
 ): boolean {
   return level >= HELPERS[helper].unlockLevel && usedDay !== today;
 }
+
+/** Помощник разблокирован по уровню (без учёта дневного лимита). */
+export function isHelperUnlocked(level: number, helper: HelperId): boolean {
+  return level >= HELPERS[helper].unlockLevel;
+}

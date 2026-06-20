@@ -6,7 +6,7 @@ import { todayISO } from '@/features/streak';
 
 import { COSMETICS } from './logic/cosmetics';
 import { progressFor, rewardForLevel } from './logic/progression';
-import { canFeed, canUseHelper } from './logic/rules';
+import { canFeed, canUseHelper, isHelperUnlocked } from './logic/rules';
 import type { HelperId, LevelReward, MascotState, Slot } from './logic/types';
 
 // ---------------------------------------------------------------------------
@@ -20,6 +20,7 @@ const DEFAULTS: MascotState = {
   equipped: {},
   lastFedDay: null,
   helpersUsedDay: {},
+  helperCharges: {},
   lost: false,
   introDone: false,
   rngState: seedFromTime(),
@@ -130,6 +131,10 @@ interface RevealPayload {
 interface MascotActions {
   applyScore: (score: number) => { leveledTo: number; rewards: LevelReward[] };
   feed: () => { leveledTo: number; rewards: LevelReward[] } | null;
+  /** Идемпотентно разблокировать косметику (вызывают progression-координатор и дейли). */
+  unlock: (id: string) => void;
+  /** Добавить заряд помощника (дроп дейли), тратится сверх дневного лимита. */
+  addHelperCharge: (id: HelperId) => void;
   useHelper: (id: HelperId) => boolean;
   drop: () => void;
   recover: () => void;
@@ -173,16 +178,44 @@ export const useMascot = create<MascotStore>((set, get) => ({
     return { leveledTo: prev.level, rewards: [] };
   },
 
+  unlock(id) {
+    const prev = get();
+    if (prev.unlocked.includes(id)) return;
+    const unlocked = [...prev.unlocked, id];
+    const next: MascotState = { ...prev, unlocked };
+    set({ unlocked });
+    persist(next);
+  },
+
+  addHelperCharge(id) {
+    const prev = get();
+    const current = prev.helperCharges?.[id] ?? 0;
+    const helperCharges = { ...(prev.helperCharges ?? {}), [id]: current + 1 };
+    const next: MascotState = { ...prev, helperCharges };
+    set({ helperCharges });
+    persist(next);
+  },
+
   useHelper(id) {
     const prev = get();
     const today = todayISO();
-    if (!canUseHelper(prev.helpersUsedDay[id], today, prev.level, id)) return false;
-
-    const helpersUsedDay = { ...prev.helpersUsedDay, [id]: today };
-    const next: MascotState = { ...prev, helpersUsedDay };
-    set({ helpersUsedDay });
-    persist(next);
-    return true;
+    if (canUseHelper(prev.helpersUsedDay[id], today, prev.level, id)) {
+      const helpersUsedDay = { ...prev.helpersUsedDay, [id]: today };
+      const next: MascotState = { ...prev, helpersUsedDay };
+      set({ helpersUsedDay });
+      persist(next);
+      return true;
+    }
+    // Дневной лимит исчерпан — потратить заряд, если помощник разблокирован и заряд есть.
+    const charges = prev.helperCharges?.[id] ?? 0;
+    if (isHelperUnlocked(prev.level, id) && charges > 0) {
+      const helperCharges = { ...(prev.helperCharges ?? {}), [id]: charges - 1 };
+      const next: MascotState = { ...prev, helperCharges };
+      set({ helperCharges });
+      persist(next);
+      return true;
+    }
+    return false;
   },
 
   drop() {

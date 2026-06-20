@@ -98,6 +98,8 @@ export interface MascotState {
   equipped: Partial<Record<Slot, string>>;
   lastFedDay: string | null;
   helpersUsedDay: Partial<Record<HelperId, string>>;
+  /** Доп. заряды помощников (из дроп-дейли), тратятся сверх дневного лимита. */
+  helperCharges?: Partial<Record<HelperId, number>>;
   lost: boolean;
   introDone: boolean;
   rngState: number;
