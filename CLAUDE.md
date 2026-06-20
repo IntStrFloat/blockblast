@@ -19,6 +19,12 @@
 | [docs/specs/08-build-release.md](docs/specs/08-build-release.md) | Локальная сборка AAB (prebuild+gradle+JBR), keystore, чек-лист RuStore |
 | [docs/runbooks/android-app-signing.md](docs/runbooks/android-app-signing.md) | PEPK, upload certificate и обязательная проверка подписи AAB |
 | [docs/specs/09-mascot.md](docs/specs/09-mascot.md) | Маскот «Капи»: поведение, прокачка/эволюция, помощники, интро, перф (retention) |
+| [docs/specs/10-progression.md](docs/specs/10-progression.md) | Прогрессия (umbrella): Уровень Игры от очков, миры (смена дизайна), карта достижений, интеграция дейли, декаплинг Капи |
+| [docs/specs/11-progression-core.md](docs/specs/11-progression-core.md) | Стержень: очки→уровень→мир→награда, store, координатор синка, миграция |
+| [docs/specs/12-game-themes.md](docs/specs/12-game-themes.md) | Темы миров (рескины поля/блоков/juice), разлок по мирам, выбор в Settings |
+| [docs/specs/13-achievements-map.md](docs/specs/13-achievements-map.md) | Экран «Карта достижений»: дорога уровней/миров, текущая позиция, стилизованный гэп |
+| [docs/specs/14-daily-bonus.md](docs/specs/14-daily-bonus.md) | Дейли-бонус: бонус-очки × множитель стрика, защитник, дроп, карточка+reveal |
+| [docs/specs/15-mascot-decoupling.md](docs/specs/15-mascot-decoupling.md) | Рефактор Капи: убрать свою XP, стадия из Уровня Игры, косметика из progression+daily |
 
 План реализации: docs/plans/ (если есть — выполнять по нему).
 
