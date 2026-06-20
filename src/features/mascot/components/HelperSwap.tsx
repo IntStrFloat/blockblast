@@ -5,6 +5,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { t } from '@/core/i18n';
 import { useGameStore } from '@/features/game';
 import type { GameState } from '@/core/engine';
+import { useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
 import { todayISO } from '@/features/streak';
 import { AppText, colors, radii, spacing } from '@/ui';
@@ -31,8 +32,9 @@ const UNDO_MS = 1100;
 export function HelperSwap({ onEmote, reduceMotion }: HelperSwapProps) {
   const board = useGameStore((s) => s.game.board);
   const tray = useGameStore((s) => s.game.tray);
-  const level = useMascot((s) => s.level);
+  const level = useProgression((s) => s.level);
   const usedDay = useMascot((s) => s.helpersUsedDay.swap);
+  const charges = useMascot((s) => s.helperCharges.swap ?? 0);
   const lang = useLang();
 
   // Снимок партии до свопа — для отмены. null, когда окна отмены нет.
@@ -57,7 +59,7 @@ export function HelperSwap({ onEmote, reduceMotion }: HelperSwapProps) {
   );
 
   const target = findSwapTarget(board, tray);
-  const available = canUseHelper(usedDay, todayISO(), level, 'swap') && target !== null;
+  const available = canUseHelper(usedDay, todayISO(), level, 'swap', charges) && target !== null;
 
   function doSwap() {
     const i = findSwapTarget(board, tray);

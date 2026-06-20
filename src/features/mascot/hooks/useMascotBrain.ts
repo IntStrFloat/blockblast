@@ -299,9 +299,8 @@ export function useMascotBrain(params: MascotBrainParams): void {
       prevEvent = event;
       if (!event) return;
 
-      if (event.gameOver) {
-        useMascot.getState().applyScore(event.score);
-      }
+      // Капи больше не владеет очками/уровнем: начисление счёта — у координатора
+      // useProgressionSync (спека 15). Здесь — только визуальная реакция.
 
       // Поза-реакция не запускается во время drag.
       if (pausedRef.current) return;

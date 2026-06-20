@@ -1,6 +1,27 @@
 import { PROGRESSION_CONFIG, type ProgressionConfig } from './config';
 import { worldForLevel, isWorldStart } from './worlds';
-import type { LevelReward, Stage } from './types';
+import type { HelperId, LevelReward, Stage } from './types';
+
+/** Уровень, на котором помощник выдаётся наградой (источник истины — levelRewards), или null. */
+export function helperUnlockLevel(
+  helper: HelperId,
+  cfg: ProgressionConfig = PROGRESSION_CONFIG,
+): number | null {
+  for (const [lvl, reward] of Object.entries(cfg.levelRewards)) {
+    if (reward && reward.kind === 'helper' && reward.id === helper) return Number(lvl);
+  }
+  return null;
+}
+
+/** Разблокирован ли помощник на данном Уровне Игры (гейт для маскота, спека 15 §3). */
+export function isHelperUnlocked(
+  helper: HelperId,
+  level: number,
+  cfg: ProgressionConfig = PROGRESSION_CONFIG,
+): boolean {
+  const unlockAt = helperUnlockLevel(helper, cfg);
+  return unlockAt !== null && Math.floor(level) >= unlockAt;
+}
 
 export function stageForLevel(level: number, cfg: ProgressionConfig = PROGRESSION_CONFIG): Stage {
   const world = worldForLevel(level, cfg);

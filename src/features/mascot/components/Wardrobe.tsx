@@ -3,38 +3,44 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { t } from '@/core/i18n';
 import type { Lang } from '@/core/i18n';
+import { DAILY_CONFIG } from '@/features/dailybonus';
+import { PROGRESSION_CONFIG, progressFor, stageForLevel, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
 import { AppText, colors, mascotPalette, spacing } from '@/ui';
 
 import { COSMETICS } from '../logic/cosmetics';
-import { MASCOT_CONFIG } from '../logic/config';
-import { progressFor } from '../logic/progression';
 import type { Cosmetic } from '../logic/types';
 import { useMascot } from '../store';
 import { Mascot, useMascotMotion } from './Mascot';
 import { CosmeticIcon, MascotMark } from './MascotArt';
 
+// Источник истины косметики-наград — Уровень Игры (спека 15): id→уровень разлока.
 const COSMETIC_UNLOCK_LEVEL: Record<string, number> = (() => {
   const map: Record<string, number> = {};
-  for (const [lvlStr, reward] of Object.entries(MASCOT_CONFIG.rewards)) {
-    if (reward && reward.kind === 'cosmetic') {
-      map[reward.id] = Number(lvlStr);
-    }
+  for (const [lvlStr, reward] of Object.entries(PROGRESSION_CONFIG.levelRewards)) {
+    if (reward && reward.kind === 'cosmetic') map[reward.id] = Number(lvlStr);
   }
   return map;
 })();
 
 const COSMETIC_BY_ID = new Map(COSMETICS.map((item) => [item.id, item]));
 
-const WARDROBE_COSMETICS: Cosmetic[] = Object.entries(MASCOT_CONFIG.rewards)
-  .map(([level, reward]) => ({
-    level: Number(level),
-    reward,
-  }))
-  .filter(({ reward }) => reward?.kind === 'cosmetic')
-  .sort((a, b) => a.level - b.level)
-  .map(({ reward }) => COSMETIC_BY_ID.get(reward!.id))
-  .filter((item): item is Cosmetic => item !== undefined);
+// Все обретаемые косметики: награды уровней + дейли-пулы (дроп/редкие).
+const OBTAINABLE_IDS: string[] = [
+  ...Object.values(PROGRESSION_CONFIG.levelRewards)
+    .filter(
+      (reward): reward is { kind: 'cosmetic'; id: string } =>
+        reward !== undefined && reward.kind === 'cosmetic',
+    )
+    .map((reward) => reward.id),
+  ...DAILY_CONFIG.dailyCosmeticPool,
+  ...DAILY_CONFIG.rarePool,
+];
+
+const WARDROBE_COSMETICS: Cosmetic[] = Array.from(new Set(OBTAINABLE_IDS))
+  .map((id) => COSMETIC_BY_ID.get(id))
+  .filter((item): item is Cosmetic => item !== undefined)
+  .sort((a, b) => (COSMETIC_UNLOCK_LEVEL[a.id] ?? 9999) - (COSMETIC_UNLOCK_LEVEL[b.id] ?? 9999));
 
 interface WardrobeProps {
   visible: boolean;
@@ -50,23 +56,24 @@ export function Wardrobe({ visible, onClose }: WardrobeProps) {
 function WardrobeInner({ onClose }: { onClose: () => void }) {
   const { width, height } = useWindowDimensions();
   const lang = useLang();
-  const totalXp = useMascot((s) => s.totalXp);
+  const lifetimePoints = useProgression((s) => s.lifetimePoints);
   const unlocked = useMascot((s) => s.unlocked);
   const equipped = useMascot((s) => s.equipped);
 
-  const p = progressFor(totalXp);
-  const fillPct = p.xpToNext === 0 ? 100 : (p.xpInLevel / p.xpToNext) * 100;
+  const p = progressFor(lifetimePoints);
+  const stage = stageForLevel(p.level);
+  const total = p.pointsInLevel + p.pointsToNext;
+  const fillPct = total > 0 ? (p.pointsInLevel / total) * 100 : 100;
   const copy = wardrobeCopy(lang);
   const panelWidth = Math.min(width - spacing.m * 2, 392);
   const panelMaxHeight = Math.min(height - spacing.l * 2, 680);
   const tileSize = Math.floor((panelWidth - spacing.m * 2 - spacing.s * 3) / 4);
   const unlockedCount = WARDROBE_COSMETICS.filter((item) => unlocked.includes(item.id)).length;
-  const nextRewardLevel = Object.keys(MASCOT_CONFIG.rewards)
+  const nextRewardLevel = Object.keys(PROGRESSION_CONFIG.levelRewards)
     .map(Number)
     .filter((level) => level > p.level)
     .sort((a, b) => a - b)[0];
-  const xpLabel =
-    p.xpToNext === 0 ? copy.maxed : `${p.xpInLevel}/${p.xpToNext} ${copy.pointsShort}`;
+  const xpLabel = `${p.pointsInLevel}/${total} ${copy.pointsShort}`;
   const nextLabel = nextRewardLevel ? `${copy.next} ${copy.levelShort}${nextRewardLevel}` : copy.maxed;
 
   // Preview motion (neutral, static)
@@ -104,7 +111,7 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
                     {t('mascot.wardrobeTitle', lang)}
                   </AppText>
                   <AppText preset="caption" style={styles.stageText}>
-                    {`${copy.stage} ${p.stage} / ${copy.maxLevel} ${MASCOT_CONFIG.maxLevel}`}
+                    {`${copy.stage} ${stage} / ${copy.maxLevel} ${PROGRESSION_CONFIG.maxAuthoredLevel}`}
                   </AppText>
                 </View>
               </View>
@@ -122,7 +129,7 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
             </View>
             <View style={styles.previewPod}>
               <View style={styles.previewHalo} />
-              <Mascot motion={motion} stage={p.stage} equipped={equipped} size={84} />
+              <Mascot motion={motion} stage={stage} equipped={equipped} size={84} />
             </View>
           </View>
 

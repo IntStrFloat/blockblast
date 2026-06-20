@@ -24,15 +24,23 @@ export interface AddPointsResult {
   enteredWorld: number | null;
 }
 
+/** Transient полезная нагрузка level-up reveal (не персистится). Владелец — координатор (спека 15 §4). */
+export interface ProgressionReveal {
+  level: number;
+  rewards: LevelReward[];
+}
+
 interface ProgressionActions {
   addPoints: (amount: number) => AddPointsResult;
   setActiveTheme: (id: string) => void;
   pointsInLevel: () => number;
   pointsToNext: () => number;
   nextWorldAt: () => number | null;
+  setReveal: (reveal: ProgressionReveal) => void;
+  clearReveal: () => void;
 }
 
-type ProgressionStore = ProgressionState & ProgressionActions;
+type ProgressionStore = ProgressionState & ProgressionActions & { reveal: ProgressionReveal | null };
 
 function themesThroughWorld(world: number): string[] {
   const ids: string[] = [];
@@ -94,6 +102,7 @@ function persist(state: ProgressionState): void {
 
 export const useProgression = create<ProgressionStore>((set, get) => ({
   ...buildInitial(),
+  reveal: null,
 
   addPoints(amount) {
     const prev = get();
@@ -150,5 +159,12 @@ export const useProgression = create<ProgressionStore>((set, get) => ({
       if (s > level) return s;
     }
     return null;
+  },
+
+  setReveal(reveal) {
+    set({ reveal });
+  },
+  clearReveal() {
+    set({ reveal: null });
   },
 }));

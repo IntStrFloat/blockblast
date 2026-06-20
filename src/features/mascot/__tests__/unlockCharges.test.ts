@@ -1,3 +1,4 @@
+import { useProgression } from '@/features/progression';
 import { todayISO } from '@/features/streak';
 
 import { useMascot } from '../store';
@@ -14,22 +15,26 @@ describe('mascot.unlock', () => {
 describe('mascot.addHelperCharge / useHelper charge', () => {
   it('заряд добавляется и тратится сверх дневного лимита', () => {
     const today = todayISO();
-    useMascot.setState({ level: 5, helpersUsedDay: { hint: today }, helperCharges: {} });
+    // hint разлочен на Уровне Игры 5.
+    useProgression.setState({ level: 5 });
+    useMascot.setState({ helpersUsedDay: { hint: today }, helperCharges: {} });
     // дневной лимит исчерпан, заряда нет → false
     expect(useMascot.getState().useHelper('hint')).toBe(false);
     useMascot.getState().addHelperCharge('hint');
-    expect(useMascot.getState().helperCharges?.hint).toBe(1);
+    expect(useMascot.getState().helperCharges.hint).toBe(1);
     // теперь тратит заряд
     expect(useMascot.getState().useHelper('hint')).toBe(true);
-    expect(useMascot.getState().helperCharges?.hint).toBe(0);
+    expect(useMascot.getState().helperCharges.hint).toBe(0);
     // заряд исчерпан → снова false
     expect(useMascot.getState().useHelper('hint')).toBe(false);
   });
 
   it('заряд не обходит блокировку по уровню', () => {
     const today = todayISO();
-    useMascot.setState({ level: 1, helpersUsedDay: { swap: today }, helperCharges: { swap: 3 } });
+    // swap разлочен только на уровне 9 — на уровне 1 заряд не помогает.
+    useProgression.setState({ level: 1 });
+    useMascot.setState({ helpersUsedDay: { swap: today }, helperCharges: { swap: 3 } });
     expect(useMascot.getState().useHelper('swap')).toBe(false);
-    expect(useMascot.getState().helperCharges?.swap).toBe(3);
+    expect(useMascot.getState().helperCharges.swap).toBe(3);
   });
 });

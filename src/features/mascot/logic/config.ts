@@ -1,4 +1,4 @@
-import type { ActionId, EmoteId, LevelReward, Stage } from './types';
+import type { ActionId, EmoteId, Stage } from './types';
 
 /** Спецификация одного действия в планировщике поведения */
 export interface ActionSpec {
@@ -14,19 +14,10 @@ export interface ActionSpec {
   emote?: EmoteId;
 }
 
-/** Описание диапазона уровней одной стадии */
-export interface StageBound {
-  stage: Stage;
-  from: number;
-  to: number;
-}
-
 export interface MascotConfigType {
-  maxLevel: number;
-  stageBounds: StageBound[];
   helpers: {
-    hint: { unlockLevel: number; stuckThreshold: number };
-    swap: { unlockLevel: number };
+    /** Эвристика «затыка» для подсказки; разлок помощников — из progression (спека 15 §3). */
+    hint: { stuckThreshold: number };
   };
   nightHour: number;
   /**
@@ -35,7 +26,6 @@ export interface MascotConfigType {
    */
   blink: { minMs: number; maxMs: number };
   actions: ActionSpec[];
-  rewards: Partial<Record<number, LevelReward>>;
 }
 
 /**
@@ -97,55 +87,11 @@ const ACTIONS: ActionSpec[] = [
   { id: 'blink',        weight: 12, cooldownMs:  2200, minStage: 1, minDurationMs:  150, maxDurationMs:  300, calm: true },
 ];
 
-/**
- * Карта наград за каждый уровень 1..24.
- * Уровни 5 и 12 — помощники; все остальные 22 — косметика.
- *
- * Косметические id в том же порядке, что и в COSMETICS (cosmetics.ts),
- * чтобы тесты могли проверить соответствие.
- */
-const REWARDS: Record<number, LevelReward> = {
-   1: { kind: 'cosmetic', id: 'hat-casquette' },
-   2: { kind: 'cosmetic', id: 'face-glasses' },
-   3: { kind: 'cosmetic', id: 'acc-headphones' },
-   4: { kind: 'cosmetic', id: 'skin-mint' },
-   5: { kind: 'helper',   id: 'hint' },
-   6: { kind: 'cosmetic', id: 'hat-panama' },
-   7: { kind: 'cosmetic', id: 'face-sunglasses' },
-   8: { kind: 'cosmetic', id: 'acc-scarf' },
-   9: { kind: 'cosmetic', id: 'skin-coral' },
-  10: { kind: 'cosmetic', id: 'hat-beanie' },
-  11: { kind: 'cosmetic', id: 'face-star-eyes' },
-  12: { kind: 'helper',   id: 'swap' },
-  13: { kind: 'cosmetic', id: 'acc-backpack' },
-  14: { kind: 'cosmetic', id: 'hat-block-crown' },
-  15: { kind: 'cosmetic', id: 'face-monocle' },
-  16: { kind: 'cosmetic', id: 'skin-chrome' },
-  17: { kind: 'cosmetic', id: 'hat-tophat' },
-  18: { kind: 'cosmetic', id: 'face-vr-visor' },
-  19: { kind: 'cosmetic', id: 'acc-cape' },
-  20: { kind: 'cosmetic', id: 'skin-obsidian' },
-  21: { kind: 'cosmetic', id: 'aura-sparkles' },
-  22: { kind: 'cosmetic', id: 'aura-stars' },
-  23: { kind: 'cosmetic', id: 'acc-jetpack' },
-  24: { kind: 'cosmetic', id: 'hat-halo' },
-};
-
 export const MASCOT_CONFIG: MascotConfigType = {
-  maxLevel: 24,
-
-  stageBounds: [
-    { stage: 1, from:  1, to:  4 },
-    { stage: 2, from:  5, to: 11 },
-    { stage: 3, from: 12, to: 19 },
-    { stage: 4, from: 20, to: 24 },
-  ],
-
   helpers: {
     // stuckThreshold — суммарных валидных позиций трея, ниже которых подсказка
     // уместна (затык). Черновое значение, балансируется без кода.
-    hint: { unlockLevel:  5, stuckThreshold: 12 },
-    swap: { unlockLevel: 12 },
+    hint: { stuckThreshold: 12 },
   },
 
   nightHour: 22,
@@ -153,14 +99,4 @@ export const MASCOT_CONFIG: MascotConfigType = {
   blink: { minMs: 2200, maxMs: 6000 },
 
   actions: ACTIONS,
-
-  rewards: REWARDS,
 };
-
-/**
- * Очки прогресса, необходимые для перехода с уровня `level` на следующий.
- * Строго возрастающая функция; xpToNext(1) === 80.
- */
-export function xpToNext(level: number): number {
-  return Math.round(80 * Math.pow(1.18, level - 1));
-}

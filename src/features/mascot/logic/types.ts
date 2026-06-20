@@ -1,5 +1,6 @@
-/** Стадии эволюции маскота */
-export type Stage = 1 | 2 | 3 | 4;
+/** Стадии эволюции маскота — выводятся из Уровня Игры (источник истины — progression, спека 15). */
+export type { Stage } from '@/features/progression';
+import type { Stage } from '@/features/progression';
 
 /** Слоты косметики */
 export type Slot = 'hat' | 'face' | 'accessory' | 'skin' | 'aura';
@@ -69,12 +70,6 @@ export interface BehaviorCtx {
   mood: Mood;
 }
 
-/** Награда за достижение уровня */
-export interface LevelReward {
-  kind: 'cosmetic' | 'helper' | 'stage';
-  id: string;
-}
-
 /** Элемент каталога косметики */
 export interface Cosmetic {
   id: string;
@@ -82,24 +77,17 @@ export interface Cosmetic {
   minStage: Stage;
 }
 
-/** Производная информация об уровне/прогрессе (для UI) */
-export interface ProgressInfo {
-  level: number;
-  stage: Stage;
-  xpInLevel: number;
-  xpToNext: number;
-}
-
-/** Персистентное состояние маскота */
+/**
+ * Персистентное состояние маскота (спека 15 §2). Капи — спутник-витрина:
+ * собственной XP/уровня нет (живут в progression.lifetimePoints/level), кормления-XP нет
+ * (дейли владеет забором). Маскот хранит только гардероб, помощников, потерю, интро и rng.
+ */
 export interface MascotState {
-  totalXp: number;
-  level: number;
   unlocked: string[];
   equipped: Partial<Record<Slot, string>>;
-  lastFedDay: string | null;
   helpersUsedDay: Partial<Record<HelperId, string>>;
   /** Доп. заряды помощников (из дроп-дейли), тратятся сверх дневного лимита. */
-  helperCharges?: Partial<Record<HelperId, number>>;
+  helperCharges: Partial<Record<HelperId, number>>;
   lost: boolean;
   introDone: boolean;
   rngState: number;

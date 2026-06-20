@@ -42,6 +42,10 @@ export function useProgressionSync(): void {
       for (const r of res.rewards) {
         if (r.kind === 'cosmetic') useMascot.getState().unlock(r.id);
       }
+      // Level-up reveal принадлежит координатору, а не маскоту (спека 15 §4).
+      if (res.toLevel > res.fromLevel) {
+        useProgression.getState().setReveal({ level: res.toLevel, rewards: res.rewards });
+      }
     });
     return unsub;
   }, []);

@@ -15,14 +15,14 @@ import Animated, {
 
 import { getBoardMetrics } from '@/ui';
 import { mascotLost } from '@/core/i18n';
+import { useDailyBonus } from '@/features/dailybonus';
+import { stageForLevel, useProgression } from '@/features/progression';
 import { useLang, useSettings } from '@/features/settings';
 import { useGameStore } from '@/features/game';
 import { todayISO } from '@/features/streak';
 
 import { useMascotBrain } from '../hooks/useMascotBrain';
 import { useMascotFeedback } from '../hooks/useMascotFeedback';
-import { canFeed } from '../logic/rules';
-import { progressFor } from '../logic/progression';
 import type { EmoteId } from '../logic/types';
 import { useMascot } from '../store';
 import { Emote } from './Emote';
@@ -71,16 +71,17 @@ export function MascotLayer({ dragActive }: MascotLayerProps) {
 function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { onOpenWardrobe: () => void }) {
   const motion = useMascotMotion();
 
-  const totalXp = useMascot((s) => s.totalXp);
   const equipped = useMascot((s) => s.equipped);
-  const stage = progressFor(totalXp).stage;
+  // Стадия выводится из Уровня Игры (спека 15), не из своей XP.
+  const gameLevel = useProgression((s) => s.level);
+  const stage = stageForLevel(gameLevel);
 
   // Потерян ли маскот (Task 15b устанавливает, здесь только читаем).
   const lost = useMascot((s) => s.lost);
 
-  // Ежедневное кормление: доступно ли сегодня.
-  const lastFedDay = useMascot((s) => s.lastFedDay);
-  const canFeedNow = canFeed(lastFedDay, todayISO());
+  // Кормление Капи = забор дейли (одна выдача в день, спека 14 §7): доступно, если не забрано.
+  const lastClaimDay = useDailyBonus((s) => s.lastClaimDay);
+  const canFeedNow = lastClaimDay !== todayISO();
 
   // Reduce-motion: читаем системную настройку и подписываемся на смену.
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -129,10 +130,10 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   // Звук + хаптика моментов Капи (кормление/потеря/тап), гейтятся настройками.
   const { onFeed, onLost, onTap } = useMascotFeedback();
 
-  // Кормление: обработчик нажатия на FeedPrompt.
+  // Кормление: дверь над Капи к тому же дейли-забору, что и карточка на Home (спека 14 §7).
   // Вызывается из JS (Pressable onPress) — shared values устанавливаем напрямую.
   const handleFeed = useCallback(() => {
-    useMascot.getState().feed();
+    useDailyBonus.getState().claim();
     onFeed();
     // Пульс «съедает угощение»
     motion.scaleX.value = withSequence(withTiming(1.12, { duration: 120 }), withSpring(1));

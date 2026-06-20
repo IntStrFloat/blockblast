@@ -1,4 +1,10 @@
-import { rewardForLevel, rewardsBetween, stageForLevel } from '../logic/rewards';
+import {
+  helperUnlockLevel,
+  isHelperUnlocked,
+  rewardForLevel,
+  rewardsBetween,
+  stageForLevel,
+} from '../logic/rewards';
 
 describe('rewardForLevel', () => {
   it('старт мира 2 (ур.6) → world + тема neon + эволюция в стадию 2', () => {
@@ -37,5 +43,19 @@ describe('stageForLevel', () => {
     expect(stageForLevel(13)).toBe(2);
     expect(stageForLevel(22)).toBe(3);
     expect(stageForLevel(47)).toBe(4);
+  });
+});
+
+describe('helper unlock gate (источник истины для маскота, спека 15 §3)', () => {
+  it('возвращает уровень выдачи помощника наградой', () => {
+    expect(helperUnlockLevel('hint')).toBe(5);
+    expect(helperUnlockLevel('swap')).toBe(9);
+  });
+
+  it('hint открыт с ур.5, swap — с ур.9', () => {
+    expect(isHelperUnlocked('hint', 4)).toBe(false);
+    expect(isHelperUnlocked('hint', 5)).toBe(true);
+    expect(isHelperUnlocked('swap', 8)).toBe(false);
+    expect(isHelperUnlocked('swap', 9)).toBe(true);
   });
 });

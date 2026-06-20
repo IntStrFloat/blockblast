@@ -1,23 +1,23 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { progressFor, useProgression } from '@/features/progression';
 import { AppText, colors, mascotPalette, radii } from '@/ui';
 
-import { progressFor } from '../logic/progression';
-import { useMascot } from '../store';
 import { MascotMark } from './MascotArt';
 
 /**
- * Компактный пилюль-чип: уровень Капи + тонкий бар очков прогресса.
+ * Компактный пилюль-чип: Уровень Игры + тонкий бар очков (единый стержень, спека 15).
  *
  * Ширина заливки бара пересчитывается на рендере (очки меняются редко, НЕ на кадр) —
- * никаких анимаций ширины. На макс-уровне (xpToNext === 0) бар полон.
+ * никаких анимаций ширины.
  * Если передан onPress — оборачивается в Pressable (≥44pt) для открытия гардероба.
  */
 export function MascotChip({ onPress }: { onPress?: () => void }) {
-  const totalXp = useMascot((s) => s.totalXp);
-  const p = progressFor(totalXp);
+  const lifetimePoints = useProgression((s) => s.lifetimePoints);
+  const p = progressFor(lifetimePoints);
 
-  const fillPct = (p.xpToNext === 0 ? 1 : p.xpInLevel / p.xpToNext) * 100;
+  const total = p.pointsInLevel + p.pointsToNext;
+  const fillPct = total > 0 ? (p.pointsInLevel / total) * 100 : 100;
 
   const inner = (
     <View style={styles.pill}>

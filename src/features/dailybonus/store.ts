@@ -28,9 +28,12 @@ interface DailyStore extends DailyState {
 }
 
 const saved = getJSON<DailyState>(KEYS.daily);
+// Миграция (спека 15 §6): покормивший Капи сегодня (старый mascot.lastFedDay) не должен
+// забрать дейли повторно — переносим день забора, если своего ещё нет.
+const savedMascot = getJSON<{ lastFedDay?: string | null }>(KEYS.mascot);
 
 export const useDailyBonus = create<DailyStore>((set, get) => ({
-  lastClaimDay: saved?.lastClaimDay ?? null,
+  lastClaimDay: saved?.lastClaimDay ?? savedMascot?.lastFedDay ?? null,
   rngState: saved?.rngState ?? seedFromTime(),
 
   canClaim() {

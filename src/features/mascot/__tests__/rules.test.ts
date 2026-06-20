@@ -1,51 +1,38 @@
-import { canFeed, canUseHelper } from '../logic/rules';
+import { canUseHelper } from '../logic/rules';
 
-// ---------------------------------------------------------------------------
-// canFeed
-// ---------------------------------------------------------------------------
-describe('canFeed', () => {
-  it('null lastFedDay → true', () => {
-    expect(canFeed(null, '2026-06-13')).toBe(true);
-  });
-
-  it('lastFedDay === today → false', () => {
-    expect(canFeed('2026-06-13', '2026-06-13')).toBe(false);
-  });
-
-  it('lastFedDay is yesterday → true', () => {
-    expect(canFeed('2026-06-12', '2026-06-13')).toBe(true);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// canUseHelper
-// ---------------------------------------------------------------------------
+// Уровни разлока помощников читаются из progression.levelRewards: hint @5, swap @9.
 describe('canUseHelper', () => {
   const today = '2026-06-13';
 
-  // hint: unlockLevel 5
-  it('hint: usedDay undefined, level 5 → true', () => {
+  it('hint: not used today, level 5 → true', () => {
     expect(canUseHelper(undefined, today, 5, 'hint')).toBe(true);
   });
 
-  it('hint: usedDay undefined, level 4 → false (below unlock)', () => {
+  it('hint: level 4 → false (below unlock)', () => {
     expect(canUseHelper(undefined, today, 4, 'hint')).toBe(false);
   });
 
-  it('hint: usedDay === today, level 9 → false (already used today)', () => {
+  it('hint: used today without a charge → false', () => {
     expect(canUseHelper(today, today, 9, 'hint')).toBe(false);
   });
 
-  it('hint: usedDay is yesterday, level 5 → true', () => {
+  it('hint: used today but holding a charge → true', () => {
+    expect(canUseHelper(today, today, 9, 'hint', 1)).toBe(true);
+  });
+
+  it('hint: used yesterday, level 5 → true', () => {
     expect(canUseHelper('2026-06-12', today, 5, 'hint')).toBe(true);
   });
 
-  // swap: unlockLevel 12
-  it('swap: usedDay undefined, level 12 → true', () => {
-    expect(canUseHelper(undefined, today, 12, 'swap')).toBe(true);
+  it('swap: level 9 → true', () => {
+    expect(canUseHelper(undefined, today, 9, 'swap')).toBe(true);
   });
 
-  it('swap: usedDay undefined, level 11 → false (below unlock)', () => {
-    expect(canUseHelper(undefined, today, 11, 'swap')).toBe(false);
+  it('swap: level 8 → false (below unlock)', () => {
+    expect(canUseHelper(undefined, today, 8, 'swap')).toBe(false);
+  });
+
+  it('a charge never bypasses the level gate', () => {
+    expect(canUseHelper(today, today, 1, 'swap', 5)).toBe(false);
   });
 });

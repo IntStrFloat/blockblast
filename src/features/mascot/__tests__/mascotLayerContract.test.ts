@@ -30,9 +30,8 @@ describe('MascotLayer drag/drop contract', () => {
     expect(layerSource).not.toContain('motion.bob.value = withSpring(0);');
   });
 
-  it('awards mascot progress only from the final game score', () => {
-    expect(brainSource).toContain('if (event.gameOver) {');
-    expect(brainSource).toContain('useMascot.getState().applyScore(event.score);');
+  it('does not award mascot XP from score — scoring is owned by the progression coordinator', () => {
+    expect(brainSource).not.toContain('applyScore');
     expect(brainSource).not.toContain('applyEvent');
   });
 

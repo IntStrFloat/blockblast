@@ -4,6 +4,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
 import { EMPTY_MASK, previewMask, useDragCtx, useGameStore } from '@/features/game';
+import { useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
 import { todayISO } from '@/features/streak';
 import { AppText, colors, radii } from '@/ui';
@@ -32,8 +33,9 @@ export function HelperHint({ onEmote, reduceMotion }: HelperHintProps) {
 
   const board = useGameStore((s) => s.game.board);
   const tray = useGameStore((s) => s.game.tray);
-  const level = useMascot((s) => s.level);
+  const level = useProgression((s) => s.level);
   const usedDay = useMascot((s) => s.helpersUsedDay.hint);
+  const charges = useMascot((s) => s.helperCharges.hint ?? 0);
   const lang = useLang();
 
   // Таймер сброса подсветки — чистим на размонтировании, не читаем в рендере.
@@ -50,7 +52,7 @@ export function HelperHint({ onEmote, reduceMotion }: HelperHintProps) {
 
   const stuck = isStuckish(board, tray, THRESHOLD);
   const move = stuck ? findHintMove(board, tray) : null;
-  const available = canUseHelper(usedDay, todayISO(), level, 'hint') && move !== null;
+  const available = canUseHelper(usedDay, todayISO(), level, 'hint', charges) && move !== null;
 
   if (!available) return null;
 

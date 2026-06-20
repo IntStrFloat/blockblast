@@ -11,21 +11,21 @@ import Animated, {
 
 import { t } from '@/core/i18n';
 import { Confetti } from '@/features/game';
+import { useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
 import { AppText, colors, radii, spacing } from '@/ui';
 
 import { useMascotFeedback } from '../hooks/useMascotFeedback';
-import { useMascot } from '../store';
 import { GiftGlyph, MascotMark } from './MascotArt';
 
 /**
- * Сюрприз-распаковка косметики при левел-апе Капи.
+ * Сюрприз-распаковка косметики при левел-апе Уровня Игры (владелец reveal — координатор, спека 15 §4).
  * Монтируется в MascotLayer (сиблингом слоя), само скрывается при reveal === null.
  * Авто-закрытие через 1300мс, тап закрывает мгновенно.
  */
 export function LevelUpReveal() {
-  const reveal = useMascot((s) => s.reveal);
-  const clearReveal = useMascot((s) => s.clearReveal);
+  const reveal = useProgression((s) => s.reveal);
+  const clearReveal = useProgression((s) => s.clearReveal);
   const lang = useLang();
   const { onLevelUp } = useMascotFeedback();
 

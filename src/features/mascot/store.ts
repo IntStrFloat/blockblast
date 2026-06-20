@@ -2,23 +2,20 @@ import { create } from 'zustand';
 
 import { seedFromTime } from '@/core/engine';
 import { KEYS, getJSON, setJSON } from '@/core/storage';
+import { useProgression } from '@/features/progression';
 import { todayISO } from '@/features/streak';
 
 import { COSMETICS } from './logic/cosmetics';
-import { progressFor, rewardForLevel } from './logic/progression';
-import { canFeed, canUseHelper, isHelperUnlocked } from './logic/rules';
-import type { HelperId, LevelReward, MascotState, Slot } from './logic/types';
+import { canUseHelper } from './logic/rules';
+import type { HelperId, MascotState, Slot } from './logic/types';
 
 // ---------------------------------------------------------------------------
 // Дефолты и инициализация
 // ---------------------------------------------------------------------------
 
 const DEFAULTS: MascotState = {
-  totalXp: 0,
-  level: 1,
   unlocked: [],
   equipped: {},
-  lastFedDay: null,
   helpersUsedDay: {},
   helperCharges: {},
   lost: false,
@@ -30,17 +27,6 @@ const saved = getJSON<Partial<MascotState>>(KEYS.mascot);
 const COSMETIC_SLOT: Record<string, Slot> = Object.fromEntries(
   COSMETICS.map((item) => [item.id, item.slot]),
 );
-
-function unlockedThroughLevel(current: readonly string[], level: number): string[] {
-  const unlocked = [...current];
-  for (let L = 1; L <= level; L++) {
-    const reward = rewardForLevel(L);
-    if (reward?.kind === 'cosmetic' && !unlocked.includes(reward.id)) {
-      unlocked.push(reward.id);
-    }
-  }
-  return unlocked;
-}
 
 function normalizeEquipped(
   equipped: Partial<Record<Slot, string>>,
@@ -55,83 +41,35 @@ function normalizeEquipped(
   return normalized;
 }
 
-/** Начальное состояние: дефолты + сохранённые поверх; level пересчитывается защитно */
+/**
+ * Начальное состояние: дефолты + сохранённые поверх; equipped нормализуется по unlocked.
+ * Своего уровня маскот больше не пересчитывает (спека 15): стадия выводится из Уровня Игры,
+ * сверку unlocked с достигнутым уровнем делает координатор useProgressionSync на маунте (§5).
+ */
 function buildInitial(): MascotState {
   const merged: MascotState = { ...DEFAULTS, ...saved };
-  // Привести кеш level в соответствие с totalXp (защита от рассинхрона)
-  merged.level = progressFor(merged.totalXp).level;
-  merged.unlocked = unlockedThroughLevel(merged.unlocked, merged.level);
   merged.equipped = normalizeEquipped(merged.equipped, merged.unlocked);
   return merged;
 }
 
-// ---------------------------------------------------------------------------
-// Персист
-// ---------------------------------------------------------------------------
-
-/** Ключи, которые НЕ надо сохранять (transient поля стора). */
-const TRANSIENT_KEYS: readonly string[] = ['reveal'];
-
 function persist(state: MascotState): void {
-  // Отфильтровать transient поля перед записью в MMKV.
-  const payload = Object.fromEntries(
-    Object.entries(state).filter(([k]) => !TRANSIENT_KEYS.includes(k)),
-  );
-  setJSON(KEYS.mascot, payload);
-}
-
-// ---------------------------------------------------------------------------
-// Общий хелпер: начисление очков прогресса с уровень-апом и разблокировкой косметики
-// ---------------------------------------------------------------------------
-
-interface GainResult {
-  patch: Pick<MascotState, 'totalXp' | 'level' | 'unlocked'>;
-  leveledTo: number;
-  rewards: LevelReward[];
-}
-
-function gainXp(prev: MascotState, amount: number): GainResult {
-  const newTotal = prev.totalXp + amount;
-  const oldLevel = prev.level;
-  const newLevel = progressFor(newTotal).level;
-
-  const rewards: LevelReward[] = [];
-  const unlocked = unlockedThroughLevel(prev.unlocked, oldLevel);
-
-  for (let L = oldLevel + 1; L <= newLevel; L++) {
-    const r = rewardForLevel(L);
-    if (r !== null) {
-      if (r.kind === 'cosmetic' && !unlocked.includes(r.id)) {
-        unlocked.push(r.id);
-      }
-      rewards.push(r);
-    }
-  }
-
-  return {
-    patch: { totalXp: newTotal, level: newLevel, unlocked },
-    leveledTo: newLevel,
-    rewards,
-  };
+  setJSON(KEYS.mascot, {
+    unlocked: state.unlocked,
+    equipped: state.equipped,
+    helpersUsedDay: state.helpersUsedDay,
+    helperCharges: state.helperCharges,
+    lost: state.lost,
+    introDone: state.introDone,
+    rngState: state.rngState,
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Интерфейс стора
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Transient reveal (NOT persisted to MMKV)
-// ---------------------------------------------------------------------------
-
-interface RevealPayload {
-  level: number;
-  rewards: LevelReward[];
-}
-
 interface MascotActions {
-  applyScore: (score: number) => { leveledTo: number; rewards: LevelReward[] };
-  feed: () => { leveledTo: number; rewards: LevelReward[] } | null;
-  /** Идемпотентно разблокировать косметику (вызывают progression-координатор и дейли). */
+  /** Идемпотентно разблокировать косметику (вызывают координатор 11 и дейли 14). */
   unlock: (id: string) => void;
   /** Добавить заряд помощника (дроп дейли), тратится сверх дневного лимита. */
   addHelperCharge: (id: HelperId) => void;
@@ -142,10 +80,9 @@ interface MascotActions {
   unequip: (slot: Slot) => void;
   markIntroDone: () => void;
   bumpRng: (rngState: number) => void;
-  clearReveal: () => void;
 }
 
-type MascotStore = MascotState & MascotActions & { reveal: RevealPayload | null };
+type MascotStore = MascotState & MascotActions;
 
 // ---------------------------------------------------------------------------
 // Стор
@@ -153,30 +90,6 @@ type MascotStore = MascotState & MascotActions & { reveal: RevealPayload | null 
 
 export const useMascot = create<MascotStore>((set, get) => ({
   ...buildInitial(),
-
-  reveal: null,
-
-  applyScore(score) {
-    const prev = get();
-    const gained = Math.max(0, Math.floor(score));
-    const { patch, leveledTo, rewards } = gainXp(prev, gained);
-    const next: MascotState = { ...prev, ...patch };
-    const revealPatch = leveledTo > prev.level ? { reveal: { level: leveledTo, rewards } } : {};
-    set({ ...patch, ...revealPatch });
-    persist(next);
-    return { leveledTo, rewards };
-  },
-
-  feed() {
-    const prev = get();
-    const today = todayISO();
-    if (!canFeed(prev.lastFedDay, today)) return null;
-
-    const next: MascotState = { ...prev, lastFedDay: today };
-    set({ lastFedDay: today });
-    persist(next);
-    return { leveledTo: prev.level, rewards: [] };
-  },
 
   unlock(id) {
     const prev = get();
@@ -189,8 +102,8 @@ export const useMascot = create<MascotStore>((set, get) => ({
 
   addHelperCharge(id) {
     const prev = get();
-    const current = prev.helperCharges?.[id] ?? 0;
-    const helperCharges = { ...(prev.helperCharges ?? {}), [id]: current + 1 };
+    const current = prev.helperCharges[id] ?? 0;
+    const helperCharges = { ...prev.helperCharges, [id]: current + 1 };
     const next: MascotState = { ...prev, helperCharges };
     set({ helperCharges });
     persist(next);
@@ -199,23 +112,25 @@ export const useMascot = create<MascotStore>((set, get) => ({
   useHelper(id) {
     const prev = get();
     const today = todayISO();
-    if (canUseHelper(prev.helpersUsedDay[id], today, prev.level, id)) {
+    // Гейт разлока — из Уровня Игры (спека 15 §3).
+    const gameLevel = useProgression.getState().level;
+    const charges = prev.helperCharges[id] ?? 0;
+    if (!canUseHelper(prev.helpersUsedDay[id], today, gameLevel, id, charges)) return false;
+
+    if (prev.helpersUsedDay[id] !== today) {
+      // Дневной слот свободен — пометить день.
       const helpersUsedDay = { ...prev.helpersUsedDay, [id]: today };
       const next: MascotState = { ...prev, helpersUsedDay };
       set({ helpersUsedDay });
       persist(next);
-      return true;
-    }
-    // Дневной лимит исчерпан — потратить заряд, если помощник разблокирован и заряд есть.
-    const charges = prev.helperCharges?.[id] ?? 0;
-    if (isHelperUnlocked(prev.level, id) && charges > 0) {
-      const helperCharges = { ...(prev.helperCharges ?? {}), [id]: charges - 1 };
+    } else {
+      // Дневной лимит исчерпан — потратить заряд из дейли-дропа.
+      const helperCharges = { ...prev.helperCharges, [id]: charges - 1 };
       const next: MascotState = { ...prev, helperCharges };
       set({ helperCharges });
       persist(next);
-      return true;
     }
-    return false;
+    return true;
   },
 
   drop() {
@@ -264,9 +179,5 @@ export const useMascot = create<MascotStore>((set, get) => ({
     const next: MascotState = { ...prev, rngState };
     set({ rngState });
     persist(next);
-  },
-
-  clearReveal() {
-    set({ reveal: null });
   },
 }));
