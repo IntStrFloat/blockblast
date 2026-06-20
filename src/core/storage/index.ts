@@ -23,6 +23,7 @@ export const KEYS = {
   adsMeta: 'ads.meta',
   tutorialDone: 'tutorial.done',
   mascot: 'mascot.state',
+  progression: 'progression.state',
 } as const;
 
 export function getJSON<T>(key: string): T | null {
