@@ -25,6 +25,7 @@
 | [docs/specs/13-achievements-map.md](docs/specs/13-achievements-map.md) | Экран «Карта достижений»: дорога уровней/миров, текущая позиция, стилизованный гэп |
 | [docs/specs/14-daily-bonus.md](docs/specs/14-daily-bonus.md) | Дейли-бонус: бонус-очки × множитель стрика, защитник, дроп, карточка+reveal |
 | [docs/specs/15-mascot-decoupling.md](docs/specs/15-mascot-decoupling.md) | Рефактор Капи: убрать свою XP, стадия из Уровня Игры, косметика из progression+daily |
+| [docs/specs/16-push-notifications.md](docs/specs/16-push-notifications.md) | Push-уведомления RuStore: приём, soft-ask, ручные кампании из консоли |
 
 План реализации: docs/plans/ (если есть — выполнять по нему).
 

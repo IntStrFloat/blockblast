@@ -12,7 +12,7 @@
 | Re-render при размещении | только изменившиеся ячейки (memo) |
 | Холодный старт → Home | < 2с на среднем Android |
 | Размер release APK (arm64) | < 50 МБ (факт v1.0.0: 46.3 МБ — RN+Hermes+Reanimated базовый вес; universal 4-ABI: 107 МБ) |
-| Нативные зависимости сверх Expo | только mmkv (+ ad/iap SDK при включении флагов); маскот «Капи» — **0 новых** |
+| Нативные зависимости сверх Expo | только mmkv (+ ad/iap SDK при включении флагов; + rustore-push — receive-only, Android, за флагом pushEnabled); маскот «Капи» — **0 новых** |
 
 ## Решение по рендеру: Views + Reanimated (не Skia)
 
