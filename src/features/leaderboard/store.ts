@@ -19,6 +19,7 @@ import type {
   WeeklyLeaderboardSnapshot,
 } from './types';
 import { getUtcWeekWindow } from './week';
+import { settleWeeklyPrize, type WeeklyPrizeRecord } from './weeklyPrize';
 
 interface DailyResult {
   dateIso: string;
@@ -35,6 +36,8 @@ interface LeaderboardState {
   /** ticketId тикетов, уже использованных в этой сессии (ротация сидов). */
   consumedTicketIds: string[];
   pendingSubmissions: PendingSubmission[];
+  /** Призы за топ-3 закрытых недель (claim-модель). */
+  weeklyPrizes: WeeklyPrizeRecord[];
   viewState: LeaderboardViewState;
   lastError: 'offline' | 'remote_error' | null;
   startRun: (input: {
@@ -50,6 +53,8 @@ interface LeaderboardState {
   flushPending: (authToken?: string | null) => Promise<void>;
   refresh: (now?: Date) => Promise<WeeklyLeaderboardSnapshot>;
   refreshIfStale: (now?: Date, staleMs?: number) => Promise<WeeklyLeaderboardSnapshot>;
+  /** Пометить приз полученным; возвращает запись для выдачи наград вызывающим. */
+  claimWeeklyPrize: (weekKey: string) => WeeklyPrizeRecord | null;
   resetForTests: (profile?: ProfileIdentity) => void;
 }
 
@@ -58,13 +63,28 @@ interface CreateLeaderboardStoreOptions {
   client?: LeaderboardClient;
 }
 
-function persistState(state: Pick<LeaderboardState, 'activeProof' | 'snapshot' | 'localWeeklyResult' | 'dailyResults' | 'tickets' | 'pendingSubmissions'>) {
+function persistState(state: Pick<LeaderboardState, 'activeProof' | 'snapshot' | 'localWeeklyResult' | 'dailyResults' | 'tickets' | 'pendingSubmissions' | 'weeklyPrizes'>) {
   setJSON(KEYS.leaderboardActiveProof, state.activeProof);
   setJSON(KEYS.leaderboardSnapshot, state.snapshot);
   setJSON(KEYS.leaderboardRuns, state.localWeeklyResult);
   setJSON(KEYS.leaderboardDaily, state.dailyResults);
   setJSON(KEYS.leaderboardTickets, state.tickets);
   setJSON(KEYS.leaderboardPending, state.pendingSubmissions);
+  setJSON(KEYS.leaderboardPrizes, state.weeklyPrizes);
+}
+
+/**
+ * Подвести призы прошлой недели перед перезаписью снапшота новой неделей.
+ * Возвращает обновлённый список призов (с новой записью, если игрок попал в топ-3).
+ */
+function settlePrizesFor(
+  previous: WeeklyLeaderboardSnapshot | null,
+  existing: readonly WeeklyPrizeRecord[],
+  now: Date,
+): WeeklyPrizeRecord[] {
+  const currentWeekKey = getUtcWeekWindow(now).weekKey;
+  const settled = settleWeeklyPrize(previous, currentWeekKey, existing, now);
+  return settled ? [...existing, settled] : [...existing];
 }
 
 function resolveProfile(fallback?: ProfileIdentity): ProfileIdentity {
@@ -188,6 +208,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
   const initialDaily = getJSON<Record<string, DailyResult>>(KEYS.leaderboardDaily) ?? {};
   const initialTickets = getJSON<RankedTicket[]>(KEYS.leaderboardTickets) ?? [];
   const initialPending = getJSON<PendingSubmission[]>(KEYS.leaderboardPending) ?? [];
+  const initialPrizes = getJSON<WeeklyPrizeRecord[]>(KEYS.leaderboardPrizes) ?? [];
 
   const store = create<LeaderboardState>((set, get) => ({
     snapshot: initialSnapshot,
@@ -198,6 +219,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
     tickets: initialTickets,
     consumedTicketIds: [],
     pendingSubmissions: initialPending,
+    weeklyPrizes: initialPrizes,
     viewState: initialSnapshot ? (initialSnapshot.isCached ? 'cached' : initialSnapshot.entries.length > 0 ? 'ready' : 'empty') : 'idle',
     lastError: null,
 
@@ -424,6 +446,15 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
     refresh: async (now = new Date()) => {
       const profile = resolveProfile(options.profile);
       const authToken = getString(KEYS.profileAuth);
+
+      // Подвести призы прошлой недели по последнему известному снапшоту, пока он
+      // ещё отражает закрытую неделю (до перезаписи свежими данными).
+      const settledPrizes = settlePrizesFor(get().snapshot, get().weeklyPrizes, now);
+      if (settledPrizes.length !== get().weeklyPrizes.length) {
+        set({ weeklyPrizes: settledPrizes });
+        persistState({ ...get(), weeklyPrizes: settledPrizes });
+      }
+
       set({ viewState: 'loading' });
 
       if (client.kind === 'remote' && authToken) {
@@ -476,6 +507,22 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       return get().refresh(now);
     },
 
+    claimWeeklyPrize: (weekKey) => {
+      const record = get().weeklyPrizes.find((item) => item.weekKey === weekKey);
+      if (!record || record.claimed) return null;
+      const claimed: WeeklyPrizeRecord = { ...record, claimed: true };
+      const weeklyPrizes = get().weeklyPrizes.map((item) =>
+        item.weekKey === weekKey ? claimed : item,
+      );
+      set({ weeklyPrizes });
+      persistState({ ...get(), weeklyPrizes });
+      useAnalyticsStore.getState().track('weekly_prize_claimed', {
+        rank: claimed.rank,
+        weekKey: claimed.weekKey,
+      });
+      return claimed;
+    },
+
     resetForTests: (profile = createGeneratedProfile(7)) => {
       setJSON(KEYS.profileLocal, profile);
       removeKey(KEYS.profileAuth);
@@ -485,6 +532,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       removeKey(KEYS.leaderboardDaily);
       removeKey(KEYS.leaderboardPending);
       removeKey(KEYS.leaderboardTickets);
+      removeKey(KEYS.leaderboardPrizes);
       set({
         snapshot: null,
         activeProof: null,
@@ -494,6 +542,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
         tickets: [],
         consumedTicketIds: [],
         pendingSubmissions: [],
+        weeklyPrizes: [],
         viewState: 'idle',
         lastError: null,
       });

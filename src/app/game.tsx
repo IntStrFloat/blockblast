@@ -91,6 +91,16 @@ export default function GameScreen() {
   }>();
   const { width: screenWidth } = useWindowDimensions();
   const theme = useActiveWorldTheme();
+  // Сеттинг всей игровой области (фон/атмосфера) следует активной теме мира (спека 12 §3).
+  const bgPalette = useMemo(
+    () => ({
+      bgTop: theme.bgTop,
+      bgBottom: theme.bgBottom,
+      glowColors: theme.juiceColors,
+      haloColor: theme.praiseAccent,
+    }),
+    [theme],
+  );
   const { boardSize, cellSize, cellGap } = getBoardMetrics(screenWidth);
   const geom = useMemo(
     () => ({ boardSize, cell: cellSize, gap: cellGap, pad: 0 }),
@@ -211,7 +221,7 @@ export default function GameScreen() {
   return (
     <DragProvider value={dragCtx}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <GameBackground boardSize={boardSize} />
+        <GameBackground boardSize={boardSize} {...bgPalette} />
         <View
           pointerEvents={status === 'over' ? 'none' : 'auto'}
           style={{
@@ -221,7 +231,7 @@ export default function GameScreen() {
             paddingVertical: 16,
           }}
         >
-          <GameBackground boardSize={boardSize} boardLayout={boardLayout} />
+          <GameBackground boardSize={boardSize} boardLayout={boardLayout} {...bgPalette} />
           <Hud onPause={() => setPaused(true)} />
 
           <MascotLayer dragActive={dragActive} />

@@ -15,6 +15,12 @@ export const colors = {
   surfacePressed: 'rgba(255,255,255,0.16)',
   cardGlass: 'rgba(22,36,68,0.5)',
   hairline: 'rgba(255,255,255,0.12)',
+  // Claymorphism (спека 04): «вылепленные» приподнятые поверхности с мягкой тенью.
+  cardSolid: '#1C2E57',
+  cardRaised: '#243B6E',
+  clayShadow: '#060A18',
+  track: '#101E3C',
+  success: '#3DDC84',
 } as const;
 
 export interface BlockTheme {

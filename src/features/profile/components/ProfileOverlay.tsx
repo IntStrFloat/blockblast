@@ -9,6 +9,14 @@ import { AppText, GameButton, Overlay, colors, radii, spacing } from '@/ui';
 import type { NicknameValidationError } from '../nickname';
 import { useProfileStore } from '../store';
 
+type SyncState = 'ready' | 'syncing' | 'offline';
+
+function syncDotColor(state: SyncState): string {
+  if (state === 'ready') return colors.success;
+  if (state === 'syncing') return colors.accent;
+  return colors.textDim;
+}
+
 interface ProfileOverlayProps {
   visible: boolean;
   onClose: () => void;
@@ -50,47 +58,85 @@ function ProfileOverlayContent({ onClose }: { onClose: () => void }) {
 
   const resolvedError = localError ?? storeError;
   const resolvedErrorKey = errorKey(resolvedError);
+  const syncState: SyncState =
+    syncStatus === 'ready' ? 'ready' : syncStatus === 'syncing' ? 'syncing' : 'offline';
+  const initial = (profile.nickname.trim()[0] ?? '?').toUpperCase();
 
   return (
     <Overlay>
-      <View style={{ gap: spacing.s }}>
-        <AppText preset="title">{t('profile.title', lang)}</AppText>
-        <AppText preset="caption">
-          {profile.nickname} - {profile.tag}
-        </AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.m }}>
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: radii.card,
+            backgroundColor: colors.accent,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <AppText preset="title" style={{ fontSize: 24, color: colors.bgBottom }}>
+            {initial}
+          </AppText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText preset="title" style={{ fontSize: 20 }} numberOfLines={1}>
+            {profile.nickname}
+          </AppText>
+          <AppText preset="caption" style={{ color: colors.textDim }}>
+            #{profile.tag}
+          </AppText>
+        </View>
       </View>
 
-      <TextInput
-        value={draft}
-        editable={!saving}
-        onChangeText={setDraft}
-        placeholder={t('profile.placeholder', lang)}
-        placeholderTextColor={colors.textDim}
-        style={{
-          borderRadius: radii.button,
-          backgroundColor: colors.surface,
-          color: colors.textPrimary,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
-        }}
-      />
-
-      {resolvedErrorKey ? (
-        <AppText preset="caption" style={{ color: colors.danger }}>
-          {t(resolvedErrorKey, lang)}
+      <View style={{ gap: spacing.xs }}>
+        <AppText preset="caption" style={{ color: colors.textDim }}>
+          {t('profile.placeholder', lang).toUpperCase()}
         </AppText>
-      ) : (
-        <AppText preset="caption">
-          {t(
-            syncStatus === 'ready'
-              ? 'profile.syncReady'
-              : syncStatus === 'syncing'
-                ? 'profile.syncing'
-                : 'profile.syncOffline',
-            lang,
-          )}
-        </AppText>
-      )}
+        <TextInput
+          value={draft}
+          editable={!saving}
+          onChangeText={setDraft}
+          placeholder={t('profile.placeholder', lang)}
+          placeholderTextColor={colors.textDim}
+          style={{
+            borderRadius: radii.button,
+            backgroundColor: colors.cardSolid,
+            color: colors.textPrimary,
+            borderWidth: 1,
+            borderColor: resolvedErrorKey ? colors.danger : colors.hairline,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            fontSize: 16,
+          }}
+        />
+        {resolvedErrorKey ? (
+          <AppText preset="caption" style={{ color: colors.danger }}>
+            {t(resolvedErrorKey, lang)}
+          </AppText>
+        ) : (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: syncDotColor(syncState),
+              }}
+            />
+            <AppText preset="caption" style={{ color: colors.textDim }}>
+              {t(
+                syncState === 'ready'
+                  ? 'profile.syncReady'
+                  : syncState === 'syncing'
+                    ? 'profile.syncing'
+                    : 'profile.syncOffline',
+                lang,
+              )}
+            </AppText>
+          </View>
+        )}
+      </View>
 
       <View style={{ flexDirection: 'row', gap: spacing.s }}>
         <GameButton
@@ -122,8 +168,10 @@ function ProfileOverlayContent({ onClose }: { onClose: () => void }) {
         />
       </View>
 
-      <Pressable onPress={onClose} style={{ alignSelf: 'center', padding: 4 }}>
-        <AppText preset="caption">{t('profile.close', lang)}</AppText>
+      <Pressable onPress={onClose} hitSlop={8} style={{ alignSelf: 'center', paddingVertical: spacing.xs }}>
+        <AppText preset="caption" style={{ color: colors.textDim }}>
+          {t('profile.close', lang)}
+        </AppText>
       </Pressable>
     </Overlay>
   );

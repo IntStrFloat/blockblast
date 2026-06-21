@@ -2,6 +2,7 @@ import { KEYS, getJSON, removeKey } from '@/core/storage';
 
 import { createLeaderboardStore } from '../store';
 import type { LeaderboardClient } from '../client';
+import type { WeeklyLeaderboardSnapshot } from '../types';
 
 const NOW = new Date('2026-06-13T12:00:00.000Z');
 
@@ -12,6 +13,7 @@ beforeEach(() => {
   removeKey(KEYS.leaderboardDaily);
   removeKey(KEYS.leaderboardPending);
   removeKey(KEYS.leaderboardTickets);
+  removeKey(KEYS.leaderboardPrizes);
   removeKey(KEYS.profileAuth);
 });
 
@@ -302,6 +304,43 @@ describe('leaderboard store', () => {
     expect(store.getState().pendingSubmissions).toEqual([]);
     expect(store.getState().snapshot?.source).toBe('remote');
     expect(getJSON(KEYS.leaderboardSnapshot)).toEqual(store.getState().snapshot);
+  });
+
+  it('settles a top-3 prize when the week rolls over, then claims it once', async () => {
+    const lastWeek: WeeklyLeaderboardSnapshot = {
+      weekKey: '2026-06-15',
+      weekStartIso: '2026-06-15T00:00:00.000Z',
+      weekEndIso: '2026-06-22T00:00:00.000Z',
+      generatedAt: '2026-06-15T12:00:00.000Z',
+      source: 'remote',
+      isCached: false,
+      currentPlayer: {
+        nickname: 'LimeComet',
+        tag: '00H',
+        rank: 2,
+        weeklyBest: 5000,
+        runsCount: 4,
+        achievedAt: '2026-06-16T00:00:00.000Z',
+        isCurrentPlayer: true,
+      },
+      entries: [],
+    };
+    const store = createLeaderboardStore();
+    store.setState({ snapshot: lastWeek });
+
+    // Рефреш на следующей неделе подводит призы прошлой.
+    await store.getState().refresh(new Date('2026-06-23T10:00:00.000Z'));
+
+    const prizes = store.getState().weeklyPrizes;
+    expect(prizes).toHaveLength(1);
+    expect(prizes[0]).toMatchObject({ weekKey: '2026-06-15', rank: 2, claimed: false });
+
+    const claimed = store.getState().claimWeeklyPrize('2026-06-15');
+    expect(claimed?.claimed).toBe(true);
+    expect(store.getState().weeklyPrizes[0].claimed).toBe(true);
+
+    // Повторный claim не выдаёт награду второй раз.
+    expect(store.getState().claimWeeklyPrize('2026-06-15')).toBeNull();
   });
 
   it('drops permanently rejected pending submissions but keeps transient failures', async () => {

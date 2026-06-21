@@ -15,7 +15,8 @@ const LADDER = [1, 2, 3, 4, 5, 6, 7];
 
 /**
  * Ambient дейли-карточка на Home (спека 14 §8): «день N · ×M», лесенка стрика,
- * кнопка «забрать» или «приходи завтра». Не показывается до первой партии
+ * кнопка «забрать +бонус» или «приходи завтра +бонус» (показываем конкретные
+ * бонус-очки, а не только множитель). Не показывается до первой партии
  * (анти-чеклист 06). Холодный забор использует живой стрик; множитель растёт
  * только реальной игрой. Reveal — лёгкая коробка поверх карточки (≤1.2с, скип тапом).
  */
@@ -70,11 +71,11 @@ export function DailyCard() {
       ) : null}
 
       {canClaim ? (
-        <GameButton label={t('daily.claim', lang)} onPress={onClaim} />
+        <GameButton label={`${t('daily.claim', lang)} +${preview.points}`} onPress={onClaim} />
       ) : (
         <AppText preset="caption" style={{ textAlign: 'center' }}>
-          {t('daily.comeBack', lang)} · {t('daily.tomorrow', lang)} ×
-          {dailyPreview(currentDay + 1).multiplier}
+          {t('daily.comeBack', lang)} · {t('daily.tomorrow', lang)} +
+          {dailyPreview(currentDay + 1).points}
         </AppText>
       )}
 
@@ -122,11 +123,12 @@ function DailyReveal({
 const styles = StyleSheet.create({
   card: {
     width: '100%',
-    maxWidth: 320,
     gap: spacing.xs,
     padding: spacing.m,
     borderRadius: radii.card,
-    backgroundColor: colors.cardGlass,
+    backgroundColor: colors.cardSolid,
+    borderWidth: 1,
+    borderColor: colors.hairline,
     overflow: 'hidden',
   },
   header: {
@@ -148,6 +150,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: colors.cardGlass,
+    backgroundColor: colors.cardSolid,
   },
 });

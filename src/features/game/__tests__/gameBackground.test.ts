@@ -20,15 +20,23 @@ describe("GameBackground contract", () => {
     expect(homeSource).not.toContain("GameBackground");
   });
 
-  it("uses a restrained soft-sunset backdrop stack with a dark indigo fallback", () => {
+  it("derives its backdrop palette from the active world theme, not a hardcoded one", () => {
     expect(backgroundSource).toContain("LinearGradient");
     expect(backgroundSource).toContain('pointerEvents="none"');
     expect(backgroundSource).toContain("absoluteFill");
-    expect(backgroundSource).toContain("#0E1736");
-    expect(backgroundSource).toContain("#F6B39F");
-    expect(backgroundSource).toContain("#E98BAC");
-    expect(backgroundSource).toContain("#425E9E");
-    expect(backgroundSource).toContain("#A7D2FF");
+    // Palette comes from theme props (спека 12 §3), no baked-in sunset hexes.
+    expect(backgroundSource).toContain("glowColors");
+    expect(backgroundSource).toContain("haloColor");
+    expect(backgroundSource).toContain("bgBottom");
+    expect(backgroundSource).toContain("hexToRgba");
+    expect(backgroundSource).not.toContain("#F6B39F");
+    expect(backgroundSource).not.toContain("SOFT_SUNSET");
+  });
+
+  it("is fed the active world theme palette from the game route", () => {
+    expect(gameSource).toContain("useActiveWorldTheme");
+    expect(gameSource).toContain("juiceColors");
+    expect(gameSource).toContain("{...bgPalette}");
   });
 
   it("reacts only to combo events and cleans up stale pulses", () => {

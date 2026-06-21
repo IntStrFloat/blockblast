@@ -13,4 +13,5 @@ export {
 } from './board';
 export { scorePlacement, praiseFor } from './scoring';
 export { createGame, place, replaceTrayPiece, revive } from './game';
+export { engineFingerprint } from './fingerprint';
 export { serialize, deserialize } from './serialize';

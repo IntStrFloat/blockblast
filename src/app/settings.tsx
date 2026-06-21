@@ -17,7 +17,19 @@ import {
   useActiveWorldTheme,
   useUnlockedWorldThemes,
 } from '@/features/themes';
-import { AppText, ConfirmDialog, GameButton, colors, radii, spacing } from '@/ui';
+import {
+  AppText,
+  CheckIcon,
+  ChevronIcon,
+  ClayCard,
+  ConfirmDialog,
+  GameButton,
+  IconButton,
+  LockIcon,
+  colors,
+  radii,
+  spacing,
+} from '@/ui';
 
 /** Мир, на котором открывается тема (для подсказки на закрытых). */
 const THEME_WORLD: Record<string, number> = Object.fromEntries(
@@ -26,7 +38,28 @@ const THEME_WORLD: Record<string, number> = Object.fromEntries(
 
 const PRIVACY_URL = 'https://bloxx.193.160.208.95.nip.io/privacy.html';
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+/** Секция настроек: муты-заголовок + «глиняная» карточка с рядами. */
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View style={{ gap: spacing.s }}>
+      <AppText preset="caption" style={{ color: colors.textDim, marginLeft: spacing.xs }}>
+        {title.toUpperCase()}
+      </AppText>
+      <ClayCard style={{ paddingVertical: spacing.xs }}>{children}</ClayCard>
+    </View>
+  );
+}
+
+/** Ряд внутри секции с тонким разделителем (кроме первого). */
+function Row({
+  label,
+  children,
+  first = false,
+}: {
+  label: string;
+  children: ReactNode;
+  first?: boolean;
+}) {
   return (
     <View
       style={{
@@ -35,6 +68,8 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
         justifyContent: 'space-between',
         paddingVertical: 12,
         gap: 12,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: colors.hairline,
       }}
     >
       <AppText preset="body" style={{ flexShrink: 1 }}>
@@ -57,16 +92,74 @@ function Chip({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       style={{
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        minHeight: 36,
+        paddingHorizontal: 14,
+        justifyContent: 'center',
         borderRadius: radii.button,
-        backgroundColor: active ? colors.accent : colors.surface,
+        backgroundColor: active ? colors.accent : colors.cardRaised,
+        borderWidth: 1,
+        borderColor: active ? colors.accent : colors.hairline,
       }}
     >
-      <AppText preset="caption" style={{ color: active ? '#1B2A4A' : colors.textPrimary }}>
+      <AppText preset="caption" style={{ color: active ? colors.bgBottom : colors.textPrimary }}>
         {label}
       </AppText>
+    </Pressable>
+  );
+}
+
+function ThemeTile({
+  swatches,
+  label,
+  active,
+  unlocked,
+  onPress,
+}: {
+  swatches: string[];
+  label: string;
+  active: boolean;
+  unlocked: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      disabled={!unlocked}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active, disabled: !unlocked }}
+      style={{
+        width: 100,
+        padding: spacing.s,
+        gap: spacing.s,
+        alignItems: 'center',
+        borderRadius: radii.card,
+        backgroundColor: colors.cardRaised,
+        borderWidth: 2,
+        borderColor: active ? colors.accent : colors.hairline,
+        opacity: unlocked ? 1 : 0.45,
+      }}
+    >
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>
+        {swatches.slice(0, 6).map((color, i) => (
+          <View
+            key={`${color}-${i}`}
+            style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: color }}
+          />
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        {!unlocked ? <LockIcon size={12} /> : active ? <CheckIcon size={12} color={colors.accent} /> : null}
+        <AppText
+          preset="caption"
+          numberOfLines={1}
+          style={{ color: active ? colors.accent : colors.textPrimary }}
+        >
+          {label}
+        </AppText>
+      </View>
     </Pressable>
   );
 }
@@ -90,58 +183,82 @@ export default function SettingsScreen() {
     { value: 'en', label: 'EN' },
   ];
 
+  const switchTrack = { true: colors.accent, false: colors.track };
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ padding: spacing.l, gap: 4 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: spacing.m }}>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
-            <AppText preset="title">{'<'}</AppText>
-          </Pressable>
-          <AppText preset="title">{t('settings.title', lang)}</AppText>
-        </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.s,
+          paddingHorizontal: spacing.l,
+          paddingTop: spacing.s,
+          paddingBottom: spacing.s,
+        }}
+      >
+        <IconButton
+          onPress={() => router.back()}
+          accessibilityLabel={t('settings.title', lang)}
+          size={44}
+        >
+          <ChevronIcon direction="left" />
+        </IconButton>
+        <AppText preset="title" style={{ fontSize: 22 }}>
+          {t('settings.title', lang)}
+        </AppText>
+      </View>
 
-        <Row label={t('settings.sound', lang)}>
-          <Switch
-            value={settings.sound}
-            onValueChange={(value) => settings.update({ sound: value })}
-            trackColor={{ true: colors.accent }}
-          />
-        </Row>
-
-        <Row label={t('settings.haptics', lang)}>
-          <Switch
-            value={settings.haptics}
-            onValueChange={(value) => settings.update({ haptics: value })}
-            trackColor={{ true: colors.accent }}
-          />
-        </Row>
-
-        <Row label={`🦫 ${t('settings.showMascot', lang)}`}>
-          <Switch
-            value={settings.showMascot}
-            onValueChange={(v) => settings.update({ showMascot: v })}
-            trackColor={{ true: colors.accent }}
-          />
-        </Row>
-
-        <Row label={t('settings.praiseTone', lang)}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Chip
-              label={t('settings.toneClassic', lang)}
-              active={settings.praiseTone === 'classic'}
-              onPress={() => settings.update({ praiseTone: 'classic' })}
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.l, paddingTop: spacing.s, gap: spacing.l }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Section title={t('settings.secAudio', lang)}>
+          <Row label={t('settings.sound', lang)} first>
+            <Switch
+              value={settings.sound}
+              onValueChange={(value) => settings.update({ sound: value })}
+              trackColor={switchTrack}
             />
-            <Chip
-              label={t('settings.toneMeme', lang)}
-              active={settings.praiseTone === 'meme'}
-              onPress={() => settings.update({ praiseTone: 'meme' })}
+          </Row>
+          <Row label={t('settings.haptics', lang)}>
+            <Switch
+              value={settings.haptics}
+              onValueChange={(value) => settings.update({ haptics: value })}
+              trackColor={switchTrack}
             />
-          </View>
-        </Row>
+          </Row>
+        </Section>
 
-        <View style={{ paddingVertical: 12, gap: 8 }}>
-          <AppText preset="body">{t('settings.worldTheme', lang)}</AppText>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <Section title={t('settings.secFeel', lang)}>
+          <Row label={t('settings.showMascot', lang)} first>
+            <Switch
+              value={settings.showMascot}
+              onValueChange={(v) => settings.update({ showMascot: v })}
+              trackColor={switchTrack}
+            />
+          </Row>
+          <Row label={t('settings.praiseTone', lang)}>
+            <View style={{ flexDirection: 'row', gap: spacing.s }}>
+              <Chip
+                label={t('settings.toneClassic', lang)}
+                active={settings.praiseTone === 'classic'}
+                onPress={() => settings.update({ praiseTone: 'classic' })}
+              />
+              <Chip
+                label={t('settings.toneMeme', lang)}
+                active={settings.praiseTone === 'meme'}
+                onPress={() => settings.update({ praiseTone: 'meme' })}
+              />
+            </View>
+          </Row>
+        </Section>
+
+        <View style={{ gap: spacing.s }}>
+          <AppText preset="caption" style={{ color: colors.textDim, marginLeft: spacing.xs }}>
+            {t('settings.worldTheme', lang).toUpperCase()}
+          </AppText>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s }}>
             {WORLD_THEMES.map((theme) => {
               const unlocked = unlockedThemeIds.has(theme.id);
               const active = theme.id === activeThemeId;
@@ -149,63 +266,43 @@ export default function SettingsScreen() {
                 ? t(theme.nameKey, lang)
                 : `${t('settings.themeLocked', lang)} ${THEME_WORLD[theme.id] ?? ''}`.trim();
               return (
-                <Pressable
+                <ThemeTile
                   key={theme.id}
-                  disabled={!unlocked}
+                  swatches={theme.cellColors}
+                  label={label}
+                  active={active}
+                  unlocked={unlocked}
                   onPress={() => setActiveWorldTheme(theme.id)}
-                  style={{
-                    minWidth: 44,
-                    padding: 8,
-                    gap: 6,
-                    alignItems: 'center',
-                    borderRadius: radii.button,
-                    backgroundColor: active ? colors.accent : colors.surface,
-                    opacity: unlocked ? 1 : 0.4,
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', gap: 3 }}>
-                    {theme.cellColors.slice(0, 4).map((color) => (
-                      <View
-                        key={color}
-                        style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: color }}
-                      />
-                    ))}
-                  </View>
-                  <AppText
-                    preset="caption"
-                    style={{ color: active ? '#1B2A4A' : colors.textPrimary }}
-                  >
-                    {label}
-                  </AppText>
-                </Pressable>
+                />
               );
             })}
           </View>
         </View>
 
-        <Row label={t('settings.language', lang)}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {langOptions.map((option) => (
-              <Chip
-                key={option.value}
-                label={option.label}
-                active={settings.lang === option.value}
-                onPress={() => settings.update({ lang: option.value })}
-              />
-            ))}
-          </View>
-        </Row>
-
-        <Row label={t('settings.analytics', lang)}>
-          <Switch
-            value={!analyticsOptOut}
-            onValueChange={(value) => setAnalyticsOptOut(!value)}
-            trackColor={{ true: colors.accent }}
-          />
-        </Row>
+        <Section title={t('settings.secLangData', lang)}>
+          <Row label={t('settings.language', lang)} first>
+            <View style={{ flexDirection: 'row', gap: spacing.s }}>
+              {langOptions.map((option) => (
+                <Chip
+                  key={option.value}
+                  label={option.label}
+                  active={settings.lang === option.value}
+                  onPress={() => settings.update({ lang: option.value })}
+                />
+              ))}
+            </View>
+          </Row>
+          <Row label={t('settings.analytics', lang)}>
+            <Switch
+              value={!analyticsOptOut}
+              onValueChange={(value) => setAnalyticsOptOut(!value)}
+              trackColor={switchTrack}
+            />
+          </Row>
+        </Section>
 
         {MONETIZATION.iapEnabled ? (
-          <View style={{ gap: spacing.s, marginTop: spacing.m }}>
+          <View style={{ gap: spacing.s }}>
             <GameButton label={t('settings.removeAds', lang)} onPress={() => {}} />
             <GameButton
               label={t('settings.restorePurchases', lang)}
@@ -215,24 +312,22 @@ export default function SettingsScreen() {
           </View>
         ) : null}
 
-        <View style={{ marginTop: spacing.l, gap: spacing.s }}>
-          <Pressable onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})}>
+        <View style={{ alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs }}>
+          <Pressable onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})} hitSlop={8}>
             <AppText preset="caption" style={{ textDecorationLine: 'underline' }}>
               {t('settings.privacy', lang)}
             </AppText>
           </Pressable>
-          <AppText preset="caption">
+          <AppText preset="caption" style={{ color: colors.textDim }}>
             {t('settings.version', lang)}: {Constants.expoConfig?.version ?? '1.1.0'}
           </AppText>
         </View>
 
-        <View style={{ marginTop: spacing.xl }}>
-          <GameButton
-            label={t('settings.resetBest', lang)}
-            variant="danger"
-            onPress={confirmReset}
-          />
-        </View>
+        <GameButton
+          label={t('settings.resetBest', lang)}
+          variant="danger"
+          onPress={confirmReset}
+        />
       </ScrollView>
 
       <ConfirmDialog

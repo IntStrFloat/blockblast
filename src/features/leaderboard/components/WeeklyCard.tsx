@@ -4,10 +4,10 @@ import { Pressable, View } from 'react-native';
 import { t } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
 import { useLang } from '@/features/settings';
-import { AppText, colors, radii, spacing } from '@/ui';
+import { AppText, ChevronIcon, ClayCard, CrownIcon, colors, radii, spacing } from '@/ui';
 
 import { useLeaderboardStore } from '../store';
-import { weeklyStatusLabel } from '../presentation';
+import { resolveWeeklyView, weeklyStatusLabel } from '../presentation';
 import { getWeeklyGoal } from '../week';
 
 interface WeeklyCardProps {
@@ -18,12 +18,22 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
   const lang = useLang();
   const snapshot = useLeaderboardStore((state) => state.snapshot);
   const viewState = useLeaderboardStore((state) => state.viewState);
-  const weeklyBest = snapshot?.currentPlayer.weeklyBest ?? 0;
+  const localWeekly = useLeaderboardStore((state) => state.localWeeklyResult);
+
+  // Единый источник истины с экраном рейтинга: и рекорд, и место берём из одного
+  // селектора (max(сервер, локальный текущей недели) + провизорное место до синка),
+  // поэтому карточка и экран никогда не расходятся.
+  const view = resolveWeeklyView(snapshot, localWeekly, null, new Date());
+  const weeklyBest = view.effectiveBest;
+
   const goal = getWeeklyGoal(weeklyBest);
   const goalCurrent = goal.current;
   const goalTarget = goal.target;
   const progressPercent =
     goal.target > 0 ? Math.min(100, Math.round((goal.progress / goal.target) * 100)) : 0;
+
+  const rank = view.rank;
+  const rankLabel = rank != null ? `#${rank}` : t('leaderboard.unranked', lang);
 
   useEffect(() => {
     useAnalyticsStore.getState().track('weekly_goal_exposed', {
@@ -41,44 +51,45 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
   return (
     <Pressable
       onPress={onPress}
-      style={{
-        width: '100%',
-        maxWidth: 320,
-        borderRadius: radii.card,
-        backgroundColor: colors.surface,
-        padding: spacing.m,
-        gap: spacing.s,
-      }}
+      accessibilityRole="button"
+      accessibilityLabel={t('leaderboard.title', lang)}
+      style={{ width: '100%' }}
     >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <AppText preset="caption">{t('leaderboard.weeklyTitle', lang)}</AppText>
-        {statusLabel ? <AppText preset="caption">{statusLabel}</AppText> : null}
-      </View>
+      <ClayCard style={{ gap: spacing.s }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s }}>
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: radii.button,
+              backgroundColor: colors.accent,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <CrownIcon size={18} color={colors.bgBottom} />
+          </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <AppText preset="title">
-          {snapshot?.currentPlayer.rank !== null && snapshot?.currentPlayer.rank !== undefined
-            ? `#${snapshot.currentPlayer.rank}`
-            : t('leaderboard.unranked', lang)}
-        </AppText>
-        <AppText preset="body">{t('leaderboard.tapToOpen', lang)}</AppText>
-      </View>
+          <View style={{ flex: 1 }}>
+            <AppText preset="caption" style={{ color: colors.textDim }} numberOfLines={1}>
+              {t('leaderboard.weeklyBest', lang)}
+              {statusLabel ? ` · ${statusLabel}` : ''}
+            </AppText>
+            <AppText preset="title" style={{ fontSize: 20 }} numberOfLines={1}>
+              {weeklyBest}
+            </AppText>
+          </View>
 
-      <AppText preset="body">
-        {t('leaderboard.weeklyBest', lang)}: {weeklyBest}
-      </AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <AppText preset="caption" style={{ color: colors.accent }} numberOfLines={1}>
+              {rankLabel}
+            </AppText>
+            <ChevronIcon size={16} color={colors.accent} />
+          </View>
+        </View>
 
-      <View style={{ gap: 6 }}>
-        <AppText preset="caption">
-          {t('leaderboard.weeklyGoal', lang)}: {goal.current}/{goal.target}
-        </AppText>
         <View
-          style={{
-            height: 8,
-            borderRadius: 999,
-            backgroundColor: 'rgba(255,255,255,0.08)',
-            overflow: 'hidden',
-          }}
+          style={{ height: 8, borderRadius: 999, backgroundColor: colors.track, overflow: 'hidden' }}
         >
           <View
             style={{
@@ -89,7 +100,7 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
             }}
           />
         </View>
-      </View>
+      </ClayCard>
     </Pressable>
   );
 }

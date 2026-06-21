@@ -8,7 +8,22 @@ export {
 export { WeeklyCard } from './components/WeeklyCard';
 export { Podium } from './components/Podium';
 export { LeaderboardRow } from './components/LeaderboardRow';
-export { weeklyStatusLabel } from './presentation';
+export {
+  weeklyStatusLabel,
+  selectEffectiveWeeklyBest,
+  selectMyChampionRank,
+  resolveWeeklyView,
+  type ResolvedWeeklyView,
+} from './presentation';
+export {
+  WEEKLY_PRIZES,
+  championRankOf,
+  isPrizeRank,
+  prizeForRank,
+  settleWeeklyPrize,
+  unclaimedPrize,
+} from './weeklyPrize';
+export type { WeeklyPrize, WeeklyPrizeRecord } from './weeklyPrize';
 export { appendRunMove, beginRunProof, finalizeRunProof } from './runProof';
 export { createLeaderboardStore, useLeaderboardStore } from './store';
 export {

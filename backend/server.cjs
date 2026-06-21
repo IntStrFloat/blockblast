@@ -11,6 +11,13 @@ function createApi(options) {
   const apiKey = options.apiKey ?? '';
   const now = options.now ?? (() => new Date());
   const verifyRun = options.verifyRun ?? require('./verify-run.cjs').verifyRun;
+  // Отпечаток задеплоенного движка (того же, что верифицирует раны). Сравните его
+  // с локальным после деплоя — расхождение значит, что runtime устарел и сабмиты
+  // будут молча отклоняться. См. docs/runbooks/leaderboard-operations.md.
+  const resolveEngineFingerprint =
+    options.engineFingerprint ?? (() => require('./runtime/index.js').engineFingerprint());
+  let engineFingerprintCache = null;
+  const engineFingerprint = () => (engineFingerprintCache ??= resolveEngineFingerprint());
   const store = createJsonStore(options.dataPath);
 
   async function handle(request) {
@@ -19,7 +26,7 @@ function createApi(options) {
     const headers = lowerCaseHeaders(request.headers ?? {});
 
     if (method === 'OPTIONS') return response(204, null);
-    if (pathname === '/api/health') return response(200, { ok: true });
+    if (pathname === '/api/health') return response(200, { ok: true, engine: engineFingerprint() });
     if (apiKey && headers['x-api-key'] !== apiKey) {
       return response(401, { error: 'invalid_api_key' });
     }

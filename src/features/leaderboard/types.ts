@@ -76,6 +76,12 @@ export interface LeaderboardEntry {
   runsCount: number;
   achievedAt: string | null;
   isCurrentPlayer: boolean;
+  /**
+   * Лучшее призовое место игрока в прошлых неделях (1..3) — рисует «чемпионскую
+   * рамку» вокруг ника. Для текущего игрока заполняется локально из полученных
+   * призов; для остальных может приходить с бэкенда (опционально).
+   */
+  championRank?: number | null;
 }
 
 export interface WeeklyLeaderboardSnapshot {

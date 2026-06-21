@@ -12,6 +12,7 @@ export interface AnalyticsEventMap {
   daily_challenge_started: { source: 'home_card' };
   weekly_goal_exposed: { source: 'home_card' | 'cached' };
   weekly_goal_completed: { source: 'home_card' | 'cached' };
+  weekly_prize_claimed: { rank: number; weekKey: string };
 }
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;

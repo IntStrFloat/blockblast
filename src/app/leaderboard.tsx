@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
@@ -9,11 +9,29 @@ import {
   LeaderboardRow,
   Podium,
   getUtcWeekCountdown,
+  getWeeklyGoal,
+  prizeForRank,
+  resolveWeeklyView,
+  selectMyChampionRank,
+  unclaimedPrize,
   useLeaderboardStore,
   weeklyStatusLabel,
 } from '@/features/leaderboard';
+import { useMascot } from '@/features/mascot';
+import { useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
-import { AppText, colors, radii, spacing } from '@/ui';
+import {
+  AppText,
+  ChevronIcon,
+  ClayCard,
+  CrownIcon,
+  GameButton,
+  IconButton,
+  TrophyIcon,
+  colors,
+  radii,
+  spacing,
+} from '@/ui';
 
 function formatCountdown() {
   const countdown = getUtcWeekCountdown(new Date());
@@ -31,35 +49,66 @@ export default function LeaderboardScreen() {
   const snapshot = useLeaderboardStore((state) => state.snapshot);
   const viewState = useLeaderboardStore((state) => state.viewState);
   const lastError = useLeaderboardStore((state) => state.lastError);
+  const localWeekly = useLeaderboardStore((state) => state.localWeeklyResult);
+  const weeklyPrizes = useLeaderboardStore((state) => state.weeklyPrizes);
   const [loading, setLoading] = useState(false);
 
-  const refresh = useCallback(() => {
-    let active = true;
+  const runRefresh = useCallback(() => {
     setLoading(true);
-    useAnalyticsStore.getState().track('leaderboard_opened', { source: 'screen' });
-    void useLeaderboardStore
+    return useLeaderboardStore
       .getState()
       .refresh(new Date())
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+      .finally(() => setLoading(false));
   }, []);
 
-  useFocusEffect(refresh);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      useAnalyticsStore.getState().track('leaderboard_opened', { source: 'screen' });
+      setLoading(true);
+      void useLeaderboardStore
+        .getState()
+        .refresh(new Date())
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   const statusLabel = weeklyStatusLabel(viewState, snapshot?.source, lang);
-  const weeklyBest = snapshot?.currentPlayer.weeklyBest ?? 0;
-  const currentPlayer = snapshot?.currentPlayer ?? null;
-  const entries = snapshot?.entries ?? [];
+  const myChampionRank = selectMyChampionRank(weeklyPrizes);
+  const pendingPrize = unclaimedPrize(weeklyPrizes);
+
+  // Единый источник истины: рекорд, место и строки списка — из одного селектора,
+  // поэтому показанный рекорд всегда соответствует строке игрока в таблице.
+  const view = resolveWeeklyView(snapshot, localWeekly, myChampionRank, new Date());
+  const weeklyBest = view.effectiveBest;
+
+  const goal = getWeeklyGoal(weeklyBest);
+  const progressPercent =
+    goal.target > 0 ? Math.min(100, Math.round((goal.progress / goal.target) * 100)) : 0;
+
+  const rank = view.rank;
+  const rankLabel = rank != null ? `#${rank}` : t('leaderboard.unranked', lang);
+
+  const currentEntry = view.currentEntry;
+  const entries = view.entries;
   const podium = entries.slice(0, 3);
   const listData = entries.slice(3);
+  // Закреплённая строка нужна, только если игрок не попал в отрисованный список.
   const showPinnedCurrent =
-    Boolean(currentPlayer) &&
-    !entries.some((entry) => entry.tag === currentPlayer?.tag) &&
-    currentPlayer?.rank !== null;
+    Boolean(currentEntry) && !entries.some((entry) => entry.isCurrentPlayer);
+
+  const claimPrize = useCallback(() => {
+    if (!pendingPrize) return;
+    const record = useLeaderboardStore.getState().claimWeeklyPrize(pendingPrize.weekKey);
+    if (!record) return;
+    useProgression.getState().addPoints(record.prize.points);
+    useMascot.getState().unlock(record.prize.cosmeticId);
+  }, [pendingPrize]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -68,87 +117,162 @@ export default function LeaderboardScreen() {
         keyExtractor={(entry) => `${entry.tag}-${entry.rank ?? 'self'}`}
         contentContainerStyle={{ padding: spacing.l, gap: spacing.m }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.s }} />}
-        onRefresh={() => {
-          setLoading(true);
-          void useLeaderboardStore
-            .getState()
-            .refresh(new Date())
-            .finally(() => setLoading(false));
-        }}
+        onRefresh={runRefresh}
         refreshing={loading}
         ListHeaderComponent={
-          <View style={{ gap: spacing.m }}>
+          <View style={{ gap: spacing.m, paddingBottom: spacing.xs }}>
+            {/* Заголовок + обратный отсчёт */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s }}>
-              <Pressable onPress={() => router.back()} hitSlop={8}>
-                <AppText preset="title">{'<'}</AppText>
-              </Pressable>
+              <IconButton
+                onPress={() => router.back()}
+                accessibilityLabel={t('leaderboard.back', lang)}
+                size={44}
+              >
+                <ChevronIcon size={22} direction="left" />
+              </IconButton>
               <View style={{ flex: 1 }}>
-                <AppText preset="title">{t('leaderboard.title', lang)}</AppText>
-                <AppText preset="caption">
-                  {t('leaderboard.resetsIn', lang)} {formatCountdown()}
+                <AppText preset="title" style={{ fontSize: 22 }}>
+                  {t('leaderboard.title', lang)}
+                </AppText>
+              </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  paddingHorizontal: spacing.s,
+                  paddingVertical: 6,
+                  borderRadius: radii.button,
+                  backgroundColor: colors.cardSolid,
+                  borderWidth: 1,
+                  borderColor: colors.hairline,
+                }}
+              >
+                <TrophyIcon size={14} color={colors.accent} />
+                <AppText preset="caption" style={{ color: colors.textDim }}>
+                  {formatCountdown()}
                 </AppText>
               </View>
             </View>
 
-            <View
-              style={{
-                borderRadius: radii.card,
-                backgroundColor: colors.surface,
-                padding: spacing.m,
-                gap: spacing.s,
-              }}
-            >
-              {statusLabel ? <AppText preset="caption">{statusLabel}</AppText> : null}
-              {viewState === 'loading' ? (
-                <AppText preset="body">{t('leaderboard.loading', lang)}</AppText>
-              ) : viewState === 'empty' ? (
-                <AppText preset="body">{t('leaderboard.empty', lang)}</AppText>
-              ) : viewState === 'cached' ? (
-                <AppText preset="body">{t('leaderboard.cachedBody', lang)}</AppText>
-              ) : lastError ? (
-                <AppText preset="body">{t('leaderboard.error', lang)}</AppText>
-              ) : (
-                <AppText preset="body">
-                  {t('leaderboard.weeklyBest', lang)}: {weeklyBest}
+            {/* Герой: твой недельный рекорд */}
+            <ClayCard accent={colors.accent} style={{ gap: spacing.s }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: radii.button,
+                    backgroundColor: colors.accent,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <CrownIcon size={22} color="#10203F" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppText preset="caption" style={{ color: colors.textDim }} numberOfLines={1}>
+                    {t('leaderboard.weeklyBest', lang)}
+                    {statusLabel ? ` · ${statusLabel}` : ''}
+                  </AppText>
+                  <AppText preset="title" style={{ fontSize: 28 }} numberOfLines={1}>
+                    {weeklyBest}
+                  </AppText>
+                </View>
+                <View
+                  style={{
+                    paddingHorizontal: spacing.s,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    backgroundColor: colors.track,
+                  }}
+                >
+                  <AppText preset="button" style={{ color: colors.accent, fontSize: 14 }}>
+                    {rankLabel}
+                  </AppText>
+                </View>
+              </View>
+              <View
+                style={{
+                  height: 10,
+                  borderRadius: 999,
+                  backgroundColor: colors.track,
+                  overflow: 'hidden',
+                }}
+              >
+                <View
+                  style={{
+                    width: `${Math.max(progressPercent, 2)}%` as `${number}%`,
+                    height: '100%',
+                    borderRadius: 999,
+                    backgroundColor: colors.accent,
+                  }}
+                />
+              </View>
+            </ClayCard>
+
+            {/* Баннер забора недельной награды (claim) */}
+            {pendingPrize ? (
+              <ClayCard accent={colors.accent} style={{ gap: spacing.s }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s }}>
+                  <CrownIcon size={22} color={colors.accent} />
+                  <View style={{ flex: 1 }}>
+                    <AppText preset="button">{t('leaderboard.prizeReady', lang)}</AppText>
+                    <AppText preset="caption" style={{ color: colors.textDim }}>
+                      {t('leaderboard.prizePlace', lang)} #{pendingPrize.rank} · +
+                      {pendingPrize.prize.points} {t('leaderboard.prizePoints', lang)} ·{' '}
+                      {t('leaderboard.prizeCosmetic', lang)}
+                    </AppText>
+                  </View>
+                </View>
+                <GameButton label={t('leaderboard.claim', lang)} size="md" onPress={claimPrize} />
+              </ClayCard>
+            ) : null}
+
+            {/* Состояния загрузки / пусто / ошибка */}
+            {viewState === 'loading' && podium.length === 0 ? (
+              <ClayCard>
+                <AppText preset="body" style={{ color: colors.textDim }}>
+                  {t('leaderboard.loading', lang)}
                 </AppText>
-              )}
-            </View>
+              </ClayCard>
+            ) : viewState === 'empty' ? (
+              <ClayCard>
+                <AppText preset="body" style={{ color: colors.textDim }}>
+                  {t('leaderboard.empty', lang)}
+                </AppText>
+              </ClayCard>
+            ) : lastError && podium.length === 0 ? (
+              <ClayCard>
+                <AppText preset="body" style={{ color: colors.textDim }}>
+                  {t('leaderboard.error', lang)}
+                </AppText>
+              </ClayCard>
+            ) : null}
 
             {podium.length > 0 ? <Podium entries={podium} /> : null}
           </View>
         }
         ListFooterComponent={
           <View style={{ gap: spacing.m, paddingBottom: spacing.l }}>
-            {showPinnedCurrent && currentPlayer ? (
-              <View
-                style={{
-                  borderRadius: radii.card,
-                  backgroundColor: 'rgba(255,201,60,0.14)',
-                  padding: spacing.m,
-                  gap: spacing.s,
-                }}
-              >
-                <AppText preset="caption">{t('leaderboard.currentPlayer', lang)}</AppText>
-                <LeaderboardRow entry={currentPlayer} />
+            {showPinnedCurrent && currentEntry ? (
+              <View style={{ gap: spacing.xs }}>
+                <AppText preset="caption" style={{ color: colors.textDim }}>
+                  {t('leaderboard.currentPlayer', lang)}
+                </AppText>
+                <LeaderboardRow entry={currentEntry} />
               </View>
             ) : null}
 
-            {(viewState === 'error' || viewState === 'cached' || viewState === 'empty') ? (
-              <Pressable
+            {viewState === 'error' || viewState === 'cached' || viewState === 'empty' ? (
+              <GameButton
+                label={t('leaderboard.retry', lang)}
+                variant="ghost"
+                size="md"
                 onPress={() => {
-                  setLoading(true);
-                  void useLeaderboardStore.getState().refresh(new Date()).finally(() => setLoading(false));
+                  void runRefresh();
                 }}
-                style={{
-                  alignSelf: 'flex-start',
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  borderRadius: radii.button,
-                  backgroundColor: colors.surface,
-                }}
-              >
-                <AppText preset="caption">{t('leaderboard.retry', lang)}</AppText>
-              </Pressable>
+              />
             ) : null}
           </View>
         }

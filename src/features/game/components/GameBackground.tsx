@@ -1,19 +1,10 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, { FadeIn, FadeOut, Keyframe } from "react-native-reanimated";
 
 import { useReducedMotion } from "../animation/useReducedMotion";
 import { useGameStore } from "../store";
-
-const SOFT_SUNSET = {
-  base: "#0E1736",
-  peach: "#F6B39F",
-  pink: "#E98BAC",
-  coolIndigo: "#425E9E",
-  halo: "#A7D2FF",
-  shadow: "#060A16",
-} as const;
 
 function hexToRgba(hex: string, alpha: number) {
   const cleaned = hex.replace("#", "");
@@ -30,16 +21,6 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${red},${green},${blue},${alpha})`;
 }
 
-const WARM_PEACH = hexToRgba(SOFT_SUNSET.peach, 0.34);
-const WARM_PEACH_FADE = hexToRgba(SOFT_SUNSET.peach, 0);
-const WARM_PINK = hexToRgba(SOFT_SUNSET.pink, 0.28);
-const WARM_PINK_FADE = hexToRgba(SOFT_SUNSET.pink, 0);
-const COOL_INDIGO = hexToRgba(SOFT_SUNSET.coolIndigo, 0.3);
-const COOL_INDIGO_FADE = hexToRgba(SOFT_SUNSET.coolIndigo, 0);
-const COOL_HALO = hexToRgba(SOFT_SUNSET.halo, 0.16);
-const COOL_HALO_FADE = hexToRgba(SOFT_SUNSET.halo, 0);
-const VIGNETTE = hexToRgba(SOFT_SUNSET.shadow, 0.18);
-
 interface GameBackgroundProps {
   boardSize: number;
   boardLayout?: {
@@ -48,6 +29,14 @@ interface GameBackgroundProps {
     width: number;
     height: number;
   } | null;
+  /** Светлый верх фона активной темы мира (спека 12 §3). */
+  bgTop: string;
+  /** Тёмная база фона активной темы мира. */
+  bgBottom: string;
+  /** Цвета juice/частиц темы — задают атмосферу свечений. */
+  glowColors: readonly string[];
+  /** Акцент темы (похвалы) — цвет ореола и комбо-пульса. */
+  haloColor: string;
 }
 
 function buildPulseIn(reducedMotion: boolean) {
@@ -70,10 +59,42 @@ function buildPulseOut(reducedMotion: boolean) {
       }).duration(140);
 }
 
-export function GameBackground({ boardSize, boardLayout }: GameBackgroundProps) {
+export function GameBackground({
+  boardSize,
+  boardLayout,
+  bgTop,
+  bgBottom,
+  glowColors,
+  haloColor,
+}: GameBackgroundProps) {
   const { width, height } = useWindowDimensions();
   const lastEvent = useGameStore((state) => state.lastEvent);
   const reducedMotion = useReducedMotion();
+
+  // Палитра свечений выводится из активной темы мира: каждый мир — свой сеттинг
+  // (фон + атмосфера), а не хардкод. Структура слоёв и прозрачности сохранены.
+  const palette = useMemo(() => {
+    const warmA = glowColors[0] ?? bgTop;
+    const warmB = glowColors[1] ?? glowColors[0] ?? bgTop;
+    const cool = bgTop;
+    const halo = haloColor;
+    return {
+      base: bgBottom,
+      warmA: hexToRgba(warmA, 0.34),
+      warmAFade: hexToRgba(warmA, 0),
+      warmB: hexToRgba(warmB, 0.28),
+      warmBFade: hexToRgba(warmB, 0),
+      cool: hexToRgba(cool, 0.3),
+      coolFade: hexToRgba(cool, 0),
+      halo: hexToRgba(halo, 0.16),
+      haloFade: hexToRgba(halo, 0),
+      vignette: hexToRgba(bgBottom, 0.4),
+      pulseCore: hexToRgba(halo, 0.16),
+      pulseCoreFade: hexToRgba(halo, 0),
+      pulseEdge: hexToRgba(warmA, 0.12),
+      pulseEdgeFade: hexToRgba(warmA, 0),
+    };
+  }, [bgBottom, bgTop, glowColors, haloColor]);
   const [pulseKey, setPulseKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pulseVisible = pulseKey > 0 && lastEvent?.score === pulseKey;
@@ -120,11 +141,11 @@ export function GameBackground({ boardSize, boardLayout }: GameBackgroundProps) 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <View
-        style={[StyleSheet.absoluteFill, { backgroundColor: SOFT_SUNSET.base }]}
+        style={[StyleSheet.absoluteFill, { backgroundColor: palette.base }]}
       />
 
       <LinearGradient
-        colors={[WARM_PEACH, WARM_PEACH_FADE]}
+        colors={[palette.warmA, palette.warmAFade]}
         start={{ x: 0.1, y: 0.08 }}
         end={{ x: 0.7, y: 0.68 }}
         style={[
@@ -141,7 +162,7 @@ export function GameBackground({ boardSize, boardLayout }: GameBackgroundProps) 
       />
 
       <LinearGradient
-        colors={[WARM_PINK, WARM_PINK_FADE]}
+        colors={[palette.warmB, palette.warmBFade]}
         start={{ x: 0.85, y: 0 }}
         end={{ x: 0.2, y: 0.74 }}
         style={[
@@ -158,7 +179,7 @@ export function GameBackground({ boardSize, boardLayout }: GameBackgroundProps) 
       />
 
       <LinearGradient
-        colors={[COOL_INDIGO, COOL_INDIGO_FADE]}
+        colors={[palette.cool, palette.coolFade]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.96 }}
         style={[
@@ -175,7 +196,7 @@ export function GameBackground({ boardSize, boardLayout }: GameBackgroundProps) 
       />
 
       <LinearGradient
-        colors={[COOL_HALO, COOL_HALO_FADE]}
+        colors={[palette.halo, palette.haloFade]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={[
@@ -191,7 +212,7 @@ export function GameBackground({ boardSize, boardLayout }: GameBackgroundProps) 
         ]}
       />
 
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: VIGNETTE }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.vignette }]} />
 
       {pulseVisible ? (
         <Animated.View
@@ -202,7 +223,7 @@ export function GameBackground({ boardSize, boardLayout }: GameBackgroundProps) 
           style={[StyleSheet.absoluteFill, styles.pulseShell]}
         >
           <LinearGradient
-            colors={["rgba(255,232,216,0.16)", "rgba(255,232,216,0)"]}
+            colors={[palette.pulseCore, palette.pulseCoreFade]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={[
@@ -215,7 +236,7 @@ export function GameBackground({ boardSize, boardLayout }: GameBackgroundProps) 
             ]}
           />
           <LinearGradient
-            colors={["rgba(255,190,163,0.12)", "rgba(255,190,163,0)"]}
+            colors={[palette.pulseEdge, palette.pulseEdgeFade]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={[

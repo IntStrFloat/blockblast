@@ -19,14 +19,67 @@ import {
 } from '@/features/leaderboard';
 import { AdBanner, MONETIZATION } from '@/features/monetization';
 import { OnboardingOverlay } from '@/features/onboarding';
-import { ProfileChip, ProfileOverlay, useProfileStore } from '@/features/profile';
+import { ProfileOverlay, useProfileStore } from '@/features/profile';
 import { useScores } from '@/features/scores';
 import { useLang } from '@/features/settings';
 import { isStreakAlive, todayISO, useStreak } from '@/features/streak';
 import { useActiveWorldTheme } from '@/features/themes';
-import { AppText, ConfirmDialog, GameButton, colors, radii, spacing } from '@/ui';
+import {
+  AppText,
+  ChevronIcon,
+  ClayCard,
+  ConfirmDialog,
+  FireIcon,
+  GameButton,
+  GearIcon,
+  IconButton,
+  StarIcon,
+  TrophyIcon,
+  UserIcon,
+  colors,
+  radii,
+  spacing,
+} from '@/ui';
 
 const LOGO_ROWS = ['BLOCK', 'BLAST'];
+const CONTENT_MAX_WIDTH = 360;
+
+/** Компактный чип статистики для шапки: иконка + значение (+ подпись). */
+function StatChip({
+  icon,
+  value,
+  label,
+  accessibilityLabel,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label?: string;
+  accessibilityLabel?: string;
+}) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={accessibilityLabel}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: spacing.s,
+        paddingVertical: 4,
+        borderRadius: radii.button,
+        backgroundColor: colors.cardSolid,
+        borderWidth: 1,
+        borderColor: colors.hairline,
+      }}
+    >
+      {icon}
+      <AppText preset="button" style={{ fontSize: 15 }} numberOfLines={1}>
+        {value}
+      </AppText>
+      {label ? <AppText preset="caption">{label}</AppText> : null}
+    </View>
+  );
+}
 
 /** Индикатор Уровня Игры на Home: мир + уровень + прогресс-бар, тап → карта достижений. */
 function HomeLevelBar({ onPress }: { onPress: () => void }) {
@@ -34,6 +87,7 @@ function HomeLevelBar({ onPress }: { onPress: () => void }) {
   const level = useProgression((s) => s.level);
   const world = useProgression((s) => s.world);
   const lifetimePoints = useProgression((s) => s.lifetimePoints);
+  const worldAccent = useActiveWorldTheme().cellColors[0];
   const info = progressFor(lifetimePoints);
   const total = info.pointsInLevel + info.pointsToNext;
   const fill = total > 0 ? info.pointsInLevel / total : 1;
@@ -42,36 +96,51 @@ function HomeLevelBar({ onPress }: { onPress: () => void }) {
     <Pressable
       onPress={onPress}
       hitSlop={8}
-      style={{
-        width: '100%',
-        maxWidth: 320,
-        backgroundColor: colors.surface,
-        borderRadius: radii.button,
-        paddingHorizontal: spacing.m,
-        paddingVertical: spacing.s,
-        gap: 6,
-      }}
+      accessibilityRole="button"
+      accessibilityLabel={t('home.map', lang)}
+      style={{ width: '100%' }}
     >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <AppText preset="button">
-          {progressionText('world', lang)} {world} · {progressionText('lvlShort', lang)} {level}
-        </AppText>
-        <AppText preset="caption" style={{ color: colors.accent }}>
-          {t('home.map', lang)} ›
-        </AppText>
-      </View>
-      <View
-        style={{
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: colors.cellEmpty,
-          overflow: 'hidden',
-        }}
-      >
+      <ClayCard style={{ gap: spacing.s }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s }}>
+            <View
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: 5,
+                backgroundColor: worldAccent,
+              }}
+            />
+            <AppText preset="button">
+              {progressionText('world', lang)} {world} · {progressionText('lvlShort', lang)} {level}
+            </AppText>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <TrophyIcon size={16} />
+            <AppText preset="caption" style={{ color: colors.accent }}>
+              {t('home.map', lang)}
+            </AppText>
+            <ChevronIcon size={16} color={colors.accent} />
+          </View>
+        </View>
         <View
-          style={{ width: `${fill * 100}%`, height: 6, borderRadius: 3, backgroundColor: colors.accent }}
-        />
-      </View>
+          style={{
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: colors.track,
+            overflow: 'hidden',
+          }}
+        >
+          <View
+            style={{
+              width: `${Math.max(fill, 0.03) * 100}%`,
+              height: 12,
+              borderRadius: 6,
+              backgroundColor: colors.accent,
+            }}
+          />
+        </View>
+      </ClayCard>
     </Pressable>
   );
 }
@@ -79,7 +148,7 @@ function HomeLevelBar({ onPress }: { onPress: () => void }) {
 function Logo() {
   const palette = useActiveWorldTheme().cellColors;
   return (
-    <View style={{ gap: 8, alignItems: 'center' }}>
+    <View style={{ gap: spacing.s, alignItems: 'center' }}>
       {LOGO_ROWS.map((row, rowIdx) => (
         <View key={row} style={{ flexDirection: 'row', gap: 6 }}>
           {[...row].map((ch, index) => (
@@ -89,10 +158,15 @@ function Logo() {
               style={{
                 width: 46,
                 height: 46,
-                borderRadius: radii.cell + 4,
+                borderRadius: radii.cell + 6,
                 backgroundColor: palette[(rowIdx * 2 + index) % palette.length],
                 alignItems: 'center',
                 justifyContent: 'center',
+                shadowColor: colors.clayShadow,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.35,
+                shadowRadius: 6,
+                elevation: 4,
               }}
             >
               <AppText preset="title" style={{ fontSize: 24, color: '#10203F' }}>
@@ -122,7 +196,7 @@ export default function HomeScreen() {
     canContinue: false,
   });
   const [profileOpen, setProfileOpen] = useState(false);
-  const [pendingConfirm, setPendingConfirm] = useState<'new' | 'daily' | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<'daily' | null>(null);
 
   const dailyChallenge = createDailyChallenge(new Date().toISOString().slice(0, 10));
   const showDailyChallenge = shouldShowDailyChallenge(gamesPlayed);
@@ -155,9 +229,13 @@ export default function HomeScreen() {
     router.push({ pathname: '/game', params: { entry: 'new' } });
   }, [router]);
 
-  const confirmNew = useCallback(() => {
-    setPendingConfirm('new');
-  }, []);
+  const play = useCallback(() => {
+    if (savedGame.kind === 'active') {
+      router.push({ pathname: '/game', params: { entry: 'resume' } });
+      return;
+    }
+    void startNew();
+  }, [router, savedGame.kind, startNew]);
 
   const startDaily = useCallback(() => {
     useAnalyticsStore.getState().track('daily_challenge_started', { source: 'home_card' });
@@ -186,61 +264,74 @@ export default function HomeScreen() {
         contentContainerStyle={{
           flexGrow: 1,
           alignItems: 'center',
-          justifyContent: 'center',
           paddingHorizontal: spacing.l,
-          paddingVertical: spacing.m,
-          gap: spacing.xl,
+          paddingTop: spacing.s,
+          paddingBottom: spacing.xl,
+          gap: spacing.m,
         }}
         showsVerticalScrollIndicator={false}
       >
         <View
           style={{
             width: '100%',
-            maxWidth: 320,
+            maxWidth: CONTENT_MAX_WIDTH,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          <Pressable
+          <IconButton
             onPress={() => router.push('/settings')}
-            hitSlop={8}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              backgroundColor: colors.surface,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            accessibilityLabel={t('settings.title', lang)}
           >
-            <AppText preset="body">S</AppText>
-          </Pressable>
+            <GearIcon size={22} />
+          </IconButton>
 
-          <ProfileChip onPress={() => setProfileOpen(true)} />
+          {/* Кластер ключевых статов в шапке: рекорд + стрик (раньше стрик занимал
+              отдельную карточку — теперь компактный чип, без дубля «Рекорда»). */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <StatChip
+              icon={<StarIcon size={14} />}
+              value={String(best)}
+              label={t('home.best', lang)}
+            />
+            {streakVisible >= 1 ? (
+              <StatChip
+                icon={<FireIcon size={14} />}
+                value={String(streakVisible)}
+                accessibilityLabel={`${streakVisible} ${t('home.streakDays', lang)}`}
+              />
+            ) : null}
+          </View>
+
+          <IconButton
+            onPress={() => setProfileOpen(true)}
+            accessibilityLabel={t('profile.title', lang)}
+          >
+            <UserIcon size={22} />
+          </IconButton>
         </View>
 
         <Logo />
 
-        <View style={{ alignItems: 'center', gap: 6 }}>
-          <AppText preset="body" style={{ color: colors.accent }}>
-            {t('home.best', lang)}: {best}
-          </AppText>
-          {streakVisible >= 1 ? (
-            <AppText preset="caption">
-              {streakVisible} {t('home.streakDays', lang)}
-            </AppText>
-          ) : null}
+        <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH }}>
+          <HomeLevelBar onPress={() => router.push('/map')} />
         </View>
 
-        <HomeLevelBar onPress={() => router.push('/map')} />
+        <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH }}>
+          <GameButton label={t('home.play', lang)} size="lg" onPress={play} />
+        </View>
 
-        <DailyCard />
+        <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH }}>
+          <DailyCard />
+        </View>
 
-        <WeeklyCard onPress={() => router.push('/leaderboard')} />
+        <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH }}>
+          <WeeklyCard onPress={() => router.push('/leaderboard')} />
+        </View>
 
         {showDailyChallenge ? (
-          <View style={{ width: '100%', maxWidth: 320, gap: spacing.xs }}>
+          <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, gap: spacing.xs }}>
             <GameButton
               label={t('home.dailyChallenge', lang)}
               variant="ghost"
@@ -251,28 +342,6 @@ export default function HomeScreen() {
             </AppText>
           </View>
         ) : null}
-
-        <View style={{ width: '100%', maxWidth: 320, gap: spacing.m }}>
-          {savedGame.canContinue && savedGame.score !== null ? (
-            <>
-              <GameButton
-                label={`${t('home.continue', lang)} - ${savedGame.score}`}
-                onPress={() =>
-                  router.push({ pathname: '/game', params: { entry: 'resume' } })
-                }
-              />
-              <GameButton
-                label={t('home.newGame', lang)}
-                variant="ghost"
-                onPress={confirmNew}
-              />
-            </>
-          ) : savedGame.kind === 'terminal' ? (
-            <GameButton label={t('home.newGame', lang)} onPress={confirmNew} />
-          ) : (
-            <GameButton label={t('home.play', lang)} onPress={startNew} />
-          )}
-        </View>
       </ScrollView>
 
       <AdBanner adUnitId={MONETIZATION.yandex.homeBannerAdUnitId} />
@@ -283,16 +352,14 @@ export default function HomeScreen() {
 
       <ConfirmDialog
         visible={pendingConfirm !== null}
-        title={pendingConfirm === 'daily' ? t('home.dailyChallenge', lang) : t('home.newGame', lang)}
+        title={t('home.dailyChallenge', lang)}
         message={t('home.newGameConfirm', lang)}
-        confirmLabel={pendingConfirm === 'daily' ? t('home.dailyChallenge', lang) : t('home.newGame', lang)}
+        confirmLabel={t('home.dailyChallenge', lang)}
         cancelLabel={t('settings.cancel', lang)}
         destructive
         onConfirm={() => {
-          const which = pendingConfirm;
           setPendingConfirm(null);
-          if (which === 'daily') startDaily();
-          else startNew();
+          startDaily();
         }}
         onCancel={() => setPendingConfirm(null)}
       />

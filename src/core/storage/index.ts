@@ -17,6 +17,7 @@ export const KEYS = {
   leaderboardDaily: 'leaderboard.daily',
   leaderboardPending: 'leaderboard.pending',
   leaderboardTickets: 'leaderboard.tickets',
+  leaderboardPrizes: 'leaderboard.prizes',
   analyticsQueue: 'analytics.queue',
   analyticsPrefs: 'analytics.prefs',
   entitlements: 'iap.entitlements',

@@ -42,6 +42,21 @@ function createHarness() {
   };
 }
 
+test('health exposes the engine fingerprint for drift detection', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bloxx-backend-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const api = createApi({
+    apiKey: API_KEY,
+    dataPath: path.join(dir, 'data.json'),
+    engineFingerprint: () => 'abc12345',
+  });
+
+  const health = await api.handle({ method: 'GET', url: '/api/health', headers: {}, body: '' });
+  assert.equal(health.status, 200);
+  assert.equal(health.json.ok, true);
+  assert.equal(health.json.engine, 'abc12345');
+});
+
 test('bootstrap creates an anonymous profile and reuses it with bearer auth', async (t) => {
   const h = createHarness();
   t.after(h.cleanup);

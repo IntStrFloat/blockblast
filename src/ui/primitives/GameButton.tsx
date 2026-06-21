@@ -25,10 +25,13 @@ const variantText: Record<Variant, string> = {
   danger: colors.danger,
 };
 
+type Size = 'md' | 'lg';
+
 interface GameButtonProps {
   label: string;
   onPress: () => void;
   variant?: Variant;
+  size?: Size;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }
@@ -37,6 +40,7 @@ export function GameButton({
   label,
   onPress,
   variant = 'primary',
+  size = 'md',
   disabled = false,
   style,
 }: GameButtonProps) {
@@ -44,6 +48,8 @@ export function GameButton({
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
+
+  const lg = size === 'lg';
 
   return (
     <AnimatedPressable
@@ -58,17 +64,29 @@ export function GameButton({
       style={[
         {
           borderRadius: radii.button,
-          paddingVertical: 14,
+          paddingVertical: lg ? 20 : 14,
           paddingHorizontal: spacing.l,
           alignItems: 'center',
           opacity: disabled ? 0.4 : 1,
+          // «Глиняная» приподнятость для главного действия.
+          shadowColor: colors.clayShadow,
+          shadowOffset: { width: 0, height: lg ? 8 : 4 },
+          shadowOpacity: lg ? 0.45 : 0.3,
+          shadowRadius: lg ? 12 : 8,
+          elevation: lg ? 6 : 3,
         },
         variantStyle[variant],
         animatedStyle,
         style,
       ]}
     >
-      <AppText preset="button" style={{ color: variantText[variant] }}>
+      <AppText
+        preset="button"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}
+        style={{ color: variantText[variant], fontSize: lg ? 19 : 15 }}
+      >
         {label}
       </AppText>
     </AnimatedPressable>
