@@ -27,6 +27,7 @@ export const KEYS = {
   progression: 'progression.state',
   daily: 'daily.state',
   onboardingMeta: 'onboarding.meta.v1',
+  pushPrompt: 'push.prompt.v1',
 } as const;
 
 export function getJSON<T>(key: string): T | null {

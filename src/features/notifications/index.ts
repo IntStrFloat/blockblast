@@ -5,6 +5,7 @@ import type { PushProvider } from './types';
 
 export { PUSH } from './config';
 export { resolvePushRoute } from './routing';
+export { recordGameOverForPush, shouldShowPushSoftAsk, markPushSoftAskHandled } from './softAsk';
 export type { PushProvider, PushPermissionResult, PushTapPayload } from './types';
 
 export function getPush(): PushProvider {
