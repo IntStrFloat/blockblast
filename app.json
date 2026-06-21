@@ -39,7 +39,8 @@
       "expo-localization",
       "expo-asset",
       "./plugins/withHuaweiAgconnect",
-      "./plugins/withAppMetrica"
+      "./plugins/withAppMetrica",
+      "./plugins/withRuStorePush"
     ],
     "experiments": {
       "typedRoutes": true,
