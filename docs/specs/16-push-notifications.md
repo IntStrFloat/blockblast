@@ -104,9 +104,15 @@ const ALLOWED_ROUTES = new Set<string>(['/', '/leaderboard', '/map', '/settings'
 
 ## Известные оговорки / TODO к нативной сборке
 
-> **Перед первым релизом с push-поддержкой эти пункты требуют проверки.**
+> **Статус после проверки сборкой и запуском (2026-06-22, AAB vc19, эмулятор API 37).**
 
-1. **Версия SDK (главный риск).** npm-пакет `react-native-rustore-push` встаёт как `0.9.2` (нативный `ru.rustore.sdk:pushclient:1.0.0`, собран под RN 0.72.6). У нас **RN 0.85.3 + New Architecture** — `expo prebuild` проходит (config-plugin отрабатывает), но это **не компиляция нативного кода**: gradle-сборка под RN 0.85/New Arch ещё не проверена и может упасть. Актуальные мажоры RuStore (2.x/6.x) распространяются через **GitFlic** (как billing SDK), а не npm. План при падении сборки: перейти на GitFlic-версию под RN 0.85 и сверить API в `rustorePush.native.ts` (`init`, `getToken`, `messagingService.on`, `RuStorePushClient.isError`) — изменения локализованы в этом файле.
+1. **Версия SDK `0.9.2` НЕ годится для прод — нужен апгрейд (блокер пушей).**
+   Проверено на реальной сборке:
+   - ✅ AAB/APK **собираются** на RN 0.85 + New Architecture (gradle-компиляция нативного `pushclient:1.0.0` проходит), приложение **запускается и не падает** — наш Noop/обработка ошибок отрабатывают.
+   - ❌ **Регистрация пушей в рантайме падает** на Android 14+ (API 34+, эмулятор был API 37): `RuStorePush.init()` бросает `One of RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED should be specified...` — SDK 0.9.2 регистрирует BroadcastReceiver без обязательного с Android 14 флага. Ошибку мы ловим (`[push] RuStore init failed`), приложение живёт, но **токен не выдаётся → пуши не работают**.
+   - **Вывод:** перейти на актуальный RuStore Push SDK **2.x/6.x с GitFlic** (там флаг ресивера исправлен). Установка — `npm i git+https://...gitflic.ru/...` (нужен доступ к GitFlic). После апгрейда сверить API в `rustorePush.native.ts` (`init`, `getToken`, `messagingService.on`, `RuStorePushClient.isError`) — правки локализованы в этом файле.
+
+   **Сборочная зависимость:** нативный AAR тянется из maven RuStore (`artifactory-external.vkpartner.ru`), чей TLS-сертификат (HARICA CA) отсутствует в truststore JBR → gradle падает с `PKIX path building failed`. Лечится импортом сертификата в `cacerts` JBR (или кастомным truststore через `GRADLE_OPTS`); это нужно и для GitFlic-версии. См. `docs/specs/08-build-release.md`.
 
 2. **Тап vs foreground.** SDK 0.9.2 доставляет события через `messagingService.on('message-received', ...)`. Отдельного колбэка «тап по уведомлению из шторки» (background/killed state) в этой версии может не быть — поведение тапа из фона необходимо сверить с доками закреплённой версии и протестировать на реальном устройстве.
 

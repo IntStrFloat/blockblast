@@ -51,6 +51,8 @@ example
 /web-dist/
 /web-dist.tgz
 /.omx/
+# RuStore maven TLS truststore (local copy of JBR cacerts + RuStore cert)
+/.build-truststore/
 /.superpowers/
 
 # generated backend runtime and local data

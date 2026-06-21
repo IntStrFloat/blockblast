@@ -12,6 +12,21 @@
 6. Для публикации используется подписанный AAB. `assembleRelease` допустим только для отдельного локального APK-теста.
 7. PEPK и сертификат загрузки: [docs/runbooks/android-app-signing.md](../runbooks/android-app-signing.md).
 
+## RuStore maven (push SDK) — TLS truststore
+
+Нативный AAR push-SDK (`ru.rustore.sdk:pushclient`) тянется из maven RuStore
+`https://artifactory-external.vkpartner.ru/artifactory/maven`. Его TLS-сертификат
+(издатель HARICA CA) отсутствует в truststore JBR → `gradlew` падает с
+`PKIX path building failed` (curl/OS сертификату доверяют, Java — нет). Варианты:
+
+- **Разово (рекомендуется):** импортировать сертификат в `cacerts` JBR —
+  `keytool -importcert -trustcacerts -keystore "$JAVA_HOME\lib\security\cacerts" -storepass changeit -alias rustore-artifactory -file rustore.pem`
+  (сертификат: `echo | openssl s_client -connect artifactory-external.vkpartner.ru:443 | openssl x509 -outform PEM > rustore.pem`).
+- **Без правки JBR:** собрать копию `cacerts` + этот сертификат и передать сборке
+  `GRADLE_OPTS="-Djavax.net.ssl.trustStore=<copy> -Djavax.net.ssl.trustStorePassword=changeit"` (с `--no-daemon`).
+
+Требуется при любой версии RuStore push SDK (npm и GitFlic). См. [16-push-notifications.md](16-push-notifications.md).
+
 ## app.json (ключевое)
 
 - `android.package`: `com.intstrfloat.blockblast`
