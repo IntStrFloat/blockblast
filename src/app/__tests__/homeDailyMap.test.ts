@@ -16,6 +16,13 @@ describe('home daily card + achievements map link', () => {
     expect(home).toContain("t('home.map', lang)");
   });
 
+  it('surfaces the Game Level (world + level + progress) on Home', () => {
+    expect(home).toContain('HomeLevelBar');
+    expect(home).toContain('useProgression');
+    expect(home).toContain("progressionText('world', lang)");
+    expect(home).toContain("progressionText('lvlShort', lang)");
+  });
+
   it('daily card claims through the store, gates on first game, and reveals the payload', () => {
     expect(card).toContain('useDailyBonus.getState().claim()');
     expect(card).toContain('gamesPlayed < 1');

@@ -5,10 +5,12 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
+import { progressionText } from '@/core/i18n/progression';
 import { useAnalyticsStore } from '@/features/analytics';
 import { DailyCard } from '@/features/dailybonus';
 import { getSavedGameSummary } from '@/features/game';
 import type { SavedGameSummary } from '@/features/game';
+import { progressFor, useProgression } from '@/features/progression';
 import {
   WeeklyCard,
   createDailyChallenge,
@@ -25,6 +27,54 @@ import { useActiveWorldTheme } from '@/features/themes';
 import { AppText, ConfirmDialog, GameButton, colors, radii, spacing } from '@/ui';
 
 const LOGO_ROWS = ['BLOCK', 'BLAST'];
+
+/** Индикатор Уровня Игры на Home: мир + уровень + прогресс-бар, тап → карта достижений. */
+function HomeLevelBar({ onPress }: { onPress: () => void }) {
+  const lang = useLang();
+  const level = useProgression((s) => s.level);
+  const world = useProgression((s) => s.world);
+  const lifetimePoints = useProgression((s) => s.lifetimePoints);
+  const info = progressFor(lifetimePoints);
+  const total = info.pointsInLevel + info.pointsToNext;
+  const fill = total > 0 ? info.pointsInLevel / total : 1;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={{
+        width: '100%',
+        maxWidth: 320,
+        backgroundColor: colors.surface,
+        borderRadius: radii.button,
+        paddingHorizontal: spacing.m,
+        paddingVertical: spacing.s,
+        gap: 6,
+      }}
+    >
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <AppText preset="button">
+          {progressionText('world', lang)} {world} · {progressionText('lvlShort', lang)} {level}
+        </AppText>
+        <AppText preset="caption" style={{ color: colors.accent }}>
+          {t('home.map', lang)} ›
+        </AppText>
+      </View>
+      <View
+        style={{
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: colors.cellEmpty,
+          overflow: 'hidden',
+        }}
+      >
+        <View
+          style={{ width: `${fill * 100}%`, height: 6, borderRadius: 3, backgroundColor: colors.accent }}
+        />
+      </View>
+    </Pressable>
+  );
+}
 
 function Logo() {
   const palette = useActiveWorldTheme().cellColors;
@@ -181,12 +231,9 @@ export default function HomeScreen() {
               {streakVisible} {t('home.streakDays', lang)}
             </AppText>
           ) : null}
-          <Pressable onPress={() => router.push('/map')} hitSlop={8}>
-            <AppText preset="caption" style={{ color: colors.accent, textDecorationLine: 'underline' }}>
-              {t('home.map', lang)}
-            </AppText>
-          </Pressable>
         </View>
+
+        <HomeLevelBar onPress={() => router.push('/map')} />
 
         <DailyCard />
 
