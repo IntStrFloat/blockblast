@@ -1,3 +1,4 @@
+import { usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import { t } from '@/core/i18n';
@@ -9,15 +10,18 @@ import { markPushSoftAskHandled, shouldShowPushSoftAsk } from './softAsk';
 
 /**
  * Контекстный мягкий запрос разрешения на уведомления.
- * Сам решает, показываться ли (после первого Game Over) при монтировании.
+ * Показывается на Home после первого Game Over (когда игрок вернулся на спокойный
+ * экран): не во время геймплея и не поверх оверлея Game Over. Перепроверяется при
+ * смене маршрута, поэтому срабатывает в той же сессии, а не только при следующем запуске.
  */
 export function PushSoftAskSheet() {
   const lang = useLang();
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (shouldShowPushSoftAsk()) setVisible(true);
-  }, []);
+    if (pathname === '/' && shouldShowPushSoftAsk()) setVisible(true);
+  }, [pathname]);
 
   if (!visible) return null;
 
