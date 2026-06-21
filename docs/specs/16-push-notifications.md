@@ -84,11 +84,13 @@ const ALLOWED_ROUTES = new Set<string>(['/', '/leaderboard', '/map', '/settings'
 
 ## Сборка: config-plugin (`plugins/withRuStorePush.js`)
 
-Плагин подключается через поле `plugins` в `app.json` и инжектирует при `expo prebuild`:
+Плагин подключается через поле `plugins` в `app.json` и при `expo prebuild` инжектирует всё, что требует README пакета `react-native-rustore-push`:
 
-- Разрешение `android.permission.POST_NOTIFICATIONS` (Android 13+) в `AndroidManifest.xml` (с дедупликацией через `ensurePermission`).
+- **maven-репозиторий RuStore** `https://artifactory-external.vkpartner.ru/artifactory/maven` в `allprojects.repositories` (`android/build.gradle`) — без него gradle не резолвит нативный `ru.rustore.sdk:pushclient`.
+- **messaging-сервис** `ru.reactnativerustorepush.deps.MessagingService` с intent-filter `ru.rustore.sdk.pushclient.MESSAGING_EVENT` в `AndroidManifest.xml` — через него SDK доставляет данные пуша (пакет его сам НЕ объявляет, это обязанность приложения).
+- разрешение `android.permission.POST_NOTIFICATIONS` (Android 13+, дедуп через `ensurePermission`).
 
-Нативный messaging-сервис RuStore регистрируется **autolinking-ом пакета**. Метадата канала/иконки уведомлений намеренно не задана в плагине — значения версионно-зависимы, добавить по докам закреплённой версии SDK.
+Метадата канала/иконки уведомлений плагином не задаётся — версия SDK `1.0.0` создаёт канал сама. Чистые функции `patchProjectBuildGradle` и `addMessagingService` покрыты юнит-тестом (`plugins/__tests__/withRuStorePush.test.ts`); фактическое применение проверяется прогоном `expo prebuild`.
 
 ## Ограничения доставки
 
@@ -104,11 +106,11 @@ const ALLOWED_ROUTES = new Set<string>(['/', '/leaderboard', '/map', '/settings'
 
 > **Перед первым релизом с push-поддержкой эти пункты требуют проверки.**
 
-1. **Версия SDK.** npm-пакет `react-native-rustore-push` встаёт как `0.9.2` (старый, class-based API, 2023). Актуальные мажоры RuStore (2.x/6.x) распространяются через **GitFlic** (аналогично billing SDK), а не npm. Перед релизом: закрепить версию, совместимую с RN 0.85 / New Architecture, и при необходимости перейти на GitFlic-дистрибуцию. При смене версии сверить API в `rustorePush.native.ts` (`init`, `getToken`, `messagingService.on`, `RuStorePushClient.isError`).
+1. **Версия SDK (главный риск).** npm-пакет `react-native-rustore-push` встаёт как `0.9.2` (нативный `ru.rustore.sdk:pushclient:1.0.0`, собран под RN 0.72.6). У нас **RN 0.85.3 + New Architecture** — `expo prebuild` проходит (config-plugin отрабатывает), но это **не компиляция нативного кода**: gradle-сборка под RN 0.85/New Arch ещё не проверена и может упасть. Актуальные мажоры RuStore (2.x/6.x) распространяются через **GitFlic** (как billing SDK), а не npm. План при падении сборки: перейти на GitFlic-версию под RN 0.85 и сверить API в `rustorePush.native.ts` (`init`, `getToken`, `messagingService.on`, `RuStorePushClient.isError`) — изменения локализованы в этом файле.
 
 2. **Тап vs foreground.** SDK 0.9.2 доставляет события через `messagingService.on('message-received', ...)`. Отдельного колбэка «тап по уведомлению из шторки» (background/killed state) в этой версии может не быть — поведение тапа из фона необходимо сверить с доками закреплённой версии и протестировать на реальном устройстве.
 
-3. **Метадата канала и иконка.** В config-plugin намеренно не заданы (значения зависят от версии SDK). Добавить `<meta-data>` для имени канала, иконки и цвета уведомления по докам конкретной версии.
+3. **Иконка/вид уведомления.** SDK `1.0.0` создаёт канал и показывает уведомление сам (отдельная `<meta-data>` не нужна). Если потребуется кастомная иконка/цвет — задать по докам закреплённой версии при переходе на 2.x/6.x.
 
 ## Поток данных
 
