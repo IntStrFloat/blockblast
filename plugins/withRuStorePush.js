@@ -11,9 +11,11 @@ const {
  * Метадату канала/иконки уведомлений добавлять ПО ДОКАМ закреплённой версии SDK
  * на этапе нативной сборки (значения версионно-зависимы) — здесь НЕ задаём.
  */
-function withRuStorePush(config) {
+function withRuStorePush(config, _props = {}) {
   return withAndroidManifest(config, (cfg) => {
-    AndroidConfig.Permissions.addPermission(
+    // ensurePermission дедуплицирует: пакет уже может объявлять это разрешение
+    // в своём манифесте, повторного <uses-permission> не появится.
+    AndroidConfig.Permissions.ensurePermission(
       cfg.modResults,
       'android.permission.POST_NOTIFICATIONS',
     );
@@ -21,4 +23,4 @@ function withRuStorePush(config) {
   });
 }
 
-module.exports = createRunOncePlugin(withRuStorePush, 'withRuStorePush', '1.0.0');
+module.exports = createRunOncePlugin(withRuStorePush, 'with-rustore-push', '1.0.0');
