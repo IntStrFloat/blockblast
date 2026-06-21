@@ -2,7 +2,7 @@
   "expo": {
     "name": "Блок Бластик! Block Blast",
     "slug": "blockblast",
-    "version": "1.1.15",
+    "version": "1.1.16",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "blockblast",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.intstrfloat.blockblast",
-      "versionCode": 18,
+      "versionCode": 19,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/android-icon-foreground.png"

@@ -1,5 +1,5 @@
 import { usePathname } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { t } from '@/core/i18n';
 import { useLang } from '@/features/settings';
@@ -11,28 +11,26 @@ import { markPushSoftAskHandled, shouldShowPushSoftAsk } from './softAsk';
 /**
  * Контекстный мягкий запрос разрешения на уведомления.
  * Показывается на Home после первого Game Over (когда игрок вернулся на спокойный
- * экран): не во время геймплея и не поверх оверлея Game Over. Перепроверяется при
- * смене маршрута, поэтому срабатывает в той же сессии, а не только при следующем запуске.
+ * экран): не во время геймплея и не поверх оверлея Game Over. Видимость выводится из
+ * маршрута и MMKV-гейта, поэтому срабатывает в той же сессии, а не только при следующем
+ * запуске — без setState в эффекте.
  */
 export function PushSoftAskSheet() {
   const lang = useLang();
   const pathname = usePathname();
-  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    if (pathname === '/' && shouldShowPushSoftAsk()) setVisible(true);
-  }, [pathname]);
-
+  const visible = !dismissed && pathname === '/' && shouldShowPushSoftAsk();
   if (!visible) return null;
 
   const close = () => {
     markPushSoftAskHandled();
-    setVisible(false);
+    setDismissed(true);
   };
 
   const allow = async () => {
     markPushSoftAskHandled();
-    setVisible(false);
+    setDismissed(true);
     try {
       await getPush().requestPermission();
     } catch {
