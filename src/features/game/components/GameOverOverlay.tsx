@@ -12,6 +12,7 @@ import {
   shouldShowInterstitial,
   useEntitlements,
 } from '@/features/monetization';
+import { recordGameOverForPush } from '@/features/notifications';
 import { useLang } from '@/features/settings';
 import { AppText, Overlay } from '@/ui';
 
@@ -46,6 +47,7 @@ export function GameOverOverlay({ onPlayAgain }: GameOverOverlayProps) {
     if (presentation.fresh && !countedRef.current) {
       countedRef.current = true;
       saveAdsMeta(recordGameOver(loadAdsMeta()));
+      recordGameOverForPush();
     }
     void getAds()
       .init()
