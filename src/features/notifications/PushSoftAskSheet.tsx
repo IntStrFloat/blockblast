@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 
 import { t } from '@/core/i18n';
 import { useLang } from '@/features/settings';
-import { AppText, ClayCard, GameButton, Overlay } from '@/ui';
+import { AppText, GameButton, Overlay } from '@/ui';
 
-import { getPush, markPushSoftAskHandled, shouldShowPushSoftAsk } from './index';
+import { getPush } from './provider';
+import { markPushSoftAskHandled, shouldShowPushSoftAsk } from './softAsk';
 
 /**
  * Контекстный мягкий запрос разрешения на уведомления.
@@ -28,21 +29,23 @@ export function PushSoftAskSheet() {
   const allow = async () => {
     markPushSoftAskHandled();
     setVisible(false);
-    await getPush().requestPermission();
+    try {
+      await getPush().requestPermission();
+    } catch {
+      // Разрешение не получено — пересматривать UI не нужно
+    }
   };
 
   return (
     <Overlay>
-      <ClayCard style={{ gap: 16 }}>
-        <AppText preset="title" style={{ textAlign: 'center' }}>
-          {t('push.title', lang)}
-        </AppText>
-        <AppText preset="body" style={{ textAlign: 'center' }}>
-          {t('push.body', lang)}
-        </AppText>
-        <GameButton label={t('push.allow', lang)} onPress={allow} />
-        <GameButton label={t('push.later', lang)} variant="ghost" onPress={close} />
-      </ClayCard>
+      <AppText preset="title" style={{ textAlign: 'center' }}>
+        {t('push.title', lang)}
+      </AppText>
+      <AppText preset="body" style={{ textAlign: 'center' }}>
+        {t('push.body', lang)}
+      </AppText>
+      <GameButton label={t('push.allow', lang)} onPress={allow} />
+      <GameButton label={t('push.later', lang)} variant="ghost" onPress={close} />
     </Overlay>
   );
 }
