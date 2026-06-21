@@ -1,3 +1,7 @@
+/* react-native-reanimated + worklets: мок для unit-тестов без нативного слоя */
+jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
+
 /* In-memory мок MMKV: тесты сторов не требуют нативного модуля */
 jest.mock('react-native-mmkv', () => {
   class MMKV {

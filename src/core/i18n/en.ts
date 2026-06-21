@@ -170,4 +170,10 @@ export const en = {
     capiTitle: 'Meet Capi',
     capiBody: 'Your buddy levels up and evolves right along with you.',
   },
+  push: {
+    title: 'Stay in the loop?',
+    body: 'Get a nudge when your daily bonus is ready and when something cool drops.',
+    allow: 'Sure',
+    later: 'Not now',
+  },
 } as const;
