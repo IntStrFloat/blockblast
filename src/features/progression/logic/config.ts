@@ -12,7 +12,7 @@ export interface ProgressionConfig {
 }
 
 export const PROGRESSION_CONFIG: ProgressionConfig = {
-  levelCost: { base: 2000, growth: 1.16 },
+  levelCost: { base: 14000, growth: 1.16 },
   tierGaps: [5, 7, 9, 11, 14, 18, 22],
   maxAuthoredLevel: 64,
   evolutionAtWorld: { 1: 1, 2: 2, 4: 3, 6: 4 },

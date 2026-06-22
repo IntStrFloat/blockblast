@@ -1,8 +1,8 @@
 import { levelCost, thresholdForLevel, levelForPoints, progressFor } from '../logic/levels';
 
 describe('levelCost', () => {
-  it('cost(1) = base = 2000', () => {
-    expect(levelCost(1)).toBe(2000);
+  it('cost(1) = base = 14000', () => {
+    expect(levelCost(1)).toBe(14000);
   });
   it('строго возрастает', () => {
     for (let L = 1; L < 40; L++) {
@@ -39,7 +39,7 @@ describe('levelForPoints', () => {
 
 describe('progressFor', () => {
   it('0 очков → уровень 1, мир 1, в уровне 0, до следующего = cost(1)', () => {
-    expect(progressFor(0)).toEqual({ level: 1, world: 1, pointsInLevel: 0, pointsToNext: 2000 });
+    expect(progressFor(0)).toEqual({ level: 1, world: 1, pointsInLevel: 0, pointsToNext: 14000 });
   });
   it('ровно на пороге уровня 2', () => {
     expect(progressFor(thresholdForLevel(2))).toEqual({
