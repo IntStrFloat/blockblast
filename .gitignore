@@ -54,6 +54,7 @@ example
 # RuStore maven TLS truststore (local copy of JBR cacerts + RuStore cert)
 /.build-truststore/
 /.superpowers/
+/.worktrees/
 
 # generated backend runtime and local data
 /backend/runtime/
