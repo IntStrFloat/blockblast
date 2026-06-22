@@ -57,7 +57,7 @@ describe('resolveWeeklyView — единый источник истины ре�
     expect(view.currentEntry?.rank).toBe(2);
   });
 
-  it('вставляет игрока в список по локальному рекорду, когда сервер его ещё не ранжировал', () => {
+  it('НЕ вставляет игрока в серверный список — лента только серверная (одинаковая у всех)', () => {
     const me = entry({ tag: 'ME', nickname: 'Me', weeklyBest: 0, rank: null, isCurrentPlayer: true, runsCount: 0 });
     const snap = snapshot(me, [
       entry({ tag: 'A', weeklyBest: 1000, rank: 1 }),
@@ -69,17 +69,20 @@ describe('resolveWeeklyView — единый источник истины ре�
 
     expect(view.effectiveBest).toBe(600);
     expect(view.pending).toBe(true);
-    expect(view.rank).toBe(3);
-    expect(view.entries.map((e) => e.tag)).toEqual(['A', 'B', 'ME', 'C']);
-    expect(view.entries.map((e) => e.rank)).toEqual([1, 2, 3, 4]);
-    const mine = view.entries.find((e) => e.isCurrentPlayer)!;
-    expect(mine.weeklyBest).toBe(600);
-    expect(mine.runsCount).toBe(4);
-    expect(mine.championRank).toBe(1);
+    // Место — серверное: игрока ещё нет в рейтинге, фейковое место не выдумываем.
+    expect(view.rank).toBeNull();
+    // Серверный список НЕ тронут — никакого ME внутри (все видят одно и то же).
+    expect(view.entries.map((e) => e.tag)).toEqual(['A', 'B', 'C']);
+    expect(view.entries.some((e) => e.isCurrentPlayer)).toBe(false);
+    // Личная строка-карточка показывает локальный рекорд как ожидающий синхрон.
     expect(view.currentEntry?.tag).toBe('ME');
+    expect(view.currentEntry?.weeklyBest).toBe(600);
+    expect(view.currentEntry?.runsCount).toBe(4);
+    expect(view.currentEntry?.championRank).toBe(1);
+    expect(view.currentEntry?.rank).toBeNull();
   });
 
-  it('не дублирует игрока: переносит уже ранжированную строку на новый локальный рекорд', () => {
+  it('не трогает серверный список, даже если локальный рекорд выше подтверждённого', () => {
     const me = entry({ tag: 'ME', weeklyBest: 200, rank: 3, isCurrentPlayer: true });
     const snap = snapshot(me, [
       entry({ tag: 'A', weeklyBest: 1000, rank: 1 }),
@@ -91,9 +94,13 @@ describe('resolveWeeklyView — единый источник истины ре�
 
     expect(view.effectiveBest).toBe(900);
     expect(view.pending).toBe(true);
-    expect(view.entries.map((e) => e.tag)).toEqual(['A', 'ME', 'B']);
+    // Список, порядок и место игрока — серверные (#3), без переноса строки.
+    expect(view.entries.map((e) => e.tag)).toEqual(['A', 'B', 'ME']);
     expect(view.entries.filter((e) => e.isCurrentPlayer)).toHaveLength(1);
-    expect(view.rank).toBe(2);
+    expect(view.entries.find((e) => e.isCurrentPlayer)?.weeklyBest).toBe(200);
+    expect(view.rank).toBe(3);
+    // Карточка «твой рекорд» показывает локальный (900) как ожидающий.
+    expect(view.currentEntry?.weeklyBest).toBe(900);
   });
 
   it('без рекорда не показывает строку игрока и оставляет список сервера', () => {

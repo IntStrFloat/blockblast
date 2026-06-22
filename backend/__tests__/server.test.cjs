@@ -16,7 +16,6 @@ function createHarness() {
     apiKey: API_KEY,
     dataPath,
     now: () => new Date(nowMs),
-    verifyRun: ({ score }) => ({ ok: true, score }),
   });
 
   async function request(method, url, body, authToken, includeApiKey = true) {
@@ -42,19 +41,21 @@ function createHarness() {
   };
 }
 
-test('health exposes the engine fingerprint for drift detection', async (t) => {
+test('health reports record-only mode and needs no engine runtime', async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bloxx-backend-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const api = createApi({
     apiKey: API_KEY,
     dataPath: path.join(dir, 'data.json'),
-    engineFingerprint: () => 'abc12345',
   });
 
   const health = await api.handle({ method: 'GET', url: '/api/health', headers: {}, body: '' });
   assert.equal(health.status, 200);
   assert.equal(health.json.ok, true);
-  assert.equal(health.json.engine, 'abc12345');
+  assert.equal(health.json.mode, 'record-only');
+  // Реплей-верификация снята: сервер больше не зависит от движка, поэтому дрейф
+  // движка физически не может ронять ranked-сабмиты.
+  assert.equal(health.json.engine, undefined);
 });
 
 test('bootstrap creates an anonymous profile and reuses it with bearer auth', async (t) => {
@@ -95,7 +96,7 @@ test('rename changes only nickname and keeps server-owned tag', async (t) => {
   assert.equal(renamed.json.profile.tag, session.json.profile.tag);
 });
 
-test('weekly leaderboard uses one personal best and rejects reused tickets', async (t) => {
+test('record-only: weekly best is the max of submitted scores, runs are counted', async (t) => {
   const h = createHarness();
   t.after(h.cleanup);
 
@@ -125,20 +126,7 @@ test('weekly leaderboard uses one personal best and rejects reused tickets', asy
   assert.equal(firstRun.status, 200);
   assert.equal(firstRun.json.snapshot.currentPlayer.weeklyBest, 120);
 
-  const replay = await h.request(
-    'POST',
-    '/api/runs',
-    {
-      ticketId: firstTicket.ticketId,
-      seed: firstTicket.seed,
-      score: 999,
-      durationMs: 10_000,
-      moves: [],
-    },
-    session.json.authToken,
-  );
-  assert.equal(replay.status, 409);
-
+  // Меньший последующий счёт не понижает рекорд, но считается партией.
   const lowerRun = await h.request(
     'POST',
     '/api/runs',
@@ -154,6 +142,17 @@ test('weekly leaderboard uses one personal best and rejects reused tickets', asy
   assert.equal(lowerRun.status, 200);
   assert.equal(lowerRun.json.snapshot.currentPlayer.weeklyBest, 120);
   assert.equal(lowerRun.json.snapshot.currentPlayer.runsCount, 2);
+
+  // Record-only принимает «голый» payload { score } — без тикета/сида/ходов.
+  const bareRun = await h.request(
+    'POST',
+    '/api/runs',
+    { score: 200 },
+    session.json.authToken,
+  );
+  assert.equal(bareRun.status, 200);
+  assert.equal(bareRun.json.snapshot.currentPlayer.weeklyBest, 200);
+  assert.equal(bareRun.json.snapshot.currentPlayer.runsCount, 3);
 });
 
 test('API key and bearer token are required on protected operations', async (t) => {

@@ -40,28 +40,16 @@ export function selectMyChampionRank(prizes: readonly WeeklyPrizeRecord[]): numb
   return championRankOf(prizes.filter((record) => record.claimed));
 }
 
-const MAX_RENDERED_ENTRIES = 100;
-
-/** Порядок таблицы зеркалит серверный buildSnapshot: рекорд ↓, партии ↑, время ↑. */
-function compareEntries(a: LeaderboardEntry, b: LeaderboardEntry): number {
-  return (
-    b.weeklyBest - a.weeklyBest ||
-    a.runsCount - b.runsCount ||
-    String(a.achievedAt).localeCompare(String(b.achievedAt))
-  );
-}
-
 /**
- * Разрешённое представление недельного рейтинга — ЕДИНЫЙ источник истины и для
- * героя-рекорда, и для списка, и для строки текущего игрока.
+ * Разрешённое представление недельного рейтинга.
  *
- * Раньше рекорд считался по max(сервер, локальный), а список и место брались
- * только из серверного снапшота — поэтому карточка показывала рекорд, а в списке
- * игрока не было («Без ранга»), пока сабмит не подтверждён (оффлайн/в очереди/
- * отклонён). Здесь мы всегда вписываем текущего игрока в таблицу по тому же
- * effectiveBest и пересчитываем места, так что «рекорд» и «строка в списке» не
- * расходятся. Как только сервер подтверждает рекорд — ветка становится
- * серверо-авторитетной и значения сходятся к официальным.
+ * ИНВАРИАНТ КОНСИСТЕНТНОСТИ: список (`entries`) и места — ВСЕГДА серверные, то есть
+ * буквально одинаковые у всех игроков. Локальный рекорд влияет только на карточку
+ * «твой рекорд» (`effectiveBest`) и личную закреплённую строку (`currentEntry`),
+ * пока сервер не подтвердил результат. Раньше список достраивался локальным
+ * рекордом с провизорным местом — из-за этого владелец видел себя выше, чем все
+ * остальные. Теперь такого расхождения нет: как только сервер подтверждает рекорд,
+ * `pending` гаснет и карточка сходится к официальной строке.
  */
 export interface ResolvedWeeklyView {
   /** Недельный рекорд для показа = max(серверный, локальный текущей недели). */
@@ -90,67 +78,60 @@ export function resolveWeeklyView(
   const withChampion = (entry: LeaderboardEntry): LeaderboardEntry =>
     entry.isCurrentPlayer ? { ...entry, championRank } : entry;
 
-  // Нет идентичности игрока (снапшота ещё нет) — рекорд показать можем, строку нет.
+  // ЛЕНТА ВСЕГДА СЕРВЕРНАЯ — буквально одинаковая у всех игроков (включая строку
+  // самого игрока). Локальный рекорд НИКОГДА не вписывается в список и не двигает
+  // места; он влияет только на карточку «твой рекорд» (effectiveBest) и на
+  // личную закреплённую строку, пока сервер не подтвердил результат.
+  const entries = serverEntries.map(withChampion);
+
+  // Нет идентичности игрока (снапшота ещё нет) — рекорд показать можем, строки нет.
   if (!serverPlayer) {
-    return {
-      effectiveBest,
-      rank: null,
-      pending: effectiveBest > 0,
-      currentEntry: null,
-      entries: serverEntries.map(withChampion),
-    };
+    return { effectiveBest, rank: null, pending: effectiveBest > 0, currentEntry: null, entries };
   }
 
   // Рекорда ещё нет — серверный список как есть, без строки игрока.
   if (effectiveBest === 0) {
-    return {
-      effectiveBest: 0,
-      rank: null,
-      pending: false,
-      currentEntry: null,
-      entries: serverEntries.map(withChampion),
-    };
+    return { effectiveBest: 0, rank: null, pending: false, currentEntry: null, entries };
   }
 
+  const serverRow = entries.find((e) => e.isCurrentPlayer) ?? null;
   const serverConfirmsBest =
     serverPlayer.rank !== null && serverPlayer.weeklyBest >= effectiveBest;
 
-  // Сервер уже подтвердил рекорд (он не ниже локального) — доверяем серверу.
+  // Сервер уже подтвердил рекорд (он не ниже локального) — место и строка серверные.
   if (serverConfirmsBest) {
-    const entries = serverEntries.map(withChampion);
-    const currentEntry = entries.find((e) => e.isCurrentPlayer) ?? withChampion({ ...serverPlayer });
-    return { effectiveBest, rank: serverPlayer.rank, pending: false, currentEntry, entries };
+    return {
+      effectiveBest,
+      rank: serverPlayer.rank,
+      pending: false,
+      currentEntry: serverRow ?? withChampion({ ...serverPlayer }),
+      entries,
+    };
   }
 
-  // Локальный рекорд выше подтверждённого (оффлайн/в очереди/отклонён): вписываем
-  // игрока в таблицу по effectiveBest и пересчитываем места — провизорно, до синка.
+  // Локальный рекорд выше подтверждённого (оффлайн / в очереди / ещё не синканный):
+  // СПИСОК не трогаем (только сервер), место показываем СЕРВЕРНОЕ (может быть null =
+  // «ещё не в рейтинге») — фейковое место не выдумываем. Локальный рекорд несёт лишь
+  // личная карточка/закреплённая строка, помеченная как ожидающая синхрон.
   const weekKey = getUtcWeekWindow(now).weekKey;
   const localRuns = localWeekly?.weekKey === weekKey ? localWeekly.runsCount : 0;
   const localAchievedAt = localWeekly?.weekKey === weekKey ? localWeekly.achievedAt : null;
-  const others = serverEntries.filter((e) => !e.isCurrentPlayer);
-  const draft: LeaderboardEntry = {
+  const pendingEntry: LeaderboardEntry = {
     nickname: serverPlayer.nickname,
     tag: serverPlayer.tag,
-    rank: null,
+    rank: serverPlayer.rank,
     weeklyBest: effectiveBest,
     runsCount: Math.max(serverPlayer.runsCount, localRuns),
     achievedAt: localAchievedAt ?? serverPlayer.achievedAt,
     isCurrentPlayer: true,
     championRank,
   };
-  const entries = [...others, draft]
-    .sort(compareEntries)
-    .slice(0, MAX_RENDERED_ENTRIES)
-    .map((entry, index) => ({ ...entry, rank: index + 1 }));
-  const ranked = entries.find((e) => e.isCurrentPlayer) ?? null;
-  // Если игрок не попал в отрисованный топ-100 — оценка по числу записей выше.
-  const rank = ranked?.rank ?? others.filter((e) => e.weeklyBest > effectiveBest).length + 1;
 
   return {
     effectiveBest,
-    rank,
+    rank: serverPlayer.rank,
     pending: true,
-    currentEntry: ranked ?? { ...draft, rank },
+    currentEntry: pendingEntry,
     entries,
   };
 }

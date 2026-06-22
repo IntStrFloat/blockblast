@@ -10,14 +10,6 @@ const MAX_SCORE = 100_000_000;
 function createApi(options) {
   const apiKey = options.apiKey ?? '';
   const now = options.now ?? (() => new Date());
-  const verifyRun = options.verifyRun ?? require('./verify-run.cjs').verifyRun;
-  // Отпечаток задеплоенного движка (того же, что верифицирует раны). Сравните его
-  // с локальным после деплоя — расхождение значит, что runtime устарел и сабмиты
-  // будут молча отклоняться. См. docs/runbooks/leaderboard-operations.md.
-  const resolveEngineFingerprint =
-    options.engineFingerprint ?? (() => require('./runtime/index.js').engineFingerprint());
-  let engineFingerprintCache = null;
-  const engineFingerprint = () => (engineFingerprintCache ??= resolveEngineFingerprint());
   const store = createJsonStore(options.dataPath);
 
   async function handle(request) {
@@ -26,7 +18,9 @@ function createApi(options) {
     const headers = lowerCaseHeaders(request.headers ?? {});
 
     if (method === 'OPTIONS') return response(204, null);
-    if (pathname === '/api/health') return response(200, { ok: true, engine: engineFingerprint() });
+    // Record-only: сервер хранит лучший счёт и НЕ реплеит ходы, поэтому не зависит
+    // от движка — дрейф движка больше не может ронять ranked-сабмиты.
+    if (pathname === '/api/health') return response(200, { ok: true, mode: 'record-only' });
     if (apiKey && headers['x-api-key'] !== apiKey) {
       return response(401, { error: 'invalid_api_key' });
     }
@@ -117,32 +111,26 @@ function createApi(options) {
       if (!parsed.ok) return response(400, { error: parsed.error });
 
       const data = store.read();
-      const ticket = data.tickets[parsed.value.ticketId];
-      if (!ticket || ticket.userId !== session.user.id) {
-        return response(404, { error: 'ticket_not_found' });
-      }
-      if (ticket.consumedAt !== null) {
-        return response(409, { error: 'ticket_consumed' });
-      }
-      if (new Date(ticket.expiresAt).getTime() <= now().getTime()) {
-        return response(410, { error: 'ticket_expired' });
-      }
-      if (ticket.seed !== parsed.value.seed) {
-        return response(400, { error: 'seed_mismatch' });
-      }
-
-      const verified = verifyRun(parsed.value);
-      if (!verified.ok || verified.score !== parsed.value.score) {
-        return response(422, { error: verified.reason ?? 'score_mismatch' });
-      }
+      // Record-only: доверяем лучшему счёту клиента (реплей-верификация снята —
+      // продуктовое решение «только рекорд»). Тикет теперь необязателен: если он
+      // передан и валиден — гасим его (ротация сидов), но он НИКОГДА не блокирует
+      // запись результата. Так «после каждой игры синхронизируется рекорд» всегда.
+      const ticket = parsed.value.ticketId ? data.tickets[parsed.value.ticketId] : null;
 
       const before = buildSnapshot(data, session.user.id, now());
-      ticket.consumedAt = now().toISOString();
+      if (
+        ticket &&
+        ticket.userId === session.user.id &&
+        ticket.consumedAt === null &&
+        new Date(ticket.expiresAt).getTime() > now().getTime()
+      ) {
+        ticket.consumedAt = now().toISOString();
+      }
       data.runs.push({
         id: crypto.randomUUID(),
-        ticketId: ticket.ticketId,
+        ticketId: ticket ? ticket.ticketId : null,
         userId: session.user.id,
-        score: verified.score,
+        score: parsed.value.score,
         durationMs: parsed.value.durationMs,
         movesCount: parsed.value.moves.length,
         completedAt: now().toISOString(),
@@ -155,7 +143,7 @@ function createApi(options) {
       return response(200, {
         snapshot,
         impact: {
-          score: verified.score,
+          score: parsed.value.score,
           weeklyBest: snapshot.currentPlayer.weeklyBest,
           rank: newRank,
           rankDelta: oldRank !== null && newRank !== null ? oldRank - newRank : null,
@@ -218,41 +206,33 @@ function validateNickname(input) {
 }
 
 function validateRunPayload(body) {
-  if (
-    typeof body.ticketId !== 'string' ||
-    !Number.isInteger(body.seed) ||
-    !Number.isInteger(body.score) ||
-    body.score < 0 ||
-    body.score > MAX_SCORE ||
-    !Number.isFinite(body.durationMs) ||
-    body.durationMs < 0 ||
-    body.durationMs > 24 * 60 * 60 * 1000 ||
-    !Array.isArray(body.moves) ||
-    body.moves.length > MAX_MOVES
-  ) {
+  // Record-only: обязателен только валидный score. ticketId/seed/moves/durationMs
+  // необязательны — старые клиенты шлют их (игнорируем как доказательство),
+  // упрощённый клиент может прислать «голый» { score }.
+  if (!Number.isInteger(body.score) || body.score < 0 || body.score > MAX_SCORE) {
     return { ok: false, error: 'invalid_run' };
   }
+  const durationMs =
+    Number.isFinite(body.durationMs) && body.durationMs >= 0 && body.durationMs <= 24 * 60 * 60 * 1000
+      ? body.durationMs
+      : 0;
+  const ticketId = typeof body.ticketId === 'string' ? body.ticketId : null;
+  const seed = Number.isInteger(body.seed) ? body.seed : null;
   const moves = [];
-  for (const move of body.moves) {
-    if (
-      !Number.isInteger(move?.trayIndex) ||
-      !Number.isInteger(move?.row) ||
-      !Number.isInteger(move?.col)
-    ) {
-      return { ok: false, error: 'invalid_move' };
+  if (Array.isArray(body.moves)) {
+    if (body.moves.length > MAX_MOVES) return { ok: false, error: 'invalid_run' };
+    for (const move of body.moves) {
+      if (
+        !Number.isInteger(move?.trayIndex) ||
+        !Number.isInteger(move?.row) ||
+        !Number.isInteger(move?.col)
+      ) {
+        return { ok: false, error: 'invalid_move' };
+      }
+      moves.push({ trayIndex: move.trayIndex, row: move.row, col: move.col });
     }
-    moves.push({ trayIndex: move.trayIndex, row: move.row, col: move.col });
   }
-  return {
-    ok: true,
-    value: {
-      ticketId: body.ticketId,
-      seed: body.seed,
-      score: body.score,
-      durationMs: body.durationMs,
-      moves,
-    },
-  };
+  return { ok: true, value: { ticketId, seed, score: body.score, durationMs, moves } };
 }
 
 function buildSnapshot(data, currentUserId, date) {
