@@ -5,16 +5,16 @@ const {
   withProjectBuildGradle,
 } = require('expo/config-plugins');
 
-// Требования интеграции react-native-rustore-push (см. README пакета):
+// Интеграция react-native-rustore-push 6.x (GitFlic):
 // 1) maven-репозиторий RuStore, откуда тянется нативный `ru.rustore.sdk:pushclient`;
-// 2) объявление messaging-сервиса, через который SDK доставляет данные пуша;
+// 2) meta-data `project_id` — по нему SDK инициализируется автоматически;
 // 3) разрешение POST_NOTIFICATIONS (Android 13+).
-// Метадату канала/иконки этот SDK не требует (канал создаёт сам).
+// Messaging-сервис (.RustorePushService) и params_class пакет объявляет САМ в своём
+// манифесте (autolinking merge) — здесь его задавать НЕ нужно.
 const RUSTORE_MAVEN_URL =
   'https://artifactory-external.vkpartner.ru/artifactory/maven';
 const RUSTORE_MAVEN = `maven { url '${RUSTORE_MAVEN_URL}' }`;
-const MESSAGING_SERVICE = 'ru.reactnativerustorepush.deps.MessagingService';
-const MESSAGING_EVENT_ACTION = 'ru.rustore.sdk.pushclient.MESSAGING_EVENT';
+const PROJECT_ID_META = 'ru.rustore.sdk.pushclient.project_id';
 
 /** Добавляет maven-репозиторий RuStore в allprojects.repositories (идемпотентно). */
 function patchProjectBuildGradle(contents) {
@@ -30,28 +30,21 @@ function patchProjectBuildGradle(contents) {
   return contents.replace(pattern, `$1$2\n    ${RUSTORE_MAVEN}$3`);
 }
 
-/** Объявляет messaging-сервис RuStore в AndroidManifest (идемпотентно). */
-function addMessagingService(androidManifest) {
+/** Прописывает meta-data project_id в manifest (upsert), для авто-инициализации SDK. */
+function addProjectIdMeta(androidManifest, projectId) {
   const app = AndroidConfig.Manifest.getMainApplicationOrThrow(androidManifest);
-  app.service = app.service ?? [];
-  const already = app.service.some(
-    (service) => service.$?.['android:name'] === MESSAGING_SERVICE,
+  AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+    app,
+    PROJECT_ID_META,
+    projectId,
   );
-  if (!already) {
-    app.service.push({
-      $: {
-        'android:name': MESSAGING_SERVICE,
-        'android:exported': 'true',
-      },
-      'intent-filter': [
-        { action: [{ $: { 'android:name': MESSAGING_EVENT_ACTION } }] },
-      ],
-    });
-  }
   return androidManifest;
 }
 
-function withRuStorePush(config, _props = {}) {
+function withRuStorePush(config, props = {}) {
+  const projectId =
+    props.projectId ?? process.env.EXPO_PUBLIC_RUSTORE_PUSH_PROJECT_ID ?? '';
+
   config = withProjectBuildGradle(config, (projectConfig) => {
     if (projectConfig.modResults.language !== 'groovy') {
       throw new Error('RuStore Push: only Groovy android/build.gradle is supported');
@@ -67,15 +60,19 @@ function withRuStorePush(config, _props = {}) {
       manifestConfig.modResults,
       'android.permission.POST_NOTIFICATIONS',
     );
-    addMessagingService(manifestConfig.modResults);
+    // project_id берётся из env (EXPO_PUBLIC_RUSTORE_PUSH_PROJECT_ID) на этапе prebuild.
+    // Если пуст (dev/CI без значения) — meta-data не добавляем, чтобы не плодить пустоту.
+    if (projectId) {
+      addProjectIdMeta(manifestConfig.modResults, projectId);
+    }
     return manifestConfig;
   });
 
   return config;
 }
 
-const plugin = createRunOncePlugin(withRuStorePush, 'with-rustore-push', '1.0.0');
+const plugin = createRunOncePlugin(withRuStorePush, 'with-rustore-push', '2.0.0');
 
 module.exports = plugin;
 module.exports.patchProjectBuildGradle = patchProjectBuildGradle;
-module.exports.addMessagingService = addMessagingService;
+module.exports.addProjectIdMeta = addProjectIdMeta;

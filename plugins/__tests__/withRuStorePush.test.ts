@@ -1,10 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const plugin = require('../withRuStorePush.js') as {
   patchProjectBuildGradle(contents: string): string;
-  addMessagingService(manifest: unknown): unknown;
+  addProjectIdMeta(manifest: unknown, projectId: string): unknown;
 };
 
-const { patchProjectBuildGradle, addMessagingService } = plugin;
+const { patchProjectBuildGradle, addProjectIdMeta } = plugin;
 
 const ALLPROJECTS = `allprojects {
   repositories {
@@ -14,13 +14,19 @@ const ALLPROJECTS = `allprojects {
 }
 `;
 
+const PROJECT_ID_META = 'ru.rustore.sdk.pushclient.project_id';
+
 type ManifestApp = {
   $: Record<string, string>;
-  service?: { $: Record<string, string>; 'intent-filter': unknown[] }[];
+  'meta-data'?: { $: Record<string, string> }[];
 };
 const makeManifest = (): { manifest: { application: ManifestApp[] } } => ({
   manifest: { application: [{ $: { 'android:name': '.MainApplication' } }] },
 });
+const projectIdMetas = (m: { manifest: { application: ManifestApp[] } }) =>
+  (m.manifest.application[0]['meta-data'] ?? []).filter(
+    (item) => item.$['android:name'] === PROJECT_ID_META,
+  );
 
 describe('withRuStorePush config plugin', () => {
   it('adds the RuStore maven repo to allprojects.repositories', () => {
@@ -39,24 +45,20 @@ describe('withRuStorePush config plugin', () => {
     );
   });
 
-  it('declares the RuStore messaging service with the messaging-event intent-filter', () => {
+  it('writes the project_id meta-data into the manifest', () => {
     const manifest = makeManifest();
-    addMessagingService(manifest);
-    const app = manifest.manifest.application[0];
-    expect(app.service?.[0].$['android:name']).toBe(
-      'ru.reactnativerustorepush.deps.MessagingService',
-    );
-    expect(app.service?.[0].$['android:exported']).toBe('true');
-    expect(
-      (app.service?.[0]['intent-filter'][0] as { action: { $: Record<string, string> }[] })
-        .action[0].$['android:name'],
-    ).toBe('ru.rustore.sdk.pushclient.MESSAGING_EVENT');
+    addProjectIdMeta(manifest, 'proj-xyz');
+    const metas = projectIdMetas(manifest);
+    expect(metas).toHaveLength(1);
+    expect(metas[0].$['android:value']).toBe('proj-xyz');
   });
 
-  it('does not duplicate the service when applied twice', () => {
+  it('upserts (no duplicate) when applied twice', () => {
     const manifest = makeManifest();
-    addMessagingService(manifest);
-    addMessagingService(manifest);
-    expect(manifest.manifest.application[0].service).toHaveLength(1);
+    addProjectIdMeta(manifest, 'a');
+    addProjectIdMeta(manifest, 'b');
+    const metas = projectIdMetas(manifest);
+    expect(metas).toHaveLength(1);
+    expect(metas[0].$['android:value']).toBe('b');
   });
 });

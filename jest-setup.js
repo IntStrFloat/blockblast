@@ -2,6 +2,28 @@
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
 
+/* react-native-rustore-push (GitFlic 6.x): нативный модуль без node-сборки —
+   мок, чтобы импорт rustorePush.native.ts не падал в jest (логику тестируем через Noop). */
+jest.mock('react-native-rustore-push', () => ({
+  __esModule: true,
+  default: {
+    createPushEmitter: jest.fn(),
+    deletePushEmitter: jest.fn(),
+    getToken: jest.fn(() => Promise.resolve('')),
+    deleteToken: jest.fn(() => Promise.resolve(true)),
+    checkPushAvailability: jest.fn(() => Promise.resolve(false)),
+    getInitialNotification: jest.fn(() => Promise.resolve(null)),
+  },
+  eventEmitter: { addListener: jest.fn(() => ({ remove: jest.fn() })) },
+  PushEvents: {
+    ON_NEW_TOKEN: 'ON_NEW_TOKEN',
+    ON_MESSAGE_RECEIVED: 'ON_MESSAGE_RECEIVED',
+    ON_DELETED_MESSAGES: 'ON_DELETED_MESSAGES',
+    ON_ERROR: 'ON_ERROR',
+    ON_OPENED: 'ON_OPENED',
+  },
+}), { virtual: true });
+
 /* In-memory мок MMKV: тесты сторов не требуют нативного модуля */
 jest.mock('react-native-mmkv', () => {
   class MMKV {
