@@ -1,6 +1,6 @@
 # 16 — Push-уведомления (RuStore, Android)
 
-Статус: реализовано · Обновлено: 2026-06-21
+Статус: реализовано (SDK 6.9.1, собрано и запущено) · Обновлено: 2026-06-22
 
 ## Модель
 
@@ -56,7 +56,7 @@ export const PUSH = {
 
 - `projectId` передаётся **только через env `EXPO_PUBLIC_RUSTORE_PUSH_PROJECT_ID`** — не секрет (это идентификатор проекта в RuStore Console), но через env для гибкости окружений.
 - Если `projectId` пустой (например, в dev без `.env` или в CI), фабрика автоматически возвращает Noop — сборка не падает.
-- `testMode` (`__DEV__`): в режиме разработки логируется push-токен устройства для проверки `sendTestNotification`.
+- `testMode` (`__DEV__`): в dev логируется результат `checkPushAvailability()` (для диагностики).
 - **Сервисный токен RuStore в коде приложения не используется** — он нужен только серверной/консольной отправке.
 
 ## Разрешение: контекстный soft-ask (`softAsk.ts`)
@@ -84,13 +84,15 @@ const ALLOWED_ROUTES = new Set<string>(['/', '/leaderboard', '/map', '/settings'
 
 ## Сборка: config-plugin (`plugins/withRuStorePush.js`)
 
-Плагин подключается через поле `plugins` в `app.json` и при `expo prebuild` инжектирует всё, что требует README пакета `react-native-rustore-push`:
+SDK: **`react-native-rustore-push` 6.9.1** (GitFlic; нативный `ru.rustore.sdk:pushclient:6.9.1`). Плагин подключён через `plugins` в `app.json` и при `expo prebuild` инжектирует:
 
-- **maven-репозиторий RuStore** `https://artifactory-external.vkpartner.ru/artifactory/maven` в `allprojects.repositories` (`android/build.gradle`) — без него gradle не резолвит нативный `ru.rustore.sdk:pushclient`.
-- **messaging-сервис** `ru.reactnativerustorepush.deps.MessagingService` с intent-filter `ru.rustore.sdk.pushclient.MESSAGING_EVENT` в `AndroidManifest.xml` — через него SDK доставляет данные пуша (пакет его сам НЕ объявляет, это обязанность приложения).
+- **maven-репозиторий RuStore** `https://artifactory-external.vkpartner.ru/artifactory/maven` в `allprojects.repositories` (`android/build.gradle`) — без него gradle не резолвит нативный `pushclient`.
+- **meta-data `ru.rustore.sdk.pushclient.project_id`** со значением из env `EXPO_PUBLIC_RUSTORE_PUSH_PROJECT_ID` — по нему SDK 6.x инициализируется автоматически.
 - разрешение `android.permission.POST_NOTIFICATIONS` (Android 13+, дедуп через `ensurePermission`).
 
-Метадата канала/иконки уведомлений плагином не задаётся — версия SDK `1.0.0` создаёт канал сама. Чистые функции `patchProjectBuildGradle` и `addMessagingService` покрыты юнит-тестом (`plugins/__tests__/withRuStorePush.test.ts`); фактическое применение проверяется прогоном `expo prebuild`.
+Messaging-сервис (`com.rustorepush.RustorePushService`) и `params_class` пакет 6.x объявляет САМ в своём манифесте (autolinking merge) — плагин их не задаёт. Чистые функции `patchProjectBuildGradle` и `addProjectIdMeta` покрыты юнит-тестом (`plugins/__tests__/withRuStorePush.test.ts`); применение проверяется прогоном `expo prebuild`.
+
+> ⚠️ После смены плагина обязателен **чистый** prebuild (`--clean`): инкрементальный prebuild не удаляет ранее внедрённые узлы манифеста (иначе остаётся старый сервис 0.9.2 → `ClassNotFoundException`).
 
 ## Ограничения доставки
 
@@ -102,28 +104,33 @@ const ALLOWED_ROUTES = new Set<string>(['/', '/leaderboard', '/map', '/settings'
 
 На «голом» Google-устройстве (без RuStore) доставки нет — это природа механизма, не баг.
 
-## Известные оговорки / TODO к нативной сборке
+## Статус проверки (2026-06-22, AAB/APK vc19)
 
-> **Статус после проверки сборкой и запуском (2026-06-22, AAB vc19, эмулятор API 37).**
+Собрано и запущено на эмуляторе (API 37, Android 16):
 
-1. **Версия SDK `0.9.2` НЕ годится для прод — нужен апгрейд (блокер пушей).**
-   Проверено на реальной сборке:
-   - ✅ AAB/APK **собираются** на RN 0.85 + New Architecture (gradle-компиляция нативного `pushclient:1.0.0` проходит), приложение **запускается и не падает** — наш Noop/обработка ошибок отрабатывают.
-   - ❌ **Регистрация пушей в рантайме падает** на Android 14+ (API 34+, эмулятор был API 37): `RuStorePush.init()` бросает `One of RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED should be specified...` — SDK 0.9.2 регистрирует BroadcastReceiver без обязательного с Android 14 флага. Ошибку мы ловим (`[push] RuStore init failed`), приложение живёт, но **токен не выдаётся → пуши не работают**.
-   - **Вывод:** перейти на актуальный RuStore Push SDK **2.x/6.x с GitFlic** (там флаг ресивера исправлен). Установка — `npm i git+https://...gitflic.ru/...` (нужен доступ к GitFlic). После апгрейда сверить API в `rustorePush.native.ts` (`init`, `getToken`, `messagingService.on`, `RuStorePushClient.isError`) — правки локализованы в этом файле.
+- ✅ **AAB/APK собираются** на RN 0.85 + New Architecture; AAB подписан верным ключом (SHA-256 совпадает с консолью RuStore).
+- ✅ **SDK 6.9.1 авто-инициализируется**: в логах `RuStorePushClient: Auto init ... successful = true`, генерируется device id; приложение **не падает**.
+- ✅ На эмуляторе без RuStore — корректное `Host push app is not installed!` (доставки нет — природа механизма).
+- ⏳ **Реальная доставка токена/пуша не проверена** — нужен Android с установленным и авторизованным RuStore + тест-кампания из консоли.
 
-   **Сборочная зависимость:** нативный AAR тянется из maven RuStore (`artifactory-external.vkpartner.ru`), чей TLS-сертификат (HARICA CA) отсутствует в truststore JBR → gradle падает с `PKIX path building failed`. Лечится импортом сертификата в `cacerts` JBR (или кастомным truststore через `GRADLE_OPTS`); это нужно и для GitFlic-версии. См. `docs/specs/08-build-release.md`.
+### Оговорки / зависимости
 
-2. **Тап vs foreground.** SDK 0.9.2 доставляет события через `messagingService.on('message-received', ...)`. Отдельного колбэка «тап по уведомлению из шторки» (background/killed state) в этой версии может не быть — поведение тапа из фона необходимо сверить с доками закреплённой версии и протестировать на реальном устройстве.
+1. **patch-package под RN 0.85.** SDK 6.9.1 собран под RN 0.72 и объявляет `onNewIntent(intent: Intent?)`, а RN 0.85 ждёт non-null `Intent` → Kotlin не компилируется. Патч `patches/react-native-rustore-push+6.9.1.patch` (одна строка) переприменяется через `postinstall`. **Снять патч**, когда RuStore выпустит RN-0.85-совместимую версию.
 
-3. **Иконка/вид уведомления.** SDK `1.0.0` создаёт канал и показывает уведомление сам (отдельная `<meta-data>` не нужна). Если потребуется кастомная иконка/цвет — задать по докам закреплённой версии при переходе на 2.x/6.x.
+2. **TLS-truststore для maven RuStore.** Нативный AAR тянется из `artifactory-external.vkpartner.ru`, чей сертификат (HARICA CA) отсутствует в truststore JBR → gradle падает с `PKIX path building failed`. Лечится импортом сертификата в `cacerts` JBR (или кастомным truststore через `GRADLE_OPTS`). См. `docs/specs/08-build-release.md`.
+
+3. **Чистый prebuild при смене плагина** (`expo prebuild --clean`) — инкрементальный оставляет старые узлы манифеста.
+
+4. **Тап из фона/killed.** Foreground-тап — `eventEmitter` `ON_OPENED`; холодный старт по пушу — `getInitialNotification()`. Поведение из killed-состояния проверить на реальном устройстве.
+
+5. **Маршрут в пуше.** `routeFromMessage` берёт `notification.clickAction` при `clickActionType==='DEEP_LINK'`, иначе `data.key==='route'` → `data.value`; всё прогоняется через белый список `resolvePushRoute`. Кампании в консоли настраивать соответственно.
 
 ## Поток данных
 
 ```
 Cold start → getPush().init()
-           (Android с projectId: RuStore init({projectId}); иначе Noop)
-           → подписка onNotificationTap(handler)
+           (Android: SDK 6.x авто-init из manifest project_id; init() поднимает emitter)
+           → подписка onNotificationTap(handler) (ON_OPENED + getInitialNotification)
 
 Первый Game Over закрыт
            → recordGameOverForPush()
