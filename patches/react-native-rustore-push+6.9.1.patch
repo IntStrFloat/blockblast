@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native-rustore-push/android/src/main/java/com/rustorepush/RustorePushModule.kt b/node_modules/react-native-rustore-push/android/src/main/java/com/rustorepush/RustorePushModule.kt
+index fcbccdf..404802a 100644
+--- a/node_modules/react-native-rustore-push/android/src/main/java/com/rustorepush/RustorePushModule.kt
++++ b/node_modules/react-native-rustore-push/android/src/main/java/com/rustorepush/RustorePushModule.kt
+@@ -38,7 +38,7 @@ class RustorePushModule(private val reactContext: ReactApplicationContext) :
+   }
+ 
+   private val activityEventListener: ActivityEventListener = object : BaseActivityEventListener() {
+-    override fun onNewIntent(intent: Intent?) {
++    override fun onNewIntent(intent: Intent) {
+       super.onNewIntent(intent)
+       Log.i(TAG, "onNewIntent")
+       val messageId = getMessageIdFromIntent(intent) ?: return
