@@ -42,7 +42,8 @@ export interface RunProof {
 
 export interface PendingSubmission {
   proofId: string;
-  ticketId: string;
+  /** null — партия без тикета (ревайв/исчерпан пул): record-only сервер примет. */
+  ticketId: string | null;
   seed: number;
   score: number;
   durationMs: number;

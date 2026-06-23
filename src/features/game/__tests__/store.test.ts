@@ -313,13 +313,15 @@ describe('Game Over and Continue accounting', () => {
     setNearGameOver(1500, true);
     useGameStore.getState().placePiece(0, 0, 0);
 
-    expect(useLeaderboardStore.getState().latestImpact?.score).toBe(778);
-    expect(useLeaderboardStore.getState().pendingSubmissions).toHaveLength(1);
+    // Record-only: счёт после ревайва ТОЖЕ уходит на сервер (второй сабмит без
+    // тикета) — поэтому impact и очередь отражают ревайв-рекорд 1501.
+    expect(useLeaderboardStore.getState().latestImpact?.score).toBe(1501);
+    expect(useLeaderboardStore.getState().pendingSubmissions).toHaveLength(2);
+    // Но игровой счётчик партий заморожен на первом Game Over: ревайв — та же партия.
     expect(useScores.getState().gamesPlayed).toBe(1);
     expect(useScores.getState().best).toBe(1501);
     expect(useStreak.getState().count).toBe(1);
-    // Счёт после ревайва обновляет локальный недельный результат (видимый best),
-    // но не плодит вторую партию и не уходит в ranked-очередь повторно.
+    // Локальный недельный best поднят, без второй ПАРТИИ (runsCount не растёт).
     expect(useLeaderboardStore.getState().localWeeklyResult).toMatchObject({
       bestScore: 1501,
       runsCount: 1,

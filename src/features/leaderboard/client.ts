@@ -21,7 +21,7 @@ export interface LeaderboardClient {
   getWeeklySnapshot: (input: { authToken?: string }) => Promise<WeeklyLeaderboardSnapshot | null>;
   submitRun: (input: {
     authToken: string;
-    ticketId: string;
+    ticketId: string | null;
     score: number;
     seed: number;
     moves: RunMove[];

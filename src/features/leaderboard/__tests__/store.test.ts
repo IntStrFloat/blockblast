@@ -119,7 +119,7 @@ describe('leaderboard store', () => {
     expect(p2.ticketId).toBe('ticket-2');
   });
 
-  it('reopens a finished run after a revive so it raises the local weekly best only', async () => {
+  it('reopens a finished run after a revive and submits the revive score too (record-only)', async () => {
     const client: LeaderboardClient = {
       kind: 'remote',
       bootstrapProfile: async () => null,
@@ -149,10 +149,12 @@ describe('leaderboard store', () => {
     store.getState().recordMove({ trayIndex: 0, row: 0, col: 0 });
     await store.getState().finishActiveRun(1500, NOW);
 
-    // Локальный недельный best поднят, без второй партии и без второго сабмита.
+    // Record-only: ревайв-рекорд ТОЖЕ уходит на сервер — вторым сабмитом без тикета.
+    // Локальный недельный best поднят (без второй ПАРТИИ — runsCount не растёт).
     expect(store.getState().localWeeklyResult).toMatchObject({ bestScore: 1500, runsCount: 1 });
-    expect(store.getState().pendingSubmissions).toHaveLength(1);
-    expect(store.getState().pendingSubmissions[0].score).toBe(1000);
+    expect(store.getState().pendingSubmissions).toHaveLength(2);
+    expect(store.getState().pendingSubmissions[0]).toMatchObject({ score: 1000, ticketId: 'ticket-1' });
+    expect(store.getState().pendingSubmissions[1]).toMatchObject({ score: 1500, ticketId: null });
   });
 
   it('replaces tickets from an obsolete auth session with the current pool', async () => {

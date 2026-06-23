@@ -60,7 +60,7 @@ export function createRemoteLeaderboardClient(baseUrl: string) {
 
     async submitRun(input: {
       authToken: string;
-      ticketId: string;
+      ticketId: string | null;
       score: number;
       seed: number;
       moves: RunMove[];

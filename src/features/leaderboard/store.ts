@@ -312,13 +312,12 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       set({ localWeeklyResult });
       persistState({ ...get(), activeProof: finishedProof, localWeeklyResult });
 
-      if (!finishedProof.ranked || !finishedProof.ticketId) {
-        // Продолженный после ревайва ран не ranked: сохраняем прежний impact от
-        // проверяемого финала (локальный недельный результат уже поднят выше).
-        if (!finishedProof.continued) set({ latestImpact: null });
-        persistState({ ...get(), activeProof: finishedProof });
-        return get().latestImpact;
-      }
+      // Record-only: лучший счёт уходит на сервер ПОСЛЕ КАЖДОЙ партии — включая
+      // продолжённые после ревайва и сыгранные без тикета. Реплея больше нет
+      // (backend record-only), поэтому старое ограничение «слать только ranked-раны»
+      // снято: иначе ревайв-/безтикетные рекорды копились лишь локально и
+      // расходились между устройствами (игрок видел себя выше, чем все остальные).
+      // Сетевой сабмит ниже всё равно срабатывает лишь при remote-клиенте + authToken.
 
       const pending = clampPendingQueue([
         ...get().pendingSubmissions,
