@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
@@ -372,7 +372,7 @@ export default function HomeScreen() {
               ribbon={<SeasonCountdownBadge compact short variant="ribbon" />}
               onPress={() => {
                 useAnalyticsStore.getState().track('mode_selected', { mode: 'adventure', source: 'home_reference_menu' });
-                router.push('/adventure');
+                router.push('/adventure' as Href);
               }}
             />
             <ReferenceMenuButton
