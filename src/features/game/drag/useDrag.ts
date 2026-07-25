@@ -18,15 +18,13 @@ import {
   dragTopLefts,
   EMPTY_MASK,
   fitsOnBoard,
+  insideBoard,
   previewMask,
   topLeftToCell,
 } from './gridMath';
 import type { DragCtx } from './DragContext';
 
 const PIECE_LIFT_PX = 60;
-// Подъём превью над фигурой, в «рядах» доски (cell+gap). Превью должно быть лишь
-// чуть выше самой фигуры — как в оригинальном Block Blast.
-const PREVIEW_LIFT_ROWS = 0.15;
 
 /** Позиция слота в координатах окна — снимается на measureInWindow */
 export interface SlotMeasure {
@@ -87,24 +85,44 @@ export function useDrag({
   // Текущая валидная позиция дропа (shared, для onEnd)
   const dropR = useSharedValue(-1);
   const dropC = useSharedValue(-1);
+  // 1 — фигура над доской, но позиция занята/не влезает (для Reject-хаптики)
+  const dropBlocked = useSharedValue(0);
+  const previewA = useSharedValue<number[]>(new Array(64).fill(0));
+  const previewB = useSharedValue<number[]>(new Array(64).fill(0));
+  const previewScratch = useSharedValue<number[]>(new Array(64).fill(0));
+  const previewFlip = useSharedValue(0);
 
   // Захваченные значения для worklet
   const cellsCapture = cells as readonly (readonly [number, number])[];
+  const {
+    geom,
+    boardOrigin,
+    boardMirror,
+    preview,
+    previewColor,
+    dragActive,
+    dragOwner,
+    onDrop,
+    onGrab,
+    onInvalidDrop,
+  } = ctx;
 
   const onDropJS = useCallback(
     (ti: number, r: number, c: number) => {
-      const placed = ctx.onDrop(ti, r, c);
+      const placed = onDrop(ti, r, c);
       // Дроп оптимистично прячет фигуру (committedOpacity=0). Если движок его
       // отклонил (позиция занята) — слот остаётся прежним и без отката фигура
       // «пропала бы» из трея. Возвращаем её видимой.
       if (!placed) {
         committedOpacity.value = withTiming(1, { duration: TRAY_MOTION.appearDurationMs });
+        onInvalidDrop?.();
       }
     },
-    [ctx, committedOpacity],
+    [committedOpacity, onDrop, onInvalidDrop],
   );
 
-  const onGrabJS = ctx.onGrab;
+  const onGrabJS = onGrab;
+  const onInvalidDropJS = onInvalidDrop;
 
   const gesture = Gesture.Pan()
     .enabled(!disabled)
@@ -112,22 +130,23 @@ export function useDrag({
       'worklet';
       // Перф-сигнал: drag начался — мозг маскота встаёт на паузу (спека 09).
       // Движение/звук захвата — в onStart (см. ниже); здесь только сигнал паузы.
-      ctx.dragActive.value = 1;
+      dragActive.value = 1;
     })
     .onStart(() => {
       'worklet';
       runOnJS(measureForDrag)();
       // Подстраховка: чистим возможную «застрявшую» тень от прерванного жеста и
       // забираем владение превью (last-wins — переживает залипшего владельца).
-      ctx.preview.value = EMPTY_MASK;
-      ctx.previewColor.value = 0;
-      ctx.dragOwner.value = trayIndex;
+      preview.value = EMPTY_MASK;
+      previewColor.value = 0;
+      dragOwner.value = trayIndex;
       scale.value = withTiming(TRAY_MOTION.grabScale, { duration: TRAY_MOTION.grabDurationMs });
       elevation.value = withTiming(8, { duration: TRAY_MOTION.grabDurationMs });
       shadowOpacity.value = withTiming(0.3, { duration: TRAY_MOTION.grabDurationMs });
       if (onGrabJS) runOnJS(onGrabJS)();
       dropR.value = -1;
       dropC.value = -1;
+      dropBlocked.value = 0;
     })
     .onUpdate((event) => {
       'worklet';
@@ -136,9 +155,8 @@ export function useDrag({
 
       // Превью и валидную позицию дропа ведёт только владелец: при мультитаче
       // чужая фигура следует за пальцем, но не пишет тень и не ставится.
-      if (ctx.dragOwner.value !== trayIndex) return;
+      if (dragOwner.value !== trayIndex) return;
 
-      const { geom, boardOrigin, boardMirror, preview, previewColor } = ctx;
       const cellPx = geom.cell;
       const gapPx = geom.gap;
 
@@ -154,7 +172,6 @@ export function useDrag({
         figureWidth: figW,
         figureHeight: figH,
         pieceLiftPx: PIECE_LIFT_PX,
-        previewLiftPx: PREVIEW_LIFT_ROWS * (cellPx + gapPx),
       });
 
       const { r, c } = topLeftToCell(topLeft.preview.x, topLeft.preview.y, {
@@ -169,14 +186,27 @@ export function useDrag({
         const positionChanged = dropR.value !== r || dropC.value !== c;
         dropR.value = r;
         dropC.value = c;
+        dropBlocked.value = 0;
         if (positionChanged) {
-          preview.value = previewMask(boardMirror.value, cellsCapture, r, c);
+          previewFlip.value = previewFlip.value === 0 ? 1 : 0;
+          const nextPreview = previewFlip.value === 0 ? previewA.value : previewB.value;
+          preview.value = previewMask(
+            boardMirror.value,
+            cellsCapture,
+            r,
+            c,
+            nextPreview,
+            previewScratch.value,
+          );
           previewColor.value = colorId;
         }
       } else {
         const hadPreview = dropR.value >= 0 || dropC.value >= 0;
         dropR.value = -1;
         dropC.value = -1;
+        // Над доской, но не влезает — «заблокированный» дроп (Reject-хаптика
+        // на отпускании). Вне доски — осознанный возврат в трей, без фидбека.
+        dropBlocked.value = insideBoard(r, c, w, h) ? 1 : 0;
         if (hadPreview) {
           preview.value = EMPTY_MASK;
           previewColor.value = 0;
@@ -185,10 +215,10 @@ export function useDrag({
     })
     .onEnd(() => {
       'worklet';
-      const isOwner = ctx.dragOwner.value === trayIndex;
+      const isOwner = dragOwner.value === trayIndex;
       if (isOwner) {
-        ctx.preview.value = EMPTY_MASK;
-        ctx.previewColor.value = 0;
+        preview.value = EMPTY_MASK;
+        previewColor.value = 0;
       }
 
       const commit = isOwner ? dropCommitFor(trayIndex, dropR.value, dropC.value) : null;
@@ -208,6 +238,9 @@ export function useDrag({
         shadowOpacity.value = 0;
       } else {
         // Невалидно — короткий timing назад в слот без overshoot
+        if (isOwner && dropBlocked.value === 1 && onInvalidDropJS) {
+          runOnJS(onInvalidDropJS)();
+        }
         translateX.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
         translateY.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
         scale.value = withTiming(restingScale, {
@@ -221,19 +254,20 @@ export function useDrag({
       'worklet';
       // Чистим превью и отпускаем владение только если владелец — иначе затрём
       // активную тень другого (ещё перетаскиваемого) пальца.
-      if (ctx.dragOwner.value === trayIndex) {
-        ctx.preview.value = EMPTY_MASK;
-        ctx.previewColor.value = 0;
-        ctx.dragOwner.value = -1;
-        ctx.dragActive.value = 0;
-      } else if (ctx.dragOwner.value < 0) {
-        ctx.dragActive.value = 0;
+      if (dragOwner.value === trayIndex) {
+        preview.value = EMPTY_MASK;
+        previewColor.value = 0;
+        dragOwner.value = -1;
+        dragActive.value = 0;
+      } else if (dragOwner.value < 0) {
+        dragActive.value = 0;
       }
 
       // Если жест был отменён/перехвачен (не был onEnd) — возвращаем в слот
       if (!success) {
         dropR.value = -1;
         dropC.value = -1;
+        dropBlocked.value = 0;
         translateX.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
         translateY.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
         scale.value = withTiming(restingScale, {
@@ -245,6 +279,7 @@ export function useDrag({
         // onEnd уже отработал — только сбрасываем drop-позицию
         dropR.value = -1;
         dropC.value = -1;
+        dropBlocked.value = 0;
       }
     });
 

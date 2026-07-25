@@ -4,7 +4,7 @@ export interface Product {
   price: string;
 }
 
-export type InterstitialPlacement = 'gameover';
+export type InterstitialPlacement = 'gameover' | 'adventure_fail' | 'adventure_level';
 export type RewardedPlacement = 'revive';
 
 export type InterstitialResult = 'shown' | 'skipped' | 'unavailable';

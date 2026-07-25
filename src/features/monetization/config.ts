@@ -18,10 +18,11 @@ export const MONETIZATION = {
       process.env.EXPO_PUBLIC_YANDEX_INTERSTITIAL_AD_UNIT_ID ?? 'demo-interstitial-yandex',
   },
   interstitial: {
-    /** Первый показ на третьем проигрыше */
-    minGamesBeforeFirst: 3,
-    /** Частота определяется проигрышами, без дополнительного таймера */
-    minIntervalSec: 0,
+    /** Первую межстраничку держим до 6-й партии: доход с D0-новичка копеечный,
+     *  а фуллскрин в первой сессии стоит заметной доли D1 (retention > ARPDAU здесь). */
+    minGamesBeforeFirst: 6,
+    /** Плюс страховочный интервал: не чаще одного показа в ~90 секунд. */
+    minIntervalSec: 90,
     /** Затем показ на каждый третий game over */
     everyNGameovers: 3,
   },

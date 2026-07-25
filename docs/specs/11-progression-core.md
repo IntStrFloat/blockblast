@@ -26,38 +26,48 @@ export interface ProgressionConfig {
   worldThemeId: Partial<Record<number, string>>;       // world → id темы (каталог в 12)
 }
 
+// Кривая retention фазы 2, ×3 по решению пользователя 2026-07-09 (base 2500 давал
+// level-up на первом же game over — слишком быстро): уровень 1 ≈ 3–4 медианные
+// партии по ~1000 очков, мир 2 — ~неделя активной игры. Старая кривая
+// (base 14000 / growth 1.16 / tierGaps [5,7,9,11,14,18,22]) была математически
+// невидима: уровень 1 ≈ 14 партий, мир 2 ≈ 100 — почти никто не доживал.
 export const PROGRESSION_CONFIG: ProgressionConfig = {
-  levelCost: { base: 1000, growth: 1.16 },
-  tierGaps: [5, 7, 9, 11, 14, 18, 22],                 // миры на уровнях 1,6,13,22,33,47,65
+  levelCost: { base: 7500, growth: 1.12 },
+  tierGaps: [3, 4, 5, 6, 8, 10],                       // миры на уровнях 1,4,8,13,19,27,37
   maxAuthoredLevel: 64,
   evolutionAtWorld: { 1: 1, 2: 2, 4: 3, 6: 4 },
   worldThemeId: { 1: 'classic', 2: 'neon', 3: 'sunset', 4: 'mono', 5: 'aqua', 6: 'galaxy', 7: 'gold' },
   levelRewards: {
+    // Фронт-лоад: первые уровни почти каждый с наградой; НЕ ставить на старты
+    // миров (4,8,13,19,27,37) — там их шэдоуит world-награда (rewardForLevel).
     1:  { kind: 'cosmetic', id: 'hat-casquette' },
-    // 2 — пусто
+    2:  { kind: 'helper',   id: 'hint' },
     3:  { kind: 'cosmetic', id: 'face-glasses' },
-    4:  { kind: 'cosmetic', id: 'acc-headphones' },
-    5:  { kind: 'helper',   id: 'hint' },
-    // 6 — граница мира 2 (тема + эволюция, выводится)
-    // 7 — пусто
-    8:  { kind: 'cosmetic', id: 'skin-mint' },
-    9:  { kind: 'helper',   id: 'swap' },
-    10: { kind: 'cosmetic', id: 'hat-panama' },
-    // 11 — пусто
-    12: { kind: 'cosmetic', id: 'face-sunglasses' },
-    // 13 — граница мира 3
+    // 4 — граница мира 2 (тема + эволюция, выводится)
+    5:  { kind: 'cosmetic', id: 'acc-headphones' },
+    6:  { kind: 'helper',   id: 'swap' },
+    7:  { kind: 'cosmetic', id: 'skin-mint' },
+    // 8 — граница мира 3
+    9:  { kind: 'cosmetic', id: 'hat-panama' },
+    11: { kind: 'cosmetic', id: 'face-sunglasses' },
+    // 13 — граница мира 4
     14: { kind: 'cosmetic', id: 'acc-scarf' },
-    // 15 — пусто
     16: { kind: 'cosmetic', id: 'skin-coral' },
-    17: { kind: 'cosmetic', id: 'hat-beanie' },
-    // 18 — пусто
-    19: { kind: 'cosmetic', id: 'face-star-eyes' },
-    20: { kind: 'cosmetic', id: 'acc-backpack' },
-    // 21 — пусто
-    // 22 — граница мира 4
+    18: { kind: 'cosmetic', id: 'hat-beanie' },
+    // 19 — граница мира 5
+    21: { kind: 'cosmetic', id: 'face-star-eyes' },
+    24: { kind: 'cosmetic', id: 'acc-backpack' },
+    // 27 — граница мира 6, 37 — мира 7
   },
 };
 ```
+
+Миграция при смене кривой: код не нужен — `level`/`world` пересчитываются из
+`lifetimePoints` при загрузке (`buildInitial`), гардероб доначисляется сверкой
+на маунте (`useProgressionSync` → `cosmeticRewardIdsThroughLevel`), помощники —
+производные (`isHelperUnlocked`). Игрок «подскакивает» на несколько уровней
+тихо, без пачки reveal-оверлеев. События `level_up`/`world_unlocked` трекаются
+в `addPoints`, `streak_lost` — в `markPlayedToday` (когортный анализ).
 
 Косметические `id` совпадают с каталогом `features/mascot` (`cosmetics.ts`) — это **данные-ссылка**, не импорт (мост — координатор §6, направление `mascot → progression` сохраняется). Пустые уровни (нет ключа) намеренны — приз не на каждом уровне (10 §5).
 

@@ -14,14 +14,20 @@ interface SaveV1 {
   rngState: number;
 }
 
+interface SaveV2 extends Omit<SaveV1, 'v'> {
+  v: 2;
+  waveNumber: number;
+}
+
 export function serialize(state: GameState): string {
-  const save: SaveV1 = {
-    v: 1,
+  const save: SaveV2 = {
+    v: 2,
     board: state.board,
     tray: state.tray.map((p) => (p ? { id: p.shape.id, colorId: p.colorId } : null)),
     score: state.score,
     combo: state.combo,
     movesSinceClear: state.movesSinceClear,
+    waveNumber: state.waveNumber,
     status: state.status,
     reviveUsed: state.reviveUsed,
     rngState: state.rngState,
@@ -30,13 +36,13 @@ export function serialize(state: GameState): string {
 }
 
 export function deserialize(raw: string): GameState | null {
-  let save: SaveV1;
+  let save: SaveV1 | SaveV2;
   try {
     save = JSON.parse(raw);
   } catch {
     return null;
   }
-  if (!save || save.v !== 1) return null;
+  if (!save || (save.v !== 1 && save.v !== 2)) return null;
   if (!Array.isArray(save.board) || save.board.length !== BOARD_CELLS) return null;
   if (!save.board.every((v) => typeof v === 'number' && v >= 0)) return null;
   if (!Array.isArray(save.tray) || save.tray.length !== TRAY_SIZE) return null;
@@ -50,6 +56,8 @@ export function deserialize(raw: string): GameState | null {
   ) {
     return null;
   }
+  const waveNumber = save.v === 1 ? 3 : save.waveNumber;
+  if (!Number.isInteger(waveNumber) || waveNumber < 0) return null;
 
   const tray: GameState['tray'] = [];
   for (const t of save.tray) {
@@ -68,6 +76,7 @@ export function deserialize(raw: string): GameState | null {
     score: save.score,
     combo: save.combo,
     movesSinceClear: save.movesSinceClear,
+    waveNumber,
     status: save.status,
     reviveUsed: save.reviveUsed,
     rngState: save.rngState,

@@ -1,5 +1,6 @@
 import type {
   BackendProfileSession,
+  AdventureSeasonWindow,
   RankedTicket,
   RunMove,
   WeeklyImpact,
@@ -58,6 +59,13 @@ export function createRemoteLeaderboardClient(baseUrl: string) {
       return { ...snapshot, source: 'remote', isCached: false };
     },
 
+    async getAdventureSeason(input: { authToken: string }): Promise<AdventureSeasonWindow> {
+      return requestJson<AdventureSeasonWindow>(`${normalizedBaseUrl}/api/adventure/season`, {
+        method: 'GET',
+        authToken: input.authToken,
+      });
+    },
+
     async submitRun(input: {
       authToken: string;
       ticketId: string | null;
@@ -65,6 +73,7 @@ export function createRemoteLeaderboardClient(baseUrl: string) {
       seed: number;
       moves: RunMove[];
       durationMs: number;
+      avatar?: string | null;
     }): Promise<{ snapshot?: WeeklyLeaderboardSnapshot; impact?: WeeklyImpact }> {
       return requestJson<{ snapshot?: WeeklyLeaderboardSnapshot; impact?: WeeklyImpact }>(
         `${normalizedBaseUrl}/api/runs`,
@@ -77,6 +86,7 @@ export function createRemoteLeaderboardClient(baseUrl: string) {
             seed: input.seed,
             moves: input.moves,
             durationMs: input.durationMs,
+            ...(input.avatar ? { avatar: input.avatar } : {}),
           }),
         },
       );

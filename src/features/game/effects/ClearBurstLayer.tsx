@@ -5,8 +5,12 @@
  * mount/unmount в горячем пути. Пул из POOL_SIZE вью монтируется один раз и
  * живёт всё время игры; на каждый клир мы лишь перезапускаем shared values
  * свободных слотов (анимация целиком на UI-потоке). Это убирает «рывок» от
- * массового монтирования Animated.View, который был у старого подхода с
- * `entering={Keyframe}` на каждый фрагмент.
+ * массового монтирования Animated.View на каждый фрагмент, как в старых
+ * покадровых слоях.
+ *
+ * Один слот = один осколок расколотой ячейки: куски тайлят ячейку в кадре
+ * клира (бесшовная подмена блока), затем вспышка-крак, подскок с разлётом
+ * и тяжёлое падение за нижний край доски.
  */
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { View } from 'react-native';
@@ -19,20 +23,22 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import type { ClearBurstCell, ClearPresentationInstance } from '../animation/clearPresentation';
+import type { ClearBurstShard, ClearPresentationInstance } from '../animation/clearPresentation';
+import { BURST_MOTION } from '../animation/motion';
 
-/** Двух перекрывающихся клиров по 12 ячеек хватает на самый бурный ход. */
-const POOL_SIZE = 24;
+/** Два перекрывающихся клира по shardBudget осколков. */
+const POOL_SIZE = BURST_MOTION.shardBudget * 2;
 
 interface BurstHandle {
-  play: (cell: ClearBurstCell) => void;
+  play: (shard: ClearBurstShard) => void;
 }
 
 /** Одна переиспользуемая частица: все свойства — shared values, ноль re-render. */
 const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref) {
   const x = useSharedValue(0);
   const y = useSharedValue(0);
-  const size = useSharedValue(0);
+  const width = useSharedValue(0);
+  const height = useSharedValue(0);
   const color = useSharedValue('#FFFFFF');
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
@@ -43,36 +49,74 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
   useImperativeHandle(
     ref,
     () => ({
-      play(cell: ClearBurstCell) {
-        // Стартовая поза = сама ячейка (тот же размер/цвет), поэтому «осколок»
-        // визуально подменяет мгновенно очищенную доску без разрыва.
-        x.value = cell.x;
-        y.value = cell.y;
-        size.value = cell.size;
-        color.value = cell.color;
+      play(shard: ClearBurstShard) {
+        // Стартовая поза = кусок самой ячейки (те же размер/цвет), поэтому
+        // осколки визуально подменяют мгновенно очищенную доску без разрыва.
+        x.value = shard.x;
+        y.value = shard.y;
+        width.value = shard.width;
+        height.value = shard.height;
+        color.value = shard.color;
         tx.value = 0;
         ty.value = 0;
         rotate.value = 0;
         scale.value = 1;
-        opacity.value = 0;
+        // Видимость — мгновенная: доска пустеет в этом же кадре, любой фейд-ин
+        // или задержка появления дают «разрез». Задержка ячейки распределяет
+        // только раскол, разлёт и затухание.
+        opacity.value = 1;
 
-        opacity.value = withDelay(
-          cell.delay,
+        const jumpMs = BURST_MOTION.jumpDurationMs;
+        const fallMs = shard.fallDuration;
+
+        // Вспышка-крак в момент раскола: цвет вспыхивает светлым и гаснет.
+        if (shard.flashColor !== shard.color) {
+          color.value = withDelay(
+            shard.delay,
+            withSequence(
+              withTiming(shard.flashColor, { duration: BURST_MOTION.crackFlashInMs }),
+              withTiming(shard.color, { duration: BURST_MOTION.crackFlashOutMs }),
+            ),
+          );
+        }
+
+        // Подскок от удара (ease-out) → тяжёлое ускоряющееся падение за
+        // нижний край доски (ease-in). Вращение добирает амплитуду весь полёт.
+        ty.value = withDelay(
+          shard.delay,
           withSequence(
-            withTiming(1, { duration: 60 }),
-            withDelay(90, withTiming(0, { duration: 210, easing: Easing.in(Easing.quad) })),
+            withTiming(shard.jumpY, { duration: jumpMs, easing: Easing.out(Easing.quad) }),
+            withTiming(shard.dy, { duration: fallMs, easing: Easing.in(Easing.quad) }),
           ),
+        );
+        tx.value = withDelay(
+          shard.delay,
+          withSequence(
+            withTiming(shard.driftX, { duration: jumpMs, easing: Easing.out(Easing.quad) }),
+            withTiming(shard.dx, { duration: fallMs, easing: Easing.out(Easing.quad) }),
+          ),
+        );
+        rotate.value = withDelay(
+          shard.delay,
+          withTiming(shard.rotate, { duration: jumpMs + fallMs, easing: Easing.out(Easing.quad) }),
         );
         scale.value = withDelay(
-          cell.delay,
+          shard.delay,
           withSequence(
-            withTiming(1.12, { duration: 90, easing: Easing.out(Easing.quad) }),
-            withTiming(0.18, { duration: 240, easing: Easing.in(Easing.cubic) }),
+            withTiming(BURST_MOTION.popScale, {
+              duration: BURST_MOTION.popDurationMs,
+              easing: Easing.out(Easing.quad),
+            }),
+            withTiming(BURST_MOTION.fallScale, {
+              duration: jumpMs + fallMs - BURST_MOTION.popDurationMs,
+            }),
           ),
         );
-        tx.value = withDelay(cell.delay, withTiming(cell.dx, { duration: 330, easing: Easing.out(Easing.quad) }));
-        ty.value = withDelay(cell.delay, withTiming(cell.dy, { duration: 330, easing: Easing.out(Easing.quad) }));
-        rotate.value = withDelay(cell.delay, withTiming(cell.rotate, { duration: 330, easing: Easing.out(Easing.quad) }));
+        // Затухание — только у нижней границы, чтобы осколки не ложились на трей.
+        opacity.value = withDelay(
+          shard.delay + jumpMs + fallMs - BURST_MOTION.fadeDurationMs,
+          withTiming(0, { duration: BURST_MOTION.fadeDurationMs, easing: Easing.in(Easing.quad) }),
+        );
       },
     }),
     // shared values стабильны на весь жизненный цикл — пустой deps корректен.
@@ -84,9 +128,10 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
     position: 'absolute',
     left: x.value,
     top: y.value,
-    width: size.value,
-    height: size.value,
-    borderRadius: Math.max(2, size.value * 0.22),
+    width: width.value,
+    height: height.value,
+    // Сколотые края: радиус заметно меньше, чем у целого блока.
+    borderRadius: Math.max(1.5, Math.min(width.value, height.value) * 0.16),
     backgroundColor: color.value,
     opacity: opacity.value,
     transform: [
@@ -120,10 +165,10 @@ export function ClearBurstLayer({ presentations }: ClearBurstLayerProps) {
     for (const { id, presentation } of presentations) {
       if (fired.current.has(id)) continue;
       fired.current.add(id);
-      for (const cell of presentation.cells) {
+      for (const shard of presentation.shards) {
         const slot = slots.current[cursor.current % POOL_SIZE];
         cursor.current += 1;
-        slot?.play(cell);
+        slot?.play(shard);
       }
     }
   }, [presentations]);

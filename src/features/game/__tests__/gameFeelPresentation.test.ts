@@ -165,11 +165,11 @@ describe('comboFrameFor', () => {
 
 describe('game-feel budgets', () => {
   it('centralizes hard caps used by the presentation helpers', () => {
-    expect(GAME_FEEL_MOTION.placementParticleMax).toBe(12);
-    expect(GAME_FEEL_MOTION.placementQueueCap).toBe(3);
-    expect(GAME_FEEL_MOTION.recordConfettiMax).toBe(18);
-    expect(GAME_FEEL_MOTION.oneLineExternalEffectTargetCap).toBe(64);
-    expect(GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap).toBe(128);
+    expect(GAME_FEEL_MOTION.placementParticleMax).toBe(8);
+    expect(GAME_FEEL_MOTION.placementQueueCap).toBe(2);
+    expect(GAME_FEEL_MOTION.recordConfettiMax).toBe(14);
+    expect(GAME_FEEL_MOTION.oneLineExternalEffectTargetCap).toBe(48);
+    expect(GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap).toBe(96);
     expect(GAME_FEEL_MOTION.scoreScaleMax).toBe(1.25);
   });
 
@@ -326,8 +326,8 @@ describe('game-feel budgets', () => {
       },
     ] satisfies PlacementEffectInstance[];
 
-    expect(budgetPlacementEffects(128, placementEffects)).toEqual([]);
-    expect(budgetPlacementEffects(64, placementEffects).map(({ id }) => id)).toEqual(['middle', 'newest']);
+    expect(budgetPlacementEffects(96, placementEffects)).toEqual([]);
+    expect(budgetPlacementEffects(48, placementEffects).map(({ id }) => id)).toEqual(['middle', 'newest']);
 
     const noClearBudgeted = budgetPlacementEffects(0, placementEffects);
     const totalPlacementNodes = noClearBudgeted.reduce(
@@ -335,7 +335,7 @@ describe('game-feel budgets', () => {
       0,
     );
 
-    expect(noClearBudgeted).toHaveLength(3);
+    expect(noClearBudgeted).toHaveLength(GAME_FEEL_MOTION.placementQueueCap);
     expect(totalPlacementNodes).toBeLessThanOrEqual(GAME_FEEL_MOTION.crossMultiLineExternalEffectHardCap);
   });
 });

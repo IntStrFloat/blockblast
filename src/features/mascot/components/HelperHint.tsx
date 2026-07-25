@@ -7,7 +7,7 @@ import { EMPTY_MASK, previewMask, useDragCtx, useGameStore } from '@/features/ga
 import { useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
 import { todayISO } from '@/features/streak';
-import { AppText, colors, radii } from '@/ui';
+import { AppText, colors, mascotPalette, radii } from '@/ui';
 
 import { MASCOT_CONFIG } from '../logic/config';
 import { findHintMove, isStuckish } from '../logic/helpers';
@@ -92,7 +92,7 @@ export function HelperHint({ onEmote, reduceMotion }: HelperHintProps) {
         accessibilityLabel={t('mascot.hint', lang)}
       >
         <View style={styles.pill}>
-          <AppText preset="button" style={styles.label}>
+          <AppText preset="speech" style={styles.label}>
             {`🐾 ${t('mascot.hint', lang)}`}
           </AppText>
         </View>
@@ -109,12 +109,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: radii.button,
-    backgroundColor: colors.surface,
+    // Акцент Капи (блок-жёлтый) — чип читается как «Капи помогает», не безличный бейдж.
+    backgroundColor: mascotPalette.block,
+    shadowColor: colors.clayShadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.28,
+    shadowRadius: 3,
+    elevation: 3,
   },
   label: {
-    fontSize: 11,
+    fontFamily: 'Fredoka_600SemiBold',
+    fontSize: 13,
+    // Тёмные чернила на жёлтом — высокий контраст и читаемость (≥4.5:1).
+    color: mascotPalette.ink,
   },
 });

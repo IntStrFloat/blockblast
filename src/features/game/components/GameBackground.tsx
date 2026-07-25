@@ -1,8 +1,16 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
-import Animated, { FadeIn, FadeOut, Keyframe } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  Keyframe,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
+import { recordProgressFor, recordSceneIntensityFor } from "../animation/recordProgression";
 import { useReducedMotion } from "../animation/useReducedMotion";
 import { useGameStore } from "../store";
 
@@ -37,6 +45,7 @@ interface GameBackgroundProps {
   glowColors: readonly string[];
   /** Акцент темы (похвалы) — цвет ореола и комбо-пульса. */
   haloColor: string;
+  tutorial?: boolean;
 }
 
 function buildPulseIn(reducedMotion: boolean) {
@@ -66,10 +75,25 @@ export function GameBackground({
   bgBottom,
   glowColors,
   haloColor,
+  tutorial = false,
 }: GameBackgroundProps) {
   const { width, height } = useWindowDimensions();
   const lastEvent = useGameStore((state) => state.lastEvent);
+  const score = useGameStore((state) => state.game.score);
+  const runBestAtStart = useGameStore((state) => state.runBestAtStart);
   const reducedMotion = useReducedMotion();
+  const recordProgress = recordProgressFor(score, runBestAtStart);
+  const recordIntensity = recordSceneIntensityFor(recordProgress.stage);
+  const recordHalo = useSharedValue(0);
+  useEffect(() => {
+    recordHalo.value = withTiming(recordIntensity, {
+      duration: reducedMotion ? 180 : 520,
+    });
+  }, [recordHalo, recordIntensity, reducedMotion]);
+  const recordHaloStyle = useAnimatedStyle(() => ({
+    opacity: 0.85 + recordHalo.value * 0.12,
+    transform: [{ scale: 1 + recordHalo.value * 0.012 }],
+  }));
 
   // Палитра свечений выводится из активной темы мира: каждый мир — свой сеттинг
   // (фон + атмосфера), а не хардкод. Структура слоёв и прозрачности сохранены.
@@ -138,6 +162,14 @@ export function GameBackground({
   const pulseIn = buildPulseIn(reducedMotion);
   const pulseOut = buildPulseOut(reducedMotion);
 
+  if (tutorial) {
+    return (
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#40588F' }]} />
+      </View>
+    );
+  }
+
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <View
@@ -195,10 +227,7 @@ export function GameBackground({
         ]}
       />
 
-      <LinearGradient
-        colors={[palette.halo, palette.haloFade]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
+      <Animated.View
         style={[
           styles.glow,
           {
@@ -207,10 +236,17 @@ export function GameBackground({
             width: haloWidth,
             height: haloHeight,
             borderRadius: haloWidth,
-            opacity: 0.85,
           },
+          recordHaloStyle,
         ]}
-      />
+      >
+        <LinearGradient
+          colors={[palette.halo, palette.haloFade]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
 
       <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.vignette }]} />
 

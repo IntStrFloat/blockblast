@@ -2,11 +2,12 @@ import { create } from 'zustand';
 
 import { seedFromTime } from '@/core/engine';
 import { KEYS, getJSON, setJSON } from '@/core/storage';
-import { useProgression } from '@/features/progression';
+import { stageForLevel, useProgression } from '@/features/progression';
 import { todayISO } from '@/features/streak';
 
 import { COSMETICS } from './logic/cosmetics';
 import { canUseHelper } from './logic/rules';
+import { serializeShowcase } from './logic/showcase';
 import type { HelperId, MascotState, Slot } from './logic/types';
 
 // ---------------------------------------------------------------------------
@@ -181,3 +182,13 @@ export const useMascot = create<MascotStore>((set, get) => ({
     persist(next);
   },
 }));
+
+/**
+ * Текущий витринный образ игрока (retention фаза 3): стадия — из Уровня Игры
+ * (спека 15), экипировка — из гардероба. Отправляется с сабмитом рекорда.
+ */
+export function getShowcaseAvatar(): string {
+  const level = useProgression.getState().level;
+  const equipped = useMascot.getState().equipped;
+  return serializeShowcase(stageForLevel(level), equipped);
+}

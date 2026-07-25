@@ -23,6 +23,20 @@ export const colors = {
   success: '#3DDC84',
 } as const;
 
+/** Семантические роли luminous-clay системы. Экраны должны выбирать роль,
+ * а не повторять raw-цвета: так активная цель, награда и риск остаются
+ * различимыми во всех режимах. */
+export const semanticColors = {
+  background: { base: colors.bgBottom, elevated: colors.bgTop, game: colors.boardBg },
+  surface: { low: colors.surface, default: colors.cardSolid, high: colors.cardRaised, reward: '#4A3B1A' },
+  text: { primary: colors.textPrimary, secondary: colors.textDim, inverse: '#10203F', reward: '#FFE08A' },
+  action: { primary: colors.accent, secondary: colors.cardRaised, danger: colors.danger },
+  state: { success: colors.success, warning: colors.accent, error: colors.danger, info: '#7EE7FF' },
+  mode: { classic: '#4B7BFF', daily: '#FFD23F', adventure: '#B36BFF', league: '#36D7B7' },
+  motion: { fast: 140, base: 220, celebration: 380 },
+  elevation: { none: 0, low: 3, medium: 6, high: 10 },
+} as const;
+
 export interface BlockTheme {
   id: string;
   /** i18n-ключ названия */
@@ -85,6 +99,10 @@ export const mascotPalette = {
   blush: '#F28CA8',
   ink: '#2A1E2B',
   eyeSpark: '#FFFFFF',
+  // Пузырь речи Капи: тёплая кремовая подложка + чернила (ink) дают контраст ≥4.5:1.
+  speechBg: '#FFF7EE',
+  speechBorder: '#F4D7B0',
+  speechInk: '#2A1E2B',
   block: '#FFD23F',
   crown1: '#FF9F1C',
   crown2: '#3DDC84',
@@ -112,12 +130,12 @@ export const mascotPalette = {
 } as const;
 
 /** Геометрия доски от ширины экрана (спека 04). */
-export function getBoardMetrics(screenWidth: number): {
+export function getBoardMetrics(screenWidth: number, maxBoardSize = Number.POSITIVE_INFINITY): {
   boardSize: number;
   cellSize: number;
   cellGap: number;
 } {
-  const boardSize = screenWidth - spacing.m * 2;
+  const boardSize = Math.min(screenWidth - spacing.m * 2, maxBoardSize);
   const cellGap = 2;
   const cellSize = (boardSize - cellGap * 7) / 8;
   return { boardSize, cellSize, cellGap };

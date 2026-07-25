@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { KEYS, getJSON, setJSON } from '@/core/storage';
+import { useAnalyticsStore } from '@/features/analytics';
 
 import { bumpStreakWithProtector, isStreakAlive, todayISO } from './logic';
 import type { StreakState } from './logic';
@@ -20,7 +21,12 @@ export const useStreak = create<StreakStore>((set, get) => ({
   protectorLastUsedDay: saved?.protectorLastUsedDay ?? null,
   markPlayedToday: () => {
     const { lastDay, count, protectorLastUsedDay } = get();
-    const next = bumpStreakWithProtector({ lastDay, count, protectorLastUsedDay }, todayISO());
+    const today = todayISO();
+    const next = bumpStreakWithProtector({ lastDay, count, protectorLastUsedDay }, today);
+    // Сброс цепочки (не первый день и не продление) — событие для когорт (retention фаза 2).
+    if (count > 1 && next.count === 1 && lastDay !== today) {
+      useAnalyticsStore.getState().track('streak_lost', { count });
+    }
     set(next);
     setJSON(KEYS.streak, next);
   },

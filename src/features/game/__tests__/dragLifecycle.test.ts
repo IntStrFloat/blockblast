@@ -42,13 +42,14 @@ describe('drag safety-net source contract', () => {
   it('clears a stale preview and claims drag ownership on start (anti stuck-ghost)', () => {
     const startBody = dragSource.match(/\.onStart\(\(\) => \{([\s\S]*?)\r?\n    \}\)\r?\n    \.onUpdate/)?.[1];
     expect(startBody).toBeDefined();
-    expect(startBody).toContain('ctx.preview.value = EMPTY_MASK');
-    expect(startBody).toContain('ctx.dragOwner.value = trayIndex');
+    expect(startBody).toContain('preview.value = EMPTY_MASK');
+    expect(startBody).toContain('dragOwner.value = trayIndex');
   });
 
   it('lets only the drag owner write the preview (serialises multitouch)', () => {
-    expect(dragSource).toContain('if (ctx.dragOwner.value !== trayIndex) return;');
-    expect(dragSource).toContain('ctx.dragOwner.value = -1;');
+    expect(dragSource).toContain('if (dragOwner.value !== trayIndex) return;');
+    expect(dragSource).toContain('dragOwner.value = -1;');
+    expect(dragSource).not.toContain('if (ctx.dragOwner.value !== trayIndex) return;');
   });
 
   it('restores the hidden tray piece when the engine rejects the drop', () => {

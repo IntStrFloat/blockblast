@@ -56,8 +56,8 @@ colors: {
 | Возврат в слот | короткий timing без overshoot | 100–130мс |
 | Появление фигур в трее | scale 0.90→1.0 + лёгкий fade, без spring | 110мс |
 | Размещение | ячейки фигуры: scale 1.15→1.0 | 120мс |
-| Очистка линий | белый sweep линии, pop 1.18, rotate + collapse, стаггер 10мс от точки размещения | 310мс + стаггер |
-| Частицы | до 36 мелких фрагментов цвета ячейки, по 3 на sampled source, разлёт с гравитацией | 520мс |
+| Очистка линий | раскол ячеек на 4/2/1 осколков: вспышка-крак, подскок и тяжёлое падение за доску, волна 10мс/клетку от точки размещения (см. «Spectacle clear choreography») | ~140мс подскок + 300–430мс падение + волна |
+| Частицы | крошка-акцент ≤8 кусочков цвета ячейки той же волной + частицы размещения | 340–500мс |
 | Похвала | баннер: scale 0.6→1 overshoot + fade out вверх | 700мс |
 | Screen shake | translate доски ±3px, 2 цикла — только при 2+ линиях | 180мс |
 | Новый рекорд | конфетти 24 частицы + counter roll | 1.2с |
@@ -101,19 +101,62 @@ colors: {
 
 Короткие синтезированные сэмплы (генерируются `scripts/gen-sounds.js` в WAV, см. репо): pickup (короткий клик), drop (мягкий тук), clear1/clear2/clear3 (нарастающие мажорные арпеджио — питч растёт с комбо), gameover (нисходящий), record (фанфара-арпеджио). Маскот «Капи» (09): feed (мягкий «ам»), levelup (короткая фанфара), lost (нисходящий блип). Все ≤400мс, ≤50КБ. Предзагрузка при входе в игру, polyphony — переиспользуемые плееры. Звук маскота гейтится настройкой и не играет на drag-пути.
 
-## Spectacle clear choreography (2026-06-13)
+## Spectacle clear choreography (2026-07-03, «тяжёлая гравитация», единая система)
 
-- Every completed row or column is rendered from exactly eight cell-derived contour segments.
-- Row/column intersections are deduplicated and receive one white chromatic flare.
-- Cleared blocks split into four clipped quadrants that preserve the original block face.
-- Debris is deterministic, square, axis-biased, and capped at 56 fragments plus six sparks.
-- The phase order is line lock (35-165 ms), flare (90-205 ms), crush (145-335 ms),
-  debris (175-475 ms), and praise (255-820 ms).
-- Shake severity scales from a one-line nudge to 5 px plus 1.015 scale for four lines/full clear.
-- Praise uses layered extrusion, bloom, a combo chip, and a score burst. Long labels remain on
-  one line and shrink within a 3.5% board inset.
-- Reduced motion disables shake and fragment travel, limits debris to 12, and keeps a short
-  readable contour/praise pulse.
+- Единственная система разрушения — осколки `ClearBurstLayer` + крошка `ClearDebrisLayer`.
+  Легаси-слои (радужная подсветка линий, контуры сегментов, вспышки пересечений, искры)
+  удалены: они играли поверх пустых ячеек после разлёта осколков и читались как вторая,
+  «скриптованная» анимация.
+- Раскол: каждая очищенная ячейка колется на 4 / 2 / 1 кусков, тайлящих её без зазора,
+  видимых с полной непрозрачностью в позе ячейки в том же коммите, где пустеет доска
+  (контракт бесшовности). Бюджет — `BURST_MOTION.shardBudget` (40) осколков на клир;
+  ближние к месту хода ячейки колются сильнее (4 куска в эпицентре).
+- Момент раскола (волна `clearCellDelay` от точки хода + джиттер ≤26 мс на кусок):
+  вспышка-крак (цвет блока осветляется на ~72% и гаснет за ~210 мс), pop 1.1, куски
+  расходятся от центра ячейки (~0.16 клетки), подскок вверх (ease-out, ~140 мс, высота
+  ×intensity) и тяжёлое падение за нижний край доски (ease-in, 300–430 мс) с кувырком
+  (мелкие куски крутятся быстрее, ×1.45); затухание только у нижней границы.
+  Config: `BURST_MOTION` in `features/game/animation/motion.ts`.
+- Intensity scales with cleared lines (1 → 1.0, 2 → 1.25, 3 → 1.5, 4+/full clear → 1.8):
+  jump height, horizontal spread, rotation amplitude.
+- Debris is a light accent: one deterministic chip per two cleared cells, capped at 8,
+  fired on the same crack wave as the shards (no global 175 ms timer).
+- Пулы фиксированные и монтируются один раз как сиблинги доски (без mount/unmount в
+  горячем пути): 80 осколков + 16 крошек; два перекрывающихся клира ≤96 узлов (спека 07).
+- Shake бьёт в момент крака (`BURST_MOTION.impactShakeDelayMs`, 60 мс); severity scales
+  from a one-line nudge to 5 px plus 1.015 scale for four lines/full clear.
+- Praise/combo — глянцевый леттеринг как в оригинале, без плашек-«пилюль»: три слоя
+  одного текста (тёмная экструзия #0E1830, цветная заливка по тиру good/great/amazing/
+  unbelievable, светлый блик по верхней половине буквы) + score burst. Комбо — вторая
+  крупная строка «Комбо ×N» в тёплом золоте; за ней лучевой всплеск (12 лучей SVG,
+  скейл+доворот). Слэм-вход: scale 0.4→1.12→1 с коротким дожимом. HUD-бейдж комбо —
+  огонь + золотой леттеринг без фона. Long labels remain on one line and shrink
+  (adjustsFontSizeToFit, все слои с одинаковыми ограничениями).
+- Reduced motion disables shake, crack flash and shard travel (whole-cell short in-place
+  fade), keeps debris capped and motionless, and keeps a short readable praise pulse.
 - Web roots (`html`, `body`, `#root`, navigation content) are always dark before hydration.
 - Player-facing leaderboard states use only saved/offline language; current remote data has no
   technical "live backend" badge.
+
+## Атмосфера партии «Разогрев» (2026-07-02)
+
+Сцена эволюционирует по ходу одной партии: счёт двигает атмосферу через 4 фазы
+(конфиг `features/game/animation/atmosphere.ts`, все числа там):
+
+| Фаза | Порог очков | Имя (classic ru) | Что добавляется |
+|---|---|---|---|
+| 0 | 0 | — | базовая сцена темы мира |
+| 1 | 500 | «Разогрев!» | слабая аура-обводка доски, 6 эмбиент-искр, аврора фона 0.22 |
+| 2 | 1500 | «Ты в потоке!» | аура ярче + «дыхание» рамки, 10 искр, аврора 0.38 |
+| 3 | 3000 | «Шторм очков!» | полная аура, 14 искр, аврора 0.52 |
+
+- Все цвета — из активной темы мира (`juiceColors`/`praiseAccent`, спека 12): каждый мир
+  раскаляется в своём сеттинге, хардкода нет.
+- Слои: `AtmosphereLayer` (аврора + фикс-пул искр, монтируется один раз),
+  `BoardAuraFrame` (сигнатурная обводка доски + вспышка-свип на фазапе),
+  `AtmosphereToast` (имя фазы в тоне игрока, ru/en × classic/meme, `atmosphereText`).
+- Перф (07): только transform/opacity; лупы искр/дыхания — на UI-потоке; JS участвует
+  лишь в смене фазы (не чаще раза в ход). Reduce-motion: искры скрыты, рамка статичная,
+  без свипа. На резюме сохранённой партии фаза применяется без тоста и свипа.
+- Похвалы при разрушении: по 3 варианта на тир в обоих тонах (`praiseVariants`),
+  выбор случайный — тексты не приедаются.

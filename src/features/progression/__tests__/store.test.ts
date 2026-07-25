@@ -1,3 +1,5 @@
+import { useAnalyticsStore } from '@/features/analytics';
+
 import { useProgression, resolveLifetimePoints } from '../store';
 import { thresholdForLevel } from '../logic/levels';
 
@@ -10,6 +12,7 @@ function reset() {
     activeTheme: 'classic',
     claimedRewards: [],
   });
+  useAnalyticsStore.setState({ queue: [], optOut: false });
 }
 
 describe('useProgression.addPoints', () => {
@@ -40,6 +43,24 @@ describe('useProgression.addPoints', () => {
   it('отрицательное прибавление клампится к 0', () => {
     useProgression.getState().addPoints(-50);
     expect(useProgression.getState().lifetimePoints).toBe(0);
+  });
+
+  it('рост уровня трекает level_up, вход в мир — world_unlocked', () => {
+    useProgression.getState().addPoints(thresholdForLevel(4));
+    const names = useAnalyticsStore.getState().queue.map((e) => e.name);
+    expect(names).toContain('level_up');
+    expect(names).toContain('world_unlocked');
+    expect(useAnalyticsStore.getState().queue).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'level_up', properties: { level: 4, world: 2 } }),
+        expect.objectContaining({ name: 'world_unlocked', properties: { world: 2 } }),
+      ]),
+    );
+  });
+
+  it('без смены уровня события не трекаются', () => {
+    useProgression.getState().addPoints(10);
+    expect(useAnalyticsStore.getState().queue).toEqual([]);
   });
 });
 

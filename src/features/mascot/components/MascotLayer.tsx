@@ -15,18 +15,15 @@ import Animated, {
 
 import { getBoardMetrics } from '@/ui';
 import { mascotLost } from '@/core/i18n';
-import { useDailyBonus } from '@/features/dailybonus';
 import { stageForLevel, useProgression } from '@/features/progression';
 import { useLang, useSettings } from '@/features/settings';
 import { useGameStore } from '@/features/game';
-import { todayISO } from '@/features/streak';
 
 import { useMascotBrain } from '../hooks/useMascotBrain';
 import { useMascotFeedback } from '../hooks/useMascotFeedback';
 import type { EmoteId } from '../logic/types';
 import { useMascot } from '../store';
 import { Emote } from './Emote';
-import { FeedPrompt } from './FeedPrompt';
 import { HelperHint } from './HelperHint';
 import { HelperSwap } from './HelperSwap';
 import { LevelUpReveal } from './LevelUpReveal';
@@ -79,10 +76,6 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   // Потерян ли маскот (Task 15b устанавливает, здесь только читаем).
   const lost = useMascot((s) => s.lost);
 
-  // Кормление Капи = забор дейли (одна выдача в день, спека 14 §7): доступно, если не забрано.
-  const lastClaimDay = useDailyBonus((s) => s.lastClaimDay);
-  const canFeedNow = lastClaimDay !== todayISO();
-
   // Reduce-motion: читаем системную настройку и подписываемся на смену.
   const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
@@ -128,18 +121,7 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   useMascotBrain({ motion, stage, reduceMotion, areaWidth, dragActive: brainPaused, onEmote: showEmote });
 
   // Звук + хаптика моментов Капи (кормление/потеря/тап), гейтятся настройками.
-  const { onFeed, onLost, onTap } = useMascotFeedback();
-
-  // Кормление: дверь над Капи к тому же дейли-забору, что и карточка на Home (спека 14 §7).
-  // Вызывается из JS (Pressable onPress) — shared values устанавливаем напрямую.
-  const handleFeed = useCallback(() => {
-    useDailyBonus.getState().claim();
-    onFeed();
-    // Пульс «съедает угощение»
-    motion.scaleX.value = withSequence(withTiming(1.12, { duration: 120 }), withSpring(1));
-    motion.scaleY.value = withSequence(withTiming(1.12, { duration: 120 }), withSpring(1));
-    showEmote('heart');
-  }, [motion, showEmote, onFeed]);
+  const { onLost, onTap } = useMascotFeedback();
 
   // Таймеры падения/реплики — чистим на размонтировании (без чтения ref в рендере).
   const dropTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -298,12 +280,6 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
             чтобы тень и эмоция двигались вместе с Капи. */}
         {!lost && (
           <Animated.View style={[styles.mascotSlot, trackStyle]} pointerEvents="box-none">
-            {/* Угощение: кнопка кормления над маскотом (один раз в сутки). */}
-            {canFeedNow && (
-              <View style={styles.feedPrompt} pointerEvents="box-none">
-                <FeedPrompt onPress={handleFeed} />
-              </View>
-            )}
             {/* Мягкая «тень»-овал под маскотом. */}
             <View style={styles.shadow} pointerEvents="none" />
             <GestureDetector gesture={gesture}>
@@ -321,7 +297,7 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
         {/* Реплика «потери»: над центром полосы — видна и после падения/анмаунта. */}
         {lostText ? (
           <View style={styles.lostBubble} pointerEvents="none">
-            <SpeechBubble text={lostText} />
+            <SpeechBubble text={lostText} tail="center" />
           </View>
         ) : null}
 
@@ -378,12 +354,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     left: 0,
-  },
-  feedPrompt: {
-    position: 'absolute',
-    bottom: MASCOT_SIZE,
-    left: 0,
-    zIndex: 3,
   },
   mascotHit: {
     width: MASCOT_SIZE,

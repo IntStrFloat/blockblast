@@ -1,5 +1,5 @@
 export * from './types';
-export { DEFAULT_CONFIG } from './config';
+export { DEFAULT_CONFIG, NOVICE_GAMES, configForExperience } from './config';
 export { SHAPES, SHAPES_BY_ID } from './shapes';
 export { rngNext, rngInt, seedFromTime } from './rng';
 export {
@@ -13,5 +13,23 @@ export {
 } from './board';
 export { scorePlacement, praiseFor } from './scoring';
 export { createGame, place, replaceTrayPiece, revive } from './game';
+export {
+  ADVENTURE_GAME_CONFIG,
+  createAdventureRun,
+  deserializeAdventureRun,
+  isAdventureWon,
+  placeAdventure,
+  remainingJewels,
+  serializeAdventureRun,
+} from './adventure';
+export type {
+  AdventureCellPrefill,
+  AdventureLevelSpec,
+  AdventureObjective,
+  AdventurePlacementEvent,
+  AdventureRun,
+  AdventureRunStatus,
+  AdventureTrayJewel,
+} from './adventure';
 export { engineFingerprint } from './fingerprint';
 export { serialize, deserialize } from './serialize';

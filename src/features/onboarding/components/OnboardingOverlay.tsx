@@ -13,13 +13,14 @@ import Animated, {
 
 import { t } from '@/core/i18n';
 import { MascotFigure } from '@/features/mascot';
+import { useScores } from '@/features/scores';
 import { useLang } from '@/features/settings';
 import { WORLD_THEMES } from '@/features/themes';
 import { AppText, GameButton, colors, mascotPalette, radii, spacing } from '@/ui';
 
 import { useOnboarding } from '../store';
 
-const STEPS = ['level', 'worlds', 'map', 'daily', 'capi'] as const;
+const STEPS = ['level', 'worlds', 'map', 'capi'] as const;
 type StepId = (typeof STEPS)[number];
 
 /**
@@ -29,6 +30,7 @@ type StepId = (typeof STEPS)[number];
  */
 export function OnboardingOverlay() {
   const seen = useOnboarding((s) => s.seen);
+  const gamesPlayed = useScores((s) => s.gamesPlayed);
   const lang = useLang();
   const [step, setStep] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -40,6 +42,9 @@ export function OnboardingOverlay() {
   }, []);
 
   if (seen) return null;
+  // Новичку (0 партий) мета-онбординг не показываем — первый запуск ведёт прямо в
+  // игру. Появится на Home после первой партии, когда системам есть контекст.
+  if (gamesPlayed < 1) return null;
 
   const id = STEPS[step];
   const isLast = step === STEPS.length - 1;
@@ -108,8 +113,6 @@ function StepArt({ id, reduceMotion }: { id: StepId; reduceMotion: boolean }) {
       return <WorldsArt />;
     case 'map':
       return <MapArt />;
-    case 'daily':
-      return <DailyArt />;
     case 'capi':
       return <CapiArt reduceMotion={reduceMotion} />;
   }
@@ -192,28 +195,6 @@ function MapArt() {
           </View>
         );
       })}
-    </View>
-  );
-}
-
-// --- Дейли: лесенка стрика + множитель ---
-function DailyArt() {
-  return (
-    <View style={art.dailyWrap}>
-      <View style={art.ladder}>
-        {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-          <Animated.View
-            key={d}
-            entering={FadeInDown.delay(d * 55)}
-            style={[art.rung, { backgroundColor: d <= 5 ? colors.accent : colors.surface }]}
-          />
-        ))}
-      </View>
-      <View style={art.multBadge}>
-        <AppText preset="button" style={{ color: '#1B2A4A' }}>
-          ×2.5
-        </AppText>
-      </View>
     </View>
   );
 }
@@ -374,25 +355,6 @@ const art = StyleSheet.create({
   },
   node: {
     marginHorizontal: 1,
-  },
-  dailyWrap: {
-    alignItems: 'center',
-    gap: spacing.m,
-  },
-  ladder: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  rung: {
-    width: 16,
-    height: 26,
-    borderRadius: 5,
-  },
-  multBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: radii.button,
-    backgroundColor: colors.accent,
   },
   capiWrap: {
     alignItems: 'center',

@@ -83,6 +83,11 @@ export interface LeaderboardEntry {
    * призов; для остальных может приходить с бэкенда (опционально).
    */
   championRank?: number | null;
+  /**
+   * Витринный образ Капи «stage|skin|hat|face|accessory|aura» (retention фаза 3).
+   * Отсутствует у старого сервера/игроков без сабмита — бейдж просто не рисуется.
+   */
+  avatar?: string | null;
 }
 
 export interface WeeklyLeaderboardSnapshot {
@@ -103,6 +108,14 @@ export interface WeeklyImpact {
   rankDelta: number | null;
   improved: boolean;
   queued: boolean;
+}
+
+export interface AdventureSeasonWindow {
+  seasonId: number;
+  serverNowIso: string;
+  windowStartIso: string;
+  windowEndIso: string;
+  durationDays: number;
 }
 
 export interface BackendProfileSession {

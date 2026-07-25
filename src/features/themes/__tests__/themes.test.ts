@@ -20,6 +20,15 @@ describe('каталог тем', () => {
   it('неизвестный id → дефолтная тема (classic)', () => {
     expect(getWorldTheme('nope').id).toBe('classic');
   });
+
+  it('locks the classic backdrop to deep blue', () => {
+    const classic = getWorldTheme('classic');
+
+    expect(classic.bgTop).toBe('#1B4F9E');
+    expect(classic.bgBottom).toBe('#0B407C');
+    expect(classic.cellEmpty).toBe('#245CAD');
+    expect(classic.cellColors[4]).toBe('#5AB8FF');
+  });
 });
 
 describe('выбор темы через progression', () => {

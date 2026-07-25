@@ -109,3 +109,16 @@ ui → ничего, кроме токенов и RN
 - Сторы — unit-тесты ключевых переходов (стрик через полночь, реконсиляция entitlements).
 - UI — без снапшот-простыней; смоук через ручную проверку + типизация.
 - Команды: `npm test`, `npx tsc --noEmit` — обе зелёные перед каждым коммитом.
+
+## Adventure Module (spec 17)
+
+`features/adventure` owns Adventure content, progress, theme, and presentation components. `core/engine/adventure.ts` wraps the base engine with finite-level status, score/jewel objectives, board prefill, jewel collection, and run serialization while keeping the base `GameState.status` contract unchanged.
+
+Persistent keys:
+
+| Key | What | Module |
+|---|---|---|
+| `adventure.state` | Versioned Adventure progress: season, level, daily goal, consecutive clearances, trophies. | features/adventure |
+| `adventure.run` | Versioned active run snapshot: level spec, attempt, base game, jewels, status. | features/game + core/engine |
+
+Dependency direction: `app -> features/adventure -> core/engine, core/storage, ui`; `features/game` stays Adventure-agnostic except for generic overlay props and the optional Adventure branch in `useGameStore`.

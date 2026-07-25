@@ -14,6 +14,12 @@ import { useProgression } from '../store';
  * Монтируется один раз на стабильном экране (Game). Тема мира переключается внутри
  * progression.addPoints; стадия Капи выводится из Уровня Игры при полном декаплинге (15).
  */
+
+// Reveal показываем ПОСЛЕ оверлея Game Over (тот появляется через ~0.8с анимации
+// заливки доски). Иначе полноэкранный «Уровень N» выскакивает в момент терминального
+// хода — раньше Game Over — и читается как «повышение уровня закончило игру»
+// (обратная причинность: это game over начисляет очки, а не level-up обрывает партию).
+const REVEAL_AFTER_GAME_OVER_MS = 1600;
 export function useProgressionSync(): void {
   const awardedRef = useRef(0);
   const epochRef = useRef(useGameStore.getState().epoch);
@@ -43,8 +49,11 @@ export function useProgressionSync(): void {
         if (r.kind === 'cosmetic') useMascot.getState().unlock(r.id);
       }
       // Level-up reveal принадлежит координатору, а не маскоту (спека 15 §4).
+      // Таймер намеренно не отменяется: стор глобальный, потерять reveal хуже,
+      // чем показать его на пару секунд позже (даже поверх новой партии).
       if (res.toLevel > res.fromLevel) {
-        useProgression.getState().setReveal({ level: res.toLevel, rewards: res.rewards });
+        const reveal = { level: res.toLevel, rewards: res.rewards };
+        setTimeout(() => useProgression.getState().setReveal(reveal), REVEAL_AFTER_GAME_OVER_MS);
       }
     });
     return unsub;

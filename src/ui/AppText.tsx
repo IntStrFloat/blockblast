@@ -3,7 +3,7 @@ import type { TextProps, TextStyle } from 'react-native';
 
 import { colors } from './theme';
 
-type Preset = 'title' | 'score' | 'body' | 'caption' | 'button';
+type Preset = 'title' | 'score' | 'body' | 'caption' | 'button' | 'speech';
 
 const presets: Record<Preset, TextStyle> = StyleSheet.create({
   title: {
@@ -27,6 +27,12 @@ const presets: Record<Preset, TextStyle> = StyleSheet.create({
   },
   button: {
     fontFamily: 'Unbounded_700Bold',
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  // Голос Капи: округлый Fredoka, отделяет реплику персонажа от системного UI (спека 09).
+  speech: {
+    fontFamily: 'Fredoka_500Medium',
     fontSize: 15,
     color: colors.textPrimary,
   },

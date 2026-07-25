@@ -27,7 +27,6 @@ interface DragTopLeftInput {
   figureWidth: number;
   figureHeight: number;
   pieceLiftPx: number;
-  previewLiftPx: number;
 }
 
 export function dragTopLefts(input: DragTopLeftInput): {
@@ -48,7 +47,7 @@ export function dragTopLefts(input: DragTopLeftInput): {
     piece,
     preview: {
       x: piece.x,
-      y: piece.y - input.previewLiftPx,
+      y: piece.y,
     },
   };
 }
@@ -65,6 +64,12 @@ export function topLeftToCell(
     r: Math.round((tlY - g.boardY - g.pad) / step),
     c: Math.round((tlX - g.boardX - g.pad) / step),
   };
+}
+
+/** Bbox фигуры целиком в пределах доски 8×8 (без проверки занятости). */
+export function insideBoard(r: number, c: number, w: number, h: number): boolean {
+  'worklet';
+  return r >= 0 && c >= 0 && r + h <= 8 && c + w <= 8;
 }
 
 /** canPlace по зеркалу доски (плоский массив 64). */
@@ -93,11 +98,16 @@ export function previewMask(
   cells: readonly (readonly [number, number])[],
   r: number,
   c: number,
+  out: number[] = new Array<number>(64),
+  scratch: number[] = new Array<number>(64),
 ): number[] {
   'worklet';
-  const mask = new Array<number>(64).fill(0);
-  const tmp = new Array<number>(64);
-  for (let i = 0; i < 64; i++) tmp[i] = board[i];
+  const mask = out;
+  const tmp = scratch;
+  for (let i = 0; i < 64; i++) {
+    mask[i] = 0;
+    tmp[i] = board[i];
+  }
   for (let i = 0; i < cells.length; i++) {
     const idx = (r + cells[i][0]) * 8 + (c + cells[i][1]);
     tmp[idx] = 1;

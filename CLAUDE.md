@@ -26,6 +26,7 @@
 | [docs/specs/14-daily-bonus.md](docs/specs/14-daily-bonus.md) | Дейли-бонус: бонус-очки × множитель стрика, защитник, дроп, карточка+reveal |
 | [docs/specs/15-mascot-decoupling.md](docs/specs/15-mascot-decoupling.md) | Рефактор Капи: убрать свою XP, стадия из Уровня Игры, косметика из progression+daily |
 | [docs/specs/16-push-notifications.md](docs/specs/16-push-notifications.md) | Push-уведомления RuStore: приём, soft-ask, ручные кампании из консоли |
+| [docs/specs/17-adventure-mode.md](docs/specs/17-adventure-mode.md) | Adventure-режим (реверс оригинала): уровни с целью, мозаика-сезон, кубки, дейли-гоал |
 
 План реализации: docs/plans/ (если есть — выполнять по нему).
 

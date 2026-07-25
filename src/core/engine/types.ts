@@ -33,6 +33,8 @@ export interface GameState {
   combo: number;
   /** Размещений подряд без очистки (для comboForgiveness) */
   movesSinceClear: number;
+  /** Number of fully dealt trays already completed in this game. */
+  waveNumber: number;
   status: GameStatus;
   reviveUsed: boolean;
   rngState: number;
@@ -72,8 +74,34 @@ export interface ScoringConfig {
   comboForgiveness: number;
 }
 
+export interface SpawnConfig {
+  /** Trays sampled per deal; the one whose mass is closest to the fullness target wins. */
+  candidates: number;
+  /** Exponent magnitude on a shape's cell count when sampling candidates. The effective
+   *  exponent is `+sizeBias` on an empty board (favours big figures) and `−sizeBias` on a
+   *  full board (favours small), crossing 0 at half-full. */
+  sizeBias: number;
+  /** Target tray mass on an empty board — high, so the early game deals big blocks
+   *  (several 3×3 / 2×2). */
+  emptyTargetMass: number;
+  /** Target tray mass on a full board (and in rescue) — low, so packed boards get small,
+   *  gap-filling pieces. */
+  fullTargetMass: number;
+  /** Board fullness (0..1) at/above which the rescue (small) target is forced. */
+  rescueFullness: number;
+  /** Consecutive no-clear placements that also force the rescue target. */
+  rescueDryStreak: number;
+  /** Hard cap for exhaustive fallback search nodes during tray refill. */
+  fallbackNodeLimit?: number;
+  /** FTUE assist: when set, prefer dealt trays that let the player complete a line
+   *  right now (helps guarantee an early clear in the first games). See docs/specs/03. */
+  preferClearAssist?: boolean;
+}
+
 export interface GameConfig {
   colors: number;
   scoring: ScoringConfig;
   trayPolicy: 'pure' | 'pity';
+  /** Board-fullness-adaptive piece spawning (see docs/specs/03 "Dynamic spawn director"). */
+  spawn: SpawnConfig;
 }

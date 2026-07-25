@@ -11,6 +11,14 @@ export interface BoardGeometry {
 
 export interface DragCtx {
   geom: BoardGeometry;
+  /**
+   * Габарит одного слота трея для resting-scale: ширина и высота (в px). Нужен,
+   * когда трей уже экрана (Adventure: paddingHorizontal + maxWidth) и/или клетка
+   * доски крупная — тогда фигура ужимается под реальный слот и по ширине, и по
+   * высоте. Без него TrayPiece берёт фолбэк (полная ширина экрана / 3, без
+   * ограничения по высоте) — прежнее поведение Endless.
+   */
+  trayFit?: { slotWidth: number; slotHeight: number };
   /** Позиция доски в координатах окна (measureInWindow) */
   boardOrigin: SharedValue<{ x: number; y: number }>;
   /** Актуализирует позицию доски перед началом drag */
@@ -35,6 +43,8 @@ export interface DragCtx {
   boardBg: string;
   /** Цвет пустой ячейки активной темы */
   cellEmpty: string;
+  cellLine?: string;
+  cellRadius?: number;
   /**
    * Дроп на JS-поток; вызывается один раз на отпускание валидной позиции.
    * Возвращает true, если движок реально поставил фигуру (false — отклонено,
@@ -43,6 +53,12 @@ export interface DragCtx {
   onDrop: (trayIndex: number, r: number, c: number) => boolean;
   /** Фидбек захвата фигуры (звук+хаптика) — один runOnJS на начало жеста */
   onGrab?: () => void;
+  /**
+   * Фидбек невалидного дропа (хаптика Reject): фигуру отпустили над доской на
+   * занятой/не влезающей позиции. Отпускание вне доски — осознанный возврат в
+   * трей, фидбек не даём.
+   */
+  onInvalidDrop?: () => void;
 }
 
 const Ctx = createContext<DragCtx | null>(null);

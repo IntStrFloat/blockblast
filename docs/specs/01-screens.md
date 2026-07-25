@@ -12,7 +12,7 @@ Game Over и Pause — **оверлеи внутри игрового экран
 | `/` | Home | Вход, продолжить/новая игра, рекорд, стрик |
 | `/game` | Game | Основной геймплей + оверлеи Pause / GameOver |
 | `/settings` | Settings | Звук, вибро, тема, язык, тон похвал, аналитика, политика |
-| `/leaderboard` | Leaderboard | Недельный рейтинг по лучшему результату игрока |
+| `/leaderboard` | Leaderboard | Недельный рейтинг по лучшему результату игрока; у каждой строки — аватар-бейдж Капи игрока (витрина косметики); баннер «тебя обогнали» при падении места |
 
 ## Home (`/`)
 
@@ -22,6 +22,8 @@ Game Over и Pause — **оверлеи внутри игрового экран
 - **Стрик** (огонёк + число дней) — виден только если стрик ≥ 1. Ненавязчиво: без попапов, без guilt-механик.
 - Иконка настроек (вверху слева), изменяемый никнейм и постоянный tag (вверху справа).
 - Карточка недельного рейтинга: место, лучший результат недели, переход к таблице.
+- **DailyCard — статус дневного цикла** (после первой партии): лесенка стрика, ступень 1 «Выиграй партию → +N ×M» / «✓ забрано», ступень 2 «🎁 Цель дня в Приключении N/5» (тап → /adventure). Кнопки «забрать» нет — бонус выдаётся за игру (спека 14).
+- **AdventureEntryCard** с мини-прогрессом цели дня «Сегодня: N/5» + 🎁.
 - Daily Challenge показывается после трёх завершённых партий, без блокирующего попапа.
 - Фон — общий с игрой (тёмно-синий градиент), никакой рекламы на Home.
 
@@ -48,6 +50,7 @@ Game Over и Pause — **оверлеи внутри игрового экран
 Оверлей **Game Over**:
 - Появляется после короткой паузы (~0.8с) с анимацией заполнения доски серым.
 - Счёт, best (если побит — «Новый рекорд!» + конфетти).
+- **DailyBonusMoment**: если этой партией заработана ступень дейли-бонуса (первая победа дня) — celebration-блок «+N ×M · день K» (спека 14 §8).
 - **Revive** (1 раз за партию): rewarded-видео → очистка всей доски, счёт сохраняется. Если реклама выключена/недоступна — кнопка скрыта.
 - «Сыграть ещё», «Домой».
 - **Поделиться** — карточка результата (см. 06).
@@ -76,3 +79,14 @@ Game Over и Pause — **оверлеи внутри игрового экран
 ## Явно НЕ в v1.1 (отложено)
 
 - Adventure/levels-режим, публичный чат, социальный граф, награды с преимуществом и турниры с призовым фондом.
+
+## Adventure (spec 17)
+
+Adventure mode is implemented as two expo-router screens linked from Home:
+
+| Route | Screen | Purpose |
+|---|---|---|
+| `/adventure` | Adventure hub | Season trophy, mosaic progress, milestone frames, and current `Level N` CTA. |
+| `/adventure-level` | Adventure level | Finite level using the existing board/tray drag stack with score or jewel objectives. |
+
+The full product contract lives in [17-adventure-mode.md](17-adventure-mode.md). The Home screen contains an Adventure entry card (with the Daily Goal mini-progress). The hub shows season progress. The level screen uses the rainforest Adventure skin, objective panel, board/tray jewel overlays, level-up banner, result view with Daily Goal 5, the DailyBonusMoment celebration and Consecutive Clearances, retry on fail, and no revive in v1.

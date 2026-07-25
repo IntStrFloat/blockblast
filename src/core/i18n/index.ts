@@ -4,7 +4,7 @@ import { en } from './en';
 import { ru } from './ru';
 import type { Lang } from './praise';
 
-export { praiseText, fireText } from './praise';
+export { praiseText, praiseVariants, fireText, atmosphereText } from './praise';
 export type { Lang, PraiseTone } from './praise';
 export { mascotLost, mascotIntro } from './mascot';
 

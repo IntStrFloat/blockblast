@@ -131,4 +131,31 @@ describe('leaderboard client adapters', () => {
       }),
     );
   });
+
+  it('loads the server-owned Adventure season window', async () => {
+    process.env.EXPO_PUBLIC_API_URL = 'https://example.com';
+    (globalThis.fetch as unknown as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        seasonId: 2,
+        serverNowIso: '2026-07-20T10:00:00.000Z',
+        windowStartIso: '2026-07-19T21:00:00.000Z',
+        windowEndIso: '2026-08-02T21:00:00.000Z',
+        durationDays: 14,
+      }),
+    });
+
+    const client = createRemoteLeaderboardClient('https://example.com');
+    const window = await client.getAdventureSeason({ authToken: 'token-123' });
+
+    expect(window.seasonId).toBe(2);
+    expect(window.durationDays).toBe(14);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://example.com/api/adventure/season',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({ Authorization: 'Bearer token-123' }),
+      }),
+    );
+  });
 });

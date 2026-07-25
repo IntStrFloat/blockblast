@@ -2,6 +2,15 @@
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
 
+jest.mock('expo-audio', () => ({
+  createAudioPlayer: jest.fn(() => ({
+    play: jest.fn(),
+    release: jest.fn(),
+    seekTo: jest.fn(),
+  })),
+  setAudioModeAsync: jest.fn(() => Promise.resolve()),
+}));
+
 /* react-native-rustore-push (GitFlic 6.x): нативный модуль без node-сборки —
    мок, чтобы импорт rustorePush.native.ts не падал в jest (логику тестируем через Noop). */
 jest.mock('react-native-rustore-push', () => ({
@@ -63,6 +72,19 @@ jest.mock('react-native-mmkv', () => {
 
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageCode: 'ru', languageTag: 'ru-RU' }],
+}));
+
+/* expo-notifications: локальные напоминания (retention фаза 4) — в jest только стабы,
+   планировщик тестируется как чистая функция. */
+jest.mock('expo-notifications', () => ({
+  setNotificationChannelAsync: jest.fn(() => Promise.resolve()),
+  getPermissionsAsync: jest.fn(() => Promise.resolve({ granted: false })),
+  requestPermissionsAsync: jest.fn(() => Promise.resolve({ granted: false })),
+  cancelAllScheduledNotificationsAsync: jest.fn(() => Promise.resolve()),
+  scheduleNotificationAsync: jest.fn(() => Promise.resolve('id')),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  AndroidImportance: { DEFAULT: 3 },
+  SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
 
 /* react-native-svg: лёгкие host-стабы, чтобы UI-импорты (иконки) грузились в jest. */

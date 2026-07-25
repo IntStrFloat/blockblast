@@ -38,6 +38,7 @@ describe('serialize / deserialize', () => {
       score: 321,
       combo: 2,
       movesSinceClear: 1,
+      waveNumber: 3,
       status: 'over',
       reviveUsed: false,
       rngState: 77,
@@ -53,6 +54,7 @@ describe('serialize / deserialize', () => {
       score: 654,
       combo: 4,
       movesSinceClear: 3,
+      waveNumber: 3,
       status: 'over',
       reviveUsed: false,
       rngState: 123,
@@ -62,7 +64,7 @@ describe('serialize / deserialize', () => {
     expectRoundTrip(revived!);
   });
 
-  it('reads an existing v1 payload directly', () => {
+  it('reads an existing v1 payload as a post-opening game', () => {
     const payload = JSON.stringify({
       v: 1,
       board: emptyBoard(),
@@ -81,6 +83,7 @@ describe('serialize / deserialize', () => {
       score: 999,
       combo: 0,
       movesSinceClear: 0,
+      waveNumber: 3,
       status: 'playing',
       reviveUsed: true,
       rngState: 42,

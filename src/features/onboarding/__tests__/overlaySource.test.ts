@@ -6,13 +6,14 @@ const fs = jest.requireActual<{
 
 const read = (relativePath: string) => fs.readFileSync(`${__dirname}/${relativePath}`, 'utf8');
 
-describe('meta onboarding overlay', () => {
+describe('legacy meta onboarding overlay', () => {
   const overlay = read('../components/OnboardingOverlay.tsx');
   const home = read('../../../app/index.tsx');
 
-  it('is mounted on Home', () => {
-    expect(home).toContain('<OnboardingOverlay');
-    expect(home).toContain("from '@/features/onboarding'");
+  it('is not mounted on Home because action FTUE owns first launch', () => {
+    expect(home).not.toContain('<OnboardingOverlay');
+    expect(home).toContain('shouldEnterFtue');
+    expect(home).toContain("entry: 'tutorial'");
   });
 
   it('self-gates on the seen flag and marks it seen on finish', () => {
@@ -21,10 +22,11 @@ describe('meta onboarding overlay', () => {
     expect(overlay).toContain('markSeen()');
   });
 
-  it('onboards into every meta-progression pillar', () => {
-    for (const step of ['level', 'worlds', 'map', 'daily', 'capi']) {
+  it('onboards into the active meta-progression pillars', () => {
+    for (const step of ['level', 'worlds', 'map', 'capi']) {
       expect(overlay).toContain(`'${step}'`);
     }
+    expect(overlay).not.toContain("case 'daily'");
     expect(overlay).toContain('MascotFigure');
     expect(overlay).toContain('WORLD_THEMES');
   });

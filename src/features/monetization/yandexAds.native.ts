@@ -5,10 +5,14 @@ import {
 } from 'yandex-mobile-ads';
 import type { InterstitialAd, RewardedAd } from 'yandex-mobile-ads';
 
+import { useAnalyticsStore } from '@/features/analytics';
+
 import { MONETIZATION } from './config';
 import type {
   AdsProvider,
+  InterstitialPlacement,
   InterstitialResult,
+  RewardedPlacement,
   RewardedResult,
 } from './types';
 
@@ -22,17 +26,51 @@ function reportAdsError(stage: string, error: unknown): void {
   console.warn(`[ads] Yandex ${stage} failed`, error);
 }
 
+function errorMessage(error: unknown): string | undefined {
+  return error instanceof Error ? error.message : undefined;
+}
+
+function trackAdRequested(
+  format: 'interstitial' | 'rewarded',
+  placement: InterstitialPlacement | RewardedPlacement,
+): void {
+  useAnalyticsStore.getState().track('ad_requested', { format, placement });
+}
+
+function trackAdShown(
+  format: 'interstitial' | 'rewarded',
+  placement: InterstitialPlacement | RewardedPlacement,
+): void {
+  useAnalyticsStore.getState().track('ad_shown', { format, placement });
+}
+
+function trackAdFailed(
+  format: 'interstitial' | 'rewarded',
+  placement: InterstitialPlacement | RewardedPlacement,
+  stage: 'load' | 'show' | 'init',
+  error?: unknown,
+): void {
+  useAnalyticsStore.getState().track('ad_failed', {
+    format,
+    placement,
+    stage,
+    message: errorMessage(error),
+  });
+}
+
 async function preloadInterstitial(): Promise<void> {
   if (interstitialAd) return;
   if (!interstitialLoadPromise) {
     interstitialLoadPromise = (async () => {
       try {
+        trackAdRequested('interstitial', 'gameover');
         const loader = await InterstitialAdLoader.create();
         interstitialAd = await loader.loadAd({
           adUnitId: MONETIZATION.yandex.interstitialAdUnitId,
         });
       } catch (error) {
         reportAdsError('interstitial load', error);
+        trackAdFailed('interstitial', 'gameover', 'load', error);
         interstitialAd = null;
       } finally {
         interstitialLoadPromise = null;
@@ -47,12 +85,14 @@ async function preloadRewarded(): Promise<void> {
   if (!rewardedLoadPromise) {
     rewardedLoadPromise = (async () => {
       try {
+        trackAdRequested('rewarded', 'revive');
         const loader = await RewardedAdLoader.create();
         rewardedAd = await loader.loadAd({
           adUnitId: MONETIZATION.yandex.rewardedAdUnitId,
         });
       } catch (error) {
         reportAdsError('rewarded load', error);
+        trackAdFailed('rewarded', 'revive', 'load', error);
         rewardedAd = null;
       } finally {
         rewardedLoadPromise = null;
@@ -66,6 +106,8 @@ async function initialize(): Promise<void> {
   if (!sdkInitPromise) {
     sdkInitPromise = MobileAds.initialize().catch((error: unknown) => {
       reportAdsError('SDK initialization', error);
+      trackAdFailed('interstitial', 'gameover', 'init', error);
+      trackAdFailed('rewarded', 'revive', 'init', error);
       sdkInitPromise = null;
     });
   }
@@ -73,13 +115,15 @@ async function initialize(): Promise<void> {
   await Promise.all([preloadInterstitial(), preloadRewarded()]);
 }
 
-async function showInterstitial(): Promise<InterstitialResult> {
+async function showInterstitial(placement: InterstitialPlacement): Promise<InterstitialResult> {
   const ad = interstitialAd;
   if (!ad) {
+    trackAdFailed('interstitial', placement, 'show');
     void preloadInterstitial();
     return 'unavailable';
   }
   interstitialAd = null;
+  trackAdRequested('interstitial', placement);
 
   return new Promise((resolve) => {
     let settled = false;
@@ -90,25 +134,32 @@ async function showInterstitial(): Promise<InterstitialResult> {
       resolve(result);
     };
 
-    ad.onAdDismissed = () => finish('shown');
+    ad.onAdDismissed = () => {
+      trackAdShown('interstitial', placement);
+      finish('shown');
+    };
     ad.onAdFailedToShow = (error) => {
       reportAdsError('interstitial show', error);
+      trackAdFailed('interstitial', placement, 'show', error);
       finish('unavailable');
     };
     ad.show().catch((error) => {
       reportAdsError('interstitial show', error);
+      trackAdFailed('interstitial', placement, 'show', error);
       finish('unavailable');
     });
   });
 }
 
-async function showRewarded(): Promise<RewardedResult> {
+async function showRewarded(placement: RewardedPlacement): Promise<RewardedResult> {
   const ad = rewardedAd;
   if (!ad) {
+    trackAdFailed('rewarded', placement, 'show');
     void preloadRewarded();
     return 'unavailable';
   }
   rewardedAd = null;
+  trackAdRequested('rewarded', placement);
 
   return new Promise((resolve) => {
     let settled = false;
@@ -123,13 +174,18 @@ async function showRewarded(): Promise<RewardedResult> {
     ad.onRewarded = () => {
       earnedReward = true;
     };
-    ad.onAdDismissed = () => finish(earnedReward ? 'rewarded' : 'dismissed');
+    ad.onAdDismissed = () => {
+      trackAdShown('rewarded', placement);
+      finish(earnedReward ? 'rewarded' : 'dismissed');
+    };
     ad.onAdFailedToShow = (error) => {
       reportAdsError('rewarded show', error);
+      trackAdFailed('rewarded', placement, 'show', error);
       finish('unavailable');
     };
     ad.show().catch((error) => {
       reportAdsError('rewarded show', error);
+      trackAdFailed('rewarded', placement, 'show', error);
       finish('unavailable');
     });
   });

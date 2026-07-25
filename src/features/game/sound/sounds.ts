@@ -13,54 +13,80 @@ export type SoundName =
   | 'levelup'
   | 'lost';
 
-
 const SOURCES: Record<SoundName, number> = {
-  pickup: require('@/assets/sounds/pickup.wav'),
-  drop: require('@/assets/sounds/drop.wav'),
-  clear1: require('@/assets/sounds/clear1.wav'),
-  clear2: require('@/assets/sounds/clear2.wav'),
-  clear3: require('@/assets/sounds/clear3.wav'),
-  gameover: require('@/assets/sounds/gameover.wav'),
-  record: require('@/assets/sounds/record.wav'),
-  feed: require('@/assets/sounds/feed.wav'),
-  levelup: require('@/assets/sounds/levelup.wav'),
-  lost: require('@/assets/sounds/lost.wav'),
+  pickup: require('../../../../assets/sounds/pickup.wav'),
+  drop: require('../../../../assets/sounds/drop.wav'),
+  clear1: require('../../../../assets/sounds/clear1.wav'),
+  clear2: require('../../../../assets/sounds/clear2.wav'),
+  clear3: require('../../../../assets/sounds/clear3.wav'),
+  gameover: require('../../../../assets/sounds/gameover.wav'),
+  record: require('../../../../assets/sounds/record.wav'),
+  feed: require('../../../../assets/sounds/feed.wav'),
+  levelup: require('../../../../assets/sounds/levelup.wav'),
+  lost: require('../../../../assets/sounds/lost.wav'),
 };
- 
 
-let players: Partial<Record<SoundName, AudioPlayer>> | null = null;
+const POOL_SIZE: Record<SoundName, number> = {
+  pickup: 2,
+  drop: 2,
+  clear1: 3,
+  clear2: 3,
+  clear3: 3,
+  gameover: 1,
+  record: 1,
+  feed: 1,
+  levelup: 1,
+  lost: 1,
+};
 
-/** Предзагрузка плееров при входе в игру (спека 07 п.6). Идемпотентно. */
+let players: Partial<Record<SoundName, AudioPlayer[]>> | null = null;
+let cursors: Partial<Record<SoundName, number>> = {};
+
 export function initSounds(): void {
   if (players) return;
   try {
-    // Микс с другим аудио, без записи
     setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }).catch(
       () => {},
     );
     players = {};
     (Object.keys(SOURCES) as SoundName[]).forEach((name) => {
-      players![name] = createAudioPlayer(SOURCES[name]);
+      players![name] = Array.from({ length: POOL_SIZE[name] }, () =>
+        createAudioPlayer(SOURCES[name]),
+      );
     });
   } catch {
-    players = null; // звук недоступен (например, web) — играем молча
+    players = null;
+    cursors = {};
   }
 }
 
 export function playSound(name: SoundName): void {
-  const p = players?.[name];
-  if (!p) return;
+  const pool = players?.[name];
+  if (!pool?.length) return;
+
+  const cursor = cursors[name] ?? 0;
+  const player = pool[cursor % pool.length];
+  cursors[name] = (cursor + 1) % pool.length;
+
   try {
-    p.seekTo(0);
-    p.play();
+    player.seekTo(0);
+    player.play();
   } catch {
-    // звук не критичен
+    // Sound feedback is optional.
   }
 }
 
-/** Питч очистки растёт с комбо (спека 04). */
-export function clearSoundFor(combo: number): SoundName {
-  if (combo >= 3) return 'clear3';
-  if (combo === 2) return 'clear2';
-  return 'clear1';
+export function releaseSounds(): void {
+  if (!players) return;
+  Object.values(players).forEach((pool) => {
+    pool?.forEach((player) => {
+      try {
+        player?.release();
+      } catch {
+        // Sound feedback is optional.
+      }
+    });
+  });
+  players = null;
+  cursors = {};
 }

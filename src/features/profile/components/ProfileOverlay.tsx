@@ -3,6 +3,7 @@ import { Pressable, TextInput, View } from 'react-native';
 
 import { t } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
+import { MascotBadge, getShowcaseAvatar } from '@/features/mascot';
 import { useLang } from '@/features/settings';
 import { AppText, GameButton, Overlay, colors, radii, spacing } from '@/ui';
 
@@ -60,24 +61,26 @@ function ProfileOverlayContent({ onClose }: { onClose: () => void }) {
   const resolvedErrorKey = errorKey(resolvedError);
   const syncState: SyncState =
     syncStatus === 'ready' ? 'ready' : syncStatus === 'syncing' ? 'syncing' : 'offline';
-  const initial = (profile.nickname.trim()[0] ?? '?').toUpperCase();
+  // Витрина достижений (retention фаза 3): в профиле — экипированный Капи,
+  // тот же образ, что видят соперники в лидерборде.
+  const showcase = getShowcaseAvatar();
 
   return (
     <Overlay>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.m }}>
         <View
           style={{
-            width: 52,
-            height: 52,
+            width: 60,
+            height: 60,
             borderRadius: radii.card,
-            backgroundColor: colors.accent,
+            backgroundColor: colors.cardSolid,
+            borderWidth: 1,
+            borderColor: colors.accent,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <AppText preset="title" style={{ fontSize: 24, color: colors.bgBottom }}>
-            {initial}
-          </AppText>
+          <MascotBadge avatar={showcase} size={46} />
         </View>
         <View style={{ flex: 1 }}>
           <AppText preset="title" style={{ fontSize: 20 }} numberOfLines={1}>

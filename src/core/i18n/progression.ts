@@ -6,6 +6,7 @@ import type { Lang } from './praise';
  */
 const STRINGS: Record<Lang, Record<string, string>> = {
   ru: {
+    levels: 'Уровни',
     mapTitle: 'Карта достижений',
     level: 'Уровень',
     lvlShort: 'ур.',
@@ -19,6 +20,7 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     approaching: 'приближается новый мир',
   },
   en: {
+    levels: 'Levels',
     mapTitle: 'Achievements map',
     level: 'Level',
     lvlShort: 'lvl',

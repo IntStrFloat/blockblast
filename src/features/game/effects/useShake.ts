@@ -10,7 +10,7 @@ import {
 
 import type { ShakePresentation } from '../animation/clearPresentation';
 import type { ComboFramePresentation } from '../animation/gameFeelPresentation';
-import { SPECTACLE_MOTION } from '../animation/motion';
+import { BURST_MOTION } from '../animation/motion';
 
 interface ShakeSources {
   clear: ShakePresentation | null;
@@ -68,7 +68,7 @@ export function useShake() {
 
       const beat = Math.max(18, Math.round(presentation.durationMs / 6));
       shakeX.value = withDelay(
-        SPECTACLE_MOTION.debrisStartMs,
+        BURST_MOTION.impactShakeDelayMs,
         withSequence(
           withTiming(-presentation.amplitude, { duration: beat }),
           withTiming(presentation.amplitude, { duration: beat }),
@@ -79,7 +79,7 @@ export function useShake() {
         ),
       );
       shakeY.value = withDelay(
-        SPECTACLE_MOTION.debrisStartMs,
+        BURST_MOTION.impactShakeDelayMs,
         withSequence(
           withTiming(presentation.amplitude * 0.32, { duration: beat * 2 }),
           withTiming(-presentation.amplitude * 0.24, { duration: beat * 2 }),
@@ -87,7 +87,7 @@ export function useShake() {
         ),
       );
       shakeScale.value = withDelay(
-        SPECTACLE_MOTION.debrisStartMs,
+        BURST_MOTION.impactShakeDelayMs,
         withSequence(
           withTiming(presentation.scale, { duration: beat * 2 }),
           withTiming(1, { duration: beat * 4 }),

@@ -13,4 +13,40 @@ export const DEFAULT_CONFIG: GameConfig = {
     comboForgiveness: 0,
   },
   trayPolicy: 'pure',
+  spawn: {
+    candidates: 16,
+    sizeBias: 4,
+    emptyTargetMass: 24,
+    fullTargetMass: 6,
+    rescueFullness: 0.8,
+    rescueDryStreak: 8,
+    fallbackNodeLimit: 2500,
+  },
 };
+
+/** Сколько первых партий игрока считаем «новичковыми» и облегчаем спавн (FTUE). */
+export const NOVICE_GAMES = 3;
+
+/**
+ * Конфиг спавна под опыт игрока: первые `NOVICE_GAMES` партий получают ассист —
+ * (а) `preferClearAssist` тянет трей к фигурам, которыми можно сразу закрыть линию,
+ * (б) rescue-режим (мелкие «доборные» фигуры) включается раньше, при 60% заполнения,
+ * (в) «сухая» серия без очисток обрывается быстрее, чтобы не было безвыходных треев.
+ * От `NOVICE_GAMES` и дальше — база (`DEFAULT_CONFIG`), без облегчений.
+ * Не применять к daily-режиму: там сид общий, ассист рассинхронил бы доску между игроками.
+ */
+export function configForExperience(
+  gamesPlayed: number,
+  base: GameConfig = DEFAULT_CONFIG,
+): GameConfig {
+  if (gamesPlayed >= NOVICE_GAMES) return base;
+  return {
+    ...base,
+    spawn: {
+      ...base.spawn,
+      rescueFullness: 0.6,
+      rescueDryStreak: 2,
+      preferClearAssist: true,
+    },
+  };
+}

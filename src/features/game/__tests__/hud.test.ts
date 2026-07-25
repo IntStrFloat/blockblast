@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { act, create } from 'react-test-renderer';
 
 import { useScores } from '@/features/scores';
+import { useSettings } from '@/features/settings';
 import { colors } from '@/ui';
 
 import { Hud } from '../components/Hud';
@@ -53,6 +54,7 @@ jest.mock('@/ui', () => {
     AppText: ({ children, ...props }: { children?: React.ReactNode }) =>
       React.createElement(Text, props, children),
     CrownIcon: () => null,
+    GearIcon: () => null,
     FireIcon: () => null,
     colors: {
       accent: '#FFC93C',
@@ -89,11 +91,29 @@ describe('score HUD source contract', () => {
     expect(source).toContain('testID="hud-score-shell"');
     expect(source).toContain('testID={`hud-score-pulse-${pulseKey}`}');
   });
+
+  it('reserves fixed vertical space for the combo badge when it is hidden', () => {
+    expect(source).toContain('COMBO_BADGE_RESERVED_HEIGHT');
+    expect(source).toContain('HUD_RESERVED_HEIGHT');
+    expect(source).toContain('testID="hud-combo-slot"');
+    expect(source).toMatch(/height:\s*HUD_RESERVED_HEIGHT/);
+  });
+
+  it('renders the header controls without decorative cards or the best-score label', () => {
+    expect(source).toContain('testID="hud-score-column"');
+    expect(source).toContain('testID="hud-best"');
+    expect(source).toContain('testID="hud-settings"');
+    expect(source).not.toContain("t('game.best', lang)");
+    expect(source).not.toContain('backgroundColor');
+    expect(source).not.toContain('borderWidth');
+    expect(source).not.toContain('shadowColor');
+  });
 });
 
 describe('score HUD behavior', () => {
   beforeEach(() => {
     act(() => {
+      useSettings.setState({ lang: 'en' });
       useScores.setState({ best: 42, gamesPlayed: 0, totalLinesCleared: 0 });
       useGameStore.getState().newGame({ seed: 7 });
       useGameStore.setState({ recordCelebrated: false });
@@ -264,6 +284,116 @@ describe('score HUD behavior', () => {
 
     expect(peaks.length).toBeGreaterThan(0);
     expect(Math.max(...peaks)).toBeLessThanOrEqual(1.25);
+
+    act(() => {
+      renderer!.unmount();
+    });
+  });
+
+  it('keeps the combo row reserved even when the badge renders nothing', () => {
+    let renderer: ReturnType<typeof create> | null = null;
+
+    act(() => {
+      renderer = create(React.createElement(Hud, { onPause: () => {} }));
+    });
+
+    const comboSlotStyle = StyleSheet.flatten(
+      renderer!.root.findByProps({ testID: 'hud-combo-slot' }).props.style,
+    );
+    expect(comboSlotStyle.height).toBeGreaterThan(0);
+    expect(comboSlotStyle.justifyContent).toBe('center');
+
+    act(() => {
+      renderer!.unmount();
+    });
+  });
+
+  it('shows pursuit, near and post-record status in the reserved slot', () => {
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      useScores.setState({ best: 2_000, gamesPlayed: 2, totalLinesCleared: 0 });
+      useGameStore.getState().newGame({ seed: 7 });
+      renderer = create(React.createElement(Hud, { onPause: () => {} }));
+    });
+
+    act(() => {
+      useGameStore.setState((state) => ({ game: { ...state.game, score: 1_700 } }));
+    });
+    expect(renderer!.root.findByProps({ testID: 'hud-record-status' }).props.accessibilityLabel)
+      .toBe('To record 301');
+
+    act(() => {
+      useGameStore.setState((state) => ({ game: { ...state.game, score: 1_900 } }));
+    });
+    expect(renderer!.root.findByProps({ testID: 'hud-record-status' }).props.accessibilityLabel)
+      .toBe('To record 101');
+
+    act(() => {
+      useGameStore.setState((state) => ({ game: { ...state.game, score: 2_120 } }));
+    });
+    expect(renderer!.root.findByProps({ testID: 'hud-record-status' }).props.accessibilityLabel)
+      .toBe('Record +120');
+    expect(renderer!.root.findByProps({ testID: 'hud-best-value' }).props.children).toBe(2_120);
+
+    act(() => renderer!.unmount());
+  });
+
+  it('keeps record pursuit hidden on the first run', () => {
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      useScores.setState({ best: 0, gamesPlayed: 0, totalLinesCleared: 0 });
+      useGameStore.getState().newGame({ seed: 7 });
+      useGameStore.setState((state) => ({ game: { ...state.game, score: 200 } }));
+      renderer = create(React.createElement(Hud, { onPause: () => {} }));
+    });
+
+    expect(renderer!.root.findAllByProps({ testID: 'hud-record-status' })).toHaveLength(0);
+    act(() => renderer!.unmount());
+  });
+
+  it('gives the one-shot record title priority before settling into live lead', () => {
+    jest.useFakeTimers();
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      useScores.setState({ best: 100, gamesPlayed: 2, totalLinesCleared: 0 });
+      useGameStore.getState().newGame({ seed: 7 });
+      renderer = create(React.createElement(Hud, { onPause: () => {} }));
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 101 },
+        recordCelebration: { score: 101, previousBest: 100 },
+      }));
+    });
+
+    expect(renderer!.root.findByProps({ testID: 'hud-record-status' }).props.accessibilityLabel)
+      .toBe('New record!');
+
+    act(() => {
+      jest.advanceTimersByTime(1_500);
+    });
+    expect(renderer!.root.findByProps({ testID: 'hud-record-status' }).props.accessibilityLabel)
+      .toBe('Record +1');
+
+    act(() => renderer!.unmount());
+    jest.useRealTimers();
+  });
+
+  it('does not place the score, best score, or settings icon inside visible cards', () => {
+    let renderer: ReturnType<typeof create> | null = null;
+
+    act(() => {
+      renderer = create(React.createElement(Hud, { onPause: () => {} }));
+    });
+
+    for (const testID of ['hud-score-column', 'hud-best', 'hud-settings']) {
+      const styleProp = renderer!.root.findByProps({ testID }).props.style;
+      const style = StyleSheet.flatten(
+        typeof styleProp === 'function' ? styleProp({ pressed: false }) : styleProp,
+      );
+      expect(style.backgroundColor).toBeUndefined();
+      expect(style.borderWidth).toBeUndefined();
+      expect(style.shadowColor).toBeUndefined();
+      expect(style.elevation).toBeUndefined();
+    }
 
     act(() => {
       renderer!.unmount();

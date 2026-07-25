@@ -2,9 +2,12 @@ import { create } from 'zustand';
 
 import { KEYS, getJSON, getString, removeKey, setJSON } from '@/core/storage';
 import { useAnalyticsStore } from '@/features/analytics';
+// Store-to-store (индекс mascot тянет компоненты, которые импортируют game — цикл).
+import { getShowcaseAvatar } from '@/features/mascot/store';
 import { createGeneratedProfile } from '@/features/profile/nickname';
 
 import { createLeaderboardClient, type LeaderboardClient } from './client';
+import { detectOvertake, type OvertakeInfo } from './presentation';
 import { appendRunMove, beginRunProof, finalizeRunProof, reopenRunProof } from './runProof';
 import type {
   LeaderboardViewState,
@@ -40,6 +43,9 @@ interface LeaderboardState {
   weeklyPrizes: WeeklyPrizeRecord[];
   viewState: LeaderboardViewState;
   lastError: 'offline' | 'remote_error' | null;
+  /** Транзиентный момент «тебя обогнали» (не персистится); гасится ackOvertaken. */
+  overtaken: OvertakeInfo | null;
+  ackOvertaken: () => void;
   startRun: (input: {
     startedAt: string;
     mode: RunMode;
@@ -222,6 +228,9 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
     weeklyPrizes: initialPrizes,
     viewState: initialSnapshot ? (initialSnapshot.isCached ? 'cached' : initialSnapshot.entries.length > 0 ? 'ready' : 'empty') : 'idle',
     lastError: null,
+    overtaken: null,
+
+    ackOvertaken: () => set({ overtaken: null }),
 
     startRun: (input) => {
       const startedAt = input.startedAt;
@@ -354,6 +363,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
             seed: finishedProof.seed,
             moves: finishedProof.moves,
             durationMs: pending[pending.length - 1]?.durationMs ?? 0,
+            avatar: getShowcaseAvatar(),
           });
           const snapshot = applyRemoteSnapshot(response?.snapshot ?? undefined, get().snapshot);
           const latestImpact =
@@ -420,6 +430,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
             seed: submission.seed,
             moves: submission.moves,
             durationMs: submission.durationMs,
+            avatar: getShowcaseAvatar(),
           });
           snapshot = applyRemoteSnapshot(response?.snapshot ?? undefined, snapshot);
           if (response?.impact) {
@@ -467,10 +478,20 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
               source: 'remote',
               isCached: false,
             };
+            // Момент «тебя обогнали» (retention фаза 3): место упало между
+            // снапшотами одной недели — покажем баннер на WeeklyCard/лидерборде.
+            const overtaken = detectOvertake(get().snapshot, normalized);
+            if (overtaken) {
+              useAnalyticsStore.getState().track('overtaken_shown', {
+                from: overtaken.from,
+                to: overtaken.to,
+              });
+            }
             set({
               snapshot: normalized,
               viewState: normalized.entries.length > 0 ? 'ready' : 'empty',
               lastError: null,
+              ...(overtaken ? { overtaken } : {}),
             });
             persistState({ ...get(), snapshot: normalized });
             useAnalyticsStore.getState().track('leaderboard_loaded', { source: 'remote' });
@@ -544,6 +565,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
         weeklyPrizes: [],
         viewState: 'idle',
         lastError: null,
+        overtaken: null,
       });
     },
   }));

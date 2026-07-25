@@ -23,8 +23,10 @@ type MockPlacementEvent = {
   gameOver: boolean;
 };
 
-const mockClearLayerSpy = jest.fn();
+const mockClearDebrisLayerSpy = jest.fn();
 const mockGameEffectsLayerSpy = jest.fn();
+const mockClearBurstLayerSpy = jest.fn();
+const mockBoardFramePulseSpy = jest.fn();
 const mockTriggerShakeSpy = jest.fn();
 
 let mockBoardState: {
@@ -65,18 +67,14 @@ jest.mock('../animation/clearPresentation', () => ({
   MAX_ACTIVE_CLEAR_PRESENTATIONS: 2,
   buildClearPresentation: (event: MockPlacementEvent) => ({
     key: `presentation-${event.id}`,
-    lines: [],
-    intersections: [],
-    fragments: [],
-    fallingFragments: [],
     debris: [],
-    sparks: [],
+    shards: [],
     centroid: { x: 0, y: 0 },
     shake: { amplitude: 0, scale: 1, durationMs: 0 },
     praiseFontSize: 0,
     reducedMotion: false,
     __lifetimeMs: event.clearLifetimeMs,
-    __nodeCount: event.clearedCells.length > 0 ? 64 : 0,
+    __nodeCount: event.clearedCells.length > 0 ? 48 : 0,
   }),
   clearPresentationLifetimeMs: (presentation: { __lifetimeMs?: number } | null) =>
     presentation?.__lifetimeMs ?? 0,
@@ -127,7 +125,7 @@ jest.mock('../animation/gameFeelPresentation', () => ({
       comboFrame?: { intensity?: number } | null;
     }[],
   ) => {
-    const remaining = Math.max(0, 128 - activeClearNodes);
+    const remaining = Math.max(0, 96 - activeClearNodes);
     const kept: typeof placementEffects = [];
     let used = 0;
     [...placementEffects].reverse().forEach((effect) => {
@@ -163,10 +161,19 @@ jest.mock('../drag/DragContext', () => ({
   }),
 }));
 
-jest.mock('../effects/ClearLayer', () => ({
-  ClearLayer: (props: unknown) => {
-    mockClearLayerSpy(props);
+jest.mock('../effects/ClearDebrisLayer', () => ({
+  ClearDebrisLayer: (props: unknown) => {
+    mockClearDebrisLayerSpy(props);
     return null;
+  },
+}));
+
+jest.mock('../effects/BoardFramePulse', () => ({
+  BoardFramePulse: (props: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const React = require('react');
+    mockBoardFramePulseSpy(props);
+    return React.createElement('board-frame-pulse', { testID: 'board-frame-pulse' });
   },
 }));
 
@@ -178,7 +185,10 @@ jest.mock('../effects/GameEffectsLayer', () => ({
 }));
 
 jest.mock('../effects/ClearBurstLayer', () => ({
-  ClearBurstLayer: () => null,
+  ClearBurstLayer: (props: unknown) => {
+    mockClearBurstLayerSpy(props);
+    return null;
+  },
 }));
 
 function makeEvent(id: string, lifetimeMs: number): MockPlacementEvent {
@@ -210,8 +220,10 @@ function makeEvent(id: string, lifetimeMs: number): MockPlacementEvent {
 describe('BoardView clear presentation queue', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    mockClearLayerSpy.mockClear();
+    mockClearDebrisLayerSpy.mockClear();
     mockGameEffectsLayerSpy.mockClear();
+    mockClearBurstLayerSpy.mockClear();
+    mockBoardFramePulseSpy.mockClear();
     mockTriggerShakeSpy.mockClear();
     mockBoardState = {
       game: { board: Array.from({ length: 64 }, () => 0) },
@@ -221,6 +233,54 @@ describe('BoardView clear presentation queue', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  it('renders a frame-only pulse for combo clears without placement particles', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(<BoardView />);
+    });
+
+    mockBoardState.lastEvent = { ...makeEvent('combo-clear', 520), combo: 3 };
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    expect(mockBoardFramePulseSpy).toHaveBeenCalled();
+    expect(renderer!.root.findAllByProps({ testID: 'board-frame-pulse' })).toHaveLength(1);
+    expect(mockBoardFramePulseSpy.mock.lastCall?.[0]).toEqual(
+      expect.objectContaining({
+        presentation: expect.objectContaining({ intensity: 0.45, shakeAmplitude: 5 }),
+      }),
+    );
+    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(0);
+    act(() => renderer!.unmount());
+  });
+
+  it('передаёт свежий клир в пул разрушения в том же коммите, где доска уже пуста', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(<BoardView />);
+    });
+
+    const callsBefore = mockClearBurstLayerSpy.mock.calls.length;
+    mockBoardState.lastEvent = makeEvent('same-commit', 600);
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    // Первый же рендер после события (доска в нём уже пустая) обязан
+    // отдать презентацию пулу — ожидание очереди activePresentations
+    // добавляло кадр «пустых» ячеек до появления осколков.
+    const firstRenderProps = mockClearBurstLayerSpy.mock.calls[callsBefore]?.[0] as
+      | { presentations?: readonly unknown[] }
+      | undefined;
+    expect(firstRenderProps?.presentations).toHaveLength(1);
   });
 
   it('keeps overlapping clear presentations alive independently until each lifetime ends', async () => {
@@ -237,7 +297,7 @@ describe('BoardView clear presentation queue', () => {
       renderer!.update(<BoardView />);
     });
 
-    const firstPresentation = mockClearLayerSpy.mock.lastCall?.[0]?.presentations?.[0];
+    const firstPresentation = mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations?.[0];
     expect(firstPresentation).toBeDefined();
 
     await act(async () => {
@@ -249,16 +309,15 @@ describe('BoardView clear presentation queue', () => {
       renderer!.update(<BoardView />);
     });
 
-    const overlappingPresentations = mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? [];
+    const overlappingPresentations = mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? [];
     expect(overlappingPresentations).toHaveLength(2);
     expect(overlappingPresentations[0]?.id).toBe(firstPresentation.id);
     expect(overlappingPresentations[1]?.id).not.toBe(firstPresentation.id);
-    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.presentations).toHaveLength(2);
 
     await act(async () => {
       jest.advanceTimersByTime(401);
     });
-    const afterFirstExpiry = mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? [];
+    const afterFirstExpiry = mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? [];
     expect(afterFirstExpiry).toHaveLength(1);
     expect(afterFirstExpiry[0]?.id).not.toBe(firstPresentation.id);
 
@@ -266,9 +325,7 @@ describe('BoardView clear presentation queue', () => {
       jest.advanceTimersByTime(599);
     });
 
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
-    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
-  });
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);  });
 
   it('releases an expired presentation id so the same instance can be queued again later', async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -286,12 +343,12 @@ describe('BoardView clear presentation queue', () => {
       renderer!.update(<BoardView />);
     });
 
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations).toHaveLength(1);
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations).toHaveLength(1);
 
     await act(async () => {
       jest.advanceTimersByTime(301);
     });
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
 
     mockBoardState.lastEvent = null;
     act(() => {
@@ -303,11 +360,11 @@ describe('BoardView clear presentation queue', () => {
       renderer!.update(<BoardView />);
     });
 
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations).toHaveLength(1);
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations?.[0]?.id).toBeDefined();
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations).toHaveLength(1);
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations?.[0]?.id).toBeDefined();
   });
 
-  it('keeps a three-clear burst bounded to two active presentations and 128 theoretical nodes', async () => {
+  it('keeps a three-clear burst bounded to two active presentations and 96 theoretical nodes', async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
 
@@ -320,7 +377,7 @@ describe('BoardView clear presentation queue', () => {
     act(() => {
       renderer!.update(<BoardView />);
     });
-    const firstBurstPresentation = mockClearLayerSpy.mock.lastCall?.[0]?.presentations?.[0];
+    const firstBurstPresentation = mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations?.[0];
     expect(firstBurstPresentation).toBeDefined();
 
     await act(async () => {
@@ -341,32 +398,29 @@ describe('BoardView clear presentation queue', () => {
       renderer!.update(<BoardView />);
     });
 
-    const rapidBurstPresentations = mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? [];
+    const rapidBurstPresentations = mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? [];
     expect(rapidBurstPresentations).toHaveLength(2);
     expect(
       rapidBurstPresentations.map((presentation: { id: string }) => presentation.id),
     ).not.toContain(
       firstBurstPresentation?.id,
     );
-    expect(rapidBurstPresentations.length * 64).toBeLessThanOrEqual(128);
-    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(2);
+    expect(rapidBurstPresentations.length * 48).toBeLessThanOrEqual(96);
 
     await act(async () => {
       jest.advanceTimersByTime(100);
     });
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(2);
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(2);
 
     await act(async () => {
       jest.advanceTimersByTime(450);
     });
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(1);
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(1);
 
     await act(async () => {
       jest.advanceTimersByTime(350);
     });
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
-    expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
-  });
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);  });
 
   it('queues placement effects for accepted no-clear moves and releases them after expiry', async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -393,7 +447,7 @@ describe('BoardView clear presentation queue', () => {
       renderer!.update(<BoardView />);
     });
 
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
     expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(1);
     expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects?.[0]?.placement?.particles).toHaveLength(12);
     expect(mockTriggerShakeSpy).toHaveBeenLastCalledWith({
@@ -459,7 +513,7 @@ describe('BoardView clear presentation queue', () => {
     expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(0);
   });
 
-  it('renders no placement effects when two active clears already consume the shared 128-node ceiling', async () => {
+  it('renders no placement effects when two active clears already consume the shared 96-node ceiling', async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
 
@@ -500,7 +554,7 @@ describe('BoardView clear presentation queue', () => {
       renderer!.update(<BoardView />);
     });
 
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(2);
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(2);
     expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(0);
   });
 
@@ -545,8 +599,8 @@ describe('BoardView clear presentation queue', () => {
       0,
     );
 
-    expect(mockClearLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(1);
-    expect(totalPlacementNodes).toBeLessThanOrEqual(64);
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(1);
+    expect(totalPlacementNodes).toBeLessThanOrEqual(48);
     expect(placementEffects.length).toBeGreaterThan(0);
   });
 });

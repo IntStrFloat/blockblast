@@ -16,15 +16,15 @@ describe('awardDelta', () => {
 });
 
 describe('cosmeticRewardIdsThroughLevel', () => {
-  it('до уровня 4 — только косметика (L1,3,4), пустые/помощники пропущены', () => {
-    expect(cosmeticRewardIdsThroughLevel(4)).toEqual([
+  it('до уровня 5 — только косметика (L1,3,5), пустые/помощники/миры пропущены', () => {
+    expect(cosmeticRewardIdsThroughLevel(5)).toEqual([
       'hat-casquette',
       'face-glasses',
       'acc-headphones',
     ]);
   });
-  it('до уровня 8 добавляет skin-mint (мир/помощник не косметика)', () => {
-    expect(cosmeticRewardIdsThroughLevel(8)).toEqual([
+  it('до уровня 7 добавляет skin-mint (мир/помощник не косметика)', () => {
+    expect(cosmeticRewardIdsThroughLevel(7)).toEqual([
       'hat-casquette',
       'face-glasses',
       'acc-headphones',

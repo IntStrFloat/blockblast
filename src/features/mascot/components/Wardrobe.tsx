@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { t } from '@/core/i18n';
 import type { Lang } from '@/core/i18n';
-import { DAILY_CONFIG } from '@/features/dailybonus';
 import { PROGRESSION_CONFIG, progressFor, stageForLevel, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
 import { AppText, colors, mascotPalette, spacing } from '@/ui';
@@ -25,7 +24,16 @@ const COSMETIC_UNLOCK_LEVEL: Record<string, number> = (() => {
 
 const COSMETIC_BY_ID = new Map(COSMETICS.map((item) => [item.id, item]));
 
-// Все обретаемые косметики: награды уровней + дейли-пулы (дроп/редкие).
+// Legacy bonus cosmetics stay visible for players who already unlocked them.
+const LEGACY_BONUS_COSMETIC_IDS = [
+  'skin-chrome',
+  'hat-tophat',
+  'face-vr-visor',
+  'skin-obsidian',
+  'hat-halo',
+] as const;
+
+// Все обретаемые косметики: награды уровней + ранее выданные legacy-предметы.
 const OBTAINABLE_IDS: string[] = [
   ...Object.values(PROGRESSION_CONFIG.levelRewards)
     .filter(
@@ -33,8 +41,7 @@ const OBTAINABLE_IDS: string[] = [
         reward !== undefined && reward.kind === 'cosmetic',
     )
     .map((reward) => reward.id),
-  ...DAILY_CONFIG.dailyCosmeticPool,
-  ...DAILY_CONFIG.rarePool,
+  ...LEGACY_BONUS_COSMETIC_IDS,
 ];
 
 const WARDROBE_COSMETICS: Cosmetic[] = Array.from(new Set(OBTAINABLE_IDS))

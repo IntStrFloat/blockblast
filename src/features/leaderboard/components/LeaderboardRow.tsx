@@ -1,6 +1,7 @@
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { AppText, CrownIcon, colors, radii, spacing } from '@/ui';
+import { MascotBadge } from '@/features/mascot';
+import { AppText, CrownIcon } from '@/ui';
 
 import type { LeaderboardEntry } from '../types';
 
@@ -9,71 +10,38 @@ interface LeaderboardRowProps {
 }
 
 export function LeaderboardRow({ entry }: LeaderboardRowProps) {
-  const isChampion =
-    entry.championRank != null && entry.championRank >= 1 && entry.championRank <= 3;
+  const isChampion = entry.championRank != null && entry.championRank >= 1 && entry.championRank <= 3;
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.s,
-        borderRadius: radii.card,
-        backgroundColor: entry.isCurrentPlayer ? colors.cardRaised : colors.cardSolid,
-        borderWidth: 1,
-        borderColor: entry.isCurrentPlayer ? colors.accent : colors.hairline,
-        paddingHorizontal: spacing.m,
-        paddingVertical: 12,
-        shadowColor: colors.clayShadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 8,
-        elevation: 3,
-      }}
-    >
-      {/* Бейдж места */}
-      <View
-        style={{
-          width: 30,
-          height: 30,
-          borderRadius: 999,
-          backgroundColor: colors.track,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <AppText preset="caption" style={{ color: colors.textDim }}>
-          {entry.rank ?? '–'}
+    <View style={[styles.row, entry.isCurrentPlayer && styles.currentRow]}>
+      <View style={[styles.rank, entry.isCurrentPlayer && styles.currentRank]}>
+        <AppText preset="speech" style={[styles.rankText, entry.isCurrentPlayer && styles.currentRankText]}>
+          {entry.rank ?? '—'}
         </AppText>
       </View>
-
-      <View style={{ flex: 1 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            alignSelf: 'flex-start',
-            paddingHorizontal: isChampion ? 6 : 0,
-            paddingVertical: isChampion ? 1 : 0,
-            borderRadius: radii.button,
-            borderWidth: isChampion ? 1.5 : 0,
-            borderColor: isChampion ? colors.accent : 'transparent',
-          }}
-        >
-          {isChampion ? <CrownIcon size={13} color={colors.accent} /> : null}
-          <AppText preset="body" numberOfLines={1}>
-            {entry.nickname}
-          </AppText>
+      <MascotBadge avatar={entry.avatar} size={30} />
+      <View style={styles.copy}>
+        <View style={styles.nameLine}>
+          {isChampion ? <CrownIcon size={14} color="#FFE46B" /> : null}
+          <AppText preset="speech" numberOfLines={1} style={styles.name}>{entry.nickname}</AppText>
         </View>
-        <AppText preset="caption" style={{ color: colors.textDim }}>
-          {entry.tag} · {entry.runsCount}
-        </AppText>
+        <AppText preset="caption" style={styles.meta}>{entry.tag} · {entry.runsCount}</AppText>
       </View>
-
-      <AppText preset="button" style={{ fontSize: 16 }}>
-        {entry.weeklyBest}
-      </AppText>
+      <AppText preset="speech" style={styles.score}>{entry.weeklyBest}</AppText>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  row: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 20, backgroundColor: 'rgba(42,113,202,0.88)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.30)', paddingHorizontal: 14, shadowColor: 'rgba(3,45,116,0.45)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.42, shadowRadius: 4, elevation: 3 },
+  currentRow: { backgroundColor: '#367FD3', borderColor: '#FFE46B', borderWidth: 2 },
+  rank: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1746A7' },
+  currentRank: { backgroundColor: '#FFE46B' },
+  rankText: { color: 'rgba(244,250,255,0.80)', fontFamily: 'Fredoka_700Bold', fontSize: 17 },
+  currentRankText: { color: '#1746A7' },
+  copy: { flex: 1, minWidth: 0 },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  name: { flexShrink: 1, color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 19 },
+  meta: { marginTop: 1, color: 'rgba(232,247,255,0.74)', fontSize: 13 },
+  score: { color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 24, textShadowColor: 'rgba(3,45,116,0.36)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+});

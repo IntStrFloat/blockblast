@@ -15,8 +15,16 @@ type Variant = 'primary' | 'ghost' | 'danger';
 
 const variantStyle: Record<Variant, ViewStyle> = {
   primary: { backgroundColor: colors.accent },
-  ghost: { backgroundColor: colors.surface },
-  danger: { backgroundColor: 'rgba(255,90,95,0.16)' },
+  ghost: {
+    backgroundColor: colors.cardSolid,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+  },
+  danger: {
+    backgroundColor: '#342345',
+    borderWidth: 1,
+    borderColor: 'rgba(255,90,95,0.44)',
+  },
 };
 
 const variantText: Record<Variant, string> = {
@@ -68,6 +76,7 @@ export function GameButton({
           paddingHorizontal: spacing.l,
           alignItems: 'center',
           opacity: disabled ? 0.4 : 1,
+          overflow: 'hidden',
           // «Глиняная» приподнятость для главного действия.
           shadowColor: colors.clayShadow,
           shadowOffset: { width: 0, height: lg ? 8 : 4 },

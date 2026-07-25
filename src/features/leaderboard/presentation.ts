@@ -125,6 +125,7 @@ export function resolveWeeklyView(
     achievedAt: localAchievedAt ?? serverPlayer.achievedAt,
     isCurrentPlayer: true,
     championRank,
+    avatar: serverPlayer.avatar ?? null,
   };
 
   return {
@@ -134,4 +135,29 @@ export function resolveWeeklyView(
     currentEntry: pendingEntry,
     entries,
   };
+}
+
+export interface OvertakeInfo {
+  /** Ник обогнавшего (сосед сверху в новом списке), если виден в топе. */
+  by: string | null;
+  from: number;
+  to: number;
+}
+
+/**
+ * Момент «тебя обогнали» (retention фаза 3): в рамках одной недели место игрока
+ * ухудшилось между двумя снапшотами. Чистая функция — вызывается при обновлении
+ * снапшота из refresh; собственные сабмиты место только улучшают и сюда не попадают.
+ */
+export function detectOvertake(
+  previous: WeeklyLeaderboardSnapshot | null,
+  next: WeeklyLeaderboardSnapshot | null,
+): OvertakeInfo | null {
+  if (!previous || !next) return null;
+  if (previous.weekKey !== next.weekKey) return null;
+  const from = previous.currentPlayer.rank;
+  const to = next.currentPlayer.rank;
+  if (from === null || to === null || to <= from) return null;
+  const neighbour = next.entries.find((entry) => entry.rank === to - 1 && !entry.isCurrentPlayer);
+  return { by: neighbour?.nickname ?? null, from, to };
 }

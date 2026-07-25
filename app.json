@@ -2,7 +2,7 @@
   "expo": {
     "name": "Блок Бластик! Block Blast",
     "slug": "blockblast",
-    "version": "1.1.19",
+    "version": "1.1.27",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "blockblast",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.intstrfloat.blockblast",
-      "versionCode": 22,
+      "versionCode": 32,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -38,6 +38,7 @@
       "expo-audio",
       "expo-localization",
       "expo-asset",
+      "expo-notifications",
       "./plugins/withHuaweiAgconnect",
       "./plugins/withAppMetrica",
       "./plugins/withRuStorePush"

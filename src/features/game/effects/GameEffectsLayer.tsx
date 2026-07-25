@@ -1,23 +1,18 @@
 import { Fragment } from 'react';
 import { View } from 'react-native';
 
-import type { ClearPresentationInstance } from '../animation/clearPresentation';
 import type { PlacementEffectInstance } from '../animation/gameFeelPresentation';
 import { BoardFramePulse } from './BoardFramePulse';
-import { BlockCrushLayer } from './BlockCrushLayer';
-import { ClearDebrisLayer } from './ClearDebrisLayer';
 import { PlacementParticleLayer } from './PlacementParticleLayer';
 
 interface GameEffectsLayerProps {
-  presentations: readonly ClearPresentationInstance[];
   placementEffects?: readonly PlacementEffectInstance[];
 }
 
-export function GameEffectsLayer({
-  presentations,
-  placementEffects = [],
-}: GameEffectsLayerProps) {
-  if (presentations.length === 0 && placementEffects.length === 0) return null;
+// Эффекты клира живут в постоянных пулах-сиблингах доски (см. BoardView);
+// здесь остаются только эффекты размещения без очистки.
+export function GameEffectsLayer({ placementEffects = [] }: GameEffectsLayerProps) {
+  if (placementEffects.length === 0) return null;
   return (
     <View
       pointerEvents="none"
@@ -36,12 +31,6 @@ export function GameEffectsLayer({
           {comboFrame.intensity > 0 ? (
             <BoardFramePulse presentation={comboFrame} color={color} />
           ) : null}
-        </Fragment>
-      ))}
-      {presentations.map(({ id, presentation }) => (
-        <Fragment key={id}>
-          <BlockCrushLayer fragments={presentation.fallingFragments} />
-          <ClearDebrisLayer debris={presentation.debris} />
         </Fragment>
       ))}
     </View>

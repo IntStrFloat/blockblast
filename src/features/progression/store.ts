@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { KEYS, getJSON, setJSON } from '@/core/storage';
+import { useAnalyticsStore } from '@/features/analytics';
 
 import { PROGRESSION_CONFIG } from './logic/config';
 import { progressFor } from './logic/levels';
@@ -136,6 +137,13 @@ export const useProgression = create<ProgressionStore>((set, get) => ({
     };
     set(next);
     persist(next);
+    // События для когортного анализа (retention фаза 2): рост уровня и вход в мир.
+    if (toLevel > fromLevel) {
+      useAnalyticsStore.getState().track('level_up', { level: toLevel, world: info.world });
+    }
+    if (enteredWorld !== null) {
+      useAnalyticsStore.getState().track('world_unlocked', { world: enteredWorld });
+    }
     return { fromLevel, toLevel, rewards, enteredWorld };
   },
 

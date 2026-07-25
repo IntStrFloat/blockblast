@@ -92,6 +92,7 @@ jest.mock('@/ui', () => {
 describe('record celebration source contract', () => {
   const gameSource = fs.readFileSync(`${__dirname}/../../../app/game.tsx`, 'utf8');
   const confettiSource = fs.readFileSync(`${__dirname}/../effects/Confetti.tsx`, 'utf8');
+  const praiseSource = fs.readFileSync(`${__dirname}/../effects/PraiseBanner.tsx`, 'utf8');
   const celebrationPath = `${__dirname}/../effects/NewRecordCelebration.tsx`;
 
   it('mounts a dedicated celebration layer above praise and below modal overlays', () => {
@@ -121,14 +122,18 @@ describe('record celebration source contract', () => {
     expect(confettiSource).not.toContain('Math.random');
   });
 
-  it('bounds the banner width and enables single-line text fitting for narrow screens', () => {
+  it('keeps the celebration inside the HUD band without duplicating the title or score', () => {
     const celebrationSource = fs.readFileSync(celebrationPath, 'utf8');
 
-    expect(celebrationSource).toContain('maxWidth');
-    expect(celebrationSource).toContain('paddingHorizontal');
-    expect(celebrationSource).toContain('numberOfLines={1}');
-    expect(celebrationSource).toContain('adjustsFontSizeToFit');
-    expect(celebrationSource).toContain('minimumFontScale');
+    expect(celebrationSource).toContain('height: 250');
+    expect(celebrationSource).toContain('testID="new-record-bloom"');
+    expect(celebrationSource).not.toContain('testID="new-record-score"');
+    expect(celebrationSource).not.toContain('testID="new-record-title"');
+  });
+
+  it('keeps praise keyframes from flashing back visible before unmount', () => {
+    expect(praiseSource).toContain('HIDDEN_AFTER_ENTER_OPACITY');
+    expect(praiseSource.match(/opacity: HIDDEN_AFTER_ENTER_OPACITY/g)).toHaveLength(2);
   });
 });
 
@@ -202,42 +207,21 @@ describe('NewRecordCelebration', () => {
     ).size;
   }
 
-  it('shows localized copy with deterministic capped gold confetti', () => {
+  it('shows a bounded bloom with deterministic capped gold confetti', () => {
     const first = mountCelebration();
     beginCelebration(256, 200);
 
     expect(first.root.findByProps({ testID: 'new-record-celebration' }).props.pointerEvents).toBe(
       'none',
     );
-    expect(first.root.findByProps({ testID: 'new-record-title' }).props.children).toBe('New record!');
-    expect(first.root.findByProps({ testID: 'new-record-score' }).props.children).toBe(256);
-    expect(confettiStyles(first)).toHaveLength(18);
+    expect(first.root.findByProps({ testID: 'new-record-bloom' })).toBeDefined();
+    expect(confettiStyles(first)).toHaveLength(14);
   });
 
-  it('keeps the visible title and score width-bounded with single-line text fitting', () => {
-    const renderer = mountCelebration();
-    beginCelebration(12345, 12000);
-
-    const title = renderer.root.findByProps({ testID: 'new-record-title' });
-    const score = renderer.root.findByProps({ testID: 'new-record-score' });
-    const scoreBanner = renderer.root.findByProps({ testID: 'new-record-score-shell' });
-    const bannerStyle = StyleSheet.flatten(scoreBanner.props.style);
-
-    expect(title.props.numberOfLines).toBe(1);
-    expect(title.props.adjustsFontSizeToFit).toBe(true);
-    expect(title.props.minimumFontScale).toBeLessThan(1);
-    expect(score.props.numberOfLines).toBe(1);
-    expect(score.props.adjustsFontSizeToFit).toBe(true);
-    expect(score.props.minimumFontScale).toBeLessThan(1);
-    expect(bannerStyle.maxWidth).toBeDefined();
-    expect(bannerStyle.paddingHorizontal).toBeGreaterThan(0);
-  });
-
-  it('keeps the visible celebration score pinned to the captured record score', () => {
+  it('keeps the captured confetti composition stable while the live score grows', () => {
     const renderer = mountCelebration();
     beginCelebration(256, 200);
-
-    expect(renderer.root.findByProps({ testID: 'new-record-score' }).props.children).toBe(256);
+    const before = confettiStyles(renderer);
 
     act(() => {
       useGameStore.setState((state) => ({
@@ -245,7 +229,7 @@ describe('NewRecordCelebration', () => {
       }));
     });
 
-    expect(renderer.root.findByProps({ testID: 'new-record-score' }).props.children).toBe(256);
+    expect(confettiStyles(renderer)).toEqual(before);
   });
 
   it('does not replay the same record event and clears its timer on unmount', () => {
@@ -264,7 +248,7 @@ describe('NewRecordCelebration', () => {
     expect(activeCelebrationCount(renderer)).toBe(1);
 
     act(() => {
-      jest.advanceTimersByTime(1300);
+      jest.advanceTimersByTime(1500);
     });
     expect(activeCelebrationCount(renderer)).toBe(0);
 

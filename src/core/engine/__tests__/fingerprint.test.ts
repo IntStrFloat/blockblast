@@ -11,6 +11,6 @@ describe('engineFingerprint', () => {
   // см. docs/runbooks/leaderboard-operations.md), иначе сервер начнёт молча
   // отклонять ranked-сабмиты. Обновляйте константу осознанно, вместе с деплоем.
   it('matches the pinned engine fingerprint (bump only with a backend redeploy)', () => {
-    expect(engineFingerprint()).toBe('2683425b');
+    expect(engineFingerprint()).toBe('8e4b334b');
   });
 });

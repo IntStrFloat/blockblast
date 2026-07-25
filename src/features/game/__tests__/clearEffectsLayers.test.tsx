@@ -12,49 +12,24 @@ jest.mock('react-native-reanimated', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');
 
-  class MockKeyframe {
-    duration() {
-      return this;
-    }
-
-    delay() {
-      return this;
-    }
-  }
-
   return {
     __esModule: true,
     default: {
       View: ({ children, ...props }: { children?: React.ReactNode }) =>
         React.createElement('animated-view', props, children),
     },
-    Keyframe: MockKeyframe,
+    Easing: {
+      in: (value: unknown) => value,
+      out: (value: unknown) => value,
+      quad: 'quad',
+    },
+    useAnimatedStyle: (factory: () => unknown) => factory(),
+    useSharedValue: (initial: unknown) => ({ value: initial }),
+    withDelay: (_delay: number, value: unknown) => value,
+    withSequence: (...values: unknown[]) => values[values.length - 1],
+    withTiming: (value: unknown) => value,
   };
 });
-
-jest.mock('../effects/BlockCrushLayer', () => ({
-  BlockCrushLayer: () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const React = require('react');
-    return React.createElement('block-crush-layer', { testID: 'block-crush-layer' });
-  },
-}));
-
-jest.mock('../effects/LineHighlightLayer', () => ({
-  LineHighlightLayer: () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const React = require('react');
-    return React.createElement('line-highlight-layer', { testID: 'line-highlight-layer' });
-  },
-}));
-
-jest.mock('../effects/ClearDebrisLayer', () => ({
-  ClearDebrisLayer: () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const React = require('react');
-    return React.createElement('clear-debris-layer', { testID: 'clear-debris-layer' });
-  },
-}));
 
 jest.mock('../effects/PlacementParticleLayer', () => ({
   PlacementParticleLayer: () => {
@@ -74,12 +49,11 @@ jest.mock('../effects/BoardFramePulse', () => ({
 
 describe('clear effects layer source contract', () => {
   const boardSource = fs.readFileSync(`${__dirname}/../components/BoardView.tsx`, 'utf8');
-  const clearLayerSource = fs.readFileSync(`${__dirname}/../effects/ClearLayer.tsx`, 'utf8');
   const gameEffectsPath = `${__dirname}/../effects/GameEffectsLayer.tsx`;
   const placementParticlePath = `${__dirname}/../effects/PlacementParticleLayer.tsx`;
   const boardFramePulsePath = `${__dirname}/../effects/BoardFramePulse.tsx`;
 
-  it('keeps the board grid clipped while moving overflow effects into a sibling layer', () => {
+  it('keeps the board grid clipped while moving overflow effects into sibling layers', () => {
     expect(fs.existsSync(gameEffectsPath)).toBe(true);
     expect(fs.existsSync(placementParticlePath)).toBe(true);
     expect(fs.existsSync(boardFramePulsePath)).toBe(true);
@@ -90,14 +64,10 @@ describe('clear effects layer source contract', () => {
 
     expect(boardSource).toContain("overflow: 'visible'");
     expect(boardSource).toContain("overflow: 'hidden'");
-    expect(boardSource).toContain('<ClearLayer');
     expect(boardSource).toContain('<GameEffectsLayer');
     expect(boardSource).toContain('<ClearBurstLayer');
+    expect(boardSource).toContain('<ClearDebrisLayer');
     expect(boardSource).toContain('placementEffects=');
-    expect(clearLayerSource).not.toContain('ClearDebrisLayer');
-    // Разрушение ячеек ушло в пуловый ClearBurstLayer — ClearLayer больше не монтирует крушение.
-    expect(clearLayerSource).not.toContain('BlockCrushLayer');
-    expect(gameEffectsSource).toContain('ClearDebrisLayer');
     expect(gameEffectsSource).toContain('PlacementParticleLayer');
     expect(gameEffectsSource).toContain('BoardFramePulse');
     expect(gameEffectsSource).toContain('pointerEvents="none"');
@@ -111,37 +81,54 @@ describe('clear effects layer source contract', () => {
     expect(boardFramePulseSource).toContain('transform');
     expect(boardFramePulseSource).not.toContain('layout=');
   });
+
+  it('keeps a single destruction system: no legacy line-highlight/spark clear layers', () => {
+    // Дублирование анимаций клира: легаси-слои (радужные линии, искры,
+    // ClearLayer) удалены — разрушение целиком в ClearBurstLayer + крошке.
+    expect(fs.existsSync(`${__dirname}/../effects/ClearLayer.tsx`)).toBe(false);
+    expect(fs.existsSync(`${__dirname}/../effects/LineHighlightLayer.tsx`)).toBe(false);
+    expect(boardSource).not.toContain('<ClearLayer ');
+    expect(boardSource).not.toContain('LineHighlightLayer');
+
+    const gameEffectsSource = fs.readFileSync(gameEffectsPath, 'utf8');
+    expect(gameEffectsSource).not.toContain('ClearDebrisLayer');
+    expect(gameEffectsSource).not.toContain('BlockCrushLayer');
+  });
+
+  it('keeps transient particles in reusable pools instead of mounting Keyframe views per event', () => {
+    const hotLayerPaths = [
+      `${__dirname}/../effects/ClearBurstLayer.tsx`,
+      `${__dirname}/../effects/ClearDebrisLayer.tsx`,
+      `${__dirname}/../effects/PlacementParticleLayer.tsx`,
+    ];
+
+    for (const path of hotLayerPaths) {
+      const source = fs.readFileSync(path, 'utf8');
+      expect(source).not.toContain('Keyframe');
+      expect(source).not.toContain('entering=');
+      expect(source).toContain('POOL_SIZE');
+      expect(source).toContain('useSharedValue');
+    }
+  });
+
+  it('mounts destruction pools once: pooled layers accept presentation instances, not raw items', () => {
+    const burstSource = fs.readFileSync(`${__dirname}/../effects/ClearBurstLayer.tsx`, 'utf8');
+    const debrisSource = fs.readFileSync(`${__dirname}/../effects/ClearDebrisLayer.tsx`, 'utf8');
+
+    for (const source of [burstSource, debrisSource]) {
+      expect(source).toContain('presentations: readonly ClearPresentationInstance[]');
+      expect(source).toContain('fired');
+    }
+  });
 });
 
 describe('clear effect layer rendering', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { ClearLayer } = require('../effects/ClearLayer') as typeof import('../effects/ClearLayer');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { GameEffectsLayer } = require('../effects/GameEffectsLayer') as typeof import('../effects/GameEffectsLayer');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ClearDebrisLayer } = require('../effects/ClearDebrisLayer') as typeof import('../effects/ClearDebrisLayer');
 
-  it('renders local and external effects for each active presentation without cross-layer duplication', () => {
-    const firstPresentation = {
-      key: 'clear-1',
-      lines: [],
-      intersections: [],
-      fragments: [],
-      debris: [],
-      fallingFragments: [],
-      sparks: [],
-      centroid: { x: 0, y: 0 },
-      shake: { amplitude: 0, scale: 1, durationMs: 0 },
-      praiseFontSize: 0,
-      reducedMotion: false,
-    };
-    const secondPresentation = {
-      ...firstPresentation,
-      key: 'clear-2',
-      centroid: { x: 12, y: 16 },
-    };
-    const presentations = [
-      { id: 'instance-1', presentation: firstPresentation },
-      { id: 'instance-2', presentation: secondPresentation },
-    ];
+  it('renders placement effects without clear-presentation coupling', () => {
     const placementEffects = [
       {
         id: 'placement-1',
@@ -187,23 +174,45 @@ describe('clear effect layer rendering', () => {
       },
     ];
 
-    let clearRenderer: ReturnType<typeof create> | null = null;
     let effectsRenderer: ReturnType<typeof create> | null = null;
     act(() => {
-      clearRenderer = create(<ClearLayer presentations={presentations as any} />);
       effectsRenderer = create(
-        <GameEffectsLayer presentations={presentations as any} placementEffects={placementEffects as any} />,
+        <GameEffectsLayer placementEffects={placementEffects as any} />,
       );
     });
 
-    // Разрушение ячеек переехало в пуловый ClearBurstLayer (монтируется в BoardView,
-    // не на презентацию), поэтому ClearLayer больше не рендерит BlockCrushLayer.
-    expect(clearRenderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(0);
-    expect(clearRenderer!.root.findAllByProps({ testID: 'line-highlight-layer' })).toHaveLength(2);
-    expect(clearRenderer!.root.findAllByProps({ testID: 'clear-debris-layer' })).toHaveLength(0);
-    expect(effectsRenderer!.root.findAllByProps({ testID: 'block-crush-layer' })).toHaveLength(2);
-    expect(effectsRenderer!.root.findAllByProps({ testID: 'clear-debris-layer' })).toHaveLength(2);
     expect(effectsRenderer!.root.findAllByProps({ testID: 'placement-particle-layer' })).toHaveLength(2);
     expect(effectsRenderer!.root.findAllByProps({ testID: 'board-frame-pulse' })).toHaveLength(1);
+  });
+
+  it('keeps the debris pool mounted with a constant view count across presentations', () => {
+    const presentation = {
+      key: 'clear-1',
+      debris: [],
+      shards: [],
+      centroid: { x: 0, y: 0 },
+      shake: { amplitude: 0, scale: 1, durationMs: 0 },
+      praiseFontSize: 0,
+      reducedMotion: false,
+    };
+
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(<ClearDebrisLayer presentations={[]} />);
+    });
+    const emptyCount = renderer!.root.findAllByType('animated-view' as never).length;
+    expect(emptyCount).toBeGreaterThan(0);
+
+    act(() => {
+      renderer!.update(
+        <ClearDebrisLayer
+          presentations={[
+            { id: 'instance-1', presentation },
+            { id: 'instance-2', presentation: { ...presentation, key: 'clear-2' } },
+          ] as never}
+        />,
+      );
+    });
+    expect(renderer!.root.findAllByType('animated-view' as never)).toHaveLength(emptyCount);
   });
 });

@@ -8,9 +8,14 @@ beforeEach(() => {
 });
 
 describe('shouldShowOnboarding', () => {
-  it('shows only until it has been seen', () => {
-    expect(shouldShowOnboarding(false)).toBe(true);
-    expect(shouldShowOnboarding(true)).toBe(false);
+  it('shows only until it has been seen, and only after the first game', () => {
+    expect(shouldShowOnboarding(false, 1)).toBe(true);
+    expect(shouldShowOnboarding(true, 1)).toBe(false);
+  });
+
+  it('is hidden for brand-new installs until they finish a game', () => {
+    expect(shouldShowOnboarding(false, 0)).toBe(false);
+    expect(shouldShowOnboarding(false, 2)).toBe(true);
   });
 });
 

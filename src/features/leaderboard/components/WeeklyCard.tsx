@@ -34,6 +34,7 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
 
   const rank = view.rank;
   const rankLabel = rank != null ? `#${rank}` : t('leaderboard.unranked', lang);
+  const overtaken = useLeaderboardStore((state) => state.overtaken);
 
   useEffect(() => {
     useAnalyticsStore.getState().track('weekly_goal_exposed', {
@@ -100,6 +101,14 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
             }}
           />
         </View>
+
+        {overtaken ? (
+          <AppText preset="caption" style={{ color: colors.accent }} numberOfLines={1}>
+            {overtaken.by
+              ? `⚡ ${t('leaderboard.overtakenBy', lang)} ${overtaken.by} — ${t('leaderboard.fightBack', lang)}`
+              : `⚡ ${t('leaderboard.overtaken', lang)} #${overtaken.from} → #${overtaken.to} — ${t('leaderboard.fightBack', lang)}`}
+          </AppText>
+        ) : null}
       </ClayCard>
     </Pressable>
   );

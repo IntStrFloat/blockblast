@@ -9,6 +9,20 @@ describe('t()', () => {
   it('неизвестный ключ возвращается как есть (fallback)', () => {
     expect(t('no.such.key', 'ru')).toBe('no.such.key');
   });
+
+  it('имеет симметричные строки рекордной прогрессии на обоих языках', () => {
+    for (const key of [
+      'game.recordRemaining',
+      'game.recordLead',
+      'gameOver.newRecord',
+      'gameOver.firstResult',
+    ]) {
+      expect(t(key, 'ru')).not.toBe(key);
+      expect(t(key, 'en')).not.toBe(key);
+      expect(t(key, 'ru').length).toBeGreaterThan(0);
+      expect(t(key, 'en').length).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('resolveLang', () => {

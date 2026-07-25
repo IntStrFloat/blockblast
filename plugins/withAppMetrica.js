@@ -4,11 +4,6 @@ const {
   withMainApplication,
 } = require('expo/config-plugins');
 
-const APPMETRICA_VERSION = '8.3.0';
-const APPMETRICA_DEPENDENCY =
-  `implementation("io.appmetrica.analytics:analytics:${APPMETRICA_VERSION}")`;
-const API_KEY_FIELD = 'buildConfigField "String", "APPMETRICA_API_KEY"';
-
 function validateApiKey(apiKey) {
   if (!apiKey) {
     throw new Error(
@@ -25,103 +20,55 @@ function validateApiKey(apiKey) {
   return apiKey;
 }
 
-function escapeGradleString(value) {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+/**
+ * The official React Native package owns native dependency linking and SDK
+ * activation. This plugin only exposes the non-secret application key to the
+ * JS runtime. Keeping native activation here as well would start AppMetrica
+ * twice and can split the first session.
+ */
+function stripLegacyGradle(contents) {
+  return contents
+    .replace(/^\s*buildConfigField\s+"String",\s*"APPMETRICA_API_KEY".*\r?\n/gm, '')
+    .replace(/^\s*implementation\(["']io\.appmetrica\.analytics:analytics:[^"']+["']\)\s*\r?\n/gm, '');
 }
 
-function patchAppBuildGradle(contents, apiKey) {
-  const validatedApiKey = validateApiKey(apiKey);
-  let next = contents;
-
-  if (!next.includes('io.appmetrica.analytics:analytics:')) {
-    if (!/dependencies\s*\{/.test(next)) {
-      throw new Error('AppMetrica: app dependencies block was not found');
-    }
-    next = next.replace(
-      /dependencies\s*\{/,
-      `dependencies {\n    ${APPMETRICA_DEPENDENCY}`,
+function stripLegacyMainApplication(contents) {
+  return contents
+    .replace(/^import io\.appmetrica\.analytics\.AppMetrica\r?\n/gm, '')
+    .replace(/^import io\.appmetrica\.analytics\.AppMetricaConfig\r?\n/gm, '')
+    .replace(
+      /^\s*val appMetricaConfig =\s*\r?\n\s*AppMetricaConfig\.newConfigBuilder\(BuildConfig\.APPMETRICA_API_KEY\)\.build\(\)\s*\r?\n\s*AppMetrica\.activate\(this, appMetricaConfig\)\s*\r?\n/gm,
+      '',
     );
-  }
-
-  if (!next.includes(API_KEY_FIELD)) {
-    const defaultConfigPattern = /(defaultConfig\s*\{)/;
-    if (!defaultConfigPattern.test(next)) {
-      throw new Error('AppMetrica: android.defaultConfig block was not found');
-    }
-    const escapedApiKey = escapeGradleString(validatedApiKey);
-    next = next.replace(
-      defaultConfigPattern,
-      `$1\n        ${API_KEY_FIELD}, "\\"${escapedApiKey}\\""`,
-    );
-  }
-
-  return next;
 }
 
-function patchMainApplication(contents) {
-  let next = contents;
-
-  if (!next.includes('import io.appmetrica.analytics.AppMetrica\n')) {
-    const packageLine = /^(package\s+[^\r\n]+[\r\n]+)/;
-    if (!packageLine.test(next)) {
-      throw new Error('AppMetrica: MainApplication package declaration was not found');
-    }
-    next = next.replace(
-      packageLine,
-      `$1\nimport io.appmetrica.analytics.AppMetrica\nimport io.appmetrica.analytics.AppMetricaConfig\n`,
-    );
-  }
-
-  if (!next.includes('AppMetrica.activate(this, appMetricaConfig)')) {
-    const superOnCreate = /(\s+super\.onCreate\(\)\r?\n)/;
-    if (!superOnCreate.test(next)) {
-      throw new Error('AppMetrica: MainApplication.onCreate was not found');
-    }
-    next = next.replace(
-      superOnCreate,
-      `$1    val appMetricaConfig =\n      AppMetricaConfig.newConfigBuilder(BuildConfig.APPMETRICA_API_KEY).build()\n    AppMetrica.activate(this, appMetricaConfig)\n`,
-    );
-  }
-
-  return next;
-}
-
-const withAppMetrica = (config, options = {}) => {
+function withAppMetrica(config, options = {}) {
   const apiKey = validateApiKey(
     options.apiKey ?? process.env.APPMETRICA_API_KEY,
   );
 
-  config = withAppBuildGradle(config, (appConfig) => {
-    if (appConfig.modResults.language !== 'groovy') {
-      throw new Error('AppMetrica currently supports only Groovy build.gradle files');
-    }
-    appConfig.modResults.contents = patchAppBuildGradle(
-      appConfig.modResults.contents,
-      apiKey,
-    );
-    return appConfig;
+  let next = {
+    ...config,
+    extra: {
+      ...config.extra,
+      appMetricaApiKey: apiKey,
+    },
+  };
+  next = withAppBuildGradle(next, (gradleConfig) => {
+    gradleConfig.modResults.contents = stripLegacyGradle(gradleConfig.modResults.contents);
+    return gradleConfig;
   });
-
-  config = withMainApplication(config, (mainApplicationConfig) => {
-    if (mainApplicationConfig.modResults.language !== 'kt') {
-      throw new Error('AppMetrica currently supports only Kotlin MainApplication');
-    }
-    mainApplicationConfig.modResults.contents = patchMainApplication(
-      mainApplicationConfig.modResults.contents,
-    );
-    return mainApplicationConfig;
+  next = withMainApplication(next, (mainConfig) => {
+    mainConfig.modResults.contents = stripLegacyMainApplication(mainConfig.modResults.contents);
+    return mainConfig;
   });
+  return next;
+}
 
-  return config;
-};
-
-const plugin = createRunOncePlugin(
-  withAppMetrica,
-  'with-appmetrica',
-  '1.0.0',
-);
+const plugin = createRunOncePlugin(withAppMetrica, 'with-appmetrica', '2.0.0');
 
 module.exports = plugin;
-module.exports.patchAppBuildGradle = patchAppBuildGradle;
-module.exports.patchMainApplication = patchMainApplication;
+module.exports.withAppMetrica = withAppMetrica;
 module.exports.validateApiKey = validateApiKey;
+module.exports.stripLegacyGradle = stripLegacyGradle;
+module.exports.stripLegacyMainApplication = stripLegacyMainApplication;

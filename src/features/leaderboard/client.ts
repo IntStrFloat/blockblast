@@ -1,5 +1,6 @@
 import type {
   BackendProfileSession,
+  AdventureSeasonWindow,
   RankedTicket,
   RunMove,
   WeeklyImpact,
@@ -19,6 +20,7 @@ export interface LeaderboardClient {
   }) => Promise<{ nickname: string; tag: string }>;
   issueTickets: (input: { authToken: string }) => Promise<RankedTicket[]>;
   getWeeklySnapshot: (input: { authToken?: string }) => Promise<WeeklyLeaderboardSnapshot | null>;
+  getAdventureSeason?: (input: { authToken: string }) => Promise<AdventureSeasonWindow | null>;
   submitRun: (input: {
     authToken: string;
     ticketId: string | null;
@@ -26,6 +28,8 @@ export interface LeaderboardClient {
     seed: number;
     moves: RunMove[];
     durationMs: number;
+    /** Витринный образ Капи (retention фаза 3); сервер хранит последний присланный. */
+    avatar?: string | null;
   }) => Promise<{ snapshot?: WeeklyLeaderboardSnapshot; impact?: WeeklyImpact } | null>;
 }
 
@@ -45,6 +49,7 @@ export function createLeaderboardClient(): LeaderboardClient {
       renameProfile: async ({ nickname }) => ({ nickname, tag: '' }),
       issueTickets: async () => [],
       getWeeklySnapshot: async () => null,
+      getAdventureSeason: async () => null,
       submitRun: async () => null,
     };
   }

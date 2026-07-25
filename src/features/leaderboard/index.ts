@@ -27,13 +27,9 @@ export type { WeeklyPrize, WeeklyPrizeRecord } from './weeklyPrize';
 export { appendRunMove, beginRunProof, finalizeRunProof } from './runProof';
 export { createLeaderboardStore, useLeaderboardStore } from './store';
 export {
-  createChallengeCode,
-  createDailyChallenge,
-  decodeChallengeCode,
   getUtcWeekCountdown,
   getUtcWeekWindow,
   getWeeklyGoal,
-  shouldShowDailyChallenge,
 } from './week';
 export type {
   LeaderboardEntry,

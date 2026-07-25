@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, create } from 'react-test-renderer';
 
-import { SPECTACLE_MOTION } from '../animation/motion';
+import { BURST_MOTION } from '../animation/motion';
 import { composeShakePresentation, useShake } from '../effects/useShake';
 
 const mockCancelAnimation = jest.fn();
@@ -124,8 +124,8 @@ describe('useShake', () => {
 
     expect(mockCancelAnimation).toHaveBeenCalledTimes(6);
     expect(mockWithDelay).toHaveBeenCalled();
-    expect(lastAnimation(0)).toMatchObject({ kind: 'delay', delay: SPECTACLE_MOTION.debrisStartMs });
-    expect(lastAnimation(2)).toMatchObject({ kind: 'delay', delay: SPECTACLE_MOTION.debrisStartMs });
+    expect(lastAnimation(0)).toMatchObject({ kind: 'delay', delay: BURST_MOTION.impactShakeDelayMs });
+    expect(lastAnimation(2)).toMatchObject({ kind: 'delay', delay: BURST_MOTION.impactShakeDelayMs });
     expect(delayedAnimation(0).animation.steps.at(-1)?.toValue).toBe(0);
     expect(delayedAnimation(2).animation.steps.at(-1)?.toValue).toBe(1);
   });

@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { radii } from '@/ui';
+import { shouldPulseOnFill } from '../animation/motion';
 import { useDragCtx } from '../drag/DragContext';
 import { Block } from './Block';
 
@@ -17,6 +18,7 @@ interface BoardCellProps {
   gap: number;
   fillColor: string; // cellColors[colorId-1], пустая строка если colorId=0
   emptyColor: string;
+  reducedMotion: boolean;
 }
 
 export const BoardCell = memo(function BoardCell({
@@ -26,21 +28,31 @@ export const BoardCell = memo(function BoardCell({
   gap,
   fillColor,
   emptyColor,
+  reducedMotion,
 }: BoardCellProps) {
   const ctx = useDragCtx();
   const r = (index / 8) | 0;
   const c = index % 8;
   const step = size + gap;
+  const radius = ctx.cellRadius ?? (ctx.cellLine ? 2 : radii.cell);
 
   // Анимация размещения: scale 1.15→1.0 за 120мс (спека 04).
-  // Триггер — появление блока в ячейке (смена colorId на ненулевой).
+  // Триггер — переход пусто → блок. Маунт уже заполненной ячейки (резюм
+  // сохранённой партии) не пульсирует — иначе вся доска «выстреливает» разом.
   const placedScale = useSharedValue(1);
+  const prevColorIdRef = useRef(colorId);
   useEffect(() => {
-    if (colorId > 0) {
+    const prevColorId = prevColorIdRef.current;
+    prevColorIdRef.current = colorId;
+    if (shouldPulseOnFill(prevColorId, colorId)) {
+      if (reducedMotion) {
+        placedScale.value = 1;
+        return;
+      }
       placedScale.value = 1.15;
       placedScale.value = withTiming(1.0, { duration: 120 });
     }
-  }, [colorId, placedScale]);
+  }, [colorId, placedScale, reducedMotion]);
 
   // Стиль базовой ячейки с анимацией размещения
   const cellAnimStyle = useAnimatedStyle(() => ({
@@ -75,7 +87,7 @@ export const BoardCell = memo(function BoardCell({
           top: r * step,
           width: size,
           height: size,
-          borderRadius: radii.cell,
+          borderRadius: radius,
           overflow: 'hidden',
         },
         cellAnimStyle,
@@ -86,7 +98,9 @@ export const BoardCell = memo(function BoardCell({
           style={{
             flex: 1,
             backgroundColor: emptyColor,
-            borderRadius: radii.cell,
+            borderRadius: radius,
+            borderWidth: ctx.cellLine ? 1 : 0,
+            borderColor: ctx.cellLine,
           }}
         />
       ) : (
@@ -101,7 +115,7 @@ export const BoardCell = memo(function BoardCell({
             left: 0,
             right: 0,
             bottom: 0,
-            borderRadius: radii.cell,
+            borderRadius: radius,
             opacity: 0,
           },
           previewStyle,

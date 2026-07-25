@@ -48,13 +48,13 @@ describe('defaults', () => {
 // useHelper — гейт от Уровня Игры
 // ---------------------------------------------------------------------------
 describe('useHelper', () => {
-  it('hint: false below unlock level (game level 4)', () => {
-    useProgression.setState({ level: 4 });
+  it('hint: false below unlock level (game level 1)', () => {
+    useProgression.setState({ level: 1 });
     expect(useMascot.getState().useHelper('hint')).toBe(false);
   });
 
-  it('hint: true at game level 5 when not used today', () => {
-    useProgression.setState({ level: 5 });
+  it('hint: true at game level 2 when not used today', () => {
+    useProgression.setState({ level: 2 });
     expect(useMascot.getState().useHelper('hint')).toBe(true);
   });
 
@@ -64,13 +64,13 @@ describe('useHelper', () => {
     expect(useMascot.getState().useHelper('hint')).toBe(false);
   });
 
-  it('swap: false at game level 8', () => {
-    useProgression.setState({ level: 8 });
+  it('swap: false at game level 5', () => {
+    useProgression.setState({ level: 5 });
     expect(useMascot.getState().useHelper('swap')).toBe(false);
   });
 
-  it('swap: true at game level 9', () => {
-    useProgression.setState({ level: 9 });
+  it('swap: true at game level 6', () => {
+    useProgression.setState({ level: 6 });
     expect(useMascot.getState().useHelper('swap')).toBe(true);
   });
 

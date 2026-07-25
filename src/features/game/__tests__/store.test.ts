@@ -1,5 +1,6 @@
 import { deserialize, emptyBoard, idx, serialize, SHAPES_BY_ID } from '@/core/engine';
 import { KEYS, getString, removeKey, setString } from '@/core/storage';
+import { useAnalyticsStore } from '@/features/analytics';
 import { useLeaderboardStore } from '@/features/leaderboard/store';
 import { useScores } from '@/features/scores';
 import { useStreak } from '@/features/streak';
@@ -26,6 +27,7 @@ function setNearGameOver(score: number, reviveUsed = false): void {
       score,
       combo: 4,
       movesSinceClear: 3,
+      waveNumber: 3,
       status: 'playing',
       reviveUsed,
       rngState: 5,
@@ -48,9 +50,35 @@ function setDotRun(score: number): void {
       score,
       combo: 0,
       movesSinceClear: 0,
+      waveNumber: 0,
       status: 'playing',
       reviveUsed: false,
       rngState: 11,
+    },
+    linesCleared: 0,
+    finalResult: null,
+    lastEvent: null,
+  });
+}
+
+function setNearLineClear(score = 0): void {
+  const board = emptyBoard();
+  for (let c = 0; c < 7; c += 1) board[idx(0, c)] = 1;
+  useGameStore.setState({
+    game: {
+      board,
+      tray: [
+        { shape: dot, colorId: 2 },
+        { shape: dot, colorId: 3 },
+        { shape: dot, colorId: 4 },
+      ],
+      score,
+      combo: 0,
+      movesSinceClear: 0,
+      waveNumber: 1,
+      status: 'playing',
+      reviveUsed: false,
+      rngState: 17,
     },
     linesCleared: 0,
     finalResult: null,
@@ -66,6 +94,9 @@ beforeEach(() => {
   removeKey(KEYS.leaderboardDaily);
   removeKey(KEYS.leaderboardPending);
   removeKey(KEYS.leaderboardTickets);
+  removeKey(KEYS.analyticsQueue);
+  removeKey(KEYS.analyticsPrefs);
+  useAnalyticsStore.setState({ queue: [], optOut: false });
   useScores.setState({ best: 0, gamesPlayed: 0, totalLinesCleared: 0 });
   useStreak.setState({ lastDay: null, count: 0 });
   useLeaderboardStore.getState().resetForTests({
@@ -93,18 +124,17 @@ describe('saved run lifecycle', () => {
     expect(useGameStore.getState().recordCelebrated).toBe(false);
   });
 
-  it('captures the first score crossing once and keeps it through later growth', () => {
+  it('does not treat the first positive score as a mid-run record celebration', () => {
     useScores.setState({ best: 0, gamesPlayed: 0, totalLinesCleared: 0 });
     useGameStore.getState().newGame({ seed: 11 });
     setDotRun(0);
 
     expect(useGameStore.getState().placePiece(0, 0, 0)).not.toBeNull();
-    const firstCelebration = useGameStore.getState().recordCelebration;
-    expect(firstCelebration).toEqual({ score: 1, previousBest: 0 });
+    expect(useGameStore.getState().recordCelebration).toBeNull();
     expect(useGameStore.getState().recordCelebrated).toBe(false);
 
     expect(useGameStore.getState().placePiece(1, 0, 1)).not.toBeNull();
-    expect(useGameStore.getState().recordCelebration).toBe(firstCelebration);
+    expect(useGameStore.getState().recordCelebration).toBeNull();
     expect(useGameStore.getState().recordCelebrated).toBe(false);
   });
 
@@ -123,6 +153,7 @@ describe('saved run lifecycle', () => {
         score: 12,
         combo: 0,
         movesSinceClear: 0,
+        waveNumber: 3,
         status: 'playing',
         reviveUsed: false,
         rngState: 9,
@@ -150,6 +181,7 @@ describe('saved run lifecycle', () => {
         score: 9,
         combo: 0,
         movesSinceClear: 0,
+        waveNumber: 3,
         status: 'playing',
         reviveUsed: false,
         rngState: 13,
@@ -260,13 +292,30 @@ describe('Game Over and Continue accounting', () => {
     expect(useGameStore.getState().finalResult).toEqual({ newRecord: true, delta: 778 });
     expect(useScores.getState().gamesPlayed).toBe(1);
     expect(useScores.getState().best).toBe(778);
-    expect(useStreak.getState().count).toBe(1);
+    expect(useStreak.getState().count).toBe(0);
     expect(deserialize(getString(KEYS.gameCurrent)!)).toEqual(useGameStore.getState().game);
     expect(getSavedGameSummary()).toEqual({
       kind: 'terminal',
       score: 778,
       canContinue: true,
     });
+    expect(useAnalyticsStore.getState().queue).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'game_over',
+          properties: {
+            score: 778,
+            linesCleared: 4,
+            revived: false,
+            sessionDepth: 1,
+          },
+        }),
+        expect.objectContaining({
+          name: 'session_depth',
+          properties: { gamesPlayed: 1 },
+        }),
+      ]),
+    );
   });
 
   it('continues once, preserving score and tray while clearing the board', () => {
@@ -293,6 +342,14 @@ describe('Game Over and Continue accounting', () => {
     });
     expect(useGameStore.getState().recordCelebrated).toBe(true);
     expect(getString(KEYS.gameCurrent)).toBe(serialize(continued));
+    expect(useAnalyticsStore.getState().queue).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'revive_used',
+          properties: { result: 'continued' },
+        }),
+      ]),
+    );
 
     useGameStore.setState({ game: { ...continued, status: 'over' } });
     expect(useGameStore.getState().continueGame()).toBe(false);
@@ -303,7 +360,7 @@ describe('Game Over and Continue accounting', () => {
     useLeaderboardStore.setState({
       tickets: [{ ticketId: 'ticket-1', seed: 5, expiresAt: '2099-06-20T00:00:00.000Z' }],
     });
-    useGameStore.getState().newGame({ mode: 'weekly' });
+    useGameStore.getState().newGame();
     setNearGameOver(777);
 
     useGameStore.getState().placePiece(0, 0, 0);
@@ -320,7 +377,7 @@ describe('Game Over and Continue accounting', () => {
     // Но игровой счётчик партий заморожен на первом Game Over: ревайв — та же партия.
     expect(useScores.getState().gamesPlayed).toBe(1);
     expect(useScores.getState().best).toBe(1501);
-    expect(useStreak.getState().count).toBe(1);
+    expect(useStreak.getState().count).toBe(0);
     // Локальный недельный best поднят, без второй ПАРТИИ (runsCount не растёт).
     expect(useLeaderboardStore.getState().localWeeklyResult).toMatchObject({
       bestScore: 1501,
@@ -407,5 +464,131 @@ describe('Game Over and Continue accounting', () => {
     useGameStore.getState().restoreGame(snapshot);
     expect(serialize(useGameStore.getState().game)).toBe(snapStr);
     expect(getString(KEYS.gameCurrent)).toBe(snapStr);
+  });
+});
+
+// --- Adventure-ран: жизненный цикл рядом с Endless-партией (спека 17, FR-7) ---
+
+describe('adventure run lifecycle in game store', () => {
+  const adventureSpec = {
+    id: 's1-l1',
+    seasonId: 1,
+    levelIndex: 0,
+    seed: 4242,
+    objective: { type: 'score', target: 50 },
+  } as const;
+
+  it('loadSaved detaches the adventure run but keeps its snapshot for resume', () => {
+    useGameStore.getState().newAdventureGame(adventureSpec);
+    expect(useGameStore.getState().adventure).not.toBeNull();
+    expect(getString(KEYS.adventureRun)).toBeTruthy();
+
+    expect(useGameStore.getState().loadSaved()).toBe('active');
+
+    // Endless-партия загружена, ходы больше не уходят в adventure-ветку.
+    expect(useGameStore.getState().adventure).toBeNull();
+    // Снапшот уровня остаётся — FR-7 восстановит его при входе на экран уровня.
+    expect(getString(KEYS.adventureRun)).toBeTruthy();
+  });
+
+  it('restoreGame detaches the adventure run', () => {
+    const snapshot = useGameStore.getState().game;
+    useGameStore.getState().newAdventureGame(adventureSpec);
+
+    useGameStore.getState().restoreGame(snapshot);
+
+    expect(useGameStore.getState().adventure).toBeNull();
+    expect(getString(KEYS.gameCurrent)).toBe(serialize(snapshot));
+  });
+
+  it('suspendAdventure + resumeSavedAdventure restore the same mid-level run', () => {
+    useGameStore.getState().newAdventureGame(adventureSpec, 2);
+    const run = useGameStore.getState().adventure!;
+
+    useGameStore.getState().suspendAdventure();
+    expect(useGameStore.getState().adventure).toBeNull();
+    expect(getString(KEYS.adventureRun)).toBeTruthy();
+
+    const resumed = useGameStore.getState().resumeSavedAdventure(adventureSpec);
+    expect(resumed).toEqual(run);
+    expect(useGameStore.getState().adventure).toEqual(run);
+    expect(useGameStore.getState().game).toEqual(run.game);
+  });
+
+  it('resumeSavedAdventure rejects a mismatched snapshot and clears it', () => {
+    useGameStore.getState().newAdventureGame(adventureSpec);
+    useGameStore.getState().suspendAdventure();
+
+    const other = { ...adventureSpec, id: 's1-l2', levelIndex: 1 };
+    expect(useGameStore.getState().resumeSavedAdventure(other)).toBeNull();
+    expect(useGameStore.getState().adventure).toBeNull();
+    expect(getString(KEYS.adventureRun)).toBeFalsy();
+  });
+
+  it('exitAdventure drops both the run and its snapshot', () => {
+    useGameStore.getState().newAdventureGame(adventureSpec);
+
+    useGameStore.getState().exitAdventure();
+
+    expect(useGameStore.getState().adventure).toBeNull();
+    expect(getString(KEYS.adventureRun)).toBeFalsy();
+    expect(useGameStore.getState().resumeSavedAdventure(adventureSpec)).toBeNull();
+  });
+});
+
+// --- Дейли-активация: первая позитивная очистка дня (retention FTUE rework) ---
+
+describe('streak activation on a positive clear', () => {
+  it('marks the day immediately on the first line clear', () => {
+    setNearLineClear();
+
+    const event = useGameStore.getState().placePiece(0, 0, 7)!;
+
+    expect(event.gameOver).toBe(false);
+    expect(event.clearedRows).toEqual([0]);
+    expect(useStreak.getState().count).toBe(1);
+  });
+
+  it('tracks only the record stages actually entered by successful placements', () => {
+    useScores.setState({ best: 2_000, gamesPlayed: 3, totalLinesCleared: 0 });
+    useGameStore.getState().newGame({ seed: 19 });
+
+    setDotRun(1_640);
+    expect(useGameStore.getState().placePiece(0, 0, 0)).not.toBeNull();
+    setDotRun(1_880);
+    expect(useGameStore.getState().placePiece(0, 0, 0)).not.toBeNull();
+    setDotRun(2_000);
+    expect(useGameStore.getState().placePiece(0, 0, 0)).not.toBeNull();
+
+    const recordEvents = useAnalyticsStore
+      .getState()
+      .queue.filter((event) => event.name === 'record_progressed');
+    expect(recordEvents.map((event) => event.properties)).toEqual([
+      expect.objectContaining({ stage: 'pursuit', score: 1_641, best_at_start: 2_000 }),
+      expect.objectContaining({ stage: 'near', score: 1_881, best_at_start: 2_000 }),
+      expect.objectContaining({ stage: 'broken', score: 2_001, best_at_start: 2_000 }),
+    ]);
+  });
+
+  it('does not mark the day after a loss without a clear', () => {
+    setNearGameOver(777);
+    useGameStore.setState({ linesCleared: 0 });
+
+    const event = useGameStore.getState().placePiece(0, 0, 0)!;
+
+    expect(event.gameOver).toBe(true);
+    expect(event.clearedRows).toHaveLength(0);
+    expect(event.clearedCols).toHaveLength(0);
+    expect(useStreak.getState().count).toBe(0);
+  });
+
+  it('keeps the streak idempotent across later clears on the same day', () => {
+    setNearLineClear();
+    useGameStore.getState().placePiece(0, 0, 7);
+
+    setNearLineClear(100);
+    useGameStore.getState().placePiece(0, 0, 7);
+
+    expect(useStreak.getState().count).toBe(1);
   });
 });

@@ -35,6 +35,9 @@ function createHarness() {
     advance(ms) {
       nowMs += ms;
     },
+    setNow(iso) {
+      nowMs = Date.parse(iso);
+    },
     cleanup() {
       fs.rmSync(dir, { recursive: true, force: true });
     },
@@ -153,6 +156,107 @@ test('record-only: weekly best is the max of submitted scores, runs are counted'
   assert.equal(bareRun.status, 200);
   assert.equal(bareRun.json.snapshot.currentPlayer.weeklyBest, 200);
   assert.equal(bareRun.json.snapshot.currentPlayer.runsCount, 3);
+});
+
+test('leaderboard week rolls at Monday midnight in Moscow time', async (t) => {
+  const h = createHarness();
+  t.after(h.cleanup);
+
+  const session = await h.request('POST', '/api/profile/bootstrap', { nickname: 'PixelNova' });
+
+  h.setNow('2026-07-05T20:59:59.000Z');
+  const before = await h.request('GET', '/api/leaderboard', undefined, session.json.authToken);
+  assert.equal(before.status, 200);
+  assert.equal(before.json.weekKey, '2026-06-29');
+  assert.equal(before.json.weekStartIso, '2026-06-28T21:00:00.000Z');
+  assert.equal(before.json.weekEndIso, '2026-07-05T21:00:00.000Z');
+
+  h.setNow('2026-07-05T21:00:00.000Z');
+  const after = await h.request('GET', '/api/leaderboard', undefined, session.json.authToken);
+  assert.equal(after.status, 200);
+  assert.equal(after.json.weekKey, '2026-07-06');
+  assert.equal(after.json.weekStartIso, '2026-07-05T21:00:00.000Z');
+  assert.equal(after.json.weekEndIso, '2026-07-12T21:00:00.000Z');
+});
+
+test('adventure season is a server-owned 14 day window', async (t) => {
+  const h = createHarness();
+  t.after(h.cleanup);
+
+  const session = await h.request('POST', '/api/profile/bootstrap', { nickname: 'PixelNova' });
+
+  h.setNow('2026-07-05T21:00:00.000Z');
+  const first = await h.request('GET', '/api/adventure/season', undefined, session.json.authToken);
+  assert.equal(first.status, 200);
+  assert.equal(first.json.seasonId, 1);
+  assert.equal(first.json.windowStartIso, '2026-07-05T21:00:00.000Z');
+  assert.equal(first.json.windowEndIso, '2026-07-19T21:00:00.000Z');
+  assert.equal(first.json.durationDays, 14);
+
+  h.setNow('2026-07-19T20:59:59.000Z');
+  const beforeRoll = await h.request('GET', '/api/adventure/season', undefined, session.json.authToken);
+  assert.equal(beforeRoll.json.seasonId, 1);
+
+  h.setNow('2026-07-19T21:00:00.000Z');
+  const afterRoll = await h.request('GET', '/api/adventure/season', undefined, session.json.authToken);
+  assert.equal(afterRoll.json.seasonId, 2);
+  assert.equal(afterRoll.json.windowStartIso, '2026-07-19T21:00:00.000Z');
+  assert.equal(afterRoll.json.windowEndIso, '2026-08-02T21:00:00.000Z');
+});
+
+test('avatar: сабмит сохраняет витринный образ и отдаёт его в списке', async (t) => {
+  const h = createHarness();
+  t.after(h.cleanup);
+
+  const session = await h.request('POST', '/api/profile/bootstrap', { nickname: 'PixelNova' });
+  const token = session.json.authToken;
+
+  const submit = await h.request(
+    'POST',
+    '/api/runs',
+    { score: 1200, avatar: '2|skin-mint||face-glasses||' },
+    token,
+  );
+  assert.equal(submit.status, 200);
+  assert.equal(submit.json.snapshot.currentPlayer.avatar, '2|skin-mint||face-glasses||');
+
+  const board = await h.request('GET', '/api/leaderboard', undefined, token);
+  assert.equal(board.json.entries[0].avatar, '2|skin-mint||face-glasses||');
+
+  // Следующий сабмит без avatar не затирает сохранённый образ.
+  const bare = await h.request('POST', '/api/runs', { score: 900 }, token);
+  assert.equal(bare.status, 200);
+  assert.equal(bare.json.snapshot.currentPlayer.avatar, '2|skin-mint||face-glasses||');
+});
+
+test('avatar: невалидное поле игнорируется, сабмит проходит', async (t) => {
+  const h = createHarness();
+  t.after(h.cleanup);
+
+  const session = await h.request('POST', '/api/profile/bootstrap', { nickname: 'PixelNova' });
+  const token = session.json.authToken;
+
+  const weird = await h.request(
+    'POST',
+    '/api/runs',
+    { score: 700, avatar: '<script>alert(1)</script>' },
+    token,
+  );
+  assert.equal(weird.status, 200);
+  assert.equal(weird.json.snapshot.currentPlayer.avatar, null);
+
+  const tooLong = await h.request(
+    'POST',
+    '/api/runs',
+    { score: 800, avatar: `1|${'x'.repeat(200)}` },
+    token,
+  );
+  assert.equal(tooLong.status, 200);
+  assert.equal(tooLong.json.snapshot.currentPlayer.avatar, null);
+
+  const nonString = await h.request('POST', '/api/runs', { score: 900, avatar: 42 }, token);
+  assert.equal(nonString.status, 200);
+  assert.equal(nonString.json.snapshot.currentPlayer.avatar, null);
 });
 
 test('API key and bearer token are required on protected operations', async (t) => {

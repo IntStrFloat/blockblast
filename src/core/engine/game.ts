@@ -6,6 +6,7 @@ import {
   findPlacements,
   findFullLines,
   hasAnyMove,
+  hasPlacement,
   idx,
   isBoardEmpty,
 } from './board';
@@ -21,19 +22,30 @@ import type {
   PieceInstance,
   PlacementEvent,
   Shape,
+  SpawnConfig,
 } from './types';
+
+type Wave = { tray: PieceInstance[]; rngState: number; playable: boolean };
+interface SearchBudget {
+  limit: number;
+  visited: number;
+}
+
+type WeightOf = (shape: Shape) => number;
+const baseWeight: WeightOf = (s) => s.weight;
 
 function pickWeighted(
   state: number,
   exclude: ReadonlySet<string>,
+  weightOf: WeightOf = baseWeight,
 ): { shape: Shape; state: number } {
   const pool = SHAPES.filter((s) => !exclude.has(s.id));
-  const total = pool.reduce((sum, s) => sum + s.weight, 0);
+  const total = pool.reduce((sum, s) => sum + weightOf(s), 0);
   const r = rngNext(state);
   const target = r.value * total;
   let acc = 0;
   for (const s of pool) {
-    acc += s.weight;
+    acc += weightOf(s);
     if (target < acc) return { shape: s, state: r.state };
   }
   return { shape: pool[pool.length - 1], state: r.state };
@@ -42,19 +54,59 @@ function pickWeighted(
 function makeRandomWave(
   rngState: number,
   colors: number,
+  weightOf: WeightOf = baseWeight,
+  allowDuplicates = false,
 ): { tray: PieceInstance[]; rngState: number } {
   const exclude = new Set<string>();
   const tray: PieceInstance[] = [];
   let s = rngState;
   for (let i = 0; i < TRAY_SIZE; i++) {
-    const picked = pickWeighted(s, exclude);
-    exclude.add(picked.shape.id);
+    const picked = pickWeighted(s, exclude, weightOf);
+    if (!allowDuplicates) exclude.add(picked.shape.id);
     s = picked.state;
     const color = rngInt(s, colors);
     s = color.state;
     tray.push({ shape: picked.shape, colorId: color.value + 1 });
   }
   return { tray, rngState: s };
+}
+
+/** Total cell count ("mass") of a tray. Exported for spawn-distribution tests. */
+export function trayMass(tray: readonly PieceInstance[]): number {
+  return tray.reduce((sum, piece) => sum + piece.shape.cells.length, 0);
+}
+
+/** Fraction of the board that is filled (0 = empty, 1 = full). Drives spawn size bias. */
+function filledFraction(board: Board): number {
+  let filled = 0;
+  for (const cell of board) if (cell !== 0) filled += 1;
+  return filled / board.length;
+}
+
+/** Spawn weight as a function of board fullness: heavy figures when the board is empty,
+ *  small ones (singles, short lines, S/Z) when it is full. The exponent on cell count
+ *  flips sign across half-full; rescue mode clamps it to the small-biased end.
+ *  See docs/specs/03 "Dynamic spawn director". */
+function spawnWeightOf(
+  shape: Shape,
+  fullness: number,
+  rescue: boolean,
+  spawn: SpawnConfig,
+): number {
+  const exponent = rescue ? -spawn.sizeBias : spawn.sizeBias * (1 - 2 * fullness);
+  return shape.weight * shape.cells.length ** exponent;
+}
+
+/** Does any piece in the tray complete at least one line on the current board right now?
+ *  Drives the FTUE clear-assist bias (config.preferClearAssist). Exported for tests. */
+export function trayEnablesClear(board: Board, tray: readonly PieceInstance[]): boolean {
+  return tray.some((piece) =>
+    findPlacements(board, piece.shape).some(([r, c]) => {
+      const placed = applyPlacement(board, piece.shape, r, c, 1).board;
+      const { rows, cols } = findFullLines(placed);
+      return rows.length > 0 || cols.length > 0;
+    }),
+  );
 }
 
 function boardAfterPlacement(
@@ -73,14 +125,28 @@ function boardAfterPlacement(
 function canPlayEntireTray(
   board: Board,
   tray: readonly PieceInstance[],
+  budget?: SearchBudget,
 ): boolean {
+  // Мемо провалов по транспозициям (A→B и B→A дают одну и ту же позицию):
+  // резко сокращает работу на «плохих» досках, где поиск вынужден доказать
+  // непроходимость, — это горячий путь пересдачи трея на дропе.
+  const failed = new Set<string>();
+
   const search = (
     currentBoard: Board,
     remaining: readonly PieceInstance[],
   ): boolean => {
+    if (budget) {
+      budget.visited += 1;
+      if (budget.visited > budget.limit) return false;
+    }
     if (remaining.length === 0) return true;
 
-    return remaining.some((piece, pieceIndex) =>
+    const occupied = currentBoard.map((cell) => (cell === 0 ? '0' : '1')).join('');
+    const memoKey = `${remaining.map((p) => p.shape.id).sort().join(',')}:${occupied}`;
+    if (failed.has(memoKey)) return false;
+
+    const playable = remaining.some((piece, pieceIndex) =>
       findPlacements(currentBoard, piece.shape).some(([r, c]) =>
         search(
           boardAfterPlacement(currentBoard, piece.shape, r, c),
@@ -88,6 +154,8 @@ function canPlayEntireTray(
         ),
       ),
     );
+    if (!playable) failed.add(memoKey);
+    return playable;
   };
 
   return search(board, tray);
@@ -95,13 +163,14 @@ function canPlayEntireTray(
 
 function weightedShapeOrder(
   rngState: number,
+  weightOf: WeightOf = baseWeight,
 ): { shapes: Shape[]; rngState: number } {
   const shapes: Shape[] = [];
   const exclude = new Set<string>();
   let s = rngState;
 
   while (shapes.length < SHAPES.length) {
-    const picked = pickWeighted(s, exclude);
+    const picked = pickWeighted(s, exclude, weightOf);
     shapes.push(picked.shape);
     exclude.add(picked.shape.id);
     s = picked.state;
@@ -114,6 +183,7 @@ function findPlayableShapeSequence(
   board: Board,
   shapeOrder: readonly Shape[],
   allowDuplicates: boolean,
+  budget: SearchBudget,
 ): Shape[] | null {
   const failed = new Set<string>();
 
@@ -122,6 +192,8 @@ function findPlayableShapeSequence(
     selected: readonly Shape[],
     used: ReadonlySet<string>,
   ): Shape[] | null => {
+    budget.visited += 1;
+    if (budget.visited > budget.limit) return null;
     if (selected.length === TRAY_SIZE) return selected.slice();
 
     const occupied = currentBoard.map((cell) => (cell === 0 ? '0' : '1')).join('');
@@ -152,47 +224,102 @@ function findPlayableShapeSequence(
   return search(board, [], new Set<string>());
 }
 
+/** Trays within this many cells of the closest-to-target candidate stay eligible, so
+ *  near-target deals keep some compositional variety. */
+const SPAWN_MASS_MARGIN = 3;
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+/** Deals the next tray by aiming at a board-fullness-driven mass target: big on an
+ *  empty board (several 3×3 / 2×2), small when packed or rescuing. It samples
+ *  size-biased candidate trays (duplicates allowed, like the original) and keeps the one
+ *  whose mass is closest to the target, always guaranteeing the whole tray is playable.
+ *  See docs/specs/03 "Dynamic spawn director". */
 function makeWave(
   board: Board,
   rngState: number,
-  colors: number,
-): { tray: PieceInstance[]; rngState: number; playable: boolean } {
-  const randomWave = makeRandomWave(rngState, colors);
-  if (canPlayEntireTray(board, randomWave.tray)) {
-    return { ...randomWave, playable: true };
+  config: GameConfig,
+  movesSinceClear: number,
+): Wave {
+  const { spawn } = config;
+  const searchBudget: SearchBudget = {
+    limit: spawn.fallbackNodeLimit ?? 2500,
+    visited: 0,
+  };
+  const fullness = filledFraction(board);
+  const rescue =
+    fullness >= spawn.rescueFullness || movesSinceClear >= spawn.rescueDryStreak;
+  const target = rescue
+    ? spawn.fullTargetMass
+    : lerp(spawn.emptyTargetMass, spawn.fullTargetMass, fullness);
+  const weightOf: WeightOf = (shape) => spawnWeightOf(shape, fullness, rescue, spawn);
+
+  let s = rngState;
+  const candidates: { tray: PieceInstance[]; dist: number }[] = [];
+  for (let i = 0; i < spawn.candidates; i += 1) {
+    const cand = makeRandomWave(s, config.colors, weightOf, true);
+    s = cand.rngState;
+    if (canPlayEntireTray(board, cand.tray, searchBudget)) {
+      candidates.push({ tray: cand.tray, dist: Math.abs(trayMass(cand.tray) - target) });
+    }
   }
 
-  // Keep normal weighted randomness; search only when that deal is unwinnable.
-  const ordered = weightedShapeOrder(randomWave.rngState);
+  if (candidates.length > 0) {
+    // FTUE-ассист: если можно, выбираем только среди треев, которыми игрок
+    // прямо сейчас закроет линию — так ранняя очистка почти гарантирована.
+    let pool = candidates;
+    if (spawn.preferClearAssist) {
+      const clearing = candidates.filter((c) => trayEnablesClear(board, c.tray));
+      if (clearing.length > 0) pool = clearing;
+    }
+    const closest = pool.reduce((min, c) => Math.min(min, c.dist), Infinity);
+    const near = pool.filter((c) => c.dist <= closest + SPAWN_MASS_MARGIN);
+    const picked = rngInt(s, near.length);
+    return { tray: near[picked.value].tray, rngState: picked.state, playable: true };
+  }
+
+  // No sampled candidate is solvable (a very tight board): search a playable sequence in
+  // size-biased order so the tray is guaranteed solvable; if even that fails, the game is
+  // over and the dealt tray is irrelevant.
+  const ordered = weightedShapeOrder(s, weightOf);
   const shapes =
-    findPlayableShapeSequence(board, ordered.shapes, false) ??
-    findPlayableShapeSequence(board, ordered.shapes, true);
+    findPlayableShapeSequence(board, ordered.shapes, true, searchBudget) ??
+    findPlayableShapeSequence(board, ordered.shapes, false, searchBudget);
 
   if (!shapes) {
-    return { ...randomWave, rngState: ordered.rngState, playable: false };
+    // Поиск не нашёл гарантированно проходимый целиком трей (возможно, просто
+    // упёрся в бюджет). Это НЕ значит, что ходов нет: сдаём обычный трей, а
+    // game over решаем по факту — есть ли хоть один легальный ход. Ложный
+    // game over из-за таймаута поиска недопустим.
+    const dead = makeRandomWave(ordered.rngState, config.colors, weightOf, true);
+    return { ...dead, playable: hasAnyMove(board, dead.tray) };
   }
 
-  let s = ordered.rngState;
+  let s2 = ordered.rngState;
   const tray = shapes.map((shape) => {
-    const color = rngInt(s, colors);
-    s = color.state;
+    const color = rngInt(s2, config.colors);
+    s2 = color.state;
     return { shape, colorId: color.value + 1 };
   });
-  return { tray, rngState: s, playable: true };
+  return { tray, rngState: s2, playable: true };
 }
 
 export function createGame(
   seed: number = seedFromTime(),
   config: GameConfig = DEFAULT_CONFIG,
+  initialBoard?: Board,
 ): GameState {
-  const board = emptyBoard();
-  const wave = makeWave(board, seed, config.colors);
+  const board = initialBoard ? initialBoard.slice() : emptyBoard();
+  const wave = makeWave(board, seed, config, 0);
   return {
     board,
     tray: wave.tray,
     score: 0,
     combo: 0,
     movesSinceClear: 0,
+    waveNumber: 0,
     status: 'playing',
     reviveUsed: false,
     rngState: wave.rngState,
@@ -252,12 +379,14 @@ export function place(
   let tray = state.tray.slice();
   tray[trayIndex] = null;
   let rngState = state.rngState;
+  let waveNumber = state.waveNumber;
   let newTray = false;
   let newTrayPlayable = true;
   if (tray.every((p) => p === null)) {
-    const wave = makeWave(board, rngState, config.colors);
+    const wave = makeWave(board, rngState, config, movesSinceClear);
     tray = wave.tray;
     rngState = wave.rngState;
+    waveNumber += 1;
     newTray = true;
     newTrayPlayable = wave.playable;
   }
@@ -270,6 +399,7 @@ export function place(
     score,
     combo,
     movesSinceClear,
+    waveNumber,
     status: gameOver ? 'over' : 'playing',
     reviveUsed: state.reviveUsed,
     rngState,
@@ -298,13 +428,29 @@ export function replaceTrayPiece(
   trayIndex: number,
   config: GameConfig = DEFAULT_CONFIG,
 ): GameState {
-  const exclude = new Set<string>();
+  // Замена — спасательная фича: новая фигура обязана помещаться на доску,
+  // иначе игрок может остаться вовсе без ходов при статусе playing (софт-лок).
+  const placeable = SHAPES.filter((shape) => hasPlacement(state.board, shape));
+  if (placeable.length === 0) {
+    // Ни одна фигура каталога не влезает — замена не спасёт, партия окончена.
+    return { ...state, status: 'over' };
+  }
+
+  const otherSlotIds = new Set<string>();
   for (let i = 0; i < state.tray.length; i++) {
     if (i !== trayIndex) {
       const slot = state.tray[i];
-      if (slot !== null) exclude.add(slot.shape.id);
+      if (slot !== null) otherSlotIds.add(slot.shape.id);
     }
   }
+  // Уникальность к другим слотам держим, пока есть из чего выбирать;
+  // если влезают только фигуры из других слотов — разрешаем дубликат.
+  const unique = placeable.filter((shape) => !otherSlotIds.has(shape.id));
+  const pool = new Set((unique.length > 0 ? unique : placeable).map((s) => s.id));
+  const exclude = new Set(
+    SHAPES.filter((shape) => !pool.has(shape.id)).map((shape) => shape.id),
+  );
+
   const picked = pickWeighted(state.rngState, exclude);
   const color = rngInt(picked.state, config.colors);
   const newTray = state.tray.slice();

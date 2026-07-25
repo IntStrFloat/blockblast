@@ -1,62 +1,42 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { Keyframe } from 'react-native-reanimated';
 
-import { t } from '@/core/i18n';
-import { useLang } from '@/features/settings';
-import { AppText, colors, radii } from '@/ui';
+import { colors } from '@/ui';
 
 import { GAME_FEEL_MOTION } from '../animation/motion';
+import { RECORD_PROGRESS } from '../animation/recordProgression';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { type RecordCelebration, useGameStore } from '../store';
 import { Confetti } from './Confetti';
 
 const RECORD_GOLD = ['#F5C451', '#FFE27A', '#FFF6BA', '#FFFDF2'] as const;
-const CELEBRATION_HIDE_MS = 1200;
-const REDUCED_HIDE_MS = 360;
-const BANNER_MAX_WIDTH = '88%';
+const REDUCED_HIDE_MS = 420;
 
 interface ActiveCelebration {
   id: number;
   record: RecordCelebration;
 }
 
-function titleAnimation(reducedMotion: boolean) {
+function bloomAnimation(reducedMotion: boolean) {
   return new Keyframe(
     reducedMotion
       ? {
-          0: { opacity: 0, transform: [{ scale: 0.94 }] },
-          30: { opacity: 1, transform: [{ scale: 1 }] },
-          100: { opacity: 0, transform: [{ scale: 0.98 }] },
+          0: { opacity: 0 },
+          35: { opacity: 0.5 },
+          100: { opacity: 0 },
         }
       : {
-          0: { opacity: 0, transform: [{ scale: 0.82 }, { translateY: -4 }] },
-          28: { opacity: 1, transform: [{ scale: 1.06 }, { translateY: 0 }] },
-          68: { opacity: 1, transform: [{ scale: 1 }, { translateY: 0 }] },
-          100: { opacity: 0, transform: [{ scale: 1.02 }, { translateY: -10 }] },
+          0: { opacity: 0, transform: [{ scale: 0.86 }] },
+          28: { opacity: 0.82, transform: [{ scale: 1.04 }] },
+          62: { opacity: 0.42, transform: [{ scale: 1.1 }] },
+          100: { opacity: 0, transform: [{ scale: 1.16 }] },
         },
-  ).duration(reducedMotion ? REDUCED_HIDE_MS : CELEBRATION_HIDE_MS);
-}
-
-function scoreAnimation(reducedMotion: boolean) {
-  return new Keyframe(
-    reducedMotion
-      ? {
-          0: { opacity: 0, transform: [{ scale: 0.9 }] },
-          34: { opacity: 1, transform: [{ scale: 1.03 }] },
-          100: { opacity: 0, transform: [{ scale: 0.98 }] },
-        }
-      : {
-          0: { opacity: 0, transform: [{ scale: 0.78 }, { translateY: 0 }] },
-          24: { opacity: 1, transform: [{ scale: 1.18 }, { translateY: -2 }] },
-          54: { opacity: 1, transform: [{ scale: 1.05 }, { translateY: -4 }] },
-          100: { opacity: 0, transform: [{ scale: 1.01 }, { translateY: -10 }] },
-        },
-  ).duration(reducedMotion ? REDUCED_HIDE_MS : CELEBRATION_HIDE_MS);
+  ).duration(reducedMotion ? REDUCED_HIDE_MS : 720);
 }
 
 export function NewRecordCelebration() {
-  const lang = useLang();
   const reducedMotion = useReducedMotion();
   const recordCelebration = useGameStore((state) => state.recordCelebration);
   const [active, setActive] = useState<ActiveCelebration | null>(null);
@@ -74,24 +54,17 @@ export function NewRecordCelebration() {
   );
 
   useEffect(() => {
-    if (!recordCelebration || handledRef.current === recordCelebration) {
-      return;
-    }
+    if (!recordCelebration || handledRef.current === recordCelebration) return;
 
     handledRef.current = recordCelebration;
-
     const id = ++counter.current;
     setActive({ id, record: recordCelebration });
 
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
+    if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      if (counter.current === id) {
-        setActive(null);
-      }
-    }, reducedMotion ? REDUCED_HIDE_MS : CELEBRATION_HIDE_MS);
+      if (counter.current === id) setActive(null);
+    }, reducedMotion ? REDUCED_HIDE_MS : RECORD_PROGRESS.celebrationMs);
   }, [recordCelebration, reducedMotion]);
 
   if (!active) return null;
@@ -100,89 +73,68 @@ export function NewRecordCelebration() {
     <View
       testID="new-record-celebration"
       pointerEvents="none"
-      style={{
-        position: 'absolute',
-        top: 18,
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-        zIndex: 70,
-      }}
+      style={styles.root}
     >
+      <Animated.View
+        key={`record-bloom-${active.id}`}
+        testID="new-record-bloom"
+        entering={bloomAnimation(reducedMotion)}
+        style={styles.bloom}
+      >
+        <LinearGradient
+          colors={[
+            'rgba(255,244,183,0)',
+            'rgba(255,211,61,0.34)',
+            'rgba(255,193,7,0.12)',
+            'rgba(255,193,7,0)',
+          ]}
+          locations={[0, 0.34, 0.68, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.ring} />
+      </Animated.View>
+
       <Confetti
-        height={220}
+        height={250}
         count={GAME_FEEL_MOTION.recordConfettiMax}
         palette={[...RECORD_GOLD]}
         reducedMotion={reducedMotion}
         seed={active.record.score * 31 + active.record.previousBest * 17}
         testIdPrefix="record-confetti-piece-"
       />
-
-      <Animated.View
-        key={`record-title-${active.id}`}
-        entering={titleAnimation(reducedMotion)}
-        style={{
-          width: '100%',
-          maxWidth: BANNER_MAX_WIDTH,
-          paddingHorizontal: 16,
-          alignItems: 'center',
-          opacity: 0,
-          transform: [{ scale: 1 }],
-        }}
-      >
-        <AppText
-          testID="new-record-title"
-          preset="button"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.72}
-          style={{
-            color: colors.accent,
-            width: '100%',
-            textAlign: 'center',
-            textShadowColor: 'rgba(255, 236, 155, 0.45)',
-            textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: 10,
-          }}
-        >
-          {t('gameOver.newRecord', lang)}
-        </AppText>
-      </Animated.View>
-
-      <Animated.View
-        testID="new-record-score-shell"
-        key={`record-score-${active.id}`}
-        entering={scoreAnimation(reducedMotion)}
-        style={{
-          marginTop: 6,
-          width: '100%',
-          maxWidth: BANNER_MAX_WIDTH,
-          borderRadius: radii.button,
-          paddingHorizontal: 16,
-          paddingVertical: 6,
-          backgroundColor: 'rgba(20, 26, 46, 0.72)',
-          opacity: 0,
-          transform: [{ scale: 1 }],
-        }}
-      >
-        <AppText
-          testID="new-record-score"
-          preset="score"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.58}
-          style={{
-            color: colors.accent,
-            width: '100%',
-            textAlign: 'center',
-            textShadowColor: 'rgba(255, 214, 64, 0.5)',
-            textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: 14,
-          }}
-        >
-          {active.record.score}
-        </AppText>
-      </Animated.View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 250,
+    zIndex: 70,
+    overflow: 'hidden',
+  },
+  bloom: {
+    position: 'absolute',
+    top: -34,
+    left: '12%',
+    right: '12%',
+    height: 210,
+    borderRadius: 999,
+  },
+  ring: {
+    position: 'absolute',
+    top: 48,
+    left: '20%',
+    right: '20%',
+    height: 78,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    opacity: 0.55,
+  },
+});

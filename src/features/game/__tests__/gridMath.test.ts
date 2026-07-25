@@ -1,11 +1,27 @@
 import {
   dragTopLefts,
   fitsOnBoard,
+  insideBoard,
   previewMask,
   topLeftToCell,
 } from '../drag/gridMath';
 
 const GEOM = { boardX: 100, boardY: 200, pad: 6, cell: 40, gap: 2 };
+
+describe('insideBoard', () => {
+  it('true, когда bbox фигуры целиком в пределах 8×8', () => {
+    expect(insideBoard(0, 0, 1, 1)).toBe(true);
+    expect(insideBoard(5, 6, 2, 3)).toBe(true);
+    expect(insideBoard(7, 7, 1, 1)).toBe(true);
+  });
+
+  it('false, когда bbox выходит за край доски', () => {
+    expect(insideBoard(-1, 0, 1, 1)).toBe(false);
+    expect(insideBoard(0, -1, 1, 1)).toBe(false);
+    expect(insideBoard(7, 7, 2, 1)).toBe(false);
+    expect(insideBoard(6, 4, 3, 5)).toBe(false);
+  });
+});
 
 describe('topLeftToCell', () => {
   it('точное попадание в ячейку', () => {
@@ -24,7 +40,7 @@ describe('topLeftToCell', () => {
 });
 
 describe('dragTopLefts', () => {
-  it('uses a fixed preview lift', () => {
+  it('keeps the board preview on the same level as the lifted piece', () => {
     const result = dragTopLefts({
       slot: { x: 30, y: 600, width: 120, height: 160 },
       translationX: 45,
@@ -32,14 +48,13 @@ describe('dragTopLefts', () => {
       figureWidth: 124,
       figureHeight: 82,
       pieceLiftPx: 60,
-      previewLiftPx: 42,
     });
 
     expect(result.preview.x).toBe(result.piece.x);
-    expect(result.preview.y).toBe(result.piece.y - 42);
+    expect(result.preview.y).toBe(result.piece.y);
   });
 
-  it('keeps the same preview lift for tall pieces', () => {
+  it('does not add an extra vertical offset for tall pieces', () => {
     const result = dragTopLefts({
       slot: { x: 0, y: 800, width: 360, height: 90 },
       translationX: -80,
@@ -47,10 +62,9 @@ describe('dragTopLefts', () => {
       figureWidth: 40,
       figureHeight: 166,
       pieceLiftPx: 60,
-      previewLiftPx: 42,
     });
 
-    expect(result.preview.y).toBe(result.piece.y - 42);
+    expect(result.preview.y).toBe(result.piece.y);
   });
 });
 
@@ -86,5 +100,16 @@ describe('previewMask', () => {
     for (let col = 0; col < 7; col++) expect(mask[2 * 8 + col]).toBe(2);
     expect(mask[2 * 8 + 7]).toBe(3);
     expect(mask.filter((v) => (v & 2) !== 0)).toHaveLength(8);
+  });
+
+  it('can reuse a caller-owned buffer to avoid per-cell-change allocations', () => {
+    const board = new Array(64).fill(0);
+    const reusable = new Array(64).fill(9);
+
+    const mask = previewMask(board, [[0, 0]], 1, 1, reusable);
+
+    expect(mask).toBe(reusable);
+    expect(mask[1 * 8 + 1]).toBe(1);
+    expect(mask.filter((v) => v !== 0)).toHaveLength(1);
   });
 });

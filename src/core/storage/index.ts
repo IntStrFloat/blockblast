@@ -20,13 +20,17 @@ export const KEYS = {
   leaderboardPrizes: 'leaderboard.prizes',
   analyticsQueue: 'analytics.queue',
   analyticsPrefs: 'analytics.prefs',
+  analyticsSessionMeta: 'analytics.session.meta',
   entitlements: 'iap.entitlements',
   adsMeta: 'ads.meta',
   tutorialDone: 'tutorial.done',
   mascot: 'mascot.state',
   progression: 'progression.state',
   daily: 'daily.state',
+  adventure: 'adventure.state',
+  adventureRun: 'adventure.run',
   onboardingMeta: 'onboarding.meta.v1',
+  onboardingConsent: 'onboarding.consent.v1',
   pushPrompt: 'push.prompt.v1',
 } as const;
 

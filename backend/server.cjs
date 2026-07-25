@@ -4,8 +4,15 @@ const path = require('node:path');
 
 const TICKET_POOL_SIZE = 10;
 const TICKET_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const LEADERBOARD_UTC_OFFSET_MINUTES = 3 * 60;
+const ADVENTURE_SEASON_DURATION_MS = 14 * 24 * 60 * 60 * 1000;
+const ADVENTURE_SEASON_ANCHOR_ISO = '2026-07-05T21:00:00.000Z';
 const MAX_MOVES = 20_000;
 const MAX_SCORE = 100_000_000;
+// Витринный образ Капи: "stage|skin|hat|face|accessory|aura" (спека retention фазы 3).
+// Сервер хранит как непрозрачную строку с проверкой формата; семантика — на клиенте.
+const MAX_AVATAR_LENGTH = 96;
+const AVATAR_PATTERN = /^[1-4]\|[a-z0-9|-]*$/;
 
 function createApi(options) {
   const apiKey = options.apiKey ?? '';
@@ -106,6 +113,10 @@ function createApi(options) {
       return response(200, buildSnapshot(store.read(), session.user.id, now()));
     }
 
+    if (method === 'GET' && pathname === '/api/adventure/season') {
+      return response(200, buildAdventureSeason(now()));
+    }
+
     if (method === 'POST' && pathname === '/api/runs') {
       const parsed = validateRunPayload(body);
       if (!parsed.ok) return response(400, { error: parsed.error });
@@ -135,6 +146,11 @@ function createApi(options) {
         movesCount: parsed.value.moves.length,
         completedAt: now().toISOString(),
       });
+      if (parsed.value.avatar !== null) {
+        const user = data.users[session.user.id];
+        user.avatar = parsed.value.avatar;
+        user.updatedAt = now().toISOString();
+      }
       store.write(data);
 
       const snapshot = buildSnapshot(data, session.user.id, now());
@@ -232,7 +248,14 @@ function validateRunPayload(body) {
       moves.push({ trayIndex: move.trayIndex, row: move.row, col: move.col });
     }
   }
-  return { ok: true, value: { ticketId, seed, score: body.score, durationMs, moves } };
+  // Невалидный avatar не роняет сабмит (счёт важнее витрины) — просто игнорируем.
+  const avatar =
+    typeof body.avatar === 'string' &&
+    body.avatar.length <= MAX_AVATAR_LENGTH &&
+    AVATAR_PATTERN.test(body.avatar)
+      ? body.avatar
+      : null;
+  return { ok: true, value: { ticketId, seed, score: body.score, durationMs, moves, avatar } };
 }
 
 function buildSnapshot(data, currentUserId, date) {
@@ -269,6 +292,7 @@ function buildSnapshot(data, currentUserId, date) {
     currentRanked ??
     ({
       ...publicProfile(currentUser),
+      avatar: currentUser.avatar ?? null,
       rank: null,
       weeklyBest: 0,
       runsCount: 0,
@@ -288,15 +312,43 @@ function buildSnapshot(data, currentUserId, date) {
   };
 }
 
+function buildAdventureSeason(date) {
+  const nowMs = date.getTime();
+  const anchorMs = Date.parse(ADVENTURE_SEASON_ANCHOR_ISO);
+  const elapsed = Math.max(0, nowMs - anchorMs);
+  const seasonOffset = Math.floor(elapsed / ADVENTURE_SEASON_DURATION_MS);
+  const windowStartMs = anchorMs + seasonOffset * ADVENTURE_SEASON_DURATION_MS;
+  const windowEndMs = windowStartMs + ADVENTURE_SEASON_DURATION_MS;
+
+  return {
+    seasonId: seasonOffset + 1,
+    serverNowIso: date.toISOString(),
+    windowStartIso: new Date(windowStartMs).toISOString(),
+    windowEndIso: new Date(windowEndMs).toISOString(),
+    durationDays: 14,
+  };
+}
+
 function utcWeek(date) {
-  const start = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0),
+  const offsetMs = LEADERBOARD_UTC_OFFSET_MINUTES * 60 * 1000;
+  const localDate = new Date(date.getTime() + offsetMs);
+  const localStart = new Date(
+    Date.UTC(
+      localDate.getUTCFullYear(),
+      localDate.getUTCMonth(),
+      localDate.getUTCDate(),
+      0,
+      0,
+      0,
+      0,
+    ),
   );
-  const day = start.getUTCDay();
-  start.setUTCDate(start.getUTCDate() - (day === 0 ? 6 : day - 1));
+  const day = localStart.getUTCDay();
+  localStart.setUTCDate(localStart.getUTCDate() - (day === 0 ? 6 : day - 1));
+  const start = new Date(localStart.getTime() - offsetMs);
   const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
   return {
-    weekKey: start.toISOString().slice(0, 10),
+    weekKey: localStart.toISOString().slice(0, 10),
     weekStartIso: start.toISOString(),
     weekEndIso: end.toISOString(),
   };
@@ -309,6 +361,7 @@ function publicProfile(user) {
 function publicEntry(record, rank, isCurrentPlayer) {
   return {
     ...publicProfile(record.user),
+    avatar: record.user.avatar ?? null,
     rank,
     weeklyBest: record.best,
     runsCount: record.runsCount,

@@ -17,6 +17,8 @@ export const Block = memo(function Block({ size, color }: BlockProps) {
         height: size,
         borderRadius: radii.cell,
         backgroundColor: color,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.18)',
         overflow: 'hidden',
       }}
     >
@@ -26,8 +28,8 @@ export const Block = memo(function Block({ size, color }: BlockProps) {
           top: 0,
           left: 0,
           right: 0,
-          height: Math.round(size * 0.3),
-          backgroundColor: 'rgba(255,255,255,0.25)',
+          height: Math.max(2, Math.round(size * 0.16)),
+          backgroundColor: 'rgba(255,255,255,0.16)',
         }}
       />
       <View
@@ -36,8 +38,8 @@ export const Block = memo(function Block({ size, color }: BlockProps) {
           bottom: 0,
           left: 0,
           right: 0,
-          height: Math.round(size * 0.16),
-          backgroundColor: 'rgba(0,0,0,0.22)',
+          height: Math.max(2, Math.round(size * 0.08)),
+          backgroundColor: 'rgba(0,0,0,0.12)',
         }}
       />
     </View>

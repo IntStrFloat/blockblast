@@ -8,9 +8,12 @@ import { NewRecordCelebration } from '../effects/NewRecordCelebration';
 import { useGameStore } from '../store';
 import { useGameFeedback } from '../sound/useGameFeedback';
 
+declare const __dirname: string;
+
 jest.mock('../sound/sounds', () => ({
   initSounds: jest.fn(),
   playSound: jest.fn(),
+  playPlacementFeedback: jest.fn(),
 }));
 const { playSound: mockPlaySound } = jest.requireMock('../sound/sounds') as {
   playSound: jest.Mock;
@@ -19,7 +22,14 @@ const { playSound: mockPlaySound } = jest.requireMock('../sound/sounds') as {
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(() => Promise.resolve()),
   impactAsync: jest.fn(() => Promise.resolve()),
+  performAndroidHapticsAsync: jest.fn(() => Promise.resolve()),
   selectionAsync: jest.fn(() => Promise.resolve()),
+  AndroidHaptics: {
+    Confirm: 'confirm',
+    Drag_Start: 'drag-start',
+    Gesture_End: 'gesture-end',
+    Reject: 'reject',
+  },
   NotificationFeedbackType: {
     Warning: 'Warning',
     Success: 'Success',
@@ -33,9 +43,11 @@ jest.mock('expo-haptics', () => ({
 const {
   notificationAsync: mockNotificationAsync,
   impactAsync: mockImpactAsync,
+  performAndroidHapticsAsync: mockPerformAndroidHapticsAsync,
 } = jest.requireMock('expo-haptics') as {
   notificationAsync: jest.Mock;
   impactAsync: jest.Mock;
+  performAndroidHapticsAsync: jest.Mock;
 };
 
 jest.mock('react-native-reanimated', () => {
@@ -176,6 +188,39 @@ describe('useGameFeedback', () => {
     });
   });
 
+  it('can dispatch placement feedback before persistence and React store subscribers', () => {
+    const fs = jest.requireActual<{ readFileSync(path: string, encoding: string): string }>('fs');
+    const storeSource = fs.readFileSync(`${__dirname}/../store.ts`, 'utf8');
+    const placementBlock = storeSource.slice(
+      storeSource.indexOf('placePiece: (trayIndex, r, c) => {'),
+      storeSource.indexOf('return result.event;', storeSource.indexOf('placePiece: (trayIndex, r, c) => {')),
+    );
+
+    expect(placementBlock).toContain('playPlacementFeedback(result.event');
+    expect(placementBlock.indexOf('playPlacementFeedback(result.event')).toBeLessThan(
+      placementBlock.indexOf('setString(KEYS.gameCurrent'),
+    );
+    expect(placementBlock.indexOf('playPlacementFeedback(result.event')).toBeLessThan(
+      placementBlock.indexOf('set({'),
+    );
+  });
+
+  it('uses Android haptics engine mappings for placement feedback', () => {
+    const renderer = mountProbe();
+
+    act(() => {
+      useGameStore.setState({ lastEvent: placementEvent({ clearedRows: [0] }) });
+    });
+
+    expect(mockPerformAndroidHapticsAsync).toHaveBeenCalledWith('confirm');
+    expect(mockNotificationAsync).not.toHaveBeenCalled();
+    expect(mockImpactAsync).not.toHaveBeenCalled();
+
+    act(() => {
+      renderer.unmount();
+    });
+  });
+
   it('plays the current event once on mount when the screen mounts mid-run', () => {
     // Событие уже лежит в сторе ДО монтирования экрана (например, пере-маунт).
     act(() => {
@@ -200,7 +245,7 @@ describe('useGameFeedback', () => {
     });
 
     expect(mockPlaySound).toHaveBeenCalledTimes(1);
-    expect(mockImpactAsync).toHaveBeenCalledTimes(1);
+    expect(mockPerformAndroidHapticsAsync).toHaveBeenCalledWith('gesture-end');
 
     act(() => {
       useSettings.setState({ sound: false });
@@ -213,7 +258,7 @@ describe('useGameFeedback', () => {
     });
 
     expect(mockPlaySound).toHaveBeenCalledTimes(1);
-    expect(mockImpactAsync).toHaveBeenCalledTimes(1);
+    expect(mockPerformAndroidHapticsAsync).toHaveBeenCalledTimes(1);
 
     act(() => {
       renderer.unmount();
@@ -235,7 +280,7 @@ describe('useGameFeedback', () => {
 
     expect(mockPlaySound).toHaveBeenCalledWith('gameover');
     expect(mockPlaySound).toHaveBeenCalledTimes(1);
-    expect(mockNotificationAsync).toHaveBeenCalledTimes(1);
+    expect(mockPerformAndroidHapticsAsync).toHaveBeenCalledWith('reject');
 
     act(() => {
       useSettings.setState({ sound: false });
@@ -246,7 +291,7 @@ describe('useGameFeedback', () => {
     });
 
     expect(mockPlaySound).toHaveBeenCalledTimes(1);
-    expect(mockNotificationAsync).toHaveBeenCalledTimes(1);
+    expect(mockPerformAndroidHapticsAsync).toHaveBeenCalledTimes(1);
 
     act(() => {
       renderer.unmount();
@@ -285,7 +330,7 @@ describe('useGameFeedback', () => {
     });
   });
 
-  it('clears a pending record timer when sound turns off and does not replay after re-enable', () => {
+  it('clears a pending record timer when all feedback turns off and does not replay', () => {
     const clearTimeoutSpy = jest.spyOn(globalThis, 'clearTimeout');
     const renderer = mountProbe();
 
@@ -297,17 +342,17 @@ describe('useGameFeedback', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(300);
+      jest.advanceTimersByTime(80);
     });
 
     act(() => {
-      useSettings.setState({ sound: false });
+      useSettings.setState({ sound: false, haptics: false });
     });
 
     expect(clearTimeoutSpy).toHaveBeenCalled();
 
     act(() => {
-      useSettings.setState({ sound: true });
+      useSettings.setState({ sound: true, haptics: true });
       jest.advanceTimersByTime(1000);
     });
 
@@ -331,7 +376,7 @@ describe('useGameFeedback', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(300);
+      jest.advanceTimersByTime(80);
     });
 
     act(() => {
@@ -361,13 +406,14 @@ describe('useGameFeedback', () => {
 
     expect(useGameStore.getState().recordCelebrated).toBe(true);
     expect(activeCelebrationCount(renderer)).toBe(1);
-    expect(renderer.root.findByProps({ testID: 'new-record-score' }).props.children).toBe(77);
+    expect(renderer.root.findByProps({ testID: 'new-record-bloom' })).toBeDefined();
 
     act(() => {
       jest.advanceTimersByTime(600);
     });
     expect(mockPlaySound).toHaveBeenCalledWith('record');
     expect(mockPlaySound.mock.calls.filter(([name]) => name === 'record')).toHaveLength(1);
+    expect(mockPerformAndroidHapticsAsync).toHaveBeenCalledWith('confirm');
 
     act(() => {
       renderer.update(React.createElement(IntegratedProbe));
@@ -398,7 +444,7 @@ describe('useGameFeedback', () => {
     expect(activeCelebrationCount(renderer)).toBe(1);
 
     act(() => {
-      jest.advanceTimersByTime(1300);
+      jest.advanceTimersByTime(1500);
     });
     expect(activeCelebrationCount(renderer)).toBe(0);
     expect(mockPlaySound.mock.calls.filter(([name]) => name === 'record')).toHaveLength(0);

@@ -9,14 +9,27 @@ import { YandexAdsProvider } from './yandexAds';
 
 export { MONETIZATION, PRODUCT_IDS } from './config';
 export { AdBanner } from './AdBanner';
+export type { AdBannerProps } from './AdBanner';
 export { useEntitlements } from './entitlements';
 export {
+  getRewardedCtaPolicy,
+  shouldShowGameBanner,
+  shouldShowHomeBanner,
+} from './policy';
+export type {
+  GameBannerEligibility,
+  RewardedCtaInput,
+  RewardedCtaPolicy,
+} from './policy';
+export {
   EMPTY_ADS_META,
+  recordAdventureFail,
+  recordAdventureLevelWin,
   recordGameOver,
   recordInterstitialShown,
   shouldShowInterstitial,
 } from './frequency';
-export type { AdsMeta } from './frequency';
+export type { AdsMeta, InterstitialCounter } from './frequency';
 export type {
   AdsProvider,
   IapProvider,

@@ -15,7 +15,13 @@ describe('Yandex ads diagnostics source contract', () => {
     expect(providerSource).toContain("reportAdsError('SDK initialization', error)");
     expect(providerSource).toContain("reportAdsError('interstitial show', error)");
     expect(providerSource).toContain("reportAdsError('rewarded show', error)");
+    expect(providerSource).toContain("track('ad_requested'");
+    expect(providerSource).toContain("track('ad_shown'");
+    expect(providerSource).toContain("track('ad_failed'");
     expect(bannerSource).toContain('onAdFailedToLoad');
     expect(bannerSource).toContain("console.warn('[ads] Yandex banner failed to load'");
+    expect(bannerSource).toContain("track('ad_requested'");
+    expect(bannerSource).toContain("track('ad_shown'");
+    expect(bannerSource).toContain("track('ad_failed'");
   });
 });

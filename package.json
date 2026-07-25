@@ -1,8 +1,10 @@
 {
   "name": "blockblast",
   "main": "expo-router/entry",
-  "version": "1.1.19",
+  "version": "1.1.27",
   "dependencies": {
+    "@appmetrica/react-native-analytics": "^4.1.0",
+    "@expo-google-fonts/fredoka": "^0.4.1",
     "@expo-google-fonts/unbounded": "^0.4.1",
     "expo": "~56.0.11",
     "expo-asset": "~56.0.17",
@@ -14,6 +16,7 @@
     "expo-linear-gradient": "~56.0.4",
     "expo-linking": "~56.0.14",
     "expo-localization": "~56.0.6",
+    "expo-notifications": "~56.0.20",
     "expo-router": "~56.2.10",
     "expo-splash-screen": "~56.0.10",
     "expo-status-bar": "~56.0.4",
@@ -66,7 +69,8 @@
       "**/__tests__/**/*.test.tsx"
     ],
     "modulePathIgnorePatterns": [
-      "<rootDir>/.claude/worktrees/"
+      "<rootDir>/.claude/worktrees/",
+      "<rootDir>/.worktrees/"
     ]
   },
   "private": true

@@ -13,6 +13,10 @@ export { ClayCard } from './primitives/ClayCard';
 export { GameButton } from './primitives/GameButton';
 export { IconButton } from './primitives/IconButton';
 export { Overlay } from './primitives/Overlay';
+export { BottomNav } from './primitives/BottomNav';
+export type { BottomNavTab } from './primitives/BottomNav';
+export { ProgressChip, RewardPreview, ScreenHeader } from './primitives/ScreenHeader';
+export { ResultStat } from './primitives/ResultStat';
 export {
   BLOCK_THEMES,
   colors,
@@ -21,5 +25,6 @@ export {
   mascotPalette,
   radii,
   spacing,
+  semanticColors,
 } from './theme';
 export type { BlockTheme } from './theme';

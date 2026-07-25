@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import type React from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -19,12 +20,14 @@ import { Block } from './Block';
 interface TrayPieceProps {
   piece: PieceInstance;
   trayIndex: number;
+  renderCellOverlay?: (cellIndex: number, cellSizePx: number) => React.ReactNode;
 }
 
-export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
+export function TrayPiece({ piece, trayIndex, renderCellOverlay }: TrayPieceProps) {
   const ctx = useDragCtx();
   const { geom, cellColors } = ctx;
-  const { cell, gap } = geom;
+  const { cell } = geom;
+  const trayCellGap = Math.min(2, Math.max(1, Math.round(cell * 0.035)));
 
   const board = useGameStore((s) => s.game.board);
   const { shape, colorId } = piece;
@@ -58,14 +61,18 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
   }));
 
   // Полный размер фигуры при scale=1
-  const figW = w * cell + (w > 1 ? (w - 1) * gap : 0);
-  const figH = h * cell + (h > 1 ? (h - 1) * gap : 0);
+  const figW = w * cell + (w > 1 ? (w - 1) * trayCellGap : 0);
+  const figH = h * cell + (h > 1 ? (h - 1) * trayCellGap : 0);
 
-  // Масштаб в покое под ширину слота: TrayView = 100% экрана, paddingHorizontal 8,
-  // три равных слота. Широкие фигуры ужимаются, чтобы не налезать на соседнюю.
+  // Масштаб в покое под реальный слот. Endless: трей = 100% экрана,
+  // paddingHorizontal 8, три равных слота → фолбэк (screenWidth-16)/3, высота не
+  // ограничивает (трей заведомо выше фигур). Adventure передаёт ctx.trayFit с
+  // реальными шириной/высотой слота (трей уже экрана + крупная клетка), чтобы
+  // широкие фигуры не налезали на соседей, а высокие — не вылезали за трей.
   const { width: screenWidth } = useWindowDimensions();
-  const slotWidth = (screenWidth - 16) / 3;
-  const restingScale = trayRestingScale(figW, slotWidth);
+  const slotWidth = ctx.trayFit?.slotWidth ?? (screenWidth - 16) / 3;
+  const slotHeight = ctx.trayFit?.slotHeight;
+  const restingScale = trayRestingScale(figW, figH, slotWidth, slotHeight);
 
   const measureSlot = useCallback(() => {
     // measureInWindow нельзя вызывать в worklet — снимаем на JS при layout
@@ -149,13 +156,14 @@ export function TrayPiece({ piece, trayIndex }: TrayPieceProps) {
                     key={index}
                     style={{
                       position: 'absolute',
-                      left: dc * (cell + gap),
-                      top: dr * (cell + gap),
+                      left: dc * (cell + trayCellGap),
+                      top: dr * (cell + trayCellGap),
                     }}
-                  >
-                    <Block size={cell} color={color} />
-                  </View>
-                ))}
+                    >
+                      <Block size={cell} color={color} />
+                      {renderCellOverlay?.(index, cell)}
+                    </View>
+                  ))}
               </View>
             </Animated.View>
           </Animated.View>

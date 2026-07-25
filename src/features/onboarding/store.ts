@@ -11,9 +11,13 @@ interface OnboardingStore extends OnboardingState {
   markSeen: () => void;
 }
 
-/** Показывать онбординг при первом заходе после обновления (флаг ещё не выставлен). */
-export function shouldShowOnboarding(seen: boolean): boolean {
-  return !seen;
+/**
+ * Показывать мета-онбординг: флаг ещё не выставлен И игрок сыграл ≥1 партию.
+ * Новичок (0 партий) идёт прямо в игру — мета-лекция появится после первой партии,
+ * когда системам (уровень/миры/дейли) уже есть контекст (FTUE, спека 10).
+ */
+export function shouldShowOnboarding(seen: boolean, gamesPlayed: number): boolean {
+  return !seen && gamesPlayed >= 1;
 }
 
 const saved = getJSON<OnboardingState>(KEYS.onboardingMeta);

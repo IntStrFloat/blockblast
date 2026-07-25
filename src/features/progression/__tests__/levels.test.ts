@@ -1,8 +1,8 @@
 import { levelCost, thresholdForLevel, levelForPoints, progressFor } from '../logic/levels';
 
 describe('levelCost', () => {
-  it('cost(1) = base = 14000', () => {
-    expect(levelCost(1)).toBe(14000);
+  it('cost(1) = base = 7500 (уровень 1 ≈ 3–4 медианные партии)', () => {
+    expect(levelCost(1)).toBe(7500);
   });
   it('строго возрастает', () => {
     for (let L = 1; L < 40; L++) {
@@ -39,7 +39,7 @@ describe('levelForPoints', () => {
 
 describe('progressFor', () => {
   it('0 очков → уровень 1, мир 1, в уровне 0, до следующего = cost(1)', () => {
-    expect(progressFor(0)).toEqual({ level: 1, world: 1, pointsInLevel: 0, pointsToNext: 14000 });
+    expect(progressFor(0)).toEqual({ level: 1, world: 1, pointsInLevel: 0, pointsToNext: 7500 });
   });
   it('ровно на пороге уровня 2', () => {
     expect(progressFor(thresholdForLevel(2))).toEqual({
@@ -58,7 +58,10 @@ describe('progressFor', () => {
       pointsToNext: levelCost(3) - 5,
     });
   });
-  it('уровень 6 уже в мире 2', () => {
-    expect(progressFor(thresholdForLevel(6)).world).toBe(2);
+  it('уровень 4 уже в мире 2', () => {
+    expect(progressFor(thresholdForLevel(4)).world).toBe(2);
+  });
+  it('мир 2 достижим за ~неделю активной игры (порог ≤ 26k очков)', () => {
+    expect(thresholdForLevel(4)).toBeLessThanOrEqual(26_000);
   });
 });

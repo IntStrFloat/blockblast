@@ -24,7 +24,8 @@ import { GAME_FEEL_MOTION } from '../animation/motion';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useDragCtx } from '../drag/DragContext';
 import { ClearBurstLayer } from '../effects/ClearBurstLayer';
-import { ClearLayer } from '../effects/ClearLayer';
+import { ClearDebrisLayer } from '../effects/ClearDebrisLayer';
+import { BoardFramePulse } from '../effects/BoardFramePulse';
 import { GameEffectsLayer } from '../effects/GameEffectsLayer';
 import { useShake } from '../effects/useShake';
 import { useGameStore } from '../store';
@@ -92,8 +93,13 @@ export function BoardView({ style }: BoardViewProps) {
         : null,
     [boardGeom, lastEvent, reducedMotion, stableCellColors],
   );
+  const queuedComboFrame = useMemo(
+    () => (lastEvent ? comboFrameFor(lastEvent, reducedMotion) : null),
+    [lastEvent, reducedMotion],
+  );
   const queuedPlacementEffect = useMemo<PlacementEffectInstance | null>(() => {
     if (!lastEvent) return null;
+    if (lastEvent.clearedCells.length > 0) return null;
 
     return {
       id: placementEventInstanceKey(lastEvent),
@@ -103,11 +109,32 @@ export function BoardView({ style }: BoardViewProps) {
         stableCellColors,
         reducedMotion,
       ),
-      comboFrame: comboFrameFor(lastEvent, reducedMotion),
+      comboFrame: queuedComboFrame!,
       color: stableCellColors[Math.max(0, lastEvent.colorId - 1)] ?? '#FFFFFF',
     };
-  }, [boardGeom, lastEvent, reducedMotion, stableCellColors]);
+  }, [boardGeom, lastEvent, queuedComboFrame, reducedMotion, stableCellColors]);
+  const queuedClearComboFrame = useMemo(() => {
+    if (!lastEvent || lastEvent.clearedCells.length === 0 || !queuedComboFrame) return null;
+    if (queuedComboFrame.intensity <= 0) return null;
+    return {
+      id: clearEventInstanceKey(lastEvent),
+      presentation: queuedComboFrame,
+      color: stableCellColors[Math.max(0, lastEvent.colorId - 1)] ?? '#FFFFFF',
+    };
+  }, [lastEvent, queuedComboFrame, stableCellColors]);
   const [activePresentations, setActivePresentations] = useState<ClearPresentationInstance[]>([]);
+  // Пул разрушения получает свежий клир сразу, в том же коммите, где доска уже
+  // пуста: хоп через setActivePresentations (эффект → setState → новый рендер)
+  // добавлял кадр «пустых» ячеек до появления осколков. Дедуп по id внутри
+  // ClearBurstLayer не даёт клиру сыграть дважды, когда он позже попадает в
+  // activePresentations.
+  const burstPresentations = useMemo(() => {
+    if (!queuedPresentation) return activePresentations;
+    if (activePresentations.some((entry) => entry.id === queuedPresentation.id)) {
+      return activePresentations;
+    }
+    return [...activePresentations, queuedPresentation];
+  }, [activePresentations, queuedPresentation]);
   const [activePlacementEffects, setActivePlacementEffects] = useState<PlacementEffectInstance[]>([]);
   const budgetedPlacementEffects = useMemo(
     () =>
@@ -133,9 +160,9 @@ export function BoardView({ style }: BoardViewProps) {
     if (!lastEvent) return;
     triggerShake({
       clear: queuedPresentation?.presentation.shake ?? null,
-      combo: queuedPlacementEffect?.comboFrame ?? null,
+      combo: queuedComboFrame,
     });
-  }, [lastEvent, queuedPlacementEffect, queuedPresentation, triggerShake]);
+  }, [lastEvent, queuedComboFrame, queuedPresentation, triggerShake]);
 
   useEffect(() => {
     if (!queuedPresentation) return;
@@ -280,19 +307,25 @@ export function BoardView({ style }: BoardViewProps) {
               gap={gap}
               fillColor={fillColor}
               emptyColor={cellEmpty}
+              reducedMotion={reducedMotion}
             />
           );
         })}
-        <ClearLayer presentations={activePresentations} />
       </View>
-      <GameEffectsLayer
-        presentations={activePresentations}
-        placementEffects={budgetedPlacementEffects}
-      />
-      {/* Пул разрушения — сиблинг вне клиппинга доски (осколки разлетаются за её
-          края). Монтируется один раз и переиспользует вью, поэтому не даёт
-          «рывка» от массового mount на каждой очистке. */}
-      <ClearBurstLayer presentations={activePresentations} />
+      <GameEffectsLayer placementEffects={budgetedPlacementEffects} />
+      {queuedClearComboFrame ? (
+        <BoardFramePulse
+          key={queuedClearComboFrame.id}
+          presentation={queuedClearComboFrame.presentation}
+          color={queuedClearComboFrame.color}
+        />
+      ) : null}
+      {/* Пулы разрушения (осколки + крошка) — сиблинги вне клиппинга доски
+          (частицы разлетаются за её края). Монтируются один раз и
+          переиспользуют вью, поэтому не дают «рывка» от массового mount на
+          каждой очистке. */}
+      <ClearDebrisLayer presentations={activePresentations} />
+      <ClearBurstLayer presentations={burstPresentations} />
     </Animated.View>
   );
 }
