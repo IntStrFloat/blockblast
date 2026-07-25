@@ -91,6 +91,8 @@ export interface SpawnConfig {
   rescueFullness: number;
   /** Consecutive no-clear placements that also force the rescue target. */
   rescueDryStreak: number;
+  /** Minimum board fullness required for a dry streak to force the rescue target. */
+  rescueDryStreakMinFullness: number;
   /** Hard cap for exhaustive fallback search nodes during tray refill. */
   fallbackNodeLimit?: number;
   /** FTUE assist: when set, prefer dealt trays that let the player complete a line

@@ -61,7 +61,7 @@ const BOARD_FRAME_WIDTH = 6;
 // трей и рекламный баннер поместились без наезда (иначе фигуры трея вылезали
 // «под пространство» и на баннер). Значения — приблизительные габариты чрома.
 const HEADER_HEIGHT = 56;
-const OBJECTIVE_HEIGHT = 60;
+const OBJECTIVE_HEIGHT = 76;
 const TRAY_HEIGHT = 150;
 // Резерв под sticky-баннер Яндекса (реальная высота ~50–90) + запас.
 const AD_RESERVE = 108;
@@ -271,6 +271,11 @@ export default function AdventureLevelScreen() {
     router.replace('/adventure' as Href);
   }, [router]);
 
+  const exitToHome = useCallback(() => {
+    useGameStore.getState().exitAdventure();
+    router.replace('/' as Href);
+  }, [router]);
+
   const startCurrentLevel = useCallback(
     (nextAttempt = 0) => {
       useGameStore.getState().newAdventureGame(spec, nextAttempt);
@@ -477,7 +482,7 @@ export default function AdventureLevelScreen() {
           <PauseOverlay
             onClose={() => setPaused(false)}
             onRestart={confirmRestart}
-            onHome={exitToHub}
+            onHome={exitToHome}
           />
         ) : null}
 

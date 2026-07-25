@@ -1,6 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import Animated, { Keyframe } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  Keyframe,
+  cancelAnimation,
+  runOnJS,
+  useAnimatedReaction,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
 import { useScores } from '@/features/scores';
@@ -20,6 +28,7 @@ const COMBO_BADGE_RESERVED_HEIGHT = 28;
 const HUD_RESERVED_HEIGHT =
   Math.ceil(SCORE_SHELL_HEIGHT * GAME_FEEL_MOTION.scoreScaleMax) + COMBO_BADGE_RESERVED_HEIGHT;
 const SHIMMER_THRESHOLD = 120;
+const LIVE_SCORE_COUNT_UP_DURATION = 420;
 
 function cappedScoreScale(scale: number) {
   return Math.min(scale, GAME_FEEL_MOTION.scoreScaleMax);
@@ -68,8 +77,18 @@ function ScoreCounter() {
   const lastEvent = useGameStore((s) => s.lastEvent);
   const reducedMotion = useReducedMotion();
   const previousScoreRef = useRef(score);
+  const displayedScoreRef = useRef(score);
   const [pulseKey, setPulseKey] = useState(0);
   const [lastJump, setLastJump] = useState(0);
+  const [displayedScore, setDisplayedScore] = useState(score);
+  const countProgress = useSharedValue(1);
+  const countFrom = useSharedValue(score);
+  const countTo = useSharedValue(score);
+
+  const commitDisplayedScore = useCallback((nextScore: number) => {
+    displayedScoreRef.current = nextScore;
+    setDisplayedScore(nextScore);
+  }, []);
 
   useEffect(() => {
     const nextScore = score;
@@ -82,6 +101,39 @@ function ScoreCounter() {
     setPulseKey((value) => value + 1);
     previousScoreRef.current = nextScore;
   }, [score]);
+
+  useEffect(() => {
+    const currentDisplayedScore = displayedScoreRef.current;
+    cancelAnimation(countProgress);
+
+    if (score <= currentDisplayedScore) {
+      countFrom.value = score;
+      countTo.value = score;
+      countProgress.value = 1;
+      if (score !== currentDisplayedScore) commitDisplayedScore(score);
+      return;
+    }
+
+    countFrom.value = currentDisplayedScore;
+    countTo.value = score;
+    countProgress.value = 0;
+    countProgress.value = reducedMotion
+      ? 1
+      : withTiming(1, {
+          duration: LIVE_SCORE_COUNT_UP_DURATION,
+          easing: Easing.out(Easing.cubic),
+        });
+
+    return () => cancelAnimation(countProgress);
+  }, [commitDisplayedScore, countFrom, countProgress, countTo, reducedMotion, score]);
+
+  useAnimatedReaction(
+    () => Math.round(countFrom.value + (countTo.value - countFrom.value) * countProgress.value),
+    (nextScore, previousScore) => {
+      if (nextScore !== previousScore) runOnJS(commitDisplayedScore)(nextScore);
+    },
+    [commitDisplayedScore],
+  );
 
   const scoreScale = scoreScaleFor(score);
   const shimmer = lastJump >= SHIMMER_THRESHOLD;
@@ -124,7 +176,7 @@ function ScoreCounter() {
             textShadowRadius: isLiveRecord ? 12 : 0,
           }}
         >
-          {score}
+          {displayedScore}
         </AppText>
       </Animated.View>
     </View>

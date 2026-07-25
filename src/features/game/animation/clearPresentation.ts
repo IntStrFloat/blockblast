@@ -23,6 +23,26 @@ export interface ClearDebris {
 }
 
 /**
+ * A luminous particle with physical initial conditions. ClearSparkLayer
+ * advances it on the UI thread, rather than replaying a CSS-like keyframe.
+ */
+export interface ClearSpark {
+  id: string;
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  glowColor: string;
+  velocityX: number;
+  velocityY: number;
+  gravity: number;
+  spinDegPerSecond: number;
+  delay: number;
+  duration: number;
+  shape: 'diamond' | 'dot';
+}
+
+/**
  * Осколок пула разрушения (ClearBurstLayer): кусок расколотой ячейки.
  * Осколки одной ячейки тайлят её без зазора, поэтому в кадре клира они
  * визуально неотличимы от блока; затем вспышка-крак, подскок с разлётом
@@ -59,6 +79,8 @@ export interface ClearPresentation {
   key: string;
   /** Крошка-акцент (рендерит ClearDebrisLayer, пул). */
   debris: ClearDebris[];
+  /** Светящиеся искры с физикой (рендерит ClearSparkLayer, пул). */
+  sparks: ClearSpark[];
   /** Осколки разрушения (рендерит ClearBurstLayer, пул). */
   shards: ClearBurstShard[];
   centroid: { x: number; y: number };
@@ -112,7 +134,7 @@ function sampleEffectCells(
 }
 
 export function countAnimatedClearNodes(presentation: ClearPresentation) {
-  return presentation.shards.length + presentation.debris.length;
+  return presentation.shards.length + presentation.debris.length + presentation.sparks.length;
 }
 
 /** Осветление hex-цвета к белому: вспышка-крак в момент раскола. */
@@ -126,6 +148,13 @@ function lightenColor(hex: string, mix: number): string {
   };
   const mixed = (channel(16) << 16) | (channel(8) << 8) | channel(0);
   return `#${mixed.toString(16).padStart(6, '0').toUpperCase()}`;
+}
+
+function colorWithAlpha(hex: string, alpha: number): string {
+  const match = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!match) return `rgba(255,255,255,${alpha})`;
+  const value = parseInt(match[1]!, 16);
+  return `rgba(${(value >> 16) & 0xff},${(value >> 8) & 0xff},${value & 0xff},${alpha})`;
 }
 
 /** Крошка-акцент: 1 частица на BURST_MOTION.debrisPerCells ячеек, cap debrisCap. */
@@ -164,6 +193,62 @@ function buildDebris(
       rotateDeg: reducedMotion ? 0 : (random() - 0.5) * 360,
       delay: waveDelay + Math.round(random() * BURST_MOTION.debrisDelayJitterMs),
       duration: reducedMotion ? 180 : 340 + Math.round(random() * 160),
+    };
+  });
+}
+
+/**
+ * Sparse yellow-white glints and colour-tinted diamonds. These are data for a
+ * small, pooled physics system: velocity/gravity are integrated every frame,
+ * so each burst breathes and disperses instead of following a canned tween.
+ */
+function buildSparks(
+  event: PlacementEvent,
+  geom: ClearGeometry,
+  getColor: (row: number, col: number) => string,
+  random: () => number,
+  center: { x: number; y: number },
+  reducedMotion: boolean,
+): ClearSpark[] {
+  if (event.clearedCells.length === 0) return [];
+
+  const count = Math.min(
+    BURST_MOTION.sparkCap,
+    Math.max(3, Math.ceil(event.clearedCells.length / BURST_MOTION.sparkPerCells)),
+  );
+  const sampledCells = sampleEffectCells(event.clearedCells, count);
+  const step = geom.cell + geom.gap;
+
+  return sampledCells.map(([row, col], index) => {
+    const baseColor = getColor(row, col);
+    const cellCenterX = col * step + geom.cell / 2;
+    const away = cellCenterX >= center.x ? 1 : -1;
+    const isDiamond = index % 3 !== 1;
+    const color = index % 4 === 0 ? '#FFF4A8' : lightenColor(baseColor, 0.62);
+    const delay = reducedMotion
+      ? 0
+      : clearCellDelay([row, col], event.placed as readonly Cell[]) +
+        Math.round(random() * BURST_MOTION.sparkDelayJitterMs);
+
+    return {
+      id: `spark-${index}`,
+      x: cellCenterX + (random() - 0.5) * geom.cell * 0.44,
+      y: row * step + geom.cell * (0.28 + random() * 0.44),
+      size: Math.max(3, geom.cell * (0.11 + random() * 0.12)),
+      color,
+      glowColor: colorWithAlpha(color, 0.58),
+      velocityX: reducedMotion
+        ? 0
+        : (away * (0.75 + random() * 1.15) + (random() - 0.5) * 0.7) * geom.cell * 1.45,
+      velocityY: reducedMotion ? 0 : -geom.cell * (2.9 + random() * 1.8),
+      gravity: reducedMotion ? 0 : geom.cell * (7.4 + random() * 2.2),
+      spinDegPerSecond: reducedMotion ? 0 : (random() < 0.5 ? -1 : 1) * (95 + random() * 155),
+      delay,
+      duration: reducedMotion
+        ? 180
+        : BURST_MOTION.sparkDurationMinMs +
+          Math.round(random() * BURST_MOTION.sparkDurationJitterMs),
+      shape: isDiamond ? 'diamond' : 'dot',
     };
   });
 }
@@ -216,12 +301,17 @@ function shardCountPlan(cellDelays: readonly number[], budget: number): number[]
     rank[index] = position;
   });
 
-  if (count * 2 <= budget) {
-    const upgrades = Math.floor((budget - count * 2) / 2);
-    return rank.map((position) => (position < upgrades ? 4 : 2));
-  }
-  const upgrades = Math.max(0, budget - count);
-  return rank.map((position) => (position < upgrades ? 2 : 1));
+  // Spend the reduced budget on a few unmistakably broken tiles at the
+  // impact point, then preserve seamless coverage for the rest of the line.
+  // This reads better than making every cell the same two flat rectangles.
+  const availableUpgrades = Math.max(0, budget - count);
+  const quadCells = Math.min(count, 4, Math.floor(availableUpgrades / 3));
+  const remainingUpgrades = Math.min(count - quadCells, availableUpgrades - quadCells * 3);
+  return rank.map((position) => {
+    if (position < quadCells) return 4;
+    if (position < quadCells + remainingUpgrades) return 2;
+    return 1;
+  });
 }
 
 /**
@@ -357,6 +447,7 @@ export function buildClearPresentation(
   return {
     key: presentationKey,
     debris: buildDebris(event, geom, getColor, random, reducedMotion),
+    sparks: buildSparks(event, geom, getColor, random, centroidPoint, reducedMotion),
     shards: buildBurstShards(event, geom, getColor, random, centroidPoint, reducedMotion),
     centroid: centroidPoint,
     shake: shakeForClear(lineCount, event.boardCleared, reducedMotion),
@@ -376,6 +467,10 @@ export function clearPresentationLifetimeMs(presentation: ClearPresentation | nu
     (max, shard) => Math.max(max, shard.delay + BURST_MOTION.jumpDurationMs + shard.fallDuration),
     0,
   );
+  const latestSpark = presentation.sparks.reduce(
+    (max, spark) => Math.max(max, spark.delay + spark.duration),
+    0,
+  );
 
-  return Math.max(SPECTACLE_MOTION.praiseEndMs, latestDebris, latestShard) + 80;
+  return Math.max(SPECTACLE_MOTION.praiseEndMs, latestDebris, latestShard, latestSpark) + 80;
 }

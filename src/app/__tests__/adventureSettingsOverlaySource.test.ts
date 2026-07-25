@@ -11,9 +11,11 @@ describe('Adventure in-game settings source contract', () => {
     expect(source).not.toContain("router.push('/settings'");
   });
 
-  it('reuses Classic game controls with Adventure-specific Home and Restart actions', () => {
+  it('reuses Classic game controls with Home returning to the main screen and Adventure restart', () => {
     expect(source).toContain('<PauseOverlay');
-    expect(source).toContain('onHome={exitToHub}');
+    expect(source).toContain('const exitToHome');
+    expect(source).toContain("router.replace('/' as Href)");
+    expect(source).toContain('onHome={exitToHome}');
     expect(source).toContain('onRestart={confirmRestart}');
     expect(source).toContain('<ConfirmDialog');
     expect(source).toContain('onConfirm={restartCurrentLevel}');

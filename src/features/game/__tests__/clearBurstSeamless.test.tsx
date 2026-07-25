@@ -174,6 +174,7 @@ function presentationWith(shard: typeof SHARD, key: string) {
   return {
     key,
     debris: [],
+    sparks: [],
     shards: [shard],
     centroid: { x: 0, y: 0 },
     shake: { amplitude: 0, scale: 1, durationMs: 0 },

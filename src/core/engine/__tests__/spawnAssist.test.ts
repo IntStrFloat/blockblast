@@ -1,7 +1,6 @@
 import { idx, emptyBoard } from '../board';
 import { DEFAULT_CONFIG, NOVICE_GAMES, configForExperience } from '../config';
-import { createGame } from '../game';
-import { trayEnablesClear } from '../game';
+import { createGame, place, trayEnablesClear, trayMass } from '../game';
 import { SHAPES_BY_ID } from '../shapes';
 import type { Board, PieceInstance } from '../types';
 
@@ -18,13 +17,26 @@ function almostLineBoard(): Board {
   return board;
 }
 
+/** 28 occupied cells (44%), with no row or column close to a one-move clear. */
+function sparseBoard(): Board {
+  const board = emptyBoard();
+  for (let row = 0; row < 8; row += 1) {
+    const cellsInRow = row < 4 ? 4 : 3;
+    for (let offset = 0; offset < cellsInRow; offset += 1) {
+      board[idx(row, (row + offset) % 8)] = 1;
+    }
+  }
+  return board;
+}
+
 describe('configForExperience (FTUE spawn assist)', () => {
-  it('eases the first games: earlier rescue, shorter dry streak, clear assist on', () => {
+  it('eases the first games with density-aware rescue and clear assist', () => {
     for (const gamesPlayed of [0, 1, NOVICE_GAMES - 1]) {
       const cfg = configForExperience(gamesPlayed);
       expect(cfg.spawn.preferClearAssist).toBe(true);
       expect(cfg.spawn.rescueFullness).toBe(0.6);
-      expect(cfg.spawn.rescueDryStreak).toBe(2);
+      expect(cfg.spawn.rescueDryStreak).toBe(6);
+      expect(cfg.spawn.rescueDryStreakMinFullness).toBe(0.5);
     }
   });
 
@@ -38,6 +50,22 @@ describe('configForExperience (FTUE spawn assist)', () => {
     configForExperience(0);
     expect(DEFAULT_CONFIG.spawn.preferClearAssist).toBeUndefined();
     expect(DEFAULT_CONFIG.spawn.rescueFullness).toBe(0.8);
+    expect(DEFAULT_CONFIG.spawn.rescueDryStreakMinFullness).toBe(0.5);
+  });
+
+  it('does not force gap-filling trays on a sparse board after a dry streak', () => {
+    const config = configForExperience(0);
+    const masses = Array.from({ length: 24 }, (_, index) => {
+      const game = createGame(index + 1, config, sparseBoard());
+      game.tray = [pieceOf('dot'), null, null];
+      game.movesSinceClear = config.spawn.rescueDryStreak;
+
+      const result = place(game, 0, 7, 6, config);
+      expect(result.event.newTray).toBe(true);
+      return trayMass(result.state.tray.filter((piece): piece is PieceInstance => piece !== null));
+    });
+
+    expect(masses.reduce((sum, mass) => sum + mass, 0) / masses.length).toBeGreaterThanOrEqual(12);
   });
 });
 

@@ -30,6 +30,8 @@ export function ObjectivePanel() {
   const collected = run?.collectedJewels ?? 0;
   const current = jewelObjective ? collected : gameScore;
   const target = level.objective.target;
+  const targetLabel = String(target);
+  const badgeDiameter = targetLabel.length >= 4 ? 76 : targetLabel.length >= 3 ? 68 : 60;
   const fill = Math.min(1, current / Math.max(1, target));
   const fillSV = useSharedValue(fill);
   const badgeScale = useSharedValue(1);
@@ -50,12 +52,16 @@ export function ObjectivePanel() {
     <View
       accessible
       accessibilityLabel={`${label}: ${current}/${target}`}
-      style={styles.shell}
+      style={[styles.shell, { height: badgeDiameter }]}
     >
       <View
         style={[
           styles.track,
-          { backgroundColor: skin.progressTrack, borderColor: skin.progressBorder },
+          {
+            backgroundColor: skin.progressTrack,
+            borderColor: skin.progressBorder,
+            marginRight: badgeDiameter / 2 + 4,
+          },
         ]}
       >
         <LinearGradient
@@ -80,12 +86,27 @@ export function ObjectivePanel() {
           {
             backgroundColor: skin.progressBadge,
             borderColor: skin.progressBorder,
+            width: badgeDiameter,
+            height: badgeDiameter,
+            borderRadius: badgeDiameter / 2,
           },
           badgeStyle,
         ]}
       >
-        <AppText preset="speech" style={[styles.targetText, { color: skin.progressBadgeText }]}>
-          {target}
+        <AppText
+          preset="speech"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+          style={[
+            styles.targetText,
+            {
+              color: skin.progressBadgeText,
+              fontSize: targetLabel.length >= 4 ? 18 : 20,
+            },
+          ]}
+        >
+          {targetLabel}
         </AppText>
       </Animated.View>
     </View>
@@ -96,13 +117,12 @@ const styles = StyleSheet.create({
   shell: {
     width: '100%',
     maxWidth: 320,
-    height: 60,
+    minHeight: 60,
     position: 'relative',
     justifyContent: 'center',
   },
   track: {
     height: 24,
-    marginRight: 34,
     borderRadius: 14,
     borderWidth: 2,
     overflow: 'hidden',
@@ -131,9 +151,6 @@ const styles = StyleSheet.create({
   targetBadge: {
     position: 'absolute',
     right: 0,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -145,7 +162,8 @@ const styles = StyleSheet.create({
   },
   targetText: {
     fontFamily: 'Fredoka_700Bold',
-    fontSize: 21,
-    lineHeight: 25,
+    lineHeight: 24,
+    fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
   },
 });

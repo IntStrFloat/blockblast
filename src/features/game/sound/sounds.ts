@@ -41,26 +41,52 @@ const POOL_SIZE: Record<SoundName, number> = {
 
 let players: Partial<Record<SoundName, AudioPlayer[]>> | null = null;
 let cursors: Partial<Record<SoundName, number>> = {};
+let audioModeReady: Promise<void> | null = null;
+let playbackTails = new WeakMap<AudioPlayer, Promise<void>>();
 
 export function initSounds(): void {
   if (players) return;
   try {
-    setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }).catch(
-      () => {},
-    );
     players = {};
     (Object.keys(SOURCES) as SoundName[]).forEach((name) => {
       players![name] = Array.from({ length: POOL_SIZE[name] }, () =>
         createAudioPlayer(SOURCES[name]),
       );
     });
+    // Audio mode is asynchronous in expo-audio. Do not start a one-shot until
+    // the native session has accepted this configuration.
+    audioModeReady = setAudioModeAsync({
+      playsInSilentMode: false,
+      interruptionMode: 'mixWithOthers',
+    }).catch(() => {});
   } catch {
     players = null;
     cursors = {};
+    audioModeReady = null;
   }
 }
 
+function restartPlayer(player: AudioPlayer): void {
+  // `seekTo` is async on iOS and Android. Serialize restarts per player so a
+  // fast pickup/combo cannot call `play` before its seek has completed.
+  const previous = playbackTails.get(player) ?? Promise.resolve();
+  const next = previous
+    .catch(() => {})
+    .then(() => Promise.resolve(player.seekTo(0)))
+    .then(() => {
+      player.play();
+    })
+    .catch(() => {});
+
+  playbackTails.set(player, next);
+}
+
 export function playSound(name: SoundName): void {
+  // A very fast first interaction can precede the screen's effect hook.
+  // Initialize here too so that event is delayed for the audio session instead
+  // of being silently discarded.
+  if (!players) initSounds();
+
   const pool = players?.[name];
   if (!pool?.length) return;
 
@@ -68,11 +94,11 @@ export function playSound(name: SoundName): void {
   const player = pool[cursor % pool.length];
   cursors[name] = (cursor + 1) % pool.length;
 
-  try {
-    player.seekTo(0);
-    player.play();
-  } catch {
-    // Sound feedback is optional.
+  const play = () => restartPlayer(player);
+  if (audioModeReady) {
+    void audioModeReady.then(play, play);
+  } else {
+    play();
   }
 }
 
@@ -89,4 +115,6 @@ export function releaseSounds(): void {
   });
   players = null;
   cursors = {};
+  audioModeReady = null;
+  playbackTails = new WeakMap<AudioPlayer, Promise<void>>();
 }

@@ -6,6 +6,7 @@ const read = (relativePath: string) => fs.readFileSync(`${__dirname}/${relativeP
 describe('action-driven tutorial UI', () => {
   const hints = read('../../game/components/TutorialHints.tsx');
   const pointer = read('../components/TutorialPointer.tsx');
+  const game = read('../../../app/game.tsx');
 
   it('does not advance by tapping instructional copy', () => {
     expect(hints).not.toContain('onPress={advance}');
@@ -35,5 +36,14 @@ describe('action-driven tutorial UI', () => {
 
   it('removes guidance after the first user placement', () => {
     expect(hints).toContain('placements > 0');
+  });
+
+  it('shows the first-move instruction while FTUE is active', () => {
+    expect(game).toContain('showInstruction={ftueActive}');
+  });
+
+  it('maps tutorial target rows directly onto the board grid', () => {
+    expect(game).toContain('y: boardLayout.y + row * (cellSize + cellGap)');
+    expect(game).not.toContain('(row + 1) * (cellSize + cellGap)');
   });
 });

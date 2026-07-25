@@ -20,6 +20,7 @@ export const DEFAULT_CONFIG: GameConfig = {
     fullTargetMass: 6,
     rescueFullness: 0.8,
     rescueDryStreak: 8,
+    rescueDryStreakMinFullness: 0.5,
     fallbackNodeLimit: 2500,
   },
 };
@@ -45,7 +46,8 @@ export function configForExperience(
     spawn: {
       ...base.spawn,
       rescueFullness: 0.6,
-      rescueDryStreak: 2,
+      rescueDryStreak: 6,
+      rescueDryStreakMinFullness: 0.5,
       preferClearAssist: true,
     },
   };

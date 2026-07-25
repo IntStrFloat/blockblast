@@ -4,6 +4,12 @@ import { soundForPlacement } from '../sound/soundEvents';
 
 declare const __dirname: string;
 
+async function flushMicrotasks(): Promise<void> {
+  for (let index = 0; index < 20; index += 1) {
+    await Promise.resolve();
+  }
+}
+
 function event(overrides: Partial<PlacementEvent> = {}): PlacementEvent {
   return {
     placed: [[0, 0]],
@@ -60,7 +66,7 @@ describe('sound player lifecycle', () => {
     jest.dontMock('expo-audio');
   });
 
-  it('rotates clear combo sounds across a small player pool for rapid repeats', () => {
+  it('rotates clear combo sounds across a small player pool for rapid repeats', async () => {
     const players = Array.from({ length: 40 }, () => ({
       play: jest.fn(),
       seekTo: jest.fn(),
@@ -84,10 +90,51 @@ describe('sound player lifecycle', () => {
     playSound('clear3');
     playSound('clear3');
     playSound('clear3');
+    await flushMicrotasks();
 
     const playedPlayers = players.filter((player) => player.play.mock.calls.length > 0);
     expect(playedPlayers).toHaveLength(3);
     expect(playedPlayers.every((player) => player.play.mock.calls.length === 1)).toBe(true);
+  });
+
+  it('queues the first sound until the audio mode and async seek are ready', async () => {
+    let resolveMode!: () => void;
+    let resolveSeek!: () => void;
+    const modeReady = new Promise<void>((resolve) => {
+      resolveMode = resolve;
+    });
+    const seekReady = new Promise<void>((resolve) => {
+      resolveSeek = resolve;
+    });
+    const player = {
+      play: jest.fn(),
+      seekTo: jest.fn(() => seekReady),
+      release: jest.fn(),
+    };
+
+    jest.doMock('expo-audio', () => ({
+      createAudioPlayer: jest.fn(() => player),
+      setAudioModeAsync: jest.fn(() => modeReady),
+    }));
+
+    let soundModule: typeof import('../sound/sounds') | null = null;
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      soundModule = require('../sound/sounds') as typeof import('../sound/sounds');
+    });
+
+    // No explicit init: the first input must not lose its sound effect.
+    soundModule!.playSound('pickup');
+    expect(player.seekTo).not.toHaveBeenCalled();
+
+    resolveMode();
+    await flushMicrotasks();
+    expect(player.seekTo).toHaveBeenCalledWith(0);
+    expect(player.play).not.toHaveBeenCalled();
+
+    resolveSeek();
+    await flushMicrotasks();
+    expect(player.play).toHaveBeenCalledTimes(1);
   });
 
   it('exposes a cleanup path for direct expo-audio players', () => {

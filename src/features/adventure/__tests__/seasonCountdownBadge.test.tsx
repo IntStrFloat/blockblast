@@ -13,7 +13,6 @@ const WINDOW = {
   windowEndIso: '2026-07-19T21:00:00.000Z',
   durationDays: 14,
 };
-const NOW_MS = Date.parse(WINDOW.serverNowIso);
 
 function renderBadge(): ReactTestRenderer {
   let tree!: ReactTestRenderer;
@@ -29,12 +28,7 @@ function badgeText(tree: ReactTestRenderer): string {
 
 describe('SeasonCountdownBadge', () => {
   beforeEach(() => {
-    jest.spyOn(Date, 'now').mockReturnValue(NOW_MS);
     useAdventure.getState().reset();
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
   });
 
   it('starts a season sync on mount when the window is missing', () => {

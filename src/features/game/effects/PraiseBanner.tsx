@@ -27,6 +27,17 @@ const OUTLINE_COLOR = '#0C1730';
 // Кремовая заливка держит максимальный контраст на тёмной доске; тир кодируем
 // цветом свечения/контура, а не заливкой (иначе холодные тиры теряют контраст).
 const FILL_COLOR = '#FFF6E4';
+const COMBO_OUTLINE = '#3A3B98';
+const COMBO_DEPTH = '#111750';
+const COMBO_NUMBER_OUTLINE = '#E83265';
+const COMBO_NUMBER_DEPTH = '#8E1742';
+
+const TIER_FILL: Record<Exclude<PraiseTier, 'none'>, string> = {
+  good: '#24D7E7',
+  great: '#65E5A2',
+  amazing: '#F474A7',
+  unbelievable: '#FFD65B',
+};
 
 /** Цвет свечения по тиру похвалы — «горячее» с ростом достижения. */
 const TIER_GLOW: Record<Exclude<PraiseTier, 'none'>, string> = {
@@ -43,6 +54,8 @@ interface Banner {
   text: string | null;
   tier: PraiseTier;
   comboText: string | null;
+  combo: number | null;
+  fireCaption: string | null;
   scoreDelta: number;
   centroid: { x: number; y: number };
   fontSize: number;
@@ -54,6 +67,8 @@ interface LetteringProps {
   fontSize: number;
   width: number;
   glow: string;
+  variant: 'praise' | 'combo' | 'number';
+  fill?: string;
 }
 
 /**
@@ -62,9 +77,10 @@ interface LetteringProps {
  * копия сверху несёт цветное свечение тира. Оба слоя — один и тот же Text с
  * одинаковыми ограничениями, поэтому автоподбор кегля сходится к одному размеру.
  */
-function Lettering({ text, fontSize, width, glow }: LetteringProps) {
+function Lettering({ text, fontSize, width, glow, variant, fill }: LetteringProps) {
   const lineHeight = Math.round(fontSize * 1.22);
-  const depth = Math.max(2, Math.round(fontSize * 0.08));
+  const depth = Math.max(3, Math.round(fontSize * 0.1));
+  const stroke = Math.max(1.5, Math.round(fontSize * 0.045));
   const fitProps = {
     numberOfLines: 1,
     adjustsFontSizeToFit: true,
@@ -76,11 +92,20 @@ function Lettering({ text, fontSize, width, glow }: LetteringProps) {
     fontSize,
     lineHeight,
     letterSpacing: 0.3,
-    paddingHorizontal: 14,
+    paddingHorizontal: stroke + 8,
   };
+  const outline = variant === 'number' ? COMBO_NUMBER_OUTLINE : COMBO_OUTLINE;
+  const deep = variant === 'number' ? COMBO_NUMBER_DEPTH : COMBO_DEPTH;
+  const front = fill ?? (variant === 'praise' ? '#36DDE7' : FILL_COLOR);
+  const outlineOffsets = [
+    { left: -stroke, top: 0 },
+    { left: stroke, top: 0 },
+    { left: 0, top: -stroke },
+    { left: 0, top: stroke },
+  ];
 
   return (
-    <View style={{ width, height: lineHeight + depth }}>
+    <View style={{ width, height: lineHeight + depth + stroke * 2 }}>
       <AppText
         preset="title"
         {...fitProps}
@@ -90,16 +115,35 @@ function Lettering({ text, fontSize, width, glow }: LetteringProps) {
             position: 'absolute',
             left: 0,
             right: 0,
-            top: depth,
-            color: OUTLINE_COLOR,
+            top: depth + stroke,
+            color: deep,
             textShadowColor: OUTLINE_COLOR,
             textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 3,
+            textShadowRadius: 4,
           },
         ]}
       >
         {text}
       </AppText>
+      {outlineOffsets.map((offset, index) => (
+        <AppText
+          key={`${text}-outline-${index}`}
+          preset="title"
+          {...fitProps}
+          style={[
+            baseStyle,
+            {
+              position: 'absolute',
+              left: offset.left,
+              right: -offset.left,
+              top: offset.top + stroke,
+              color: outline,
+            },
+          ]}
+        >
+          {text}
+        </AppText>
+      ))}
       <AppText
         preset="title"
         {...fitProps}
@@ -109,8 +153,8 @@ function Lettering({ text, fontSize, width, glow }: LetteringProps) {
             position: 'absolute',
             left: 0,
             right: 0,
-            top: 0,
-            color: FILL_COLOR,
+            top: stroke,
+            color: front,
             textShadowColor: glow,
             textShadowOffset: { width: 0, height: 0 },
             textShadowRadius: 14,
@@ -154,6 +198,8 @@ export function PraiseBanner() {
           : praiseText(lastEvent.praise, tone, lang),
       tier: lastEvent.praise,
       comboText,
+      combo: lastEvent.combo >= 2 ? lastEvent.combo : null,
+      fireCaption: lastEvent.onFire ? comboText : null,
       scoreDelta: lastEvent.scoreDelta,
       // Лёгкие расчёты вместо buildClearPresentation: полную презентацию
       // (осколки/крошку/бюджеты) уже строит BoardView, дублировать её в
@@ -241,13 +287,19 @@ export function PraiseBanner() {
 
   const boardSize = ctx.geom.boardSize;
   const letterWidth = Math.round(boardSize * 0.94);
-  const praiseFont = Math.min(banner.fontSize, 40);
-  const comboFont = banner.text
-    ? Math.max(17, Math.round(praiseFont * 0.58))
-    : Math.min(34, Math.round(boardSize * 0.1));
+  const praiseFont = Math.min(banner.fontSize, 42);
+  const comboFont = Math.min(56, Math.max(34, Math.round(boardSize * 0.165)));
+  const comboNumberFont = Math.round(comboFont * 1.14);
+  const comboLabelWidth = Math.round(boardSize * (lang === 'ru' ? 0.64 : 0.55));
+  const comboNumberWidth = Math.round(boardSize * 0.25);
   const praiseGlow = TIER_GLOW[banner.tier === 'none' ? 'good' : banner.tier];
-  const pulseSize = Math.round(boardSize * 0.64);
-  const showPulse = !banner.reducedMotion && (banner.text !== null || banner.comboText !== null);
+  const praiseFill = TIER_FILL[banner.tier === 'none' ? 'good' : banner.tier];
+  const pulseSize = Math.round(boardSize * 0.46);
+  const bannerTop = Math.max(
+    boardSize * 0.24,
+    Math.min(boardSize * 0.64, banner.centroid.y - boardSize * 0.1),
+  );
+  const showPulse = !banner.reducedMotion && (banner.text !== null || banner.combo !== null);
 
   return (
     <View
@@ -287,14 +339,14 @@ export function PraiseBanner() {
         </AppText>
       </Animated.View>
 
-      {banner.text || banner.comboText ? (
+      {banner.text || banner.combo !== null ? (
         <Animated.View
           key={`praise-${banner.id}`}
           entering={praiseAnimation}
           style={{
             position: 'absolute',
             left: 0,
-            top: boardSize * 0.26,
+            top: bannerTop,
             width: boardSize,
             alignItems: 'center',
             opacity: HIDDEN_AFTER_ENTER_OPACITY,
@@ -307,25 +359,72 @@ export function PraiseBanner() {
               pointerEvents="none"
               style={{
                 position: 'absolute',
-                top: -pulseSize * 0.28,
+                top: -pulseSize * 0.2,
                 width: pulseSize,
                 height: pulseSize,
                 borderRadius: pulseSize / 2,
-                backgroundColor: banner.comboText ? COMBO_GLOW : praiseGlow,
+                backgroundColor: banner.combo !== null ? '#FFD84B' : praiseGlow,
+                shadowColor: '#FFD84B',
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.95,
+                shadowRadius: 18,
                 opacity: 0,
               }}
             />
           ) : null}
-          {banner.text ? (
-            <Lettering text={banner.text} fontSize={praiseFont} width={letterWidth} glow={praiseGlow} />
-          ) : null}
-          {banner.comboText ? (
-            <View style={{ marginTop: banner.text ? 2 : 0 }}>
+          {banner.combo !== null ? (
+            <>
+              {banner.text ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -Math.round(praiseFont * 0.58),
+                    left: 0,
+                    width: boardSize,
+                    alignItems: 'flex-start',
+                    paddingLeft: Math.round(boardSize * 0.06),
+                    opacity: 0.96,
+                  }}
+                >
+                  <Lettering
+                    text={banner.text}
+                    fontSize={Math.max(20, Math.round(praiseFont * 0.74))}
+                    width={Math.round(boardSize * 0.62)}
+                    glow={praiseGlow}
+                    variant="praise"
+                    fill={praiseFill}
+                  />
+                </View>
+              ) : null}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <Lettering
+                  text={t('game.combo', lang)}
+                  fontSize={comboFont}
+                  width={comboLabelWidth}
+                  glow="rgba(110,102,255,0.9)"
+                  variant="combo"
+                />
+                <View style={{ marginLeft: -Math.round(comboFont * 0.16) }}>
+                  <Lettering
+                    text={String(banner.combo)}
+                    fontSize={comboNumberFont}
+                    width={comboNumberWidth}
+                    glow={COMBO_GLOW}
+                    variant="number"
+                    fill="#FFFFFF"
+                  />
+                </View>
+              </View>
+            </>
+          ) : banner.text ? (
+            <View style={{ marginTop: -Math.round(praiseFont * 0.18) }}>
               <Lettering
-                text={banner.comboText}
-                fontSize={comboFont}
+                text={banner.text}
+                fontSize={praiseFont}
                 width={letterWidth}
-                glow={COMBO_GLOW}
+                glow={praiseGlow}
+                variant="praise"
+                fill={praiseFill}
               />
             </View>
           ) : null}

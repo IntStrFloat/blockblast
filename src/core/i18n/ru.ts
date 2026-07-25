@@ -30,6 +30,7 @@ export const ru = {
     goalJewels: 'Кристаллов осталось',
     levelClear: 'Уровень пройден',
     failedTitle: 'Ходов больше нет',
+    failedHint: 'Попробуй другую расстановку — цель уже близко.',
     retry: 'Повторить',
     exit: 'Выйти',
     seasonComplete: 'Сезон завершен',
@@ -92,6 +93,9 @@ export const ru = {
     secFeel: 'Оформление',
     secLangData: 'Язык и данные',
     showMascot: 'Показывать Капи',
+    tabGame: 'Игра',
+    tabAppearance: 'Вид',
+    tabData: 'Данные',
   },
   profile: {
     title: 'Профиль',

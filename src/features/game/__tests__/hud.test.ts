@@ -41,6 +41,12 @@ jest.mock('react-native-reanimated', () => {
         React.createElement('animated-view', props, children),
     },
     Keyframe: MockKeyframe,
+    Easing: { out: (value: unknown) => value, cubic: 'cubic' },
+    cancelAnimation: jest.fn(),
+    runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
+    useAnimatedReaction: jest.fn(),
+    useSharedValue: (value: unknown) => ({ value }),
+    withTiming: (value: unknown) => value,
   };
 });
 
@@ -75,9 +81,11 @@ jest.mock('../animation/useReducedMotion', () => ({
 describe('score HUD source contract', () => {
   const source = fs.readFileSync(`${__dirname}/../components/Hud.tsx`, 'utf8');
 
-  it('renders the authoritative store score without a native text input fallback', () => {
+  it('counts the authoritative store score without a native text input fallback', () => {
     expect(source).toContain('useGameStore((s) => s.game.score)');
-    expect(source).toMatch(/<AppText[^>]*preset="score"[^>]*>\s*{score}\s*<\/AppText>/);
+    expect(source).toContain('useAnimatedReaction(');
+    expect(source).toContain('Easing.out(Easing.cubic)');
+    expect(source).toMatch(/<AppText[^>]*preset="score"[^>]*>\s*{displayedScore}\s*<\/AppText>/);
     expect(source).not.toContain('TextInput');
     expect(source).not.toContain('AnimatedTextInput');
     expect(source).not.toContain('defaultValue="0"');

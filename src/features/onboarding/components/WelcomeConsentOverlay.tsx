@@ -1,10 +1,17 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import {
+  getLocalNotificationPermissionStatus,
+  getPush,
+  markPushSoftAskHandled,
+  requestLocalNotificationPermission,
+} from '@/features/notifications';
 import { useLang } from '@/features/settings';
 import { AppText, spacing } from '@/ui';
 
-import { useConsentStore } from '../consentStore';
+import { useWelcomePromptStore } from '../welcomePromptStore';
 
 function WelcomeMark() {
   return (
@@ -23,15 +30,46 @@ function WelcomeMark() {
   );
 }
 
-/** First-run consent gate modelled on the original Block Blast opening flow. */
-export function WelcomeConsentOverlay() {
-  const accepted = useConsentStore((state) => state.accepted);
-  const accept = useConsentStore((state) => state.accept);
+/** First-run notification soft-ask, shown before the tutorial starts. */
+export function WelcomeNotificationOverlay() {
+  const resolved = useWelcomePromptStore((state) => state.resolved);
+  const resolve = useWelcomePromptStore((state) => state.resolve);
   const lang = useLang();
+  const [ready, setReady] = useState(false);
 
-  if (accepted) return null;
+  useEffect(() => {
+    let active = true;
+    void getLocalNotificationPermissionStatus().then((status) => {
+      if (!active) return;
+      if (status !== 'undetermined') {
+        resolve();
+        return;
+      }
+      setReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [resolve]);
+
+  if (resolved || !ready) return null;
 
   const russian = lang === 'ru';
+  const finish = () => {
+    markPushSoftAskHandled();
+    resolve();
+  };
+
+  const allow = async () => {
+    finish();
+    try {
+      await requestLocalNotificationPermission();
+      await getPush().requestPermission();
+    } catch {
+      // The welcome decision still releases FTUE if the OS/provider call fails.
+    }
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.wordmark} accessibilityElementsHidden>
@@ -39,26 +77,23 @@ export function WelcomeConsentOverlay() {
         <AppText preset="title" style={styles.wordmarkBottom}>BLAST</AppText>
       </View>
 
-      <View style={styles.dialog} accessible accessibilityViewIsModal accessibilityLabel={russian ? 'Добро пожаловать в Block Blast' : 'Welcome to Block Blast'}>
+      <View style={styles.dialog} accessible accessibilityViewIsModal accessibilityLabel={russian ? 'Разрешение на уведомления' : 'Notification permission'}>
         <WelcomeMark />
         <View style={styles.copy}>
-          <AppText preset="title" style={styles.title}>{russian ? 'Добро пожаловать в Block Blast!' : 'Welcome to Block Blast!'}</AppText>
-          <AppText preset="body" style={styles.body}>{russian ? 'Пожалуйста, прочитайте и примите наши' : 'Please read and accept our'}</AppText>
-          <View style={styles.linksLine}>
-            <Pressable accessibilityRole="link" onPress={() => {}} hitSlop={8}>
-              <AppText preset="body" style={styles.link}>{russian ? 'Условия использования' : 'Terms of Use'}</AppText>
-            </Pressable>
-            <AppText preset="body" style={styles.body}> {russian ? 'и' : 'and'} </AppText>
-            <Pressable accessibilityRole="link" onPress={() => {}} hitSlop={8}>
-              <AppText preset="body" style={styles.link}>{russian ? 'Политику конфиденциальности' : 'Privacy Policy'}</AppText>
-            </Pressable>
-            <AppText preset="body" style={styles.body}>.</AppText>
-          </View>
+          <AppText preset="title" style={styles.title}>{russian ? 'Напоминать?' : 'Stay in the loop?'}</AppText>
+          <AppText preset="body" style={styles.body}>
+            {russian
+              ? 'Подскажем, когда пора сохранить стрик или вернуться в соревнование.'
+              : 'Get a nudge when your streak or a new competition needs attention.'}
+          </AppText>
         </View>
-        <Pressable onPress={accept} accessibilityRole="button" accessibilityLabel={russian ? 'Принять' : 'Accept'} style={({ pressed }) => [styles.acceptShadow, pressed && styles.pressed]}>
+        <Pressable onPress={() => void allow()} accessibilityRole="button" accessibilityLabel={russian ? 'Давай' : 'Sure'} style={({ pressed }) => [styles.acceptShadow, pressed && styles.pressed]}>
           <LinearGradient colors={['#39E20E', '#16B900']} style={styles.accept}>
-            <AppText preset="title" style={styles.acceptLabel}>{russian ? 'Принять' : 'Accept'}</AppText>
+            <AppText preset="title" style={styles.acceptLabel}>{russian ? 'Давай' : 'Sure'}</AppText>
           </LinearGradient>
+        </Pressable>
+        <Pressable onPress={finish} accessibilityRole="button" accessibilityLabel={russian ? 'Не сейчас' : 'Not now'} hitSlop={8}>
+          <AppText preset="body" style={styles.later}>{russian ? 'Не сейчас' : 'Not now'}</AppText>
         </Pressable>
       </View>
     </View>
@@ -81,10 +116,9 @@ const styles = StyleSheet.create({
   copy: { alignItems: 'center', gap: 3 },
   title: { fontFamily: 'Fredoka_700Bold', color: '#FFFFFF', fontSize: 24, lineHeight: 29, textAlign: 'center' },
   body: { color: '#FFFFFF', fontSize: 17, lineHeight: 25, textAlign: 'center' },
-  linksLine: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' },
-  link: { color: '#19E4F5', fontSize: 17, lineHeight: 25, textDecorationLine: 'underline' },
   acceptShadow: { width: '100%', minHeight: 78, borderRadius: 15, shadowColor: '#075500', shadowOpacity: 0.45, shadowRadius: 5, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
   accept: { flex: 1, minHeight: 78, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#0B9D00' },
   acceptLabel: { color: '#FFFFFF', fontSize: 30, textShadowColor: 'rgba(0,0,0,0.22)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 2 },
+  later: { color: '#D7ECFF', fontSize: 16, lineHeight: 22, textDecorationLine: 'underline' },
   pressed: { transform: [{ scale: 0.98 }], opacity: 0.92 },
 });

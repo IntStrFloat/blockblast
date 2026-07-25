@@ -52,21 +52,25 @@ describe('clear effects layer source contract', () => {
   const gameEffectsPath = `${__dirname}/../effects/GameEffectsLayer.tsx`;
   const placementParticlePath = `${__dirname}/../effects/PlacementParticleLayer.tsx`;
   const boardFramePulsePath = `${__dirname}/../effects/BoardFramePulse.tsx`;
+  const clearSparkPath = `${__dirname}/../effects/ClearSparkLayer.tsx`;
 
   it('keeps the board grid clipped while moving overflow effects into sibling layers', () => {
     expect(fs.existsSync(gameEffectsPath)).toBe(true);
     expect(fs.existsSync(placementParticlePath)).toBe(true);
     expect(fs.existsSync(boardFramePulsePath)).toBe(true);
+    expect(fs.existsSync(clearSparkPath)).toBe(true);
 
     const gameEffectsSource = fs.readFileSync(gameEffectsPath, 'utf8');
     const placementParticleSource = fs.readFileSync(placementParticlePath, 'utf8');
     const boardFramePulseSource = fs.readFileSync(boardFramePulsePath, 'utf8');
+    const clearSparkSource = fs.readFileSync(clearSparkPath, 'utf8');
 
     expect(boardSource).toContain("overflow: 'visible'");
     expect(boardSource).toContain("overflow: 'hidden'");
     expect(boardSource).toContain('<GameEffectsLayer');
     expect(boardSource).toContain('<ClearBurstLayer');
     expect(boardSource).toContain('<ClearDebrisLayer');
+    expect(boardSource).toContain('<ClearSparkLayer');
     expect(boardSource).toContain('placementEffects=');
     expect(gameEffectsSource).toContain('PlacementParticleLayer');
     expect(gameEffectsSource).toContain('BoardFramePulse');
@@ -80,6 +84,9 @@ describe('clear effects layer source contract', () => {
     expect(boardFramePulseSource).toContain('opacity');
     expect(boardFramePulseSource).toContain('transform');
     expect(boardFramePulseSource).not.toContain('layout=');
+    expect(clearSparkSource).toContain('useFrameCallback');
+    expect(clearSparkSource).toContain('velocityX');
+    expect(clearSparkSource).toContain('gravity');
   });
 
   it('keeps a single destruction system: no legacy line-highlight/spark clear layers', () => {
@@ -99,6 +106,7 @@ describe('clear effects layer source contract', () => {
     const hotLayerPaths = [
       `${__dirname}/../effects/ClearBurstLayer.tsx`,
       `${__dirname}/../effects/ClearDebrisLayer.tsx`,
+      `${__dirname}/../effects/ClearSparkLayer.tsx`,
       `${__dirname}/../effects/PlacementParticleLayer.tsx`,
     ];
 
@@ -114,8 +122,9 @@ describe('clear effects layer source contract', () => {
   it('mounts destruction pools once: pooled layers accept presentation instances, not raw items', () => {
     const burstSource = fs.readFileSync(`${__dirname}/../effects/ClearBurstLayer.tsx`, 'utf8');
     const debrisSource = fs.readFileSync(`${__dirname}/../effects/ClearDebrisLayer.tsx`, 'utf8');
+    const sparkSource = fs.readFileSync(`${__dirname}/../effects/ClearSparkLayer.tsx`, 'utf8');
 
-    for (const source of [burstSource, debrisSource]) {
+    for (const source of [burstSource, debrisSource, sparkSource]) {
       expect(source).toContain('presentations: readonly ClearPresentationInstance[]');
       expect(source).toContain('fired');
     }
@@ -189,6 +198,7 @@ describe('clear effect layer rendering', () => {
     const presentation = {
       key: 'clear-1',
       debris: [],
+      sparks: [],
       shards: [],
       centroid: { x: 0, y: 0 },
       shake: { amplitude: 0, scale: 1, durationMs: 0 },

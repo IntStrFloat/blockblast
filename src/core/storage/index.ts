@@ -30,7 +30,7 @@ export const KEYS = {
   adventure: 'adventure.state',
   adventureRun: 'adventure.run',
   onboardingMeta: 'onboarding.meta.v1',
-  onboardingConsent: 'onboarding.consent.v1',
+  onboardingWelcomePrompt: 'onboarding.welcome-prompt.v1',
   pushPrompt: 'push.prompt.v1',
 } as const;
 

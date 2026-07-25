@@ -142,7 +142,43 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
     ],
   }));
 
-  return <Animated.View pointerEvents="none" style={style} />;
+  return (
+    <Animated.View pointerEvents="none" style={style}>
+      {/* Reuse the block's bevel language, so a broken tile still reads as a
+          fragment of the tile rather than a flat coloured rectangle. */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '24%',
+          backgroundColor: 'rgba(255,255,255,0.30)',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '18%',
+          backgroundColor: 'rgba(6,15,44,0.28)',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: '24%',
+          left: '12%',
+          width: '48%',
+          height: '18%',
+          borderRadius: 999,
+          backgroundColor: 'rgba(255,255,255,0.18)',
+        }}
+      />
+    </Animated.View>
+  );
 });
 
 interface ClearBurstLayerProps {

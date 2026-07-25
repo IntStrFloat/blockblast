@@ -22,6 +22,14 @@ export function AtmosphereToast() {
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
   const prevPhaseRef = useRef<number | null>(null);
   const counter = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     const prev = prevPhaseRef.current;
@@ -31,11 +39,12 @@ export function AtmosphereToast() {
     const text = atmosphereText(phase, tone, lang);
     if (!text) return;
     const id = ++counter.current;
+    if (timerRef.current) clearTimeout(timerRef.current);
     setToast({ id, text });
-    const timer = setTimeout(() => {
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
       if (counter.current === id) setToast(null);
     }, ATMOSPHERE.toastDurationMs);
-    return () => clearTimeout(timer);
   }, [lang, phase, recordCelebration, score, tone]);
 
   if (!toast) return null;
@@ -43,6 +52,7 @@ export function AtmosphereToast() {
   return (
     <Animated.View
       key={toast.id}
+      testID="atmosphere-toast"
       entering={FadeIn.duration(200)}
       exiting={FadeOut.duration(240)}
       pointerEvents="none"

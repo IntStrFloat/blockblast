@@ -81,7 +81,8 @@ export const BURST_MOTION = {
    * (ближе к месту хода — сильнее), суммарно не больше shardBudget; два
    * перекрывающихся клира с крошкой укладываются в потолок 96 узлов (спека 07).
    */
-  shardBudget: 40,
+  // Keep the clear within a 48-node budget while reserving room for live sparks.
+  shardBudget: 32,
   /** Разброс задержки крака между осколками одной ячейки (мс). */
   shardDelayJitterMs: 26,
   /** Разлёт осколков от центра расколотой ячейки (в клетках). */
@@ -97,6 +98,12 @@ export const BURST_MOTION = {
   debrisPerCells: 2,
   /** Разброс задержки крошки поверх волны раскола (мс). */
   debrisDelayJitterMs: 60,
+  /** Bright diamond/dot sparks with per-frame velocity and gravity. */
+  sparkCap: 8,
+  sparkPerCells: 2,
+  sparkDelayJitterMs: 52,
+  sparkDurationMinMs: 430,
+  sparkDurationJitterMs: 170,
   /** Шейк доски бьёт в момент крака у места хода (чуть после pop-а). */
   impactShakeDelayMs: 60,
 } as const;

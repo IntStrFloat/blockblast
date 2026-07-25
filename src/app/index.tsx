@@ -13,7 +13,7 @@ import { getSavedGameSummary } from '@/features/game';
 import type { SavedGameSummary } from '@/features/game';
 import { useLeaderboardStore } from '@/features/leaderboard';
 import { HomePromptHost } from '@/features/notifications';
-import { WelcomeConsentOverlay, shouldEnterFtue, useConsentStore, useFtueStore } from '@/features/onboarding';
+import { WelcomeNotificationOverlay, shouldEnterFtue, useFtueStore, useWelcomePromptStore } from '@/features/onboarding';
 import { ProfileOverlay, useProfileStore } from '@/features/profile';
 import { useProgression } from '@/features/progression';
 import { useScores } from '@/features/scores';
@@ -251,7 +251,7 @@ export default function HomeScreen() {
   const best = useScores((s) => s.best);
   const gamesPlayed = useScores((s) => s.gamesPlayed);
   const ftueStatus = useFtueStore((s) => s.status);
-  const consentAccepted = useConsentStore((s) => s.accepted);
+  const welcomePromptResolved = useWelcomePromptStore((s) => s.resolved);
   const ftueComplete = ftueStatus === 'complete' || ftueStatus === 'skipped';
   const analyticsFirstSession = useAnalyticsStore(
     (s) => s.context?.is_first_session ?? gamesPlayed === 0,
@@ -278,13 +278,13 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (autoFtueStarted.current) return;
-    if (!consentAccepted) return;
+    if (!welcomePromptResolved) return;
     if (!shouldEnterFtue(useFtueStore.getState(), gamesPlayed)) return;
     autoFtueStarted.current = true;
     const startTs = Date.now();
     useAnalyticsStore.getState().track('play_tapped', { source: 'home', has_saved_game: false });
     router.replace({ pathname: '/game', params: { entry: 'tutorial', startTs: String(startTs) } });
-  }, [consentAccepted, gamesPlayed, router]);
+  }, [welcomePromptResolved, gamesPlayed, router]);
 
   useFocusEffect(
     useCallback(() => {
@@ -409,7 +409,7 @@ export default function HomeScreen() {
 
       <ProfileOverlay visible={profileOpen} onClose={() => setProfileOpen(false)} />
 
-      {consentAccepted && gamesPlayed >= 2 ? (
+      {welcomePromptResolved && gamesPlayed >= 2 ? (
         <HomePromptHost
           ftueComplete={ftueComplete}
           isFirstSession={analyticsFirstSession}
@@ -418,7 +418,7 @@ export default function HomeScreen() {
         />
       ) : null}
 
-      <WelcomeConsentOverlay />
+      <WelcomeNotificationOverlay />
     </SafeAreaView>
   );
 }

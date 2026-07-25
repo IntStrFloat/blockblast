@@ -30,6 +30,7 @@ export const en = {
     goalJewels: 'Jewels left',
     levelClear: 'Level Clear',
     failedTitle: 'No moves left',
+    failedHint: 'Try a different layout — the goal is still within reach.',
     retry: 'Retry',
     exit: 'Exit',
     seasonComplete: 'Season Complete',
@@ -92,6 +93,9 @@ export const en = {
     secAudio: 'Sound & haptics',
     secFeel: 'Appearance',
     secLangData: 'Language & data',
+    tabGame: 'Game',
+    tabAppearance: 'Looks',
+    tabData: 'Data',
   },
   profile: {
     title: 'Profile',

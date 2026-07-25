@@ -18,7 +18,7 @@ import { KEYS, getJSON, setJSON } from '@/core/storage';
 import { useAnalyticsStore, type AnalyticsCommonContext } from '@/features/analytics';
 import { getAds } from '@/features/monetization';
 import { getPush, useLocalNotifications } from '@/features/notifications';
-import { useConsentStore } from '@/features/onboarding';
+import { useWelcomePromptStore } from '@/features/onboarding';
 import { useScores } from '@/features/scores';
 import { colors } from '@/ui';
 import { appNavigationTheme } from '@/ui/navigationTheme';
@@ -58,7 +58,7 @@ export default function RootLayout() {
     Fredoka_700Bold,
   });
   const router = useRouter();
-  const consentAccepted = useConsentStore((state) => state.accepted);
+  const welcomePromptResolved = useWelcomePromptStore((state) => state.resolved);
   const gamesPlayed = useScores((state) => state.gamesPlayed);
 
   useEffect(() => {
@@ -80,14 +80,14 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (!consentAccepted || gamesPlayed < 2) return;
+    if (!welcomePromptResolved || gamesPlayed < 2) return;
     const push = getPush();
     void push.init();
     const unsubscribe = push.onNotificationTap((route) => {
       router.navigate(route as never);
     });
     return unsubscribe;
-  }, [consentAccepted, gamesPlayed, router]);
+  }, [welcomePromptResolved, gamesPlayed, router]);
 
   // Локальные напоминания (retention фаза 4): план пересобирается при уходе в фон.
   useLocalNotifications();

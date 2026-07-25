@@ -862,3 +862,394 @@ Require cycles are allowed, but can result in uninitialized values. Consider ref
  WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
  WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
  WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ LOG  [push] availability Push is unavailable, need to install host app
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ LOG  [push] availability Push is unavailable, need to install host app
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ LOG  [push] availability Push is unavailable, need to install host app
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ LOG  [push] availability Push is unavailable, need to install host app
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+Android Bundled 118ms node_modules\expo-router\entry.js (1 module)
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/BottomNav.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ScreenHeader.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ResultStat.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+Web Bundled 64506ms node_modules\expo-router\entry.js (1688 modules)
+λ Bundled 64591ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1730 modules)
+Android Bundled 113ms node_modules\expo-router\entry.js (1 module)
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/BottomNav.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ScreenHeader.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ResultStat.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Android Bundled 95ms node_modules\expo-router\entry.js (1 module)
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/BottomNav.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ScreenHeader.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ResultStat.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+Android Bundled 94ms node_modules\expo-router\entry.js (1 module)
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/BottomNav.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ScreenHeader.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ResultStat.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+Android Bundled 112ms node_modules\expo-router\entry.js (1 module)
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/BottomNav.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ScreenHeader.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ResultStat.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+Android Bundled 110ms node_modules\expo-router\entry.js (1 module)
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/BottomNav.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ScreenHeader.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ResultStat.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ ERROR  [TypeError: Cannot read property 'length' of undefined] 
+
+ 
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+λ Bundled 10904ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 12019ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 19611ms node_modules\expo-router\entry.js (1700 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams:
+ {"hydrate": undefined, "rootTag": "#root"} 
+Development-level warnings: ON.
+Performance optimizations: OFF.
+Web  WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/BottomNav.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ScreenHeader.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  Require cycle: src/ui/index.ts -> src/ui/primitives/ResultStat.tsx -> src/ui/index.ts
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  "shadow*" style props are deprecated. Use "boxShadow".
+Web  WARN  "textShadow*" style props are deprecated. Use "textShadow".
+Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+Web  ERROR  [NotAllowedError: play() failed because the user didn't interact with the document first. https://goo.gl/xX8pDD]
+Web  ERROR  [NotAllowedError: play() failed because the user didn't interact with the document first. https://goo.gl/xX8pDD]
+Web  ERROR  [NotAllowedError: play() failed because the user didn't interact with the document first. https://goo.gl/xX8pDD]
+Web  ERROR  [NotAllowedError: play() failed because the user didn't interact with the document first. https://goo.gl/xX8pDD]
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Properties "opacity, transform" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+ WARN  [Reanimated] Property "opacity" of AnimatedComponent(View) may be overwritten by a layout animation. Please wrap your component with an animated view and apply the layout animation on the wrapper.
+Android Bundled 78511ms node_modules\expo-router\entry.js (1 module)

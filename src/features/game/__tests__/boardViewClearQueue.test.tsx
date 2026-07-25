@@ -34,6 +34,19 @@ let mockBoardState: {
   lastEvent: MockPlacementEvent | null;
 };
 
+const mockDragCtx = {
+  geom: { boardSize: 94, cell: 10, gap: 2, pad: 0 },
+  boardOrigin: { value: { x: 0, y: 0 } },
+  boardMeasureRef: { current: null },
+  boardMirror: { value: [] as number[] },
+  preview: { value: [] as number[] },
+  previewColor: { value: 0 },
+  cellColors: ['#ff4d67', '#ffc93c', '#4cc9ff'],
+  boardBg: '#101010',
+  cellEmpty: '#222222',
+  onDrop: jest.fn(),
+};
+
 jest.mock('react-native-reanimated', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');
@@ -68,6 +81,7 @@ jest.mock('../animation/clearPresentation', () => ({
   buildClearPresentation: (event: MockPlacementEvent) => ({
     key: `presentation-${event.id}`,
     debris: [],
+    sparks: [],
     shards: [],
     centroid: { x: 0, y: 0 },
     shake: { amplitude: 0, scale: 1, durationMs: 0 },
@@ -147,18 +161,7 @@ jest.mock('../store', () => ({
 }));
 
 jest.mock('../drag/DragContext', () => ({
-  useDragCtx: () => ({
-    geom: { boardSize: 94, cell: 10, gap: 2, pad: 0 },
-    boardOrigin: { value: { x: 0, y: 0 } },
-    boardMeasureRef: { current: null },
-    boardMirror: { value: [] },
-    preview: { value: [] },
-    previewColor: { value: 0 },
-    cellColors: ['#ff4d67', '#ffc93c', '#4cc9ff'],
-    boardBg: '#101010',
-    cellEmpty: '#222222',
-    onDrop: jest.fn(),
-  }),
+  useDragCtx: () => mockDragCtx,
 }));
 
 jest.mock('../effects/ClearDebrisLayer', () => ({
@@ -189,6 +192,10 @@ jest.mock('../effects/ClearBurstLayer', () => ({
     mockClearBurstLayerSpy(props);
     return null;
   },
+}));
+
+jest.mock('../effects/ClearSparkLayer', () => ({
+  ClearSparkLayer: () => null,
 }));
 
 function makeEvent(id: string, lifetimeMs: number): MockPlacementEvent {
@@ -229,6 +236,9 @@ describe('BoardView clear presentation queue', () => {
       game: { board: Array.from({ length: 64 }, () => 0) },
       lastEvent: null,
     };
+    mockDragCtx.boardMirror.value = [];
+    mockDragCtx.preview.value = [];
+    mockDragCtx.previewColor.value = 0;
   });
 
   afterEach(() => {
@@ -256,6 +266,26 @@ describe('BoardView clear presentation queue', () => {
       }),
     );
     expect(mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).toHaveLength(0);
+    act(() => renderer!.unmount());
+  });
+
+  it('clears a stale drag preview as soon as the committed board changes', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => {
+      renderer = create(<BoardView />);
+    });
+
+    mockDragCtx.preview.value = Array.from({ length: 64 }, (_, index) => (index % 3 === 0 ? 2 : 0));
+    mockDragCtx.previewColor.value = 4;
+    mockBoardState.game.board = Array.from({ length: 64 }, (_, index) => (index === 0 ? 1 : 0));
+    act(() => {
+      renderer!.update(<BoardView />);
+    });
+
+    expect(mockDragCtx.preview.value.every((value) => value === 0)).toBe(true);
+    expect(mockDragCtx.previewColor.value).toBe(0);
     act(() => renderer!.unmount());
   });
 

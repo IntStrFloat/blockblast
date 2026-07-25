@@ -57,6 +57,7 @@ describe('adventure levels', () => {
   });
 
   it('keeps season mosaic bounded and milestone-marked', () => {
+    expect(ADVENTURE_CONFIG.seasonTileCount).toBe(96);
     expect(seasonLength(1)).toBe(ADVENTURE_CONFIG.seasonTileCount);
     expect(seasonTiles(1)).toHaveLength(ADVENTURE_CONFIG.seasonTileCount);
     expect(seasonTiles(1).filter((tile) => tile.milestone).length).toBeGreaterThan(0);

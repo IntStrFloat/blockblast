@@ -132,7 +132,7 @@ function shardsOfCell(shards: readonly ClearBurstShard[], row: number, col: numb
 }
 
 describe('clear presentation basics', () => {
-  it('is deterministic and keeps debris a light accent', () => {
+  it('is deterministic and keeps fragments plus glow particles within budget', () => {
     const first = buildClearPresentation(crossEvent(), GEOM, CELL_COLORS, false);
     const second = buildClearPresentation(crossEvent(), GEOM, CELL_COLORS, false);
 
@@ -140,12 +140,20 @@ describe('clear presentation basics', () => {
     // Крошка — акцент: 1 частица на 2 ячейки (cross = 15 ячеек → 7), падает за доску.
     expect(first.debris).toHaveLength(7);
     expect(first.debris.some(({ dy }) => dy > GEOM.boardSize)).toBe(true);
+    expect(first.sparks).toHaveLength(BURST_MOTION.sparkCap);
   });
 
   it('caps debris chips regardless of clear size', () => {
     expect(buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false).debris).toHaveLength(4);
     expect(buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false).debris).toHaveLength(
       BURST_MOTION.debrisCap,
+    );
+  });
+
+  it('caps luminous sparks regardless of clear size', () => {
+    expect(buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false).sparks).toHaveLength(4);
+    expect(buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false).sparks).toHaveLength(
+      BURST_MOTION.sparkCap,
     );
   });
 
@@ -164,7 +172,24 @@ describe('clear presentation basics', () => {
 
     expect(presentation.debris.length).toBeLessThanOrEqual(BURST_MOTION.debrisCap);
     expect(presentation.debris.every(({ dx, dy }) => dx === 0 && dy === 0)).toBe(true);
+    expect(presentation.sparks.every(({ velocityX, velocityY, gravity, spinDegPerSecond }) =>
+      velocityX === 0 && velocityY === 0 && gravity === 0 && spinDegPerSecond === 0,
+    )).toBe(true);
     expect(presentation.shake.amplitude).toBe(0);
+  });
+
+  it('gives sparks physical initial conditions and sends them out with the same clear wave', () => {
+    const presentation = buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false);
+    const maxShardDelay = Math.max(...presentation.shards.map((shard) => shard.delay));
+
+    expect(presentation.sparks.length).toBeGreaterThan(0);
+    for (const spark of presentation.sparks) {
+      expect(spark.velocityY).toBeLessThan(0);
+      expect(spark.gravity).toBeGreaterThan(0);
+      expect(Math.abs(spark.velocityX)).toBeGreaterThan(0);
+      expect(spark.delay).toBeLessThanOrEqual(maxShardDelay + BURST_MOTION.sparkDelayJitterMs);
+      expect(['diamond', 'dot']).toContain(spark.shape);
+    }
   });
 });
 

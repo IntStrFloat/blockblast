@@ -98,16 +98,18 @@ export function useGameFeedback(): { onGrab: () => void; onInvalidDrop: () => vo
   }, [recordCelebration]);
 
   const onGrab = useCallback(() => {
+    const settings = useSettings.getState();
     playGrabFeedback({
-      sound: soundRef.current,
-      haptics: hapticsRef.current,
+      sound: settings.sound,
+      haptics: settings.haptics,
     });
   }, []);
 
   const onInvalidDrop = useCallback(() => {
+    const settings = useSettings.getState();
     playInvalidDropFeedback({
-      sound: soundRef.current,
-      haptics: hapticsRef.current,
+      sound: settings.sound,
+      haptics: settings.haptics,
     });
   }, []);
 

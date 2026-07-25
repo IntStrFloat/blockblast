@@ -289,9 +289,7 @@ export default function GameScreen() {
     if (!boardLayout || !tutorialRecommendation) return [];
     return tutorialRecommendation.targetCells.map(([row, col]) => ({
       x: boardLayout.x + col * (cellSize + cellGap),
-      // The overlay is positioned against the SafeAreaView while boardLayout.y
-      // is reported from the padded game stage; align it with the visible grid.
-      y: boardLayout.y + (row + 1) * (cellSize + cellGap),
+      y: boardLayout.y + row * (cellSize + cellGap),
       size: cellSize,
     }));
   }, [boardLayout, cellGap, cellSize, tutorialRecommendation]);
@@ -436,7 +434,7 @@ export default function GameScreen() {
           </View>
         </View>
 
-        <TutorialHints pieceCenter={tutorialPieceCenter} targetCells={tutorialTargetCells} showInstruction={!ftueActive} />
+        <TutorialHints pieceCenter={tutorialPieceCenter} targetCells={tutorialTargetCells} showInstruction={ftueActive} />
         <AtmosphereToast />
         <EggToast />
         <NewRecordCelebration />

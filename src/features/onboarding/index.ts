@@ -1,7 +1,7 @@
 export { useOnboarding, shouldShowOnboarding } from './store';
 export { OnboardingOverlay } from './components/OnboardingOverlay';
-export { WelcomeConsentOverlay } from './components/WelcomeConsentOverlay';
-export { useConsentStore } from './consentStore';
+export { WelcomeNotificationOverlay } from './components/WelcomeConsentOverlay';
+export { useWelcomePromptStore } from './welcomePromptStore';
 export {
   FTUE_VERSION,
   migrateFtueState,

@@ -23,8 +23,10 @@ import {
 import { GAME_FEEL_MOTION } from '../animation/motion';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useDragCtx } from '../drag/DragContext';
+import { EMPTY_MASK } from '../drag/gridMath';
 import { ClearBurstLayer } from '../effects/ClearBurstLayer';
 import { ClearDebrisLayer } from '../effects/ClearDebrisLayer';
+import { ClearSparkLayer } from '../effects/ClearSparkLayer';
 import { BoardFramePulse } from '../effects/BoardFramePulse';
 import { GameEffectsLayer } from '../effects/GameEffectsLayer';
 import { useShake } from '../effects/useShake';
@@ -152,7 +154,9 @@ export function BoardView({ style }: BoardViewProps) {
   // Синхронизация boardMirror для worklet-проверок
   useEffect(() => {
     ctx.boardMirror.value = [...board];
-  }, [board, ctx.boardMirror]);
+    ctx.preview.value = EMPTY_MASK;
+    ctx.previewColor.value = 0;
+  }, [board, ctx.boardMirror, ctx.preview, ctx.previewColor]);
 
   // Screen shake при очистке 2+ линий (спека 04)
   const { shakeStyle, triggerShake } = useShake();
@@ -326,6 +330,7 @@ export function BoardView({ style }: BoardViewProps) {
           каждой очистке. */}
       <ClearDebrisLayer presentations={activePresentations} />
       <ClearBurstLayer presentations={burstPresentations} />
+      <ClearSparkLayer presentations={burstPresentations} />
     </Animated.View>
   );
 }

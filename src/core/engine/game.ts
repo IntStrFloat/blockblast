@@ -249,8 +249,12 @@ function makeWave(
     visited: 0,
   };
   const fullness = filledFraction(board);
+  // A live JS refresh can retain an active game created before this setting existed.
+  const dryStreakMinFullness = spawn.rescueDryStreakMinFullness ?? 0.5;
   const rescue =
-    fullness >= spawn.rescueFullness || movesSinceClear >= spawn.rescueDryStreak;
+    fullness >= spawn.rescueFullness ||
+    (movesSinceClear >= spawn.rescueDryStreak &&
+      fullness >= dryStreakMinFullness);
   const target = rescue
     ? spawn.fullTargetMass
     : lerp(spawn.emptyTargetMass, spawn.fullTargetMass, fullness);
