@@ -33,6 +33,7 @@ export class BufferedDevTransport implements AnalyticsTransport {
     this.enabled = enabled;
     if (!enabled) this.events.length = 0;
   }
+
 }
 
 export const analyticsTransport: AnalyticsTransport = new BufferedDevTransport();

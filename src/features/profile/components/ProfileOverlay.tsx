@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
@@ -19,6 +19,7 @@ type OverlayError = NicknameValidationError | 'remote_unavailable' | 'server_rej
 interface ProfileOverlayProps {
   visible: boolean;
   onClose: () => void;
+  onOpenCollection?: () => void;
 }
 
 function syncDotColor(state: SyncState): string {
@@ -82,13 +83,20 @@ function ProfileAction({
   );
 }
 
-function ProfileOverlayContent({ onClose }: { onClose: () => void }) {
+function ProfileOverlayContent({
+  onClose,
+  onOpenCollection,
+}: {
+  onClose: () => void;
+  onOpenCollection?: () => void;
+}) {
   const lang = useLang();
   const profile = useProfileStore((state) => state.profile);
   const reroll = useProfileStore((state) => state.reroll);
   const rename = useProfileStore((state) => state.rename);
   const syncStatus = useProfileStore((state) => state.syncStatus);
   const storeError = useProfileStore((state) => state.lastError);
+  const { width } = useWindowDimensions();
   const [draft, setDraft] = useState(profile.nickname);
   const [localError, setLocalError] = useState<OverlayError | null>(null);
   const [saving, setSaving] = useState(false);
@@ -104,11 +112,17 @@ function ProfileOverlayContent({ onClose }: { onClose: () => void }) {
   const showcase = getShowcaseAvatar();
 
   return (
-    <Animated.View entering={FadeIn.duration(160)} style={styles.scrim}>
-      <Animated.View entering={ZoomIn.duration(180)} style={styles.card}>
+    <Animated.View entering={FadeIn.duration(160)} importantForAccessibility="yes" style={styles.scrim}>
+      <Animated.View
+        entering={ZoomIn.duration(180)}
+        accessibilityViewIsModal
+        importantForAccessibility="yes"
+        onAccessibilityEscape={onClose}
+        style={styles.card}
+      >
         <LinearGradient colors={['#4B77EE', '#2155CB']} style={styles.hero}>
           <View style={styles.avatarFrame}>
-            <MascotBadge avatar={showcase} size={56} />
+            <MascotBadge avatar={showcase} size={40} />
           </View>
           <View style={styles.identity}>
             <AppText preset="speech" numberOfLines={1} style={styles.profileTitle}>
@@ -167,7 +181,7 @@ function ProfileOverlayContent({ onClose }: { onClose: () => void }) {
             )}
           </View>
 
-          <View style={styles.actions}>
+          <View style={[styles.actions, width < 360 && { flexDirection: 'column' }]}>
             <ProfileAction
               label={t('profile.reroll', lang)}
               disabled={saving}
@@ -195,24 +209,22 @@ function ProfileOverlayContent({ onClose }: { onClose: () => void }) {
             />
           </View>
 
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.dismiss, pressed && styles.pressed]}
-          >
-            <AppText preset="caption" style={styles.dismissText}>
-              {t('profile.close', lang)}
-            </AppText>
-          </Pressable>
+          {onOpenCollection ? (
+            <ProfileAction
+              label={lang === 'ru' ? 'Капи и гардероб' : 'Capi and wardrobe'}
+              onPress={onOpenCollection}
+            />
+          ) : null}
+
         </View>
       </Animated.View>
     </Animated.View>
   );
 }
 
-export function ProfileOverlay({ visible, onClose }: ProfileOverlayProps) {
+export function ProfileOverlay({ visible, onClose, onOpenCollection }: ProfileOverlayProps) {
   if (!visible) return null;
-  return <ProfileOverlayContent onClose={onClose} />;
+  return <ProfileOverlayContent onClose={onClose} onOpenCollection={onOpenCollection} />;
 }
 
 const styles = StyleSheet.create({
@@ -242,14 +254,14 @@ const styles = StyleSheet.create({
     minHeight: 102,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.m,
+    gap: spacing.s,
     padding: spacing.m,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.22)',
   },
   avatarFrame: {
-    width: 72,
-    height: 72,
+    width: 52,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 36,
@@ -259,17 +271,18 @@ const styles = StyleSheet.create({
   },
   identity: {
     flex: 1,
+    minWidth: 0,
     gap: 4,
   },
   profileTitle: {
     color: '#FFFFFF',
-    fontFamily: 'Fredoka_700Bold',
-    fontSize: 28,
+    fontFamily: 'Unbounded_700Bold',
+    fontSize: 20,
   },
   profileTag: {
     alignSelf: 'flex-start',
     color: 'rgba(238,249,255,0.92)',
-    fontFamily: 'Fredoka_600SemiBold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 13,
   },
   closeButton: {
@@ -293,7 +306,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     marginLeft: spacing.xs,
     color: 'rgba(231,246,255,0.78)',
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 12,
     letterSpacing: 0.7,
   },
@@ -305,7 +318,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.74)',
     paddingHorizontal: 14,
-    fontFamily: 'Fredoka_600SemiBold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 18,
   },
   inputError: {
@@ -355,22 +368,11 @@ const styles = StyleSheet.create({
   },
   actionText: {
     color: '#FFFFFF',
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 15,
   },
   actionTextPrimary: {
     color: '#1A4DAE',
-  },
-  dismiss: {
-    minHeight: 36,
-    alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.m,
-  },
-  dismissText: {
-    color: 'rgba(234,248,255,0.78)',
-    textDecorationLine: 'underline',
   },
   pressed: {
     opacity: 0.74,

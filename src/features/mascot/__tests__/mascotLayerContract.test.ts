@@ -15,12 +15,19 @@ describe('MascotLayer drag/drop contract', () => {
   it('keeps the mascot brain paused while the loss drop is resolving', () => {
     expect(layerSource).toContain('const mascotDropping = useSharedValue(0)');
     expect(layerSource).toContain('const mascotReturning = useSharedValue(0)');
-    expect(layerSource).toContain(
-      '() => Math.max(dragActive.value, mascotDragging.value, mascotDropping.value, mascotReturning.value)',
-    );
+    expect(layerSource).toContain('active');
+    expect(layerSource).toContain('? Math.max(');
+    expect(layerSource).toContain(': 1,');
     expect(layerSource).toContain('mascotDropping.value = 1');
     expect(layerSource).toContain('mascotDropping.value = 0');
     expect(layerSource).toContain('if (!mascotDropping.value && !mascotReturning.value) mascotDragging.value = 0');
+  });
+
+  it('supports an inactive pre-mounted shell without starting the intro or gestures', () => {
+    expect(layerSource).toContain('active?: boolean');
+    expect(layerSource).toContain('active = true');
+    expect(layerSource).toContain('.enabled(active)');
+    expect(layerSource).toContain('{active ? <MascotIntro');
   });
 
   it('returns lifted mascot to the floor without a bouncy spring loop', () => {

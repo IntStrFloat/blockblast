@@ -89,6 +89,44 @@ export function fitsOnBoard(
   return true;
 }
 
+export type DropValidity = 'valid' | 'occupied' | 'outside-board';
+
+export function dropValidity(
+  board: ArrayLike<number>,
+  cells: readonly (readonly [number, number])[],
+  r: number,
+  c: number,
+  w: number,
+  h: number,
+): DropValidity {
+  'worklet';
+  if (!insideBoard(r, c, w, h)) return 'outside-board';
+  for (let i = 0; i < cells.length; i++) {
+    if (board[(r + cells[i][0]) * 8 + c + cells[i][1]] !== 0) return 'occupied';
+  }
+  return 'valid';
+}
+
+/** Invalid footprint: 1 marks affected empty cells, 2 marks occupied conflicts. */
+export function invalidDropMask(
+  board: ArrayLike<number>,
+  cells: readonly (readonly [number, number])[],
+  r: number,
+  c: number,
+  out: number[] = new Array<number>(64),
+): number[] {
+  'worklet';
+  for (let i = 0; i < 64; i++) out[i] = 0;
+  for (let i = 0; i < cells.length; i++) {
+    const row = r + cells[i][0];
+    const col = c + cells[i][1];
+    if (row < 0 || row >= 8 || col < 0 || col >= 8) continue;
+    const index = row * 8 + col;
+    out[index] = board[index] === 0 ? 1 : 2;
+  }
+  return out;
+}
+
 /**
  * Битовая маска превью: 1 — клетки фигуры, 2 — собираемая линия.
  * Пересечение фигуры и линии имеет значение 3.

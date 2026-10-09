@@ -1,3 +1,4 @@
+import { useCallback, useRef } from 'react';
 import { View } from 'react-native';
 import type React from 'react';
 
@@ -9,10 +10,18 @@ interface TraySlotProps {
   piece: PieceInstance | null;
   trayIndex: number;
   renderPieceCellOverlay?: (slot: number, cellIndex: number, cellSizePx: number) => React.ReactNode;
+  readyToken?: string | null;
+  onSlotInteractiveReady?: (trayIndex: number, token: string) => void;
 }
 
 /** Одиночный слот трея с анимацией появления новой фигуры */
-function TraySlot({ piece, trayIndex, renderPieceCellOverlay }: TraySlotProps) {
+function TraySlot({
+  piece,
+  trayIndex,
+  renderPieceCellOverlay,
+  readyToken,
+  onSlotInteractiveReady,
+}: TraySlotProps) {
   return (
     <View
       style={{
@@ -29,6 +38,8 @@ function TraySlot({ piece, trayIndex, renderPieceCellOverlay }: TraySlotProps) {
         <TrayPiece
           piece={piece}
           trayIndex={trayIndex}
+          readyToken={readyToken}
+          onInteractiveReady={onSlotInteractiveReady}
           renderCellOverlay={(cellIndex, size) =>
             renderPieceCellOverlay?.(trayIndex, cellIndex, size)
           }
@@ -42,9 +53,31 @@ interface TrayViewProps {
   tray: (PieceInstance | null)[];
   style?: ViewStyle;
   renderPieceCellOverlay?: (slot: number, cellIndex: number, cellSizePx: number) => React.ReactNode;
+  readyToken?: string | null;
+  onInteractiveReady?: (token: string) => void;
 }
 
-export function TrayView({ tray, style, renderPieceCellOverlay }: TrayViewProps) {
+export function TrayView({
+  tray,
+  style,
+  renderPieceCellOverlay,
+  readyToken = null,
+  onInteractiveReady,
+}: TrayViewProps) {
+  const readyRef = useRef<{ token: string | null; slots: Set<number> }>({
+    token: null,
+    slots: new Set(),
+  });
+  const requiredSlots = tray.reduce((count, piece) => count + (piece ? 1 : 0), 0);
+  const handleSlotReady = useCallback((trayIndex: number, token: string) => {
+    if (readyRef.current.token !== token) {
+      readyRef.current = { token, slots: new Set() };
+    }
+    readyRef.current.slots.add(trayIndex);
+    if (requiredSlots > 0 && readyRef.current.slots.size >= requiredSlots) {
+      onInteractiveReady?.(token);
+    }
+  }, [onInteractiveReady, requiredSlots]);
   return (
     <View
       style={[
@@ -63,6 +96,8 @@ export function TrayView({ tray, style, renderPieceCellOverlay }: TrayViewProps)
           key={index}
           piece={piece}
           trayIndex={index}
+          readyToken={readyToken}
+          onSlotInteractiveReady={handleSlotReady}
           renderPieceCellOverlay={renderPieceCellOverlay}
         />
       ))}

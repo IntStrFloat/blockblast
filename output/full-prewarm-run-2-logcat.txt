@@ -1,0 +1,80 @@
+--------- beginning of main
+08-21 12:40:26.402  1702  9483 E ResolverController: No valid NAT64 prefix (101, <unspecified>/0)
+08-21 12:40:26.546  9235  9485 D ProfileInstaller: Installing profile for com.intstrfloat.blockblast
+08-21 12:40:29.080  2515  8890 I LogUtils: [Places]: ?: Couldn't find platform key file. [CONTEXT service_id=253 ]
+08-21 12:40:29.084  2515  9494 I LogUtils: [Places]: ?: Couldn't find platform key file. [CONTEXT service_id=253 ]
+08-21 12:40:29.089  2515  9234 I LogUtils: [Places]: ?: PlacesBleScanner stop() [CONTEXT service_id=253 ]
+08-21 12:40:29.090  2515  2515 I BeaconBle: Scan : No clients left, canceling alarm. [CONTEXT service_id=111 ]
+08-21 12:40:29.091  2515  2515 I BeaconBle: Scan canceled successfully. [CONTEXT service_id=111 ]
+08-21 12:40:29.095  2515  9234 I PlacesLogger: [PlaceInferenceEngine]: [anon] Changed inference mode: 0 [CONTEXT service_id=253 ]
+08-21 12:40:29.104  2515  3221 W GCoreFlp: No location to return for getLastLocation()
+08-21 12:40:29.114  2515  9495 I LogUtils: [Places]: ?: Couldn't find platform key file. [CONTEXT service_id=253 ]
+08-21 12:40:29.114  2515  9494 I LogUtils: [Places]: ?: Couldn't find platform key file. [CONTEXT service_id=253 ]
+08-21 12:40:29.161  2515  2515 I GeofencerStateMachine: removeGeofences: removeRequest=RemoveGeofencingRequest[REMOVE_BY_PENDING_INTENT pendingIntent=PendingIntent[creatorPackage=com.google.android.gms], packageName=com.google.android.gms]
+08-21 12:40:29.343  1846  1846 E netmgr  : Failed to open QEMU pipe 'qemud:network': Invalid argument
+08-21 12:40:29.698  1848  1848 E wifi_forwarder: RemoteConnection failed to initialize: RemoteConnection failed to open pipe
+08-21 12:40:29.730  9498  9498 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+08-21 12:40:29.731  9498  9498 E libc    : Access denied finding property "persist.device_config.runtime_native_boot.enable_apex_image"
+08-21 12:40:29.731  9498  9498 I AndroidRuntime: Using default boot image
+08-21 12:40:29.731  9498  9498 E libc    : Access denied finding property "persist.device_config.runtime_native_boot.disable_lock_profiling"
+08-21 12:40:29.731  9498  9498 I AndroidRuntime: Leaving lock profiling enabled
+08-21 12:40:29.731  9498  9498 E libc    : Access denied finding property "persist.device_config.runtime_native_boot.enable_generational_cc"
+08-21 12:40:29.732  9498  9498 I app_process: Core platform API reporting enabled, enforcing=false
+08-21 12:40:29.720  9498  9498 W app_process: type=1400 audit(0.0:155): avc: denied { read } for name="u:object_r:device_config_runtime_native_boot_prop:s0" dev="tmpfs" ino=8318 scontext=u:r:shell:s0 tcontext=u:object_r:device_config_runtime_native_boot_prop:s0 tclass=file permissive=0
+08-21 12:40:29.720  9498  9498 I chatty  : uid=2000(shell) app_process identical 1 line
+08-21 12:40:29.720  9498  9498 W app_process: type=1400 audit(0.0:157): avc: denied { read } for name="u:object_r:device_config_runtime_native_boot_prop:s0" dev="tmpfs" ino=8318 scontext=u:r:shell:s0 tcontext=u:object_r:device_config_runtime_native_boot_prop:s0 tclass=file permissive=0
+08-21 12:40:29.763  9498  9498 D ICU     : Time zone APEX file found: /apex/com.android.tzdata/etc/icu/icu_tzdata.dat
+08-21 12:40:29.765  9498  9498 W app_process: Unexpected CPU variant for X86 using defaults: x86_64
+08-21 12:40:29.767  9498  9498 I app_process: The ClassLoaderContext is a special shared library.
+08-21 12:40:29.768  9498  9498 I app_process: The ClassLoaderContext is a special shared library.
+08-21 12:40:29.768  9498  9498 W System  : ClassLoader referenced unknown path: 
+08-21 12:40:29.778  9498  9498 W app_process: JNI RegisterNativeMethods: attempt to register 0 native methods for android.media.AudioAttributes
+08-21 12:40:29.780  9498  9498 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+--------- beginning of system
+08-21 12:40:29.788  1965  1965 V SettingsProvider: Notifying for 0: content://settings/secure/accessibility_enabled
+08-21 12:40:30.120  1965  1987 I DropBoxManagerService: add tag=system_server_strictmode isTagEnabled=true flags=0x2
+08-21 12:40:30.850  1965  2100 D MediaSessionService: Media button session is changed to com.intstrfloat.blockblast/androidx.media3.session.id.ExpoAudioBasicMediaSession_219594782 (userId=0)
+08-21 12:40:30.909  1965  2100 D MediaSessionService: Media button session is changed to com.intstrfloat.blockblast/androidx.media3.session.id.ExpoAudioBasicMediaSession_3446287 (userId=0)
+08-21 12:40:31.762  1965  1993 E memtrack: Couldn't load memtrack module
+08-21 12:40:31.763  1965  1993 W android.os.Debug: failed to get memory consumption info: -1
+08-21 12:40:30.127  1965  1987 I chatty  : uid=1000(system) android.io identical 6 lines
+08-21 12:40:30.128  1965  1987 I DropBoxManagerService: add tag=system_server_strictmode isTagEnabled=true flags=0x2
+08-21 12:40:32.124  1965  1994 W BroadcastQueue: Background execution not allowed: receiving Intent { act=android.intent.action.DROPBOX_ENTRY_ADDED flg=0x10 (has extras) } to com.google.android.gms/.stats.service.DropBoxEntryAddedReceiver
+08-21 12:40:32.124  1965  1994 W BroadcastQueue: Background execution not allowed: receiving Intent { act=android.intent.action.DROPBOX_ENTRY_ADDED flg=0x10 (has extras) } to com.google.android.gms/.chimera.GmsIntentOperationService$PersistentTrustedReceiver
+08-21 12:40:33.028  1965  1993 I UsageStatsService: User[0] Flushing usage stats to disk
+08-21 12:40:33.040  1965  1993 E AppIdleHistory: Error writing app idle file for user 0
+08-21 12:40:33.197  9235  9307 W loat.blockblas: Accessing hidden field Landroid/view/HapticFeedbackConstants;->CONFIRM:I (greylist-max-o, reflection, denied)
+08-21 12:40:33.985  1965  1965 D MediaSessionService: Media button session is changed to com.intstrfloat.blockblast/androidx.media3.session.id.ExpoAudioBasicMediaSession_68441522 (userId=0)
+08-21 12:40:33.988  1710  5602 W audio_hw_generic: Not supplying enough data to HAL, expected position 3578071 , only wrote 3577993
+08-21 12:40:34.012  2969  3147 I WorkerManager: dispose()
+08-21 12:40:34.012  2969  3147 W ThreadPoolDumper: Queue length for executor EventBus is now 11. Perhaps some tasks are too long, or the pool is too small.
+08-21 12:40:34.020  9235  9390 D AudioTrack: getTimestamp_l(247): device stall time corrected using current time 1213483060600
+08-21 12:40:34.051  9235  9390 W AudioTrack: getTimestamp_l(247): retrograde timestamp time corrected, 1213496957800 < 1213503896900
+08-21 12:40:34.098  2515  2515 I BeaconBle: Scan : No clients left, canceling alarm. [CONTEXT service_id=111 ]
+08-21 12:40:34.121  9235  9390 D AudioTrack: stop(247): called with 16097 frames delivered
+08-21 12:40:34.122  1965  1965 D MediaSessionService: Media button session is changed to com.intstrfloat.blockblast/androidx.media3.session.id.ExpoAudioBasicMediaSession_3446287 (userId=0)
+08-21 12:40:34.424  1965  5773 D MediaSessionService: Media button session is changed to com.intstrfloat.blockblast/androidx.media3.session.id.ExpoAudioBasicMediaSession_68441522 (userId=0)
+08-21 12:40:35.684  1734  1734 D gralloc_ranchu: gralloc_alloc: Creating ashmem region of size 8298496
+08-21 12:40:35.695  1609  1609 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.mapper@3.0::IMapper/default in either framework or device manifest.
+08-21 12:40:35.696  9498  9498 W Gralloc3: mapper 3.x is not supported
+08-21 12:40:35.700  9498  9498 D HostConnection: createUnique: call
+08-21 12:40:35.700  9498  9498 D HostConnection: HostConnection::get() New Host Connection established 0x7e00749bd8a0, tid 9498
+08-21 12:40:35.702  9498  9498 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+08-21 12:40:35.702  9498  9498 D eglCodecCommon: allocate: Ask for block of size 0x1000
+08-21 12:40:35.702  9498  9498 D eglCodecCommon: allocate: ioctl allocate returned offset 0x3ff805000 size 0x2000
+08-21 12:40:35.708  1750  2006 E SurfaceFlinger: ro.sf.lcd_density must be defined as a build property
+08-21 12:40:35.709  1750  2006 E SurfaceFlinger: ro.sf.lcd_density must be defined as a build property
+08-21 12:40:35.710  9498  9524 D libEGL  : Emulator has host GPU support, qemu.gles is set to 1.
+08-21 12:40:35.713  9498  9524 W libc    : Unable to set property "qemu.gles" to "1": error code: 0x18
+08-21 12:40:35.714  9498  9524 D libEGL  : loaded /vendor/lib64/egl/libEGL_emulation.so
+08-21 12:40:35.714  9498  9524 D libEGL  : loaded /vendor/lib64/egl/libGLESv1_CM_emulation.so
+08-21 12:40:35.715  9498  9524 D libEGL  : loaded /vendor/lib64/egl/libGLESv2_emulation.so
+08-21 12:40:35.720  9498  9524 D HostConnection: HostConnection::get() New Host Connection established 0x7dffe3081c20, tid 9524
+08-21 12:40:35.722  9498  9524 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+08-21 12:40:35.723  9498  9524 W OpenGLRenderer: Failed to choose config with EGL_SWAP_BEHAVIOR_PRESERVED, retrying without...
+08-21 12:40:35.737  9498  9524 D EGL_emulation: eglCreateContext: 0x7dffe3081d60: maj 2 min 0 rcv 2
+08-21 12:40:35.759  9498  9524 D EGL_emulation: eglMakeCurrent: 0x7dffe3081d60: ver 2 0 (tinfo 0x7dffe3018ac0)
+08-21 12:40:35.846  1965  5773 W WindowManager: removeWindowToken: Attempted to remove non-existing token: android.os.Binder@4ee4d0e
+08-21 12:40:35.847  1965  1965 V SettingsProvider: Notifying for 0: content://settings/secure/accessibility_enabled
+08-21 12:40:35.852  9498  9498 I app_process: System.exit called, status: 0
+08-21 12:40:35.852  9498  9498 I AndroidRuntime: VM exiting with result code 0.

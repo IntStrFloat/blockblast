@@ -13,7 +13,10 @@ describe('legacy meta onboarding overlay', () => {
   it('is not mounted on Home because action FTUE owns first launch', () => {
     expect(home).not.toContain('<OnboardingOverlay');
     expect(home).toContain('shouldEnterFtue');
-    expect(home).toContain("entry: 'tutorial'");
+    expect(home).toContain("entry: resumeTutorial ? 'resume' : 'tutorial'");
+    expect(home).not.toContain('<WelcomeNotificationOverlay');
+    expect(home).not.toContain('if (!welcomePromptResolved) return;');
+    expect(home).toContain('resolveWelcomePrompt();');
   });
 
   it('self-gates on the seen flag and marks it seen on finish', () => {

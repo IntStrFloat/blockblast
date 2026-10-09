@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   heartPart: { position: 'absolute', top: 0, width: 31, height: 31, borderRadius: 18, backgroundColor: '#F52327' },
   heartBase: { position: 'absolute', left: 8, top: 15, width: 42, height: 42, backgroundColor: '#F52327', transform: [{ rotate: '45deg' }] },
   copy: { alignItems: 'center', gap: 3 },
-  title: { fontFamily: 'Fredoka_700Bold', color: '#FFFFFF', fontSize: 24, lineHeight: 29, textAlign: 'center' },
+  title: { fontFamily: 'Unbounded_700Bold', color: '#FFFFFF', fontSize: 22, lineHeight: 29, textAlign: 'center' },
   body: { color: '#FFFFFF', fontSize: 17, lineHeight: 25, textAlign: 'center' },
   acceptShadow: { width: '100%', minHeight: 78, borderRadius: 15, shadowColor: '#075500', shadowOpacity: 0.45, shadowRadius: 5, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
   accept: { flex: 1, minHeight: 78, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#0B9D00' },

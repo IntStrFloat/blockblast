@@ -11,6 +11,7 @@ export { LeaderboardRow } from './components/LeaderboardRow';
 export {
   weeklyStatusLabel,
   selectEffectiveWeeklyBest,
+  selectPreviousWeeklyBest,
   selectMyChampionRank,
   resolveWeeklyView,
   type ResolvedWeeklyView,
@@ -20,12 +21,16 @@ export {
   championRankOf,
   isPrizeRank,
   prizeForRank,
-  settleWeeklyPrize,
   unclaimedPrize,
+  normalizeWeeklyPrizeRecord,
+  weeklyPrizeRecordFromOutcome,
 } from './weeklyPrize';
 export type { WeeklyPrize, WeeklyPrizeRecord } from './weeklyPrize';
 export { appendRunMove, beginRunProof, finalizeRunProof } from './runProof';
 export { createLeaderboardStore, useLeaderboardStore } from './store';
+export { currentWeeklyGoal, useWeeklyGoalStore } from './weeklyGoalStore';
+export type { WeeklyGoalRecord } from './weeklyGoalStore';
+export { useWeeklyGoalWeekKey } from './useWeeklyGoalWeekKey';
 export {
   getUtcWeekCountdown,
   getUtcWeekWindow,

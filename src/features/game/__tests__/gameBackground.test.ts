@@ -39,14 +39,17 @@ describe("GameBackground contract", () => {
     expect(gameSource).toContain("{...bgPalette}");
   });
 
-  it("reacts only to combo events and cleans up stale pulses", () => {
+  it("drives a self-finishing, stable pulse directly from each combo event", () => {
     expect(backgroundSource).toContain(
       "useGameStore((state) => state.lastEvent)",
     );
-    expect(backgroundSource).toContain("combo < 2");
-    expect(backgroundSource).toContain("setTimeout");
-    expect(backgroundSource).toContain("clearTimeout");
-    expect(backgroundSource).toContain("return clearPulseTimer");
+    expect(backgroundSource).toContain("lastEvent.combo >= 2");
+    expect(backgroundSource).toContain("cancelAnimation(pulseProgress)");
+    expect(backgroundSource).toContain("pulseProgress.value = withTiming(1");
+    expect(backgroundSource).toContain("pulseStyle");
+    expect(backgroundSource).not.toContain("entering={pulseIn}");
+    expect(backgroundSource).not.toContain("setTimeout");
+    expect(backgroundSource).not.toContain("clearTimeout");
     expect(backgroundSource).not.toContain("setInterval");
     expect(backgroundSource).not.toContain("withRepeat");
     expect(backgroundSource).not.toContain("repeat(");
@@ -59,5 +62,22 @@ describe("GameBackground contract", () => {
     expect(backgroundSource).toContain("scale");
     expect(backgroundSource).not.toContain("translateY");
     expect(backgroundSource).not.toContain("translateX");
+  });
+
+  it("keeps the event pulse layout animation separate from the record halo animated style", () => {
+    expect(backgroundSource).toContain("pulseStyle");
+    expect(backgroundSource).toContain("recordHaloStyle");
+  });
+
+  it("keeps the expensive themed background mounted underneath a persistent tutorial cover", () => {
+    expect(backgroundSource).not.toContain("if (tutorial)");
+    expect(backgroundSource).toContain("tutorialCoverStyle");
+    expect(backgroundSource).toContain("styles.tutorialCover");
+  });
+
+  it("pre-mounts the atmosphere instead of creating it after the clear sequence", () => {
+    expect(gameSource).toContain("<AtmosphereLayer");
+    expect(gameSource).toContain("active={!ftueActive}");
+    expect(gameSource).not.toContain("!ftueActive ? <AtmosphereLayer");
   });
 });

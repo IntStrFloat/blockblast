@@ -5,37 +5,48 @@
  * дня побеждает приоритет: стрик > конец турнира > итоги турнира > конец сезона.
  */
 
-export type LocalNotificationKind = 'streak' | 'tournamentEnd' | 'prizeReady' | 'seasonEnding';
+export type LocalNotificationKind =
+  | 'streak'
+  | 'tournamentEnd'
+  | 'prizeReady'
+  | 'savedRun'
+  | 'seasonEnding';
 
 export interface PlannedNotification {
   kind: LocalNotificationKind;
   fireAt: Date;
-  params: { streakCount?: number; rank?: number | null };
+  params: {
+    streakCount?: number;
+    rank?: number | null;
+    savedMode?: 'classic' | 'adventure';
+  };
 }
 
 export interface PlannerInput {
   /** Локальная дата YYYY-MM-DD на момент планирования. */
   todayIso: string;
   streak: { lastDay: string | null; count: number };
-  playedThisWeek: boolean;
-  currentRank: number | null;
-  seasonEndIso: string | null;
-  seasonStarted: boolean;
-  seasonCompleted: boolean;
+  protectorAvailable: boolean;
+  tournamentPlayedThisWeek: boolean;
+  tournamentCurrentRank: number | null;
+  prizePlayedTargetWeek: boolean;
+  savedRun?: { mode: 'classic' | 'adventure' } | null;
+  /** G09 server-owned calendar-theme deadline; personal campaign never expires. */
+  adventureThemeWindowEndIso?: string | null;
 }
 
 const PRIORITY: Record<LocalNotificationKind, number> = {
   streak: 0,
   tournamentEnd: 1,
   prizeReady: 2,
-  seasonEnding: 3,
+  savedRun: 3,
+  seasonEnding: 4,
 };
 
 const STREAK_HOUR = 19;
 const TOURNAMENT_END_HOUR = 18;
 const PRIZE_HOUR = 11;
-const SEASON_HOUR = 17;
-const SEASON_LEAD_DAYS = 2;
+const SAVED_RUN_HOUR = 18;
 
 function parseIsoDay(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number);
@@ -85,35 +96,55 @@ export function planLocalNotifications(input: PlannerInput, now: Date): PlannedN
         fireAt: at(today, STREAK_HOUR),
         params: { streakCount: count },
       });
+    } else if (gap === 2 && input.protectorAvailable) {
+      // Позавчера играли, вчера пропустили, но защитник ещё может спасти цепочку сегодня.
+      candidates.push({
+        kind: 'streak',
+        fireAt: at(today, STREAK_HOUR),
+        params: { streakCount: count },
+      });
     }
-    // gap ≥ 2 — стрик уже потерян (защитник учитывается при реальной партии), молчим.
+    // gap ≥ 2 без защитника — стрик уже потерян, молчим.
   }
 
-  // 2–3. Турнир: воскресенье 18:00 «заканчивается» и понедельник 11:00 «итоги» —
-  // только если игрок участвует в этой неделе.
-  if (input.playedThisWeek) {
-    const dow = today.getDay(); // 0 = воскресенье
-    const daysToSunday = dow === 0 ? 0 : 7 - dow;
-    const sunday = addDays(today, daysToSunday);
+  // 2–3. Турнир: воскресенье 18:00 «заканчивается» только для текущей недели.
+  // PrizeReady: в понедельник относится к ТОЛЬКО что завершившейся неделе;
+  // в остальные дни наперёд ставится на следующий понедельник по участию в текущей.
+  const dow = today.getDay(); // 0 = воскресенье, 1 = понедельник
+  const daysToSunday = dow === 0 ? 0 : 7 - dow;
+  const sunday = addDays(today, daysToSunday);
+  if (input.tournamentPlayedThisWeek) {
     candidates.push({
       kind: 'tournamentEnd',
       fireAt: at(sunday, TOURNAMENT_END_HOUR),
-      params: { rank: input.currentRank },
+      params: { rank: input.tournamentCurrentRank },
     });
+  }
+  if (input.prizePlayedTargetWeek) {
+    const prizeDay = dow === 1 ? today : addDays(sunday, 1);
     candidates.push({
       kind: 'prizeReady',
-      fireAt: at(addDays(sunday, 1), PRIZE_HOUR),
+      fireAt: at(prizeDay, PRIZE_HOUR),
       params: {},
     });
   }
 
-  // 4. Сезон Adventure: за 2 дня до конца окна, если сезон начат и не завершён.
-  if (input.seasonStarted && !input.seasonCompleted && input.seasonEndIso) {
-    const end = new Date(input.seasonEndIso);
-    if (!Number.isNaN(end.getTime())) {
+  if (input.savedRun) {
+    candidates.push({
+      kind: 'savedRun',
+      fireAt: at(addDays(today, 1), SAVED_RUN_HOUR),
+      params: { savedMode: input.savedRun.mode },
+    });
+  }
+
+  // G09 deadline changes calendar styling only. Copy explicitly preserves the
+  // personal campaign; this is not presented as expiring level progress.
+  if (input.adventureThemeWindowEndIso) {
+    const deadline = new Date(input.adventureThemeWindowEndIso);
+    if (!Number.isNaN(deadline.getTime())) {
       candidates.push({
         kind: 'seasonEnding',
-        fireAt: at(addDays(end, -SEASON_LEAD_DAYS), SEASON_HOUR),
+        fireAt: at(addDays(deadline, -1), TOURNAMENT_END_HOUR),
         params: {},
       });
     }

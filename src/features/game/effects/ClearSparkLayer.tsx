@@ -1,10 +1,11 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import { View } from 'react-native';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+import { AppState, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useFrameCallback,
   useSharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import type { ClearPresentationInstance, ClearSpark } from '../animation/clearPresentation';
 import { BURST_MOTION } from '../animation/motion';
@@ -12,7 +13,13 @@ import { BURST_MOTION } from '../animation/motion';
 const POOL_SIZE = BURST_MOTION.sparkCap * 2;
 
 interface SparkHandle {
+  stop: () => void;
   play: (spark: ClearSpark) => void;
+}
+
+interface FrameController {
+  setActive: (active: boolean) => void;
+  isActive: boolean;
 }
 
 /**
@@ -25,53 +32,39 @@ const SparkParticle = forwardRef<SparkHandle>(function SparkParticle(_props, ref
   const y = useSharedValue(0);
   const size = useSharedValue(0);
   const color = useSharedValue('#FFFFFF');
-  const glowColor = useSharedValue('rgba(255,255,255,0)');
   const velocityX = useSharedValue(0);
   const velocityY = useSharedValue(0);
   const gravity = useSharedValue(0);
   const spin = useSharedValue(0);
-  const diamond = useSharedValue(0);
   const duration = useSharedValue(0);
   const delayRemaining = useSharedValue(0);
   const elapsed = useSharedValue(0);
   const active = useSharedValue(0);
+  const generation = useSharedValue(0);
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
   const rotate = useSharedValue(0);
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
+  const frameControllerRef = useRef<FrameController | null>(null);
 
-  useImperativeHandle(
-    ref,
-    () => ({
-      play(spark) {
-        x.value = spark.x;
-        y.value = spark.y;
-        size.value = spark.size;
-        color.value = spark.color;
-        glowColor.value = spark.glowColor;
-        velocityX.value = spark.velocityX;
-        velocityY.value = spark.velocityY;
-        gravity.value = spark.gravity;
-        spin.value = spark.spinDegPerSecond;
-        diamond.value = spark.shape === 'diamond' ? 1 : 0;
-        duration.value = spark.duration;
-        delayRemaining.value = spark.delay;
-        elapsed.value = 0;
-        tx.value = 0;
-        ty.value = 0;
-        rotate.value = spark.shape === 'diamond' ? 45 : 0;
-        scale.value = 0.32;
-        opacity.value = 0;
-        active.value = 1;
-      },
-    }),
-    // Shared values remain stable for the lifetime of a pooled particle.
+  const stop = useCallback(() => {
+    generation.value += 1;
+    frameControllerRef.current?.setActive(false);
+    active.value = 0;
+    delayRemaining.value = 0;
+    elapsed.value = 0;
+    opacity.value = 0;
+    // Pool shared values are stable for the slot lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  useFrameCallback((frame) => {
+  }, []);
+  const stopIfCurrent = useCallback((completedGeneration: number) => {
+    if (generation.value !== completedGeneration || active.value !== 0) return;
+    frameControllerRef.current?.setActive(false);
+    // Shared values remain stable for the slot lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const frameController = useFrameCallback(useCallback((frame) => {
     'worklet';
     if (active.value === 0) return;
 
@@ -92,6 +85,7 @@ const SparkParticle = forwardRef<SparkHandle>(function SparkParticle(_props, ref
     if (elapsed.value >= duration.value) {
       opacity.value = 0;
       active.value = 0;
+      scheduleOnRN(stopIfCurrent, generation.value);
       return;
     }
 
@@ -99,10 +93,52 @@ const SparkParticle = forwardRef<SparkHandle>(function SparkParticle(_props, ref
     const seconds = elapsed.value / 1000;
     tx.value = velocityX.value * seconds;
     ty.value = velocityY.value * seconds + 0.5 * gravity.value * seconds * seconds;
-    rotate.value = (diamond.value === 1 ? 45 : 0) + spin.value * seconds;
+    rotate.value = spin.value * seconds;
     opacity.value = progress < 0.14 ? progress / 0.14 : Math.max(0, (1 - progress) / 0.86);
     scale.value = progress < 0.16 ? 0.38 + progress * 4.1 : 1.04 - progress * 0.34;
-  });
+  // Shared values remain stable for the slot lifetime.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stopIfCurrent]), false);
+
+  useLayoutEffect(() => {
+    frameControllerRef.current = frameController;
+    return () => {
+      frameController.setActive(false);
+      frameControllerRef.current = null;
+      stop();
+    };
+  }, [frameController, stop]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      stop,
+      play(spark) {
+        generation.value += 1;
+        x.value = spark.x;
+        y.value = spark.y;
+        size.value = spark.size;
+        color.value = spark.color;
+        velocityX.value = spark.velocityX;
+        velocityY.value = spark.velocityY;
+        gravity.value = spark.gravity;
+        spin.value = spark.spinDegPerSecond;
+        duration.value = spark.duration;
+        delayRemaining.value = spark.delay;
+        elapsed.value = 0;
+        tx.value = 0;
+        ty.value = 0;
+        rotate.value = 0;
+        scale.value = 0.32;
+        opacity.value = 0;
+        active.value = 1;
+        frameControllerRef.current?.setActive(true);
+      },
+    }),
+    // Shared values remain stable for the lifetime of a pooled particle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stop],
+  );
 
   const coreStyle = useAnimatedStyle(() => ({
     position: 'absolute',
@@ -110,7 +146,7 @@ const SparkParticle = forwardRef<SparkHandle>(function SparkParticle(_props, ref
     top: y.value - size.value / 2,
     width: size.value,
     height: size.value,
-    borderRadius: diamond.value === 1 ? Math.max(1, size.value * 0.16) : size.value / 2,
+    borderRadius: Math.max(0.5, size.value * 0.1),
     backgroundColor: color.value,
     borderWidth: Math.max(0.6, size.value * 0.09),
     borderColor: 'rgba(255,255,255,0.88)',
@@ -125,41 +161,8 @@ const SparkParticle = forwardRef<SparkHandle>(function SparkParticle(_props, ref
     ],
   }));
 
-  const haloStyle = useAnimatedStyle(() => ({
-    position: 'absolute',
-    left: x.value - size.value * 1.5,
-    top: y.value - size.value * 1.5,
-    width: size.value * 3,
-    height: size.value * 3,
-    borderRadius: size.value * 1.5,
-    backgroundColor: glowColor.value,
-    opacity: opacity.value * 0.68,
-    zIndex: 1,
-    transform: [
-      { translateX: tx.value },
-      { translateY: ty.value },
-      { scale: scale.value * 1.2 },
-    ],
-  }));
+  return <Animated.View pointerEvents="none" style={coreStyle} />;
 
-  return (
-    <>
-      <Animated.View pointerEvents="none" style={haloStyle} />
-      <Animated.View pointerEvents="none" style={coreStyle}>
-        <View
-          style={{
-            position: 'absolute',
-            top: '10%',
-            left: '14%',
-            width: '48%',
-            height: '25%',
-            borderRadius: 999,
-            backgroundColor: 'rgba(255,255,255,0.75)',
-          }}
-        />
-      </Animated.View>
-    </>
-  );
 });
 
 interface ClearSparkLayerProps {
@@ -168,11 +171,29 @@ interface ClearSparkLayerProps {
 
 export function ClearSparkLayer({ presentations }: ClearSparkLayerProps) {
   const slots = useRef<(SparkHandle | null)[]>([]);
+  const owners = useRef<(string | null)[]>([]);
   const cursor = useRef(0);
   const fired = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') return;
+      slots.current.forEach((slot, index) => {
+        slot?.stop();
+        owners.current[index] = null;
+      });
+    });
+    return () => subscription.remove();
+  }, []);
+
+  useLayoutEffect(() => {
     const activeIds = new Set(presentations.map((presentation) => presentation.id));
+    owners.current.forEach((owner, index) => {
+      if (owner && !activeIds.has(owner)) {
+        slots.current[index]?.stop();
+        owners.current[index] = null;
+      }
+    });
     fired.current.forEach((id) => {
       if (!activeIds.has(id)) fired.current.delete(id);
     });
@@ -181,8 +202,11 @@ export function ClearSparkLayer({ presentations }: ClearSparkLayerProps) {
       if (fired.current.has(id)) continue;
       fired.current.add(id);
       for (const spark of presentation.sparks) {
-        const slot = slots.current[cursor.current % POOL_SIZE];
+        const index = cursor.current % POOL_SIZE;
+        const slot = slots.current[index];
         cursor.current += 1;
+        slot?.stop();
+        owners.current[index] = id;
         slot?.play(spark);
       }
     }

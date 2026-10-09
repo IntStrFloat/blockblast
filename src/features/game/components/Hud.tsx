@@ -1,13 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, {
-  Easing,
   Keyframe,
-  cancelAnimation,
-  runOnJS,
-  useAnimatedReaction,
-  useSharedValue,
-  withTiming,
 } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
@@ -20,6 +14,7 @@ import { GAME_FEEL_MOTION } from '../animation/motion';
 import { recordProgressFor, type RecordProgressStage } from '../animation/recordProgression';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useGameStore } from '../store';
+import { ComboScoreBloom } from './ComboScoreBloom';
 import { RecordStatusBadge } from './RecordStatusBadge';
 
 const SCORE_SHELL_HEIGHT = 64;
@@ -28,7 +23,6 @@ const COMBO_BADGE_RESERVED_HEIGHT = 28;
 const HUD_RESERVED_HEIGHT =
   Math.ceil(SCORE_SHELL_HEIGHT * GAME_FEEL_MOTION.scoreScaleMax) + COMBO_BADGE_RESERVED_HEIGHT;
 const SHIMMER_THRESHOLD = 120;
-const LIVE_SCORE_COUNT_UP_DURATION = 420;
 
 function cappedScoreScale(scale: number) {
   return Math.min(scale, GAME_FEEL_MOTION.scoreScaleMax);
@@ -77,18 +71,8 @@ function ScoreCounter() {
   const lastEvent = useGameStore((s) => s.lastEvent);
   const reducedMotion = useReducedMotion();
   const previousScoreRef = useRef(score);
-  const displayedScoreRef = useRef(score);
   const [pulseKey, setPulseKey] = useState(0);
   const [lastJump, setLastJump] = useState(0);
-  const [displayedScore, setDisplayedScore] = useState(score);
-  const countProgress = useSharedValue(1);
-  const countFrom = useSharedValue(score);
-  const countTo = useSharedValue(score);
-
-  const commitDisplayedScore = useCallback((nextScore: number) => {
-    displayedScoreRef.current = nextScore;
-    setDisplayedScore(nextScore);
-  }, []);
 
   useEffect(() => {
     const nextScore = score;
@@ -101,39 +85,6 @@ function ScoreCounter() {
     setPulseKey((value) => value + 1);
     previousScoreRef.current = nextScore;
   }, [score]);
-
-  useEffect(() => {
-    const currentDisplayedScore = displayedScoreRef.current;
-    cancelAnimation(countProgress);
-
-    if (score <= currentDisplayedScore) {
-      countFrom.value = score;
-      countTo.value = score;
-      countProgress.value = 1;
-      if (score !== currentDisplayedScore) commitDisplayedScore(score);
-      return;
-    }
-
-    countFrom.value = currentDisplayedScore;
-    countTo.value = score;
-    countProgress.value = 0;
-    countProgress.value = reducedMotion
-      ? 1
-      : withTiming(1, {
-          duration: LIVE_SCORE_COUNT_UP_DURATION,
-          easing: Easing.out(Easing.cubic),
-        });
-
-    return () => cancelAnimation(countProgress);
-  }, [commitDisplayedScore, countFrom, countProgress, countTo, reducedMotion, score]);
-
-  useAnimatedReaction(
-    () => Math.round(countFrom.value + (countTo.value - countFrom.value) * countProgress.value),
-    (nextScore, previousScore) => {
-      if (nextScore !== previousScore) runOnJS(commitDisplayedScore)(nextScore);
-    },
-    [commitDisplayedScore],
-  );
 
   const scoreScale = scoreScaleFor(score);
   const shimmer = lastJump >= SHIMMER_THRESHOLD;
@@ -157,14 +108,11 @@ function ScoreCounter() {
         overflow: 'visible',
       }}
     >
+      <ComboScoreBloom />
       <Animated.View
         key={pulseKey}
         testID={`hud-score-pulse-${pulseKey}`}
         entering={scorePulseAnimation(reducedMotion, scoreScale, shimmer, recordProgress.stage)}
-        style={{
-          opacity: 1,
-          transform: [{ scale: scoreScale }],
-        }}
       >
         <AppText
           testID="hud-score-text"
@@ -176,7 +124,7 @@ function ScoreCounter() {
             textShadowRadius: isLiveRecord ? 12 : 0,
           }}
         >
-          {displayedScore}
+          {score}
         </AppText>
       </Animated.View>
     </View>

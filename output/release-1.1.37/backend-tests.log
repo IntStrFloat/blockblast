@@ -1,0 +1,28 @@
+
+> blockblast@1.1.37 backend:test
+> npm run backend:build && node --test backend/__tests__/*.test.cjs
+
+
+> blockblast@1.1.37 backend:build
+> tsc -p backend/tsconfig.engine.json
+
+✔ migrates PixelPulse 638 to 3706 once and preserves a backup (12.7837ms)
+✔ health reports record-only mode and needs no engine runtime (2.6474ms)
+✔ bootstrap creates an anonymous profile and reuses it with bearer auth (10.26ms)
+✔ rename changes only nickname and keeps server-owned tag (7.8651ms)
+✔ record-only: weekly best is the max of submitted scores, runs are counted (26.6512ms)
+✔ leaderboard week rolls at Monday midnight in Moscow time (6.727ms)
+✔ adventure season is a server-owned 14 day window (9.7697ms)
+✔ avatar: сабмит сохраняет витринный образ и отдаёт его в списке (12.0393ms)
+✔ avatar: невалидное поле игнорируется, сабмит проходит (17.6611ms)
+✔ API key and bearer token are required on protected operations (1.2909ms)
+✔ server replay rejects an impossible move (11.218ms)
+✔ server replay rejects a score that does not match replayed state (1.7801ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 219.4158

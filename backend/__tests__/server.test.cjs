@@ -156,6 +156,21 @@ test('record-only: weekly best is the max of submitted scores, runs are counted'
   assert.equal(bareRun.status, 200);
   assert.equal(bareRun.json.snapshot.currentPlayer.weeklyBest, 200);
   assert.equal(bareRun.json.snapshot.currentPlayer.runsCount, 3);
+
+  const idempotent = await h.request(
+    'POST',
+    '/api/runs',
+    { proofId: 'proof-retry-1', score: 250 },
+    session.json.authToken,
+  );
+  const retried = await h.request(
+    'POST',
+    '/api/runs',
+    { proofId: 'proof-retry-1', score: 250 },
+    session.json.authToken,
+  );
+  assert.equal(idempotent.json.snapshot.currentPlayer.runsCount, 4);
+  assert.equal(retried.json.snapshot.currentPlayer.runsCount, 4);
 });
 
 test('leaderboard week rolls at Monday midnight in Moscow time', async (t) => {
@@ -177,6 +192,140 @@ test('leaderboard week rolls at Monday midnight in Moscow time', async (t) => {
   assert.equal(after.json.weekKey, '2026-07-06');
   assert.equal(after.json.weekStartIso, '2026-07-05T21:00:00.000Z');
   assert.equal(after.json.weekEndIso, '2026-07-12T21:00:00.000Z');
+});
+
+test('weekly outcomes use the final server rank, not a midweek cached rank', async (t) => {
+  const h = createHarness();
+  t.after(h.cleanup);
+
+  const me = await h.request('POST', '/api/profile/bootstrap', { nickname: 'PixelNova' });
+  await h.request('POST', '/api/runs', { score: 900 }, me.json.authToken);
+  const leader = await h.request('POST', '/api/profile/bootstrap', { nickname: 'TopPlayer' });
+  await h.request('POST', '/api/runs', { score: 1_000 }, leader.json.authToken);
+  const midweek = await h.request('GET', '/api/leaderboard', undefined, me.json.authToken);
+  assert.equal(midweek.json.currentPlayer.rank, 2);
+
+  for (let index = 0; index < 8; index += 1) {
+    const rival = await h.request('POST', '/api/profile/bootstrap', {
+      nickname: `Rival${index}`,
+    });
+    await h.request('POST', '/api/runs', { score: 990 - index }, rival.json.authToken);
+  }
+  const pending = await h.request('GET', '/api/weekly/outcomes', undefined, me.json.authToken);
+  assert.deepEqual(pending.json.outcomes, []);
+  h.setNow('2026-06-22T00:00:00.000Z');
+
+  const outcomes = await h.request('GET', '/api/weekly/outcomes', undefined, me.json.authToken);
+  assert.equal(outcomes.status, 200);
+  assert.equal(outcomes.json.outcomes.length, 1);
+  assert.equal(outcomes.json.outcomes[0].rank, 10);
+  assert.equal(outcomes.json.outcomes[0].reward, null);
+});
+
+test('weekly final archive captures a late improvement from cached #10 to final #2', async (t) => {
+  const h = createHarness();
+  t.after(h.cleanup);
+
+  const me = await h.request('POST', '/api/profile/bootstrap', { nickname: 'PixelNova' });
+  await h.request('POST', '/api/runs', { score: 500 }, me.json.authToken);
+  for (let index = 0; index < 9; index += 1) {
+    const rival = await h.request('POST', '/api/profile/bootstrap', {
+      nickname: `Ahead${index}`,
+    });
+    await h.request(
+      'POST',
+      '/api/runs',
+      { score: index === 0 ? 2_500 : 1_500 - index },
+      rival.json.authToken,
+    );
+  }
+  const midweek = await h.request('GET', '/api/leaderboard', undefined, me.json.authToken);
+  assert.equal(midweek.json.currentPlayer.rank, 10);
+
+  await h.request('POST', '/api/runs', { score: 2_000 }, me.json.authToken);
+  h.setNow('2026-06-22T00:00:00.000Z');
+  const outcomes = await h.request('GET', '/api/weekly/outcomes', undefined, me.json.authToken);
+
+  assert.equal(outcomes.json.outcomes[0].rank, 2);
+  assert.equal(outcomes.json.outcomes[0].reward.prize.points, 700);
+});
+
+test('weekly claim is owner-bound and idempotently returns one stable receipt', async (t) => {
+  const h = createHarness();
+  t.after(h.cleanup);
+
+  const me = await h.request('POST', '/api/profile/bootstrap', { nickname: 'PixelNova' });
+  const other = await h.request('POST', '/api/profile/bootstrap', { nickname: 'OtherOne' });
+  await h.request('POST', '/api/runs', { score: 2_000 }, other.json.authToken);
+  await h.request('POST', '/api/runs', { score: 1_500 }, me.json.authToken);
+  h.setNow('2026-06-22T00:00:00.000Z');
+
+  const outcomes = await h.request('GET', '/api/weekly/outcomes', undefined, me.json.authToken);
+  const outcome = outcomes.json.outcomes[0];
+  assert.equal(outcome.rank, 2);
+  assert.equal(outcome.reward.prize.points, 700);
+  assert.match(outcome.reward.rewardId, /^weekly:2026-06-15:.+:rank-2$/);
+
+  const [first, second] = await Promise.all([
+    h.request(
+      'POST',
+      '/api/weekly/rewards/claim',
+      { rewardId: outcome.reward.rewardId },
+      me.json.authToken,
+    ),
+    h.request(
+      'POST',
+      '/api/weekly/rewards/claim',
+      { rewardId: outcome.reward.rewardId },
+      me.json.authToken,
+    ),
+  ]);
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  assert.deepEqual(second.json.receipt, first.json.receipt);
+  assert.equal(first.json.receipt.effectScope, 'local_profile');
+
+  const foreign = await h.request(
+    'POST',
+    '/api/weekly/rewards/claim',
+    { rewardId: outcome.reward.rewardId },
+    other.json.authToken,
+  );
+  assert.equal(foreign.status, 404);
+
+  const recovered = await h.request('GET', '/api/weekly/outcomes', undefined, me.json.authToken);
+  assert.deepEqual(recovered.json.outcomes[0].receipt, first.json.receipt);
+});
+
+test('weekly archive keeps deterministic tie ranks and returns multiple missed weeks', async (t) => {
+  const h = createHarness();
+  t.after(h.cleanup);
+
+  const first = await h.request('POST', '/api/profile/bootstrap', { nickname: 'TieFirst' });
+  const second = await h.request('POST', '/api/profile/bootstrap', { nickname: 'TieSecond' });
+  await h.request('POST', '/api/runs', { score: 1_000 }, first.json.authToken);
+  await h.request('POST', '/api/runs', { score: 1_000 }, second.json.authToken);
+
+  h.setNow('2026-06-22T12:00:00.000Z');
+  const firstWeekOne = await h.request('GET', '/api/weekly/outcomes', undefined, first.json.authToken);
+  const secondWeekOne = await h.request('GET', '/api/weekly/outcomes', undefined, second.json.authToken);
+  assert.deepEqual(
+    [firstWeekOne.json.outcomes[0].rank, secondWeekOne.json.outcomes[0].rank].sort(),
+    [1, 2],
+  );
+
+  await h.request('POST', '/api/runs', { score: 1_100 }, first.json.authToken);
+  h.setNow('2026-06-29T12:00:00.000Z');
+  await h.request('POST', '/api/runs', { score: 1_200 }, first.json.authToken);
+  h.setNow('2026-07-06T12:00:00.000Z');
+
+  const missed = await h.request('GET', '/api/weekly/outcomes', undefined, first.json.authToken);
+  assert.deepEqual(
+    missed.json.outcomes.map((item) => item.weekKey),
+    ['2026-06-29', '2026-06-22', '2026-06-15'],
+  );
+  const repeated = await h.request('GET', '/api/weekly/outcomes', undefined, first.json.authToken);
+  assert.deepEqual(repeated.json.outcomes, missed.json.outcomes);
 });
 
 test('adventure season is a server-owned 14 day window', async (t) => {

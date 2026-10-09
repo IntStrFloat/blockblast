@@ -36,9 +36,14 @@ describe('leaderboard week helpers', () => {
     });
   });
 
-  it('derives a gentle weekly goal from the current weekly best', () => {
-    expect(getWeeklyGoal(0)).toEqual({ current: 0, target: 1500, progress: 0 });
-    expect(getWeeklyGoal(2480)).toEqual({ current: 2480, target: 3000, progress: 2480 });
+  it('keeps the assigned target fixed while progress changes', () => {
+    expect(getWeeklyGoal(0, 1500)).toEqual({
+      current: 0, target: 1500, progress: 0, remaining: 1500, complete: false,
+    });
+    expect(getWeeklyGoal(1000, 1500).target).toBe(1500);
+    expect(getWeeklyGoal(1500, 1500)).toMatchObject({
+      current: 1500, target: 1500, remaining: 0, complete: true,
+    });
   });
 
 });

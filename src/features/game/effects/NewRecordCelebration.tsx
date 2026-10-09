@@ -1,12 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Keyframe } from 'react-native-reanimated';
 
 import { colors } from '@/ui';
 
 import { GAME_FEEL_MOTION } from '../animation/motion';
-import { RECORD_PROGRESS } from '../animation/recordProgression';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { type RecordCelebration, useGameStore } from '../store';
 import { Confetti } from './Confetti';
@@ -14,9 +12,16 @@ import { Confetti } from './Confetti';
 const RECORD_GOLD = ['#F5C451', '#FFE27A', '#FFF6BA', '#FFFDF2'] as const;
 const REDUCED_HIDE_MS = 420;
 
-interface ActiveCelebration {
-  id: number;
-  record: RecordCelebration;
+const celebrationIds = new WeakMap<RecordCelebration, number>();
+let nextCelebrationId = 1;
+
+function celebrationId(record: RecordCelebration) {
+  let id = celebrationIds.get(record);
+  if (!id) {
+    id = nextCelebrationId++;
+    celebrationIds.set(record, id);
+  }
+  return id;
 }
 
 function bloomAnimation(reducedMotion: boolean) {
@@ -39,35 +44,8 @@ function bloomAnimation(reducedMotion: boolean) {
 export function NewRecordCelebration() {
   const reducedMotion = useReducedMotion();
   const recordCelebration = useGameStore((state) => state.recordCelebration);
-  const [active, setActive] = useState<ActiveCelebration | null>(null);
-  const counter = useRef(0);
-  const handledRef = useRef<RecordCelebration | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (!timerRef.current) return;
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (!recordCelebration || handledRef.current === recordCelebration) return;
-
-    handledRef.current = recordCelebration;
-    const id = ++counter.current;
-    setActive({ id, record: recordCelebration });
-
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      if (counter.current === id) setActive(null);
-    }, reducedMotion ? REDUCED_HIDE_MS : RECORD_PROGRESS.celebrationMs);
-  }, [recordCelebration, reducedMotion]);
-
-  if (!active) return null;
+  if (!recordCelebration) return null;
+  const id = celebrationId(recordCelebration);
 
   return (
     <View
@@ -76,7 +54,7 @@ export function NewRecordCelebration() {
       style={styles.root}
     >
       <Animated.View
-        key={`record-bloom-${active.id}`}
+        key={`record-bloom-${id}`}
         testID="new-record-bloom"
         entering={bloomAnimation(reducedMotion)}
         style={styles.bloom}
@@ -101,7 +79,7 @@ export function NewRecordCelebration() {
         count={GAME_FEEL_MOTION.recordConfettiMax}
         palette={[...RECORD_GOLD]}
         reducedMotion={reducedMotion}
-        seed={active.record.score * 31 + active.record.previousBest * 17}
+        seed={recordCelebration.score * 31 + recordCelebration.previousBest * 17}
         testIdPrefix="record-confetti-piece-"
       />
     </View>
@@ -135,6 +113,5 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 2,
     borderColor: colors.accent,
-    opacity: 0.55,
   },
 });

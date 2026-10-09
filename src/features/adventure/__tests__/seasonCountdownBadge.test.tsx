@@ -1,10 +1,19 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-import { useProfileStore } from '@/features/profile';
+import { useSettings } from '@/features/settings';
 
 import { SeasonCountdownBadge } from '../components/SeasonCountdownBadge';
 import { useAdventure } from '../store';
+
+jest.mock('expo-router', () => {
+  const ReactModule = jest.requireActual<typeof React>('react');
+  return {
+    useFocusEffect: (callback: () => void | (() => void)) => {
+      ReactModule.useEffect(callback, [callback]);
+    },
+  };
+});
 
 const WINDOW = {
   seasonId: 1,
@@ -18,7 +27,7 @@ const NOW_MS = Date.parse(WINDOW.serverNowIso);
 function renderBadge(): ReactTestRenderer {
   let tree!: ReactTestRenderer;
   act(() => {
-    tree = create(<SeasonCountdownBadge />);
+    tree = create(<SeasonCountdownBadge autoRefresh={false} />);
   });
   return tree;
 }
@@ -37,22 +46,16 @@ describe('SeasonCountdownBadge', () => {
     jest.restoreAllMocks();
   });
 
-  it('starts a season sync on mount when the window is missing', () => {
-    const syncSeasonWindow = jest.fn().mockResolvedValue(null);
-    useAdventure.setState({ syncSeasonWindow });
-    useProfileStore.setState({ authToken: 'token-abc' });
-
+  it('shows a neutral localized label while the calendar window is unknown', () => {
+    useSettings.setState({ lang: 'ru' });
     const tree = renderBadge();
-
-    expect(syncSeasonWindow).toHaveBeenCalledWith('token-abc');
-    expect(badgeText(tree)).toBe('Обновляем время');
+    expect(badgeText(tree)).toBe('Календарное оформление');
     act(() => tree.unmount());
   });
 
-  it('does not re-sync when the window is already known', () => {
-    const syncSeasonWindow = jest.fn().mockResolvedValue(null);
+  it('names the changing theme instead of implying the trophy expires', () => {
+    useSettings.setState({ lang: 'ru' });
     useAdventure.setState({
-      syncSeasonWindow,
       seasonWindow: WINDOW,
       seasonWindowSyncedAtMs: Date.parse(WINDOW.serverNowIso),
       syncStatus: 'ready',
@@ -60,19 +63,14 @@ describe('SeasonCountdownBadge', () => {
 
     const tree = renderBadge();
 
-    expect(syncSeasonWindow).not.toHaveBeenCalled();
-    expect(badgeText(tree)).toMatch(/^Осталось/);
+    expect(badgeText(tree)).toMatch(/^Оформление обновится через/);
     act(() => tree.unmount());
   });
 
-  it('shows an honest error label instead of an eternal "updating"', () => {
-    const syncSeasonWindow = jest.fn().mockResolvedValue(null);
-    useAdventure.setState({ syncSeasonWindow, syncStatus: 'error' });
-
+  it('localizes the neutral state in English', () => {
+    useSettings.setState({ lang: 'en' });
     const tree = renderBadge();
-
-    expect(badgeText(tree)).toBe('Не удалось обновить время');
-    expect(syncSeasonWindow).not.toHaveBeenCalled();
+    expect(badgeText(tree)).toBe('Calendar theme');
     act(() => tree.unmount());
   });
 });

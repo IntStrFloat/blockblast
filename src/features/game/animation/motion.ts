@@ -7,20 +7,20 @@ export const TRAY_ACTIVATION = {
 
 export const TRAY_MOTION = {
   restingScale: 0.65,
-  grabScale: 0.92,
+  grabScale: 1,
   grabDurationMs: 110,
   appearFromScale: 0.9,
-  appearDurationMs: 110,
+  appearDurationMs: 150,
   returnDurationMs: 130,
   returnScaleDurationMs: 100,
 } as const;
 
 export const CLEAR_MOTION = {
-  staggerMs: 10,
-  durationMs: 310,
-  popScale: 1.18,
-  collapseScale: 0.18,
-  flashDurationMs: 260,
+  staggerMs: 4,
+  durationMs: 180,
+  popScale: 1,
+  collapseScale: 0.76,
+  flashDurationMs: 90,
 } as const;
 
 export const PARTICLE_MOTION = {
@@ -32,102 +32,65 @@ export const PARTICLE_MOTION = {
 
 export const SPECTACLE_MOTION = {
   placementEndMs: 90,
-  lineLockStartMs: 35,
-  lineLockEndMs: 165,
-  flareStartMs: 90,
-  flareEndMs: 205,
-  crushStartMs: 145,
-  crushEndMs: 335,
-  debrisStartMs: 175,
-  debrisEndMs: 475,
+  lineLockStartMs: 0,
+  lineLockEndMs: 60,
+  flareStartMs: 20,
+  flareEndMs: 85,
+  crushStartMs: 20,
+  crushEndMs: 210,
+  debrisStartMs: 45,
+  debrisEndMs: 300,
   praiseStartMs: 210,
   praiseEndMs: 650,
+  afterglowEndMs: 720,
   reducedDebris: 12,
   sparkCount: 6,
 } as const;
 
-/**
- * Единая система разрушения «тяжёлая гравитация»
- * (docs/superpowers/specs/2026-07-02-clear-burst-gravity-design.md):
- * осколок-ячейка подскакивает и тяжело падает за нижний край доски.
- */
+/** Brief cell dissolution with bounded, outward square confetti. */
 export const BURST_MOTION = {
-  popScale: 1.1,
-  popDurationMs: 80,
-  jumpDurationMs: 140,
-  /** Высота подскока в клетках: base + random * jitter, умножается на intensity. */
-  jumpCells: 0.55,
-  jumpJitterCells: 0.25,
-  /** Горизонтальный дрейф за подскок (в клетках, от центроида). */
-  driftCells: 0.4,
-  fallDurationMinMs: 300,
-  fallDurationJitterMs: 130,
-  /** Насколько ниже края доски финиширует осколок (в клетках). */
-  fallOvershootCells: 1.5,
-  /** Дополнительный горизонтальный снос за падение (в клетках). */
-  spreadCells: 0.6,
-  rotateBaseDeg: 40,
-  rotateJitterDeg: 30,
-  /** Масштаб осколка к концу падения («улетает от камеры»). */
-  fallScale: 0.9,
-  /** Затухание у нижней границы — осколки не ложатся поверх трея. */
-  fadeDurationMs: 110,
-  /** Время жизни осколка в reduced motion (fade на месте). */
-  reducedFadeMs: 240,
-  /** Интенсивность по числу линий: 1, 2, 3, 4+. */
-  intensityByLines: [1, 1.25, 1.5, 1.8],
-  /**
-   * Бюджет осколков на одну презентацию клира. Ячейка колется на 4/2/1 кусков
-   * (ближе к месту хода — сильнее), суммарно не больше shardBudget; два
-   * перекрывающихся клира с крошкой укладываются в потолок 96 узлов (спека 07).
-   */
-  // Keep the clear within a 48-node budget while reserving room for live sparks.
-  shardBudget: 32,
-  /** Разброс задержки крака между осколками одной ячейки (мс). */
-  shardDelayJitterMs: 26,
-  /** Разлёт осколков от центра расколотой ячейки (в клетках). */
-  separationCells: 0.16,
-  /** Кувырок мелких осколков быстрее целой ячейки. */
-  spinBoost: 1.45,
-  /** Вспышка-крак в момент раскола: осветление цвета блока и время туда/обратно. */
-  crackFlashMix: 0.72,
-  crackFlashInMs: 50,
-  crackFlashOutMs: 160,
-  /** Крошка-акцент: 1 частица на debrisPerCells ячеек, не больше debrisCap. */
-  debrisCap: 8,
-  debrisPerCells: 2,
-  /** Разброс задержки крошки поверх волны раскола (мс). */
-  debrisDelayJitterMs: 60,
-  /** Bright diamond/dot sparks with per-frame velocity and gravity. */
-  sparkCap: 8,
-  sparkPerCells: 2,
-  sparkDelayJitterMs: 52,
-  sparkDurationMinMs: 430,
-  sparkDurationJitterMs: 170,
-  /** Шейк доски бьёт в момент крака у места хода (чуть после pop-а). */
-  impactShakeDelayMs: 60,
+  dissolveDurationMs: 160,
+  dissolveScale: 0.76,
+  reducedFadeMs: 150,
+  /** One pre-mounted cover for every board cell. */
+  shardPoolSize: 64,
+  crackFlashMix: 0.62,
+  crackFlashInMs: 30,
+  crackFlashOutMs: 70,
+  debrisCap: 14,
+  debrisPerCells: 0.8,
+  debrisDelayJitterMs: 20,
+  sparkCap: 14,
+  sparkPerCells: 0.8,
+  sparkDelayJitterMs: 20,
+  sparkDurationMinMs: 190,
+  sparkDurationJitterMs: 55,
+  /** Keep secondary fragments visible before subdividing Adventure blocks further. */
+  secondaryParticleReserve: 20,
+  impactShakeDelayMs: 30,
 } as const;
 
-/** Множитель силы разрушения: растёт с числом линий, фулл-клир — максимум. */
-export function burstIntensityFor(lineCount: number, boardCleared: boolean): number {
-  const table = BURST_MOTION.intensityByLines;
-  if (boardCleared) return table[table.length - 1]!;
-  const index = Math.min(Math.max(lineCount, 1), table.length) - 1;
-  return table[index]!;
-}
+/** Adventure blocks split, kick outward and fall before the fragments fade. */
+export const ADVENTURE_SHATTER_MOTION = {
+  durationMs: 420,
+  liftDurationMs: 100,
+  fadeDurationMs: 120,
+  popScale: 1.08,
+  finalScale: 0.65,
+} as const;
 
 export const GAME_FEEL_MOTION = {
   scoreScaleMax: 1.25,
   placementParticleMin: 4,
-  placementParticleMax: 8,
+  placementParticleMax: 4,
   placementQueueCap: 2,
   oneLineExternalEffectTargetCap: 48,
   crossMultiLineExternalEffectHardCap: 96,
-  placementParticleTravelCells: 1.05,
+  placementParticleTravelCells: 0.6,
   placementParticleDriftCells: 0.32,
   placementParticleDelayMaxMs: 70,
-  placementParticleDurationMs: 420,
-  placementFlashDurationMs: 220,
+  placementParticleDurationMs: 180,
+  placementFlashDurationMs: 120,
   placementBurstScaleMax: 1.16,
   reducedPlacementBurstScale: 1.02,
   reducedPlacementFlashAlpha: 0.16,
@@ -136,16 +99,16 @@ export const GAME_FEEL_MOTION = {
   comboBoardClearStrengthMax: 1,
   comboFramePulseDurationMs: 220,
   comboFrameReducedDurationMs: 180,
-  comboShakeMax: 6,
+  comboShakeMax: 2,
   comboShakeDurationMs: 145,
-  comboScaleMax: 1.12,
+  comboScaleMax: 1,
   recordConfettiMax: 14,
 } as const;
 
 /** Зазор внутри слота трея, чтобы широкие фигуры не касались соседних. */
 export const TRAY_SLOT_INNER_GAP = 10;
-/** Вертикальный зазор: высокая фигура не касается верх/низ трея и не вылезает. */
-export const TRAY_SLOT_INNER_GAP_V = 12;
+/** Shell inset is 8 dp per edge; leave another 2 dp inside its border. */
+export const TRAY_SLOT_INNER_GAP_V = 20;
 
 /**
  * Масштаб фигуры в трее в покое. Узкие фигуры держат базовый restingScale,

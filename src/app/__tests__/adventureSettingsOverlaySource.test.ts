@@ -20,4 +20,13 @@ describe('Adventure in-game settings source contract', () => {
     expect(source).toContain('<ConfirmDialog');
     expect(source).toContain('onConfirm={restartCurrentLevel}');
   });
+
+  it('skips interstitials on explicit Exit and credits Adventure progress toward banner depth', () => {
+    expect(source.match(/onExit=\{exitToHub\}/g)).toHaveLength(2);
+    expect(source).not.toContain("onExit={() => void runAfterInterstitial('adventure_level', exitToHub)}");
+    expect(source).not.toContain("onExit={() => void runAfterInterstitial('adventure_fail', exitToHub)}");
+    expect(source).toContain('const completedAdventureLevels = useMemo(');
+    expect(source).toContain('const bannerGamesPlayed = gamesPlayed + completedAdventureLevels;');
+    expect(source).toContain('gamesPlayed={bannerGamesPlayed}');
+  });
 });

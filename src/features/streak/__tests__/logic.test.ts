@@ -1,4 +1,4 @@
-import { bumpStreak, isStreakAlive, todayISO } from '../logic';
+import { bumpStreak, getHomeStreakStatus, isStreakAlive, todayISO } from '../logic';
 
 describe('bumpStreak', () => {
   it('первый раз → 1', () => {
@@ -48,5 +48,40 @@ describe('isStreakAlive', () => {
 describe('todayISO', () => {
   it('формат YYYY-MM-DD', () => {
     expect(todayISO(new Date(2026, 0, 5))).toBe('2026-01-05');
+  });
+});
+
+describe('getHomeStreakStatus', () => {
+  it('сохраняет видимый count, пока стрик ещё можно вернуть', () => {
+    expect(
+      getHomeStreakStatus(
+        { lastDay: '2026-06-12', count: 4, protectorLastUsedDay: null },
+        '2026-06-12',
+      ),
+    ).toEqual({ kind: 'played_today', visibleCount: 4 });
+    expect(
+      getHomeStreakStatus(
+        { lastDay: '2026-06-11', count: 4, protectorLastUsedDay: null },
+        '2026-06-12',
+      ),
+    ).toEqual({ kind: 'at_risk_today', visibleCount: 4 });
+    expect(
+      getHomeStreakStatus(
+        { lastDay: '2026-06-10', count: 4, protectorLastUsedDay: null },
+        '2026-06-12',
+      ),
+    ).toEqual({ kind: 'protector_recoverable', visibleCount: 4 });
+  });
+
+  it('считает стрик потерянным без count или без доступного защитника', () => {
+    expect(
+      getHomeStreakStatus(
+        { lastDay: '2026-06-10', count: 4, protectorLastUsedDay: '2026-06-08' },
+        '2026-06-12',
+      ),
+    ).toEqual({ kind: 'lost', visibleCount: 0 });
+    expect(
+      getHomeStreakStatus({ lastDay: null, count: 0, protectorLastUsedDay: null }, '2026-06-12'),
+    ).toEqual({ kind: 'lost', visibleCount: 0 });
   });
 });

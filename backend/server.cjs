@@ -9,6 +9,11 @@ const ADVENTURE_SEASON_DURATION_MS = 14 * 24 * 60 * 60 * 1000;
 const ADVENTURE_SEASON_ANCHOR_ISO = '2026-07-05T21:00:00.000Z';
 const MAX_MOVES = 20_000;
 const MAX_SCORE = 100_000_000;
+const WEEKLY_PRIZES = Object.freeze({
+  1: { rank: 1, points: 1200, cosmeticId: 'hat-block-crown' },
+  2: { rank: 2, points: 700, cosmeticId: 'face-monocle' },
+  3: { rank: 3, points: 400, cosmeticId: 'acc-cape' },
+});
 // Витринный образ Капи: "stage|skin|hat|face|accessory|aura" (спека retention фазы 3).
 // Сервер хранит как непрозрачную строку с проверкой формата; семантика — на клиенте.
 const MAX_AVATAR_LENGTH = 96;
@@ -110,7 +115,45 @@ function createApi(options) {
     }
 
     if (method === 'GET' && pathname === '/api/leaderboard') {
-      return response(200, buildSnapshot(store.read(), session.user.id, now()));
+      const data = store.read();
+      if (archiveClosedWeeks(data, now())) store.write(data);
+      return response(200, buildSnapshot(data, session.user.id, now()));
+    }
+
+    if (method === 'GET' && pathname === '/api/weekly/outcomes') {
+      const data = store.read();
+      if (archiveClosedWeeks(data, now())) store.write(data);
+      return response(200, {
+        outcomes: weeklyOutcomesForUser(data, session.user.id),
+        effectScope: 'local_profile',
+      });
+    }
+
+    if (method === 'POST' && pathname === '/api/weekly/rewards/claim') {
+      const rewardId = typeof body.rewardId === 'string' ? body.rewardId : '';
+      if (!rewardId) return response(400, { error: 'invalid_reward_id' });
+      const data = store.read();
+      archiveClosedWeeks(data, now());
+      const outcome = findWeeklyOutcomeByRewardId(data, session.user.id, rewardId);
+      if (!outcome) return response(404, { error: 'reward_not_found' });
+      if (!outcome.reward) return response(409, { error: 'reward_not_eligible' });
+      if (!outcome.receipt) {
+        outcome.receipt = {
+          receiptId: `receipt:${rewardId}`,
+          rewardId,
+          weekKey: outcome.weekKey,
+          userId: session.user.id,
+          rank: outcome.rank,
+          prize: outcome.reward.prize,
+          claimedAt: now().toISOString(),
+          effectScope: 'local_profile',
+        };
+        store.write(data);
+      }
+      return response(200, {
+        outcome: publicWeeklyOutcome(outcome),
+        receipt: publicWeeklyReceipt(outcome.receipt),
+      });
     }
 
     if (method === 'GET' && pathname === '/api/adventure/season') {
@@ -122,12 +165,32 @@ function createApi(options) {
       if (!parsed.ok) return response(400, { error: parsed.error });
 
       const data = store.read();
+      archiveClosedWeeks(data, now());
       // Record-only: доверяем лучшему счёту клиента (реплей-верификация снята —
       // продуктовое решение «только рекорд»). Тикет теперь необязателен: если он
       // передан и валиден — гасим его (ротация сидов), но он НИКОГДА не блокирует
       // запись результата. Так «после каждой игры синхронизируется рекорд» всегда.
       const ticket = parsed.value.ticketId ? data.tickets[parsed.value.ticketId] : null;
 
+      const existingRun = parsed.value.proofId
+        ? data.runs.find(
+            (run) => run.id === parsed.value.proofId && run.userId === session.user.id,
+          )
+        : null;
+      if (existingRun) {
+        const snapshot = buildSnapshot(data, session.user.id, now());
+        return response(200, {
+          snapshot,
+          impact: {
+            score: existingRun.score,
+            weeklyBest: snapshot.currentPlayer.weeklyBest,
+            rank: snapshot.currentPlayer.rank,
+            rankDelta: 0,
+            improved: false,
+            queued: false,
+          },
+        });
+      }
       const before = buildSnapshot(data, session.user.id, now());
       if (
         ticket &&
@@ -138,7 +201,7 @@ function createApi(options) {
         ticket.consumedAt = now().toISOString();
       }
       data.runs.push({
-        id: crypto.randomUUID(),
+        id: parsed.value.proofId ?? crypto.randomUUID(),
         ticketId: ticket ? ticket.ticketId : null,
         userId: session.user.id,
         score: parsed.value.score,
@@ -186,9 +249,13 @@ function createJsonStore(dataPath) {
         users: parsed.users ?? {},
         tickets: parsed.tickets ?? {},
         runs: parsed.runs ?? [],
+        weeklyFinals: parsed.weeklyFinals ?? {},
       };
-    } catch {
-      return { users: {}, tickets: {}, runs: [] };
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        return { users: {}, tickets: {}, runs: [], weeklyFinals: {} };
+      }
+      throw error;
     }
   }
 
@@ -233,6 +300,9 @@ function validateRunPayload(body) {
       ? body.durationMs
       : 0;
   const ticketId = typeof body.ticketId === 'string' ? body.ticketId : null;
+  const proofId = typeof body.proofId === 'string' && body.proofId.length <= 128
+    ? body.proofId
+    : null;
   const seed = Number.isInteger(body.seed) ? body.seed : null;
   const moves = [];
   if (Array.isArray(body.moves)) {
@@ -255,7 +325,7 @@ function validateRunPayload(body) {
     AVATAR_PATTERN.test(body.avatar)
       ? body.avatar
       : null;
-  return { ok: true, value: { ticketId, seed, score: body.score, durationMs, moves, avatar } };
+  return { ok: true, value: { proofId, ticketId, seed, score: body.score, durationMs, moves, avatar } };
 }
 
 function buildSnapshot(data, currentUserId, date) {
@@ -280,7 +350,8 @@ function buildSnapshot(data, currentUserId, date) {
       (a, b) =>
         b.best - a.best ||
         a.runsCount - b.runsCount ||
-        String(a.achievedAt).localeCompare(String(b.achievedAt)),
+        String(a.achievedAt).localeCompare(String(b.achievedAt)) ||
+        String(a.user.id).localeCompare(String(b.user.id)),
     );
 
   const rankedEntries = records.map((record, index) =>
@@ -310,6 +381,120 @@ function buildSnapshot(data, currentUserId, date) {
     currentPlayer,
     entries: rankedEntries.slice(0, 100),
   };
+}
+
+function archiveClosedWeeks(data, date) {
+  data.weeklyFinals ??= {};
+  const current = utcWeek(date);
+  const closedWeekKeys = [...new Set(
+    data.runs
+      .filter((run) => run.completedAt < current.weekStartIso)
+      .map((run) => utcWeek(new Date(run.completedAt)).weekKey),
+  )].sort();
+  let changed = false;
+  for (const weekKey of closedWeekKeys) {
+    if (data.weeklyFinals[weekKey]) continue;
+    data.weeklyFinals[weekKey] = buildWeeklyFinal(data, weekKey, date);
+    changed = true;
+  }
+  return changed;
+}
+
+function buildWeeklyFinal(data, weekKey, finalizedAt) {
+  const week = weekFromKey(weekKey);
+  const records = Object.values(data.users)
+    .map((user) => {
+      const runs = data.runs.filter(
+        (run) =>
+          run.userId === user.id &&
+          run.completedAt >= week.weekStartIso &&
+          run.completedAt < week.weekEndIso,
+      );
+      const best = runs.reduce((max, run) => Math.max(max, run.score), 0);
+      const achievedAt = runs
+        .filter((run) => run.score === best)
+        .map((run) => run.completedAt)
+        .sort()[0] ?? null;
+      return { user, best, runsCount: runs.length, achievedAt };
+    })
+    .filter((record) => record.best > 0)
+    .sort(
+      (a, b) =>
+        b.best - a.best ||
+        a.runsCount - b.runsCount ||
+        String(a.achievedAt).localeCompare(String(b.achievedAt)) ||
+        String(a.user.id).localeCompare(String(b.user.id)),
+    );
+  const outcomesByUser = {};
+  records.forEach((record, index) => {
+    const rank = index + 1;
+    const prize = WEEKLY_PRIZES[rank] ?? null;
+    const rewardId = prize
+      ? `weekly:${weekKey}:${record.user.id}:rank-${rank}`
+      : null;
+    outcomesByUser[record.user.id] = {
+      weekKey,
+      finalizedAt: finalizedAt.toISOString(),
+      rank,
+      weeklyBest: record.best,
+      runsCount: record.runsCount,
+      achievedAt: record.achievedAt,
+      reward: prize ? { rewardId, prize } : null,
+      receipt: null,
+    };
+  });
+  return {
+    weekKey,
+    weekStartIso: week.weekStartIso,
+    weekEndIso: week.weekEndIso,
+    finalizedAt: finalizedAt.toISOString(),
+    outcomesByUser,
+  };
+}
+
+function weekFromKey(weekKey) {
+  const localStartMs = Date.parse(`${weekKey}T00:00:00.000Z`);
+  const offsetMs = LEADERBOARD_UTC_OFFSET_MINUTES * 60 * 1000;
+  const weekStartMs = localStartMs - offsetMs;
+  return {
+    weekKey,
+    weekStartIso: new Date(weekStartMs).toISOString(),
+    weekEndIso: new Date(weekStartMs + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  };
+}
+
+function weeklyOutcomesForUser(data, userId) {
+  return Object.values(data.weeklyFinals ?? {})
+    .map((final) => final.outcomesByUser?.[userId])
+    .filter(Boolean)
+    .sort((a, b) => b.weekKey.localeCompare(a.weekKey))
+    .map(publicWeeklyOutcome);
+}
+
+function findWeeklyOutcomeByRewardId(data, userId, rewardId) {
+  for (const final of Object.values(data.weeklyFinals ?? {})) {
+    const outcome = final.outcomesByUser?.[userId];
+    if (outcome?.reward?.rewardId === rewardId) return outcome;
+  }
+  return null;
+}
+
+function publicWeeklyOutcome(outcome) {
+  return {
+    weekKey: outcome.weekKey,
+    finalizedAt: outcome.finalizedAt,
+    rank: outcome.rank,
+    weeklyBest: outcome.weeklyBest,
+    runsCount: outcome.runsCount,
+    achievedAt: outcome.achievedAt,
+    reward: outcome.reward,
+    receipt: outcome.receipt ? publicWeeklyReceipt(outcome.receipt) : null,
+  };
+}
+
+function publicWeeklyReceipt(receipt) {
+  const { userId: _userId, ...publicReceipt } = receipt;
+  return publicReceipt;
 }
 
 function buildAdventureSeason(date) {

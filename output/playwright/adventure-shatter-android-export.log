@@ -1,0 +1,71 @@
+env: load .env.local
+env: export APPMETRICA_API_KEY EXPO_PUBLIC_API_URL EXPO_PUBLIC_RUSTORE_PUSH_PROJECT_ID EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_YANDEX_BANNER_AD_UNIT_ID EXPO_PUBLIC_YANDEX_INTERSTITIAL_AD_UNIT_ID EXPO_PUBLIC_YANDEX_REWARDED_AD_UNIT_ID YANDEX_ADS_UAUTH_TOKEN
+Using src/app as the root directory for Expo Router.
+React Compiler enabled
+Starting Metro Bundler
+
+| (node:10784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:10784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:10784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:10784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Android Bundled 26814ms node_modules\expo-router\entry.js (2147 modules)
+
+› Assets (58):
+assets\adventure\minerals\amethyst.png (89KB)
+assets\adventure\minerals\crystal.png (90KB)
+assets\adventure\minerals\diamond.png (85KB)
+assets\adventure\minerals\emerald.png (83KB)
+assets\adventure\minerals\gold_ore.png (104KB)
+assets\adventure\minerals\ruby.png (87KB)
+assets\adventure\minerals\silver_ore.png (107KB)
+assets\adventure\minerals\topaz.png (81KB)
+assets\sounds\clear1.wav (27KB)
+assets\sounds\clear2.wav (27KB)
+assets\sounds\clear3.wav (32KB)
+assets\sounds\drop.wav (6.2KB)
+assets\sounds\feed.wav (10KB)
+assets\sounds\gameover.wav (35KB)
+assets\sounds\levelup.wav (28KB)
+assets\sounds\lost.wav (19KB)
+assets\sounds\pickup.wav (4.5KB)
+assets\sounds\record.wav (35KB)
+node_modules\@expo-google-fonts\fredoka\300Light\Fredoka_300Light.ttf (50KB)
+node_modules\@expo-google-fonts\fredoka\400Regular\Fredoka_400Regular.ttf (50KB)
+node_modules\@expo-google-fonts\fredoka\500Medium\Fredoka_500Medium.ttf (50KB)
+node_modules\@expo-google-fonts\fredoka\600SemiBold\Fredoka_600SemiBold.ttf (50KB)
+node_modules\@expo-google-fonts\fredoka\700Bold\Fredoka_700Bold.ttf (50KB)
+node_modules\@expo-google-fonts\material-symbols\400Regular\MaterialSymbols_400Regular.ttf (963KB)
+node_modules\@expo-google-fonts\unbounded\200ExtraLight\Unbounded_200ExtraLight.ttf (363KB)
+node_modules\@expo-google-fonts\unbounded\300Light\Unbounded_300Light.ttf (366KB)
+node_modules\@expo-google-fonts\unbounded\400Regular\Unbounded_400Regular.ttf (365KB)
+node_modules\@expo-google-fonts\unbounded\500Medium\Unbounded_500Medium.ttf (369KB)
+node_modules\@expo-google-fonts\unbounded\600SemiBold\Unbounded_600SemiBold.ttf (370KB)
+node_modules\@expo-google-fonts\unbounded\700Bold\Unbounded_700Bold.ttf (371KB)
+node_modules\@expo-google-fonts\unbounded\800ExtraBold\Unbounded_800ExtraBold.ttf (422KB)
+node_modules\@expo-google-fonts\unbounded\900Black\Unbounded_900Black.ttf (418KB)
+node_modules\expo-router\assets\arrow_down.png (9.5KB)
+node_modules\expo-router\assets\arrow_right.xml (307B)
+node_modules\expo-router\assets\checkmark.xml (312B)
+node_modules\expo-router\assets\error.png (469B)
+node_modules\expo-router\assets\file.png (138B)
+node_modules\expo-router\assets\forward.png (188B)
+node_modules\expo-router\assets\pkg.png (364B)
+node_modules\expo-router\assets\react-navigation\elements\back-icon-mask.png (653B)
+node_modules\expo-router\assets\react-navigation\elements\back-icon.png (4 variations | 152B)
+node_modules\expo-router\assets\react-navigation\elements\clear-icon.png (4 variations | 425B)
+node_modules\expo-router\assets\react-navigation\elements\close-icon.png (4 variations | 235B)
+node_modules\expo-router\assets\react-navigation\elements\search-icon.png (4 variations | 599B)
+node_modules\expo-router\assets\sitemap.png (465B)
+node_modules\expo-router\assets\unmatched.png (4.8KB)
+
+› android bundles (1):
+_expo/static/js/android/entry-e16e4216154753d00b948b8686aceae6.hbc (6.1MB)
+
+› Files (1):
+metadata.json (3.9KB)
+
+Exported: output/adventure-shatter-android-bundle

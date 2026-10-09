@@ -6,6 +6,7 @@ import { useSettings } from '@/features/settings';
 
 import { NewRecordCelebration } from '../effects/NewRecordCelebration';
 import { useGameStore } from '../store';
+import { playPlacementFeedback } from '../sound/feedback';
 import { useGameFeedback } from '../sound/useGameFeedback';
 
 declare const __dirname: string;
@@ -198,7 +199,7 @@ describe('useGameFeedback', () => {
 
     expect(placementBlock).toContain('playPlacementFeedback(result.event');
     expect(placementBlock.indexOf('playPlacementFeedback(result.event')).toBeLessThan(
-      placementBlock.indexOf('setString(KEYS.gameCurrent'),
+      placementBlock.indexOf('persistClassicSnapshot(result.state'),
     );
     expect(placementBlock.indexOf('playPlacementFeedback(result.event')).toBeLessThan(
       placementBlock.indexOf('set({'),
@@ -221,20 +222,59 @@ describe('useGameFeedback', () => {
     });
   });
 
-  it('plays the current event once on mount when the screen mounts mid-run', () => {
-    // Событие уже лежит в сторе ДО монтирования экрана (например, пере-маунт).
+  it('does not replay an old placement when a retained screen mounts mid-run', () => {
     act(() => {
       useGameStore.setState({ lastEvent: placementEvent({ clearedRows: [0] }) });
     });
     expect(mockPlaySound).not.toHaveBeenCalled();
 
     const renderer = mountProbe();
+    expect(mockPlaySound).not.toHaveBeenCalled();
+
+    useGameStore.setState({ linesCleared: 1 });
+    expect(mockPlaySound).not.toHaveBeenCalled();
+
+    useGameStore.setState({ lastEvent: placementEvent({ clearedRows: [1] }) });
     expect(mockPlaySound).toHaveBeenCalledTimes(1);
     expect(mockPlaySound).toHaveBeenLastCalledWith('clear1');
 
     act(() => {
       renderer.unmount();
     });
+  });
+
+  it('deduplicates store feedback and overlapping game screen subscriptions', () => {
+    const first = mountProbe();
+    const second = mountProbe();
+    const event = placementEvent({ clearedRows: [0] });
+
+    playPlacementFeedback(event, { sound: true, haptics: true });
+    useGameStore.setState({ lastEvent: event });
+    useGameStore.setState({ linesCleared: 1 });
+
+    expect(mockPlaySound).toHaveBeenCalledTimes(1);
+    expect(mockPerformAndroidHapticsAsync).toHaveBeenCalledTimes(1);
+    act(() => { first.unmount(); second.unmount(); });
+  });
+
+  it('uses current feedback settings even before React commits a settings change', () => {
+    const renderer = mountProbe();
+    act(() => {
+      useSettings.setState({ sound: false, haptics: false });
+      useGameStore.setState({ lastEvent: placementEvent({ clearedRows: [0] }) });
+    });
+
+    expect(mockPlaySound).not.toHaveBeenCalled();
+    expect(mockPerformAndroidHapticsAsync).not.toHaveBeenCalled();
+    act(() => { renderer.unmount(); });
+  });
+
+  it('keeps the final destruction sound and haptic when the same placement ends the run', () => {
+    const renderer = mountProbe();
+    useGameStore.setState({ lastEvent: placementEvent({ gameOver: true, clearedRows: [0] }) });
+    expect(mockPlaySound).toHaveBeenCalledWith('clear1');
+    expect(mockPerformAndroidHapticsAsync).toHaveBeenCalledWith('confirm');
+    act(() => { renderer.unmount(); });
   });
 
   it('does not replay a handled placement event when settings toggle', () => {
@@ -272,8 +312,6 @@ describe('useGameFeedback', () => {
       useGameStore.setState({
         lastEvent: placementEvent({
           gameOver: true,
-          clearedRows: [0, 1],
-          onFire: true,
         }),
       });
     });
@@ -446,7 +484,9 @@ describe('useGameFeedback', () => {
     act(() => {
       jest.advanceTimersByTime(1500);
     });
-    expect(activeCelebrationCount(renderer)).toBe(0);
+    // The episode stays mounted after its UI-thread keyframes finish; it is
+    // invisible and cannot replay without a new record object/key.
+    expect(activeCelebrationCount(renderer)).toBe(1);
     expect(mockPlaySound.mock.calls.filter(([name]) => name === 'record')).toHaveLength(0);
 
     act(() => {

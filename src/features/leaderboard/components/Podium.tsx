@@ -53,14 +53,14 @@ export function Podium({ entries }: PodiumProps) {
 
 const styles = StyleSheet.create({
   root: { gap: 10 },
-  title: { color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 22 },
+  title: { color: '#FFFFFF', fontFamily: 'Unbounded_700Bold', fontSize: 20 },
   columns: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   column: { flex: 1, alignItems: 'center', gap: 5 },
   medal: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', borderWidth: 2, shadowColor: 'rgba(3,45,116,0.45)', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.44, shadowRadius: 3, elevation: 4 },
-  medalText: { fontFamily: 'Fredoka_700Bold', fontSize: 25 },
-  nickname: { width: '100%', color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 15, textAlign: 'center' },
+  medalText: { fontFamily: 'Unbounded_700Bold', fontSize: 23 },
+  nickname: { width: '100%', color: '#FFFFFF', fontFamily: 'Unbounded_700Bold', fontSize: 14, textAlign: 'center' },
   pedestal: { width: '100%', borderTopLeftRadius: 18, borderTopRightRadius: 18, alignItems: 'center', paddingTop: 9, borderWidth: 2, shadowColor: 'rgba(3,45,116,0.38)', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4 },
-  pedestalScore: { fontFamily: 'Fredoka_700Bold', fontSize: 22 },
+  pedestalScore: { fontFamily: 'Unbounded_700Bold', fontSize: 20 },
   prize: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 5, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.34)' },
-  prizeText: { fontFamily: 'Fredoka_700Bold', fontSize: 13 },
+  prizeText: { fontFamily: 'Unbounded_700Bold', fontSize: 12 },
 });

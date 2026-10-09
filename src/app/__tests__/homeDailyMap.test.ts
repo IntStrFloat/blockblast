@@ -14,7 +14,8 @@ describe('home mode hierarchy + secondary navigation', () => {
     expect(home).toContain('ReferenceMenuButton');
     expect(home).toContain('home-menu-classic');
     expect(home).toContain('home-menu-adventure');
-    expect(home).toContain('<SeasonCountdownBadge compact short variant="ribbon" />');
+    expect(home).toContain('adventureSeasonWindow');
+    expect(home).toContain('<SeasonCountdownBadge compact short variant="ribbon" autoRefresh={false} />');
   });
 
   it('keeps map and weekly leaderboard as quiet links below the two modes', () => {

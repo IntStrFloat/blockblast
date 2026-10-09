@@ -25,6 +25,9 @@ function VideoAdIcon() {
 export function ReviveButton({ label, disabled = false, onPress }: ReviveButtonProps) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [

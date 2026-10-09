@@ -1,0 +1,1082 @@
+--------- beginning of main
+09-05 18:48:51.282  6358  6358 I loat.blockblas: Late-enabling -Xcheck:jni
+09-05 18:48:51.290  6358  6358 E loat.blockblas: Unknown bits set in runtime_flags: 0x8000
+09-05 18:48:51.291  6358  6358 W loat.blockblas: Unexpected CPU variant for X86 using defaults: x86_64
+09-05 18:48:51.382  6358  6358 I ReactRuStorePushClient: Client SDK is initialized. Version: 6.9.1
+09-05 18:48:51.395  6358  6358 I ReactRuStorePushClient: Using real crash reporter
+09-05 18:48:51.420  6358  6358 D NetworkSecurityConfig: No Network Security Config specified, using platform default
+09-05 18:48:51.450  6358  6358 I RuStorePushClient:e: Auto init RuStorePushClient is successful = true
+09-05 18:48:51.453  6358  6380 I VkpnsClientSdk:SubscribeComponent: Get current push token
+09-05 18:48:51.454  6358  6358 W FirebaseApp: Default FirebaseApp failed to initialize because no default options were found. This usually means that com.google.gms:google-services was not applied to your gradle project.
+09-05 18:48:51.455  6358  6358 I FirebaseInitProvider: FirebaseApp initialization unsuccessful
+09-05 18:48:51.455  6358  6386 W VkpnsClientSdk:SubscribeComponent: No saved push token found
+09-05 18:48:51.471  6358  6358 I AGConnectProvider: AGConnectInitializeProvider#onCreate
+09-05 18:48:51.471  6358  6358 I AGConnectInstance: AGConnectInstance#initialize
+09-05 18:48:51.471  6358  6358 W AGC_Instance: agc sdk initialize
+09-05 18:48:51.472  6358  6380 I ReactRuStorePushClient:DeviceIdRepository: Device id from local storage is used, value = b3144789-2061-4cbd-ba34-11d690dd9b38
+09-05 18:48:51.472  6358  6380 I ReactRuStorePushClient: Device ID = b3144789-2061-4cbd-ba34-11d690dd9b38
+09-05 18:48:51.472  6358  6358 W AGConnectServicesConfig: config is null, create new config
+09-05 18:48:51.473  6358  6358 I AGC_Registrar: getServices
+09-05 18:48:51.475  6358  6358 I AGC_Registrar: services:0
+09-05 18:48:51.475  6358  6358 D AGC_Instance: AGConnectInstanceImpl init
+09-05 18:48:51.476  6358  6358 D AGC_ServiceRepository: addService start
+09-05 18:48:51.476  6358  6358 D AGC_ServiceRepository: addService end
+09-05 18:48:51.476  6358  6358 D AGC_ServiceRepository: addService start
+09-05 18:48:51.476  6358  6358 D AGC_Instance: AGConnectInstanceImpl init end
+09-05 18:48:51.476  6358  6358 I AGC_Instance: initFinish callback start
+09-05 18:48:51.476  6358  6358 I AGC_Instance: AGC SDK initialize end
+09-05 18:48:51.481  6358  6386 I ReactRuStorePushClient:ClientServiceDataDispatcher: Checking for undelivered push tokens
+09-05 18:48:51.486  6358  6358 D WM-WrkMgrInitializer: Initializing WorkManager with default configuration.
+09-05 18:48:51.490  6358  6380 I ReactRuStorePushClient:b: getMasterHost started
+09-05 18:48:51.511  6358  6386 W ReactRuStorePushClient:b: Empty packages list
+09-05 18:48:51.511  6358  6386 I ReactRuStorePushClient:IPCClientsDataSource: Client works with host: ru.vk.store
+09-05 18:48:51.521  6358  6380 E ReactRuStorePushClient:ValidationComponent: Host push app is not installed!
+09-05 18:48:51.522  6358  6380 I ReactRuStorePushClient:ClientServiceDataDispatcher: Trying to send error message event to channel
+09-05 18:48:51.522  6358  6380 I ReactRuStorePushClient:ClientServiceDataDispatcher: Event with error message has been sent to channel
+09-05 18:48:51.522  6358  6380 I ReactRuStorePushClient:ClientServiceStarter: Trying to start the client app service
+09-05 18:48:51.536  6358  6385 I YandexAds: [Integration] Yandex Mobile Ads 8.3.0 integrated successfully
+09-05 18:48:51.547  6358  6358 W SoLoader: Initializing SoLoader: 0
+09-05 18:48:51.547  6358  6358 W SoLoader: Recording new base apk path: /data/app/com.intstrfloat.blockblast-rmL8LTPCOa8j-gHYM_eA1w==/base.apk
+09-05 18:48:51.547  6358  6358 W SoLoader: Previously recorded 0 base apk paths.
+09-05 18:48:51.547  6358  6358 I SoLoader: Preparing SO source: DirectorySoSource[root = /vendor/lib64 flags = 2]
+09-05 18:48:51.548  6358  6358 I SoLoader: Preparing SO source: DirectorySoSource[root = /system/lib64 flags = 2]
+09-05 18:48:51.548  6358  6358 I SoLoader: Preparing SO source: DirectApkSoSource[root = [/data/app/com.intstrfloat.blockblast-rmL8LTPCOa8j-gHYM_eA1w==/base.apk!/lib/x86_64]]
+09-05 18:48:51.555  6358  6385 I YandexAds: [Integration] ------------------ AppLovin ------------------
+09-05 18:48:51.555  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Rewarded
+09-05 18:48:51.555  6358  6385 E YandexAds: [Integration] AppLovin: NOT INTEGRATED
+09-05 18:48:51.555  6358  6385 I YandexAds: [Integration] ---------------- AppLovinMax -----------------
+09-05 18:48:51.555  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Rewarded
+09-05 18:48:51.555  6358  6385 E YandexAds: [Integration] AppLovinMax: NOT INTEGRATED
+09-05 18:48:51.555  6358  6385 I YandexAds: [Integration] ------------------ Appnext -------------------
+09-05 18:48:51.555  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.555  6358  6385 E YandexAds: [Integration] Appnext: NOT INTEGRATED
+09-05 18:48:51.555  6358  6385 I YandexAds: [Integration] ------------------ BigoAds -------------------
+09-05 18:48:51.555  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: AppOpen, Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.555  6358  6385 E YandexAds: [Integration] BigoAds: NOT INTEGRATED
+09-05 18:48:51.556  6358  6385 I YandexAds: [Integration] ----------------- Chartboost -----------------
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Rewarded
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] Chartboost: NOT INTEGRATED
+09-05 18:48:51.556  6358  6385 I YandexAds: [Integration] --------------- DigitalTurbine ---------------
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Rewarded, Native
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] DigitalTurbine: NOT INTEGRATED
+09-05 18:48:51.556  6358  6385 I YandexAds: [Integration] ------------------- AdMob --------------------
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: AppOpen, Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] AdMob: NOT INTEGRATED
+09-05 18:48:51.556  6358  6385 I YandexAds: [Integration] ----------------- AdManager ------------------
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] AdManager: NOT INTEGRATED
+09-05 18:48:51.556  6358  6385 I YandexAds: [Integration] ------------------- InMobi -------------------
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Rewarded
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] InMobi: NOT INTEGRATED
+09-05 18:48:51.556  6358  6385 I YandexAds: [Integration] ----------------- IronSource -----------------
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Rewarded, Native
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] IronSource: NOT INTEGRATED
+09-05 18:48:51.556  6358  6385 I YandexAds: [Integration] ----------------- Mintegral ------------------
+09-05 18:48:51.556  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: AppOpen, Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] Mintegral: NOT INTEGRATED
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] ------------------ MyTarget ------------------
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] SDK Version: 5.45.3
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] ADAPTERS Version: 5.45.3.4
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] ADAPTERS: Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] MyTarget: INTEGRATED SUCCESSFULLY
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] ------------------- Pangle -------------------
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: AppOpen, Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] Pangle: NOT INTEGRATED
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] ------------------ PetalAds ------------------
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: AppOpen, Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] PetalAds: NOT INTEGRATED
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] ------------------ StartApp ------------------
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] StartApp: NOT INTEGRATED
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] ------------------- TapJoy -------------------
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Interstitial, Rewarded
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] TapJoy: NOT INTEGRATED
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] ------------------ UnityAds ------------------
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Rewarded
+09-05 18:48:51.557  6358  6385 E YandexAds: [Integration] UnityAds: NOT INTEGRATED
+09-05 18:48:51.557  6358  6385 I YandexAds: [Integration] ------------------- Vungle -------------------
+09-05 18:48:51.558  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: AppOpen, Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.559  6358  6385 E YandexAds: [Integration] Vungle: NOT INTEGRATED
+09-05 18:48:51.559  6358  6385 I YandexAds: [Integration] ------------------ zMaticoo ------------------
+09-05 18:48:51.559  6358  6385 E YandexAds: [Integration] MISSING ADAPTERS: Banner, Interstitial, Native, Rewarded
+09-05 18:48:51.559  6358  6385 E YandexAds: [Integration] zMaticoo: NOT INTEGRATED
+09-05 18:48:51.589  6358  6358 I SoLoader: Preparing SO source: ApplicationSoSource[DirectorySoSource[root = /data/app/com.intstrfloat.blockblast-rmL8LTPCOa8j-gHYM_eA1w==/lib/x86_64 flags = 0]]
+09-05 18:48:51.589  6358  6358 I SoLoader: init finish: 4 SO sources prepared
+09-05 18:48:51.590  6358  6358 W SoLoader: SoLoader initialized: 8
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Entering merged library JNI_OnLoad.
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x7ec2c36f33e0
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x7ec2c393dc30
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x7ec2c394ffe0
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x7ec2c39f5f90
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x7ec2c3cc1590
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x7ec2c3ce4800
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x7ec2c3cea2e0
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x7ec2c3d67120
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x7ec2c3eb5ec0
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x7ec2c3ecc910
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x7ec2c3edb890
+09-05 18:48:51.709  6358  6358 D jni_lib_merge: About to register 11 actual methods.
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Entering merged library JNI_OnLoad.
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x7ec2c36f33e0
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x7ec2c393dc30
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x7ec2c394ffe0
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x7ec2c39f5f90
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x7ec2c3cc1590
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x7ec2c3ce4800
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x7ec2c3cea2e0
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x7ec2c3d67120
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x7ec2c3eb5ec0
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x7ec2c3ecc910
+09-05 18:48:51.737  6358  6358 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x7ec2c3edb890
+09-05 18:48:51.738  6358  6358 D jni_lib_merge: About to register 11 actual methods.
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Entering merged library JNI_OnLoad.
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x7ec2c36f33e0
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x7ec2c393dc30
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x7ec2c394ffe0
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x7ec2c39f5f90
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x7ec2c3cc1590
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x7ec2c3ce4800
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x7ec2c3cea2e0
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x7ec2c3d67120
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x7ec2c3eb5ec0
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x7ec2c3ecc910
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x7ec2c3edb890
+09-05 18:48:51.749  6358  6358 D jni_lib_merge: About to register 11 actual methods.
+09-05 18:48:51.815  6358  6358 D AppCompatDelegate: Checking for metadata for AppLocalesMetadataHolderService : Service not found
+09-05 18:48:51.837  6358  6403 D libEGL  : Emulator has host GPU support, qemu.gles is set to 1.
+09-05 18:48:51.839  6358  6403 W libc    : Unable to set property "qemu.gles" to "1": connection failed; errno=13 (Permission denied)
+09-05 18:48:51.830  6358  6358 W RenderThread: type=1400 audit(0.0:76): avc: denied { write } for name="property_service" dev="tmpfs" ino=265 scontext=u:r:untrusted_app:s0:c147,c256,c512,c768 tcontext=u:object_r:property_socket:s0 tclass=sock_file permissive=0 app=com.intstrfloat.blockblast
+09-05 18:48:51.863  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/ViewGroup;->makeOptionalFitsSystemWindows()V (greylist, reflection, allowed)
+09-05 18:48:51.889  6358  6358 I NitroMmkvOnLoad: Loading NitroMmkv C++ library...
+09-05 18:48:51.889  6358  6403 D libEGL  : loaded /vendor/lib64/egl/libEGL_emulation.so
+09-05 18:48:51.926  6358  6358 I Nitro.HybridObjectRegistry: Registering HybridObject "MMKVFactory"...
+09-05 18:48:51.927  6358  6358 I Nitro.HybridObjectRegistry: Successfully registered HybridObject "MMKVFactory"!
+09-05 18:48:51.927  6358  6358 I Nitro.HybridObjectRegistry: Registering HybridObject "MMKVPlatformContext"...
+09-05 18:48:51.927  6358  6358 I Nitro.HybridObjectRegistry: Successfully registered HybridObject "MMKVPlatformContext"!
+09-05 18:48:51.927  6358  6358 I NitroMmkvOnLoad: Successfully loaded NitroMmkv C++ library!
+09-05 18:48:51.933  6358  6403 D libEGL  : loaded /vendor/lib64/egl/libGLESv1_CM_emulation.so
+09-05 18:48:51.938  6358  6403 D libEGL  : loaded /vendor/lib64/egl/libGLESv2_emulation.so
+09-05 18:48:52.024  6358  6358 W unknown:BridgelessReact: ReactHost{0}.startSurface(surfaceId = 0): Schedule
+09-05 18:48:52.024  6358  6358 W unknown:BridgelessReact: ReactHost{0}.attachSurface(surfaceId = 0)
+09-05 18:48:52.025  6358  6390 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 212800000 but found 202414023
+09-05 18:48:52.025  6358  6412 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 212800000 but found 202414023
+09-05 18:48:52.026  6358  6412 W GoogleApiManager: The service for com.google.android.gms.internal.appset.zzd is not available: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:52.028  6358  6417 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask()
+09-05 18:48:52.028  6358  6417 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Start
+09-05 18:48:52.028  6358  6417 W unknown:BridgelessReact: ReactHost{0}.getJSBundleLoader()
+09-05 18:48:52.028  6358  6417 W unknown:BridgelessReact: ReactHost{0}.isMetroRunning()
+09-05 18:48:52.043  6358  6358 W unknown:BridgelessReact: ReactHost{0}.onHostResume(activity)
+09-05 18:48:52.043  6358  6358 W unknown:ReactNative: Packager connection already open, nooping.
+09-05 18:48:52.053  6358  6418 W unknown:BridgelessReact: ReactHost{0}.isMetroRunning(): Async result = true
+09-05 18:48:52.053  6358  6417 W unknown:BridgelessReact: ReactHost{0}.loadJSBundleFromMetro()
+09-05 18:48:52.058  6358  6390 D AdvertisingIdClient: Creating AdvertisingIdClient
+09-05 18:48:52.058  6358  6390 D AdvertisingIdClient: AdvertisingIdClient already created.
+09-05 18:48:52.059  6358  6390 D AdvertisingIdClient: AdvertisingIdClient is not bounded. Starting to bind it...
+09-05 18:48:52.064  6358  6412 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 203400000 but found 202414023
+09-05 18:48:52.065  6358  6412 W GoogleApiManager: The service for com.google.android.gms.common.internal.service.zap is not available: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:52.066  6358  6385 I ReactRuStorePushClient:VkpnsMessagingService: Received event from channel: d
+09-05 18:48:52.066  6358  6385 I ReactRuStorePushClient:VkpnsMessagingService: Sending error to client via onError method
+09-05 18:48:52.066  6358  6385 I ReactRuStorePushClient:VkpnsMessagingService: Sending error messages successful
+09-05 18:48:52.066  6358  6385 I ReactRuStorePushClient:VkpnsMessagingService: Stop service deferred after last event
+09-05 18:48:52.066  6358  6358 I Choreographer: Skipped 31 frames!  The application may be doing too much work on its main thread.
+09-05 18:48:52.068  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/WindowInsets$Type;->ime()I (blacklist, linking, denied)
+09-05 18:48:52.073  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/View;->getViewRootImpl()Landroid/view/ViewRootImpl; (greylist, reflection, allowed)
+09-05 18:48:52.073  6358  6358 W loat.blockblas: Accessing hidden field Landroid/view/View$AttachInfo;->mVisibleInsets:Landroid/graphics/Rect; (greylist, reflection, allowed)
+09-05 18:48:52.073  6358  6358 W loat.blockblas: Accessing hidden field Landroid/view/ViewRootImpl;->mAttachInfo:Landroid/view/View$AttachInfo; (greylist, reflection, allowed)
+09-05 18:48:52.126  6358  6401 D HostConnection: HostConnection::get() New Host Connection established 0x7ec3160a01c0, tid 6401
+09-05 18:48:52.131  6358  6401 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+09-05 18:48:52.143  6358  6401 W OpenGLRenderer: Failed to choose config with EGL_SWAP_BEHAVIOR_PRESERVED, retrying without...
+09-05 18:48:52.160  6358  6424 I AppMetrica: AppMetrica [366-IAA-CDE-1] Initializing of AppMetrica, Release type, Version 8.3.0, API Level 116, Dated 05.06.2026.
+09-05 18:48:52.161  6358  6401 D EGL_emulation: eglCreateContext: 0x7ec3160a29c0: maj 2 min 0 rcv 2
+09-05 18:48:52.191  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:48:52.203  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [] [366-IAA-CDE-1] Register application crash handler
+09-05 18:48:52.206  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [] [366-IAA-CDE-1] Update anonymous config with value {"apikey":"1b7f9e00-19f1-4503-867b-627e7e1f1c84","logs":true,"adv_identifiers_tracking":true,"error_environment":{},"data_sending_enabled":true,"app_environment":{},"additional_config":{}}
+09-05 18:48:52.214  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] native crash reporting enabled: true
+09-05 18:48:52.215  6358  6401 W Gralloc3: mapper 3.x is not supported
+09-05 18:48:52.216  6358  6424 I AppMetrica: AppMetrica [366-IAA-CDE-1] Activate AppMetrica in anonymous mode
+09-05 18:48:52.226  6358  6424 I AppMetrica: AppMetrica [366-IAA-CDE-1] Activate reporter with APIKey 20799a27-xxxx-xxxx-xxxx-xxxxxxxx4180
+09-05 18:48:52.232  6358  6401 D HostConnection: createUnique: call
+09-05 18:48:52.233  6358  6401 D HostConnection: HostConnection::get() New Host Connection established 0x7ec3160a2b00, tid 6401
+09-05 18:48:52.239  6358  6401 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+09-05 18:48:52.239  6358  6401 D eglCodecCommon: allocate: Ask for block of size 0x1000
+09-05 18:48:52.239  6358  6401 D eglCodecCommon: allocate: ioctl allocate returned offset 0x3ffff6000 size 0x2000
+09-05 18:48:52.270  6358  6390 D AdvertisingIdClient: AdvertisingIdClient is bounded
+09-05 18:48:52.274  6358  6390 I AdvertisingIdClient: shouldSendLog -1
+09-05 18:48:52.275  6358  6390 I AdvertisingIdClient: GetInfoInternal elapse 216ms
+09-05 18:48:52.281  6358  6412 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 203400000 but found 202414023
+09-05 18:48:52.281  6358  6412 W GoogleApiManager: The service for com.google.android.gms.common.internal.service.zap is not available: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:52.306  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:48:52.334  6358  6358 W unknown:BridgelessReact: ReactHost{0}.raiseSoftException(onWindowFocusChange(hasFocus = "true")): Tried to access onWindowFocusChange while context is not ready
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: Unhandled SoftException
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: com.facebook.react.bridge.ReactNoCrashSoftException: raiseSoftException(onWindowFocusChange(hasFocus = "true")): Tried to access onWindowFocusChange while context is not ready
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at com.facebook.react.runtime.ReactHostImpl.raiseSoftException(ReactHostImpl.kt:905)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at com.facebook.react.runtime.ReactHostImpl.raiseSoftException$default(ReactHostImpl.kt:896)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at com.facebook.react.runtime.ReactHostImpl.onWindowFocusChange(ReactHostImpl.kt:668)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at com.facebook.react.ReactDelegate.onWindowFocusChanged(ReactDelegate.kt:229)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at com.facebook.react.ReactActivityDelegate.onWindowFocusChanged(ReactActivityDelegate.java:237)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper$onWindowFocusChanged$1.invokeSuspend(ReactActivityDelegateWrapper.kt:320)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper$onWindowFocusChanged$1.invoke(Unknown Source:8)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper$onWindowFocusChanged$1.invoke(Unknown Source:4)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper$launchLifecycleScopeWithLock$1.invokeSuspend(ReactActivityDelegateWrapper.kt:452)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWith(DispatchedContinuation.kt:375)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt:26)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt:358)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt:134)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch(Builders.common.kt:53)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at kotlinx.coroutines.BuildersKt.launch(Unknown Source:1)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch$default(Builders.common.kt:44)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at kotlinx.coroutines.BuildersKt.launch$default(Unknown Source:1)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper.launchLifecycleScopeWithLock(ReactActivityDelegateWrapper.kt:450)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper.launchLifecycleScopeWithLock$default(ReactActivityDelegateWrapper.kt:446)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper.onWindowFocusChanged(ReactActivityDelegateWrapper.kt:318)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at com.facebook.react.ReactActivity.onWindowFocusChanged(ReactActivity.java:161)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at androidx.appcompat.view.WindowCallbackWrapper.onWindowFocusChanged(WindowCallbackWrapper.java:124)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at com.android.internal.policy.DecorView.onWindowFocusChanged(DecorView.java:1691)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at android.view.View.dispatchWindowFocusChanged(View.java:13688)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at android.view.ViewGroup.dispatchWindowFocusChanged(ViewGroup.java:1480)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at android.view.ViewRootImpl.handleWindowFocusChanged(ViewRootImpl.java:2870)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at android.view.ViewRootImpl.access$1100(ViewRootImpl.java:142)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at android.view.ViewRootImpl$ViewRootHandler.handleMessage(ViewRootImpl.java:4533)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at android.os.Handler.dispatchMessage(Handler.java:107)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at android.os.Looper.loop(Looper.java:214)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at android.app.ActivityThread.main(ActivityThread.java:7356)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at java.lang.reflect.Method.invoke(Native Method)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+09-05 18:48:52.335  6358  6358 E unknown:ReactHost: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+09-05 18:48:52.360  6358  6358 I AdvertisingIdClient: getting error as 17: API: ClientTelemetry.API is not available on this device. Connection failed with: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:52.401  6358  6437 D AdvertisingIdClient: AdvertisingIdClient already created.
+09-05 18:48:52.403  6358  6437 I AdvertisingIdClient: shouldSendLog -1
+09-05 18:48:52.404  6358  6437 I AdvertisingIdClient: GetInfoInternal elapse 2ms
+09-05 18:48:52.407  6358  6412 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 203400000 but found 202414023
+09-05 18:48:52.407  6358  6412 W GoogleApiManager: The service for com.google.android.gms.common.internal.service.zap is not available: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:52.407  6358  6358 I AdvertisingIdClient: getting error as 17: API: ClientTelemetry.API is not available on this device. Connection failed with: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:52.459  6358  6438 I AppMetrica: AppMetrica-Attribution [378-IAA-STE-11] Update distribution data: ClidsInfo(chosen=Candidate(clids=null, source=APP), candidates=[Candidate(clids=null, source=APP)]) -> ClidsInfo(chosen=Candidate(clids={}, source=APP), candidates=[Candidate(clids={}, source=APP)])
+09-05 18:48:52.469  6358  6412 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 212800000 but found 202414023
+09-05 18:48:52.470  6358  6412 W GoogleApiManager: The service for com.google.android.gms.internal.appset.zzd is not available: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:52.472  6358  6438 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 212800000 but found 202414023
+09-05 18:48:52.516  6358  6438 I AppMetrica: AppMetrica-Attribution [378-IAA-STE-11] Update distribution data: ClidsInfo(chosen=Candidate(clids={}, source=APP), candidates=[Candidate(clids={}, source=APP)]) -> ClidsInfo(chosen=Candidate(clids=null, source=APP), candidates=[Candidate(clids=null, source=APP)])
+09-05 18:48:52.545  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Read app environment for component com.intstrfloat.blockblast. Value: null
+09-05 18:48:52.571  6358  6438 W loat.blockblas: Accessing hidden method Llibcore/io/Memory;->peekLong(JZ)J (greylist, reflection, allowed)
+09-05 18:48:52.571  6358  6438 W loat.blockblas: Accessing hidden method Llibcore/io/Memory;->pokeLong(JJZ)V (greylist, reflection, allowed)
+09-05 18:48:52.571  6358  6438 W loat.blockblas: Accessing hidden method Llibcore/io/Memory;->pokeInt(JIZ)V (greylist, reflection, allowed)
+09-05 18:48:52.571  6358  6438 W loat.blockblas: Accessing hidden method Llibcore/io/Memory;->peekInt(JZ)I (greylist, reflection, allowed)
+09-05 18:48:52.571  6358  6438 W loat.blockblas: Accessing hidden method Llibcore/io/Memory;->pokeByte(JB)V (greylist, reflection, allowed)
+09-05 18:48:52.571  6358  6438 W loat.blockblas: Accessing hidden method Llibcore/io/Memory;->peekByte(J)B (greylist, reflection, allowed)
+09-05 18:48:52.571  6358  6438 W loat.blockblas: Accessing hidden method Llibcore/io/Memory;->pokeByteArray(J[BII)V (greylist, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Llibcore/io/Memory;->peekByteArray(J[BII)V (greylist, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->objectFieldOffset(Ljava/lang/reflect/Field;)J (greylist,core-platform-api, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getLong(Ljava/lang/Object;J)J (greylist,core-platform-api, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden field Ljava/nio/Buffer;->address:J (greylist, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->arrayBaseOffset(Ljava/lang/Class;)I (greylist,core-platform-api, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->arrayIndexScale(Ljava/lang/Class;)I (greylist, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getInt(Ljava/lang/Object;J)I (greylist, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putInt(Ljava/lang/Object;JI)V (greylist, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getLong(Ljava/lang/Object;J)J (greylist,core-platform-api, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putLong(Ljava/lang/Object;JJ)V (greylist, reflection, allowed)
+09-05 18:48:52.572  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getObject(Ljava/lang/Object;J)Ljava/lang/Object; (greylist, reflection, allowed)
+09-05 18:48:52.573  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putObject(Ljava/lang/Object;JLjava/lang/Object;)V (greylist, reflection, allowed)
+09-05 18:48:52.587  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getInt(Ljava/lang/Object;J)I (greylist, linking, allowed)
+09-05 18:48:52.587  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getObject(Ljava/lang/Object;J)Ljava/lang/Object; (greylist, linking, allowed)
+09-05 18:48:52.587  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putObject(Ljava/lang/Object;JLjava/lang/Object;)V (greylist, linking, allowed)
+09-05 18:48:52.587  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putInt(Ljava/lang/Object;JI)V (greylist, linking, allowed)
+09-05 18:48:52.587  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getLong(Ljava/lang/Object;J)J (greylist,core-platform-api, linking, allowed)
+09-05 18:48:52.587  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putLong(Ljava/lang/Object;JJ)V (greylist, linking, allowed)
+09-05 18:48:52.590  6358  6438 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getLong(Ljava/lang/Object;J)J (greylist,core-platform-api, linking, allowed)
+09-05 18:48:53.234  6358  6396 D AdvertisingIdClient: AdvertisingIdClient already created.
+09-05 18:48:53.241  6358  6396 I AdvertisingIdClient: shouldSendLog -1
+09-05 18:48:53.241  6358  6396 I AdvertisingIdClient: GetInfoInternal elapse 7ms
+09-05 18:48:53.242  6358  6381 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 212800000 but found 202414023
+09-05 18:48:53.245  6358  6412 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 212800000 but found 202414023
+09-05 18:48:53.245  6358  6412 W GoogleApiManager: The service for com.google.android.gms.internal.appset.zzd is not available: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:53.252  6358  6412 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 203400000 but found 202414023
+09-05 18:48:53.252  6358  6412 W GoogleApiManager: The service for com.google.android.gms.common.internal.service.zap is not available: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:53.263  6358  6358 I AdvertisingIdClient: getting error as 17: API: ClientTelemetry.API is not available on this device. Connection failed with: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:48:53.283  6358  6424 I AppMetrica: AppMetrica [366-IAA-CDE-1] Activate reporter with APIKey 322a737a-xxxx-xxxx-xxxx-xxxxxxxx1db6
+09-05 18:48:53.295  6358  6384 I YandexAds: [Integration] Yandex Mobile Ads 8.3.0 initialized successfully
+09-05 18:48:53.395  6358  6371 I loat.blockblas: Background young concurrent copying GC freed 278681(19MB) AllocSpace objects, 35(956KB) LOS objects, 54% free, 5144KB/11MB, paused 867us total 104.171ms
+09-05 18:48:53.463  6358  6431 W loat.blockblas: Long monitor contention with owner pool-11-thread-1 (6398) at java.net.InetAddress[] libcore.io.Linux.android_getaddrinfo(java.lang.String, android.system.StructAddrinfo, int)(Linux.java:-2) waiters=0 in void ru.rustore.sdk.metrics.internal.U.a() for 1.124s
+09-05 18:48:54.327  6358  6418 W unknown:BridgelessReact: ReactHost{0}.loadJSBundleFromMetro(): Creating BundleLoader
+09-05 18:48:54.328  6358  6417 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Creating BridgelessReactContext
+09-05 18:48:54.328  6358  6417 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Creating ReactInstance
+09-05 18:48:54.342  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:48:54.354  6358  6417 D jni_lib_merge: Entering merged library JNI_OnLoad.
+09-05 18:48:54.354  6358  6417 D jni_lib_merge: Preparing 4 pre-merged libs (including stub)
+09-05 18:48:54.354  6358  6417 D jni_lib_merge: Preparing to register libhermes_executor_so.  onload_func: 0x7ec2bccd09b0
+09-05 18:48:54.354  6358  6417 D jni_lib_merge: Preparing to register libhermesinstancejni_so.  onload_func: 0x7ec2bccfc230
+09-05 18:48:54.354  6358  6417 D jni_lib_merge: Preparing to register libjsijniprofiler_so.  onload_func: 0x7ec2bccfdfa0
+09-05 18:48:54.354  6358  6417 D jni_lib_merge: About to register 3 actual methods.
+09-05 18:48:54.409  6358  6417 W ExpoModulesCore: Props class class expo.modules.ui.textfield.InnerTextFieldProps is not introspectable. Falling back to reflection-based props parsing, which may have performance implications. To fix this, annotate the props class with @OptimizedComposeProps.
+09-05 18:48:54.529  6358  6417 W ExpoModulesCore: Props class class expo.modules.ui.textfield.PlaceholderProps is not introspectable. Falling back to reflection-based props parsing, which may have performance implications. To fix this, annotate the props class with @OptimizedComposeProps.
+09-05 18:48:54.613  6358  6417 I ExpoModulesCore: ✅ AppContext was initialized
+09-05 18:48:54.666  6358  6417 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Loading JS Bundle
+09-05 18:48:54.669  6358  6417 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): DevSupportManager.onNewReactContextCreated()
+09-05 18:48:54.676  6358  6417 W unknown:BridgelessReact: ReactHost{0}.startSurface(surfaceId = 0): Execute
+09-05 18:48:54.691  6358  6358 W unknown:ReactNative: Packager connection already open, nooping.
+09-05 18:48:54.691  6358  6358 W unknown:BridgelessReact: ReactHost{0}.ReactContext.onHostResume()
+09-05 18:48:54.701  6358  6358 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Executing ReactInstanceEventListeners
+09-05 18:48:54.913  6358  6450 I WebViewFactory: Loading com.google.android.webview version 74.0.3729.185 (code 373018568)
+09-05 18:48:54.918  6358  6450 I loat.blockblas: The ClassLoaderContext is a special shared library.
+09-05 18:48:54.925  6358  6450 I loat.blockblas: The ClassLoaderContext is a special shared library.
+09-05 18:48:54.979  6358  6450 I cr_LibraryLoader: Time to load native libraries: 3 ms (timestamps 2709-2712)
+09-05 18:48:54.995  6358  6450 I chromium: [INFO:library_loader_hooks.cc(50)] Chromium logging enabled: level = 0, default verbosity = 0
+09-05 18:48:54.995  6358  6450 I cr_LibraryLoader: Expected native library version number "74.0.3729.185", actual native library version number "74.0.3729.185"
+09-05 18:48:55.020  6358  6449 W BridgelessReactContext: [WARNING] Bridgeless doesn't support CatalystInstance. Accessing an API that's not part of the new architecture is not encouraged usage.
+09-05 18:48:55.027  6358  6449 I ExpoModulesCore: ✅ JSI interop was installed
+09-05 18:48:55.031  6358  6449 I ExpoModulesCore: ✅ Constants were exported
+09-05 18:48:55.179  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class expo.modules.kotlin.views.GroupViewManagerWrapper
+09-05 18:48:55.187  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.uimanager.LayoutShadowNode
+09-05 18:48:55.195  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenContainerViewManager
+09-05 18:48:55.201  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class expo.modules.kotlin.views.SimpleViewManagerWrapper
+09-05 18:48:55.206  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.tabs.host.TabsHostViewManager
+09-05 18:48:55.207  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager
+09-05 18:48:55.211  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderSubviewManager
+09-05 18:48:55.213  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.modals.formsheet.FormSheetHostViewManager
+09-05 18:48:55.218  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.yandexmobileads.banner.YandexBannerViewManager
+09-05 18:48:55.222  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.scrollviewmarker.ScrollViewMarkerViewManager
+09-05 18:48:55.224  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.modals.formsheet.FormSheetContentWrapperViewManager
+09-05 18:48:55.225  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenContentWrapperManager
+09-05 18:48:55.227  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.stack.screen.StackScreenViewManager
+09-05 18:48:55.229  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewManager
+09-05 18:48:55.232  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewShadowNode
+09-05 18:48:55.233  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenViewManager
+09-05 18:48:55.235  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.stack.header.config.StackHeaderConfigViewManager
+09-05 18:48:55.236  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaProviderManager
+09-05 18:48:55.236  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.SearchBarManager
+09-05 18:48:55.237  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.stack.host.StackHostViewManager
+09-05 18:48:55.239  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenFooterManager
+09-05 18:48:55.239  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ModalScreenViewManager
+09-05 18:48:55.241  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.safearea.SafeAreaViewManager
+09-05 18:48:55.243  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackViewManager
+09-05 18:48:55.244  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.stack.header.subview.StackHeaderSubviewViewManager
+09-05 18:48:55.245  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class org.reactnative.maskedview.RNCMaskedViewManager
+09-05 18:48:55.246  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.tabs.screen.TabsScreenViewManager
+09-05 18:48:55.899  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$DefsViewManager
+09-05 18:48:55.901  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.VirtualViewManager$RenderableShadowNode
+09-05 18:48:55.908  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.debuggingoverlay.DebuggingOverlayManager
+09-05 18:48:55.913  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeMergeManager
+09-05 18:48:55.920  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.safeareaview.ReactSafeAreaViewManager
+09-05 18:48:55.926  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LinearGradientManager
+09-05 18:48:55.933  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeGaussianBlurManager
+09-05 18:48:55.942  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.progressbar.ReactProgressBarViewManager
+09-05 18:48:55.948  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollViewManager
+09-05 18:48:55.958  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactTextViewManager
+09-05 18:48:55.965  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeColorMatrixManager
+09-05 18:48:55.973  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollContainerViewManager
+09-05 18:48:55.980  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ClipPathViewManager
+09-05 18:48:55.988  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$SymbolManager
+09-05 18:48:55.997  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PatternManager
+09-05 18:48:56.005  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeBlendManager
+09-05 18:48:56.012  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.view.ReactViewManager
+09-05 18:48:56.019  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.SvgViewManager
+09-05 18:48:56.027  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.switchview.ReactSwitchManager
+09-05 18:48:56.037  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$UseViewManager
+09-05 18:48:56.046  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$CircleViewManager
+09-05 18:48:56.053  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TSpanViewManager
+09-05 18:48:56.061  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FilterManager
+09-05 18:48:56.067  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MarkerManager
+09-05 18:48:56.076  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerButtonViewManager
+09-05 18:48:56.082  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.modal.ReactModalHostManager
+09-05 18:48:56.089  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ForeignObjectManager
+09-05 18:48:56.096  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$EllipseViewManager
+09-05 18:48:56.103  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LineViewManager
+09-05 18:48:56.110  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeFloodManager
+09-05 18:48:56.116  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$GroupViewManager
+09-05 18:48:56.126  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextViewManager
+09-05 18:48:56.141  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ImageViewManager
+09-05 18:48:56.150  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeCompositeManager
+09-05 18:48:56.159  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.image.ReactImageManager
+09-05 18:48:56.166  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RadialGradientManager
+09-05 18:48:56.172  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MaskManager
+09-05 18:48:56.180  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.unimplementedview.ReactUnimplementedViewManager
+09-05 18:48:56.186  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RectViewManager
+09-05 18:48:56.193  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextPathViewManager
+09-05 18:48:56.202  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactScrollViewManager
+09-05 18:48:56.210  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeOffsetManager
+09-05 18:48:56.217  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PathViewManager
+09-05 18:48:56.224  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.drawer.ReactDrawerLayoutManager
+09-05 18:48:56.233  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.swiperefresh.SwipeRefreshLayoutManager
+09-05 18:48:56.243  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.textinput.ReactTextInputManager
+09-05 18:48:56.252  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.SelectableTextViewManager
+09-05 18:48:56.258  6358  6449 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerRootViewManager
+09-05 18:48:56.559  6358  6449 I ReactNativeJS: Running "main" with {"rootTag":1,"initialProps":{},"fabric":true}
+09-05 18:48:56.850  6358  6358 I ExpoModulesCore: ✅ JSI interop was installed
+09-05 18:48:57.090  6358  6471 D ProfileInstaller: Installing profile for com.intstrfloat.blockblast
+09-05 18:48:57.417  6358  6449 W loat.blockblas: Accessing hidden method Landroid/view/Window;->getInsetsController()Landroid/view/WindowInsetsController; (blacklist, linking, denied)
+09-05 18:48:57.443  6358  6449 I NitroModules: Loading NitroModules C++ library...
+09-05 18:48:57.445  6358  6449 I NitroModules: Successfully loaded NitroModules C++ library!
+09-05 18:48:57.445  6358  6449 I Nitro.Dispatcher: Installing global Dispatcher Holder into Runtime "HermesRuntime[RNBridgeless] (mqt_v_js)"...
+09-05 18:48:57.445  6358  6449 I Nitro.JSICache: Creating new JSICache<T> for runtime HermesRuntime[RNBridgeless] (mqt_v_js)..
+09-05 18:48:57.445  6358  6449 I Nitro.HybridObjectPrototype: Creating new JS prototype for C++ instance type "HybridNitroModulesProxy"...
+09-05 18:48:57.446  6358  6449 I Nitro.HybridObjectPrototype: Creating new JS prototype for C++ instance type "HybridObject"...
+09-05 18:48:57.459  6358  6449 I Nitro.HybridObjectPrototype: Creating new JS prototype for C++ instance type "HybridMMKVFactorySpec"...
+09-05 18:48:57.460  6358  6449 I Nitro.HybridObjectPrototype: Creating new JS prototype for C++ instance type "HybridMMKVPlatformContextSpec"...
+09-05 18:48:57.460  6358  6449 I Nitro.MMKVFactory: Initializing MMKV with rootPath=/data/user/0/com.intstrfloat.blockblast/files/mmkv
+09-05 18:48:57.460  6358  6449 I MMKV    : <MMKV.cpp:175::initialize> version v2.4.0, page size 4096, arch x86_64
+09-05 18:48:57.461  6358  6449 I MMKV    : <MMKV.cpp:232::initializeMMKV> root dir: /data/data/com.intstrfloat.blockblast/files/mmkv
+09-05 18:48:57.461  6358  6449 I Nitro.MMKV: Creating MMKV instance "blockblast"... (Path: , Encrypted: false)
+09-05 18:48:57.461  6358  6449 I MMKV    : <MemoryFile.cpp:103::open> open fd[106], flag 0x7, /data/data/com.intstrfloat.blockblast/files/mmkv/blockblast
+09-05 18:48:57.461  6358  6449 I MMKV    : <MemoryFile.cpp:250::mmapOrCleanup> mmap to address [0x7ec3a5935000], oldPtr [0x0], [/data/data/com.intstrfloat.blockblast/files/mmkv/blockblast]
+09-05 18:48:57.461  6358  6449 I MMKV    : <MemoryFile.cpp:109::close> closing fd[106], /data/data/com.intstrfloat.blockblast/files/mmkv/blockblast
+09-05 18:48:57.461  6358  6449 I MMKV    : <MemoryFile.cpp:103::open> open fd[106], flag 0x7, /data/data/com.intstrfloat.blockblast/files/mmkv/blockblast.crc
+09-05 18:48:57.461  6358  6449 I MMKV    : <MemoryFile.cpp:250::mmapOrCleanup> mmap to address [0x7ec3a5934000], oldPtr [0x0], [/data/data/com.intstrfloat.blockblast/files/mmkv/blockblast.crc]
+09-05 18:48:57.461  6358  6449 I Nitro.HybridObjectPrototype: Creating new JS prototype for C++ instance type "HybridMMKVSpec"...
+09-05 18:48:57.466  6358  6449 I MMKV    : <MemoryFile.cpp:103::open> open fd[128], flag 0x7, /data/data/com.intstrfloat.blockblast/files/mmkv/blockblast
+09-05 18:48:57.466  6358  6449 I MMKV    : <MemoryFile.cpp:109::close> closing fd[128], /data/data/com.intstrfloat.blockblast/files/mmkv/blockblast
+09-05 18:48:57.466  6358  6449 I MMKV    : <MMKV_IO.cpp:287::loadMetaInfoAndCheck> meta file [blockblast] has flag [0]
+09-05 18:48:57.466  6358  6449 I MMKV    : <MMKV_IO.cpp:94::loadFromFile> loading [blockblast] with 3576 actual size, file size 8192, InterProcess 0, meta info version:4
+09-05 18:48:57.466  6358  6449 I MMKV    : <MMKV_IO.cpp:99::loadFromFile> loading [blockblast] with crc 3761128191 sequence 749 version 4
+09-05 18:48:57.466  6358  6449 I MMKV    : <MMKV_IO.cpp:145::loadFromFile> loaded [blockblast] with 19 key-values
+09-05 18:48:58.320  6358  6450 I RustorePushModule: getInitialNotification
+09-05 18:48:58.320  6358  6450 I RustorePushModule: messageId: null
+09-05 18:48:58.320  6358  6450 I RustorePushModule: message: null
+09-05 18:48:58.325  6358  6450 I ReactRuStorePushClient:c: Check push availability
+09-05 18:48:58.326  6358  6381 I ReactRuStorePushClient:c: Push is unavailable
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: Failed to inflate ColorStateList, leaving it to the framework
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: java.lang.UnsupportedOperationException: Failed to resolve attribute at index 0: TypedValue{t=0x2/d=0x7f040117 a=-1}
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.content.res.TypedArray.getColor(TypedArray.java:527)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ColorStateListInflaterCompat.inflate(ColorStateListInflaterCompat.java:157)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ColorStateListInflaterCompat.createFromXmlInner(ColorStateListInflaterCompat.java:122)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ColorStateListInflaterCompat.createFromXml(ColorStateListInflaterCompat.java:102)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ResourcesCompat.inflateColorStateList(ResourcesCompat.java:228)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ResourcesCompat.getColorStateList(ResourcesCompat.java:207)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.core.content.ContextCompat.getColorStateList(ContextCompat.java:409)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.content.res.AppCompatResources.getColorStateList(AppCompatResources.java:46)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.TintTypedArray.getColorStateList(TintTypedArray.java:178)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.AppCompatBackgroundHelper.loadFromAttributes(AppCompatBackgroundHelper.java:66)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.AppCompatButton.<init>(AppCompatButton.java:86)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.AppCompatButton.<init>(AppCompatButton.java:76)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatViewInflater.createButton(AppCompatViewInflater.java:238)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatViewInflater.createView(AppCompatViewInflater.java:156)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDelegateImpl.createView(AppCompatDelegateImpl.java:1654)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDelegateImpl.onCreateView(AppCompatDelegateImpl.java:1705)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.tryCreateView(LayoutInflater.java:1061)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:997)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:961)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflate(LayoutInflater.java:1123)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:1084)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflate(LayoutInflater.java:1126)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:1084)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.parseInclude(LayoutInflater.java:1263)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflate(LayoutInflater.java:1119)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:1084)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.inflate(LayoutInflater.java:682)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.inflate(LayoutInflater.java:534)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.inflate(LayoutInflater.java:481)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDelegateImpl.setContentView(AppCompatDelegateImpl.java:751)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDialog.setContentView(AppCompatDialog.java:96)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AlertController.installContent(AlertController.java:232)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AlertDialog.onCreate(AlertDialog.java:278)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.app.Dialog.dispatchOnCreate(Dialog.java:421)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.app.Dialog.show(Dialog.java:315)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.coreui.DialogHelperKt.showDialog(DialogHelper.kt:23)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.coreui.DialogHelperKt.showDialog$default(DialogHelper.kt:9)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.pushclient.utils.PushRuStoreExceptionExtKt.resolveForPush(SourceFile:2)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule.handleNativeError(RustorePushModule.kt:200)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule.checkPushAvailability$lambda$0(RustorePushModule.kt:72)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule.$r8$lambda$vPUpuBWqSZmaH1Om1o9EUlWEn-s(Unknown Source:0)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule$$ExternalSyntheticLambda8.onSuccess(D8$$SyntheticClass:0)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task$setTaskResult$1$1$1.invoke(Task.kt:74)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task$setTaskResult$1$1$1.invoke(Task.kt:74)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task.runWithFallbackToMain$lambda$6(Task.kt:153)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task.$r8$lambda$iOdnZeyAMU3mtoLeKFwGzemWtKA(Unknown Source:0)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.os.Handler.handleCallback(Handler.java:883)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.os.Looper.loop(Looper.java:214)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at android.app.ActivityThread.main(ActivityThread.java:7356)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at java.lang.reflect.Method.invoke(Native Method)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+09-05 18:48:58.404  6358  6358 W ResourcesCompat: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: Failed to inflate ColorStateList, leaving it to the framework
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: java.lang.UnsupportedOperationException: Failed to resolve attribute at index 0: TypedValue{t=0x2/d=0x7f040117 a=-1}
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.content.res.TypedArray.getColor(TypedArray.java:527)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ColorStateListInflaterCompat.inflate(ColorStateListInflaterCompat.java:157)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ColorStateListInflaterCompat.createFromXmlInner(ColorStateListInflaterCompat.java:122)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ColorStateListInflaterCompat.createFromXml(ColorStateListInflaterCompat.java:102)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ResourcesCompat.inflateColorStateList(ResourcesCompat.java:228)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ResourcesCompat.getColorStateList(ResourcesCompat.java:207)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.core.content.ContextCompat.getColorStateList(ContextCompat.java:409)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.content.res.AppCompatResources.getColorStateList(AppCompatResources.java:46)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.TintTypedArray.getColorStateList(TintTypedArray.java:178)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.AppCompatBackgroundHelper.loadFromAttributes(AppCompatBackgroundHelper.java:66)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.AppCompatButton.<init>(AppCompatButton.java:86)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.AppCompatButton.<init>(AppCompatButton.java:76)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatViewInflater.createButton(AppCompatViewInflater.java:238)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatViewInflater.createView(AppCompatViewInflater.java:156)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDelegateImpl.createView(AppCompatDelegateImpl.java:1654)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDelegateImpl.onCreateView(AppCompatDelegateImpl.java:1705)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.tryCreateView(LayoutInflater.java:1061)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:997)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:961)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflate(LayoutInflater.java:1123)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:1084)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflate(LayoutInflater.java:1126)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:1084)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.parseInclude(LayoutInflater.java:1263)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflate(LayoutInflater.java:1119)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:1084)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.inflate(LayoutInflater.java:682)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.inflate(LayoutInflater.java:534)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.inflate(LayoutInflater.java:481)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDelegateImpl.setContentView(AppCompatDelegateImpl.java:751)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDialog.setContentView(AppCompatDialog.java:96)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AlertController.installContent(AlertController.java:232)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AlertDialog.onCreate(AlertDialog.java:278)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.app.Dialog.dispatchOnCreate(Dialog.java:421)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.app.Dialog.show(Dialog.java:315)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.coreui.DialogHelperKt.showDialog(DialogHelper.kt:23)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.coreui.DialogHelperKt.showDialog$default(DialogHelper.kt:9)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.pushclient.utils.PushRuStoreExceptionExtKt.resolveForPush(SourceFile:2)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule.handleNativeError(RustorePushModule.kt:200)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule.checkPushAvailability$lambda$0(RustorePushModule.kt:72)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule.$r8$lambda$vPUpuBWqSZmaH1Om1o9EUlWEn-s(Unknown Source:0)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule$$ExternalSyntheticLambda8.onSuccess(D8$$SyntheticClass:0)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task$setTaskResult$1$1$1.invoke(Task.kt:74)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task$setTaskResult$1$1$1.invoke(Task.kt:74)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task.runWithFallbackToMain$lambda$6(Task.kt:153)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task.$r8$lambda$iOdnZeyAMU3mtoLeKFwGzemWtKA(Unknown Source:0)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.os.Handler.handleCallback(Handler.java:883)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.os.Looper.loop(Looper.java:214)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at android.app.ActivityThread.main(ActivityThread.java:7356)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at java.lang.reflect.Method.invoke(Native Method)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+09-05 18:48:58.408  6358  6358 W ResourcesCompat: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: Failed to inflate ColorStateList, leaving it to the framework
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: java.lang.UnsupportedOperationException: Failed to resolve attribute at index 0: TypedValue{t=0x2/d=0x7f040117 a=-1}
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.content.res.TypedArray.getColor(TypedArray.java:527)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ColorStateListInflaterCompat.inflate(ColorStateListInflaterCompat.java:157)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ColorStateListInflaterCompat.createFromXmlInner(ColorStateListInflaterCompat.java:122)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ColorStateListInflaterCompat.createFromXml(ColorStateListInflaterCompat.java:102)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ResourcesCompat.inflateColorStateList(ResourcesCompat.java:228)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.core.content.res.ResourcesCompat.getColorStateList(ResourcesCompat.java:207)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.core.content.ContextCompat.getColorStateList(ContextCompat.java:409)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.content.res.AppCompatResources.getColorStateList(AppCompatResources.java:46)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.TintTypedArray.getColorStateList(TintTypedArray.java:178)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.AppCompatBackgroundHelper.loadFromAttributes(AppCompatBackgroundHelper.java:66)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.AppCompatButton.<init>(AppCompatButton.java:86)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.widget.AppCompatButton.<init>(AppCompatButton.java:76)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatViewInflater.createButton(AppCompatViewInflater.java:238)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatViewInflater.createView(AppCompatViewInflater.java:156)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDelegateImpl.createView(AppCompatDelegateImpl.java:1654)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDelegateImpl.onCreateView(AppCompatDelegateImpl.java:1705)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.tryCreateView(LayoutInflater.java:1061)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:997)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.createViewFromTag(LayoutInflater.java:961)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflate(LayoutInflater.java:1123)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:1084)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflate(LayoutInflater.java:1126)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:1084)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.parseInclude(LayoutInflater.java:1263)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflate(LayoutInflater.java:1119)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.rInflateChildren(LayoutInflater.java:1084)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.inflate(LayoutInflater.java:682)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.inflate(LayoutInflater.java:534)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.view.LayoutInflater.inflate(LayoutInflater.java:481)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDelegateImpl.setContentView(AppCompatDelegateImpl.java:751)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AppCompatDialog.setContentView(AppCompatDialog.java:96)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AlertController.installContent(AlertController.java:232)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at androidx.appcompat.app.AlertDialog.onCreate(AlertDialog.java:278)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.app.Dialog.dispatchOnCreate(Dialog.java:421)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.app.Dialog.show(Dialog.java:315)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.coreui.DialogHelperKt.showDialog(DialogHelper.kt:23)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.coreui.DialogHelperKt.showDialog$default(DialogHelper.kt:9)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.pushclient.utils.PushRuStoreExceptionExtKt.resolveForPush(SourceFile:2)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule.handleNativeError(RustorePushModule.kt:200)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule.checkPushAvailability$lambda$0(RustorePushModule.kt:72)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule.$r8$lambda$vPUpuBWqSZmaH1Om1o9EUlWEn-s(Unknown Source:0)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at com.rustorepush.RustorePushModule$$ExternalSyntheticLambda8.onSuccess(D8$$SyntheticClass:0)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task$setTaskResult$1$1$1.invoke(Task.kt:74)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task$setTaskResult$1$1$1.invoke(Task.kt:74)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task.runWithFallbackToMain$lambda$6(Task.kt:153)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task.$r8$lambda$iOdnZeyAMU3mtoLeKFwGzemWtKA(Unknown Source:0)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at ru.rustore.sdk.core.tasks.Task$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.os.Handler.handleCallback(Handler.java:883)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.os.Looper.loop(Looper.java:214)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at android.app.ActivityThread.main(ActivityThread.java:7356)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at java.lang.reflect.Method.invoke(Native Method)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+09-05 18:48:58.411  6358  6358 W ResourcesCompat: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+09-05 18:48:58.495  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:49:00.191  6358  6450 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+09-05 18:49:00.191  6358  6450 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+09-05 18:49:00.216  6358  6449 I ReactNativeJS: '[push] availability', 'Push is unavailable, need to install host app'
+09-05 18:49:00.247  6358  6450 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [389-mqt_v_native] Session auto tracking enabled
+09-05 18:49:00.247  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [] [366-IAA-CDE-1] PredefinedDeviceTypes does not contain value for `deviceType = null`. It may cause events to not appear in AppMetrica reports.
+09-05 18:49:00.247  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Update config with value {"apikey":"1b7f9e00-19f1-4503-867b-627e7e1f1c84","logs":true,"error_environment":{},"data_sending_enabled":true,"app_environment":{},"additional_config":{}}
+09-05 18:49:00.248  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Actual session timeout is 10
+09-05 18:49:00.248  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] native crash reporting enabled: true
+09-05 18:49:00.248  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Register application crash handler
+09-05 18:49:00.252  6358  6424 I AppMetrica: AppMetrica [366-IAA-CDE-1] Upgrade AppMetrica anonymous mode to normal with APIKey 1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84
+09-05 18:49:00.253  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Resume session
+09-05 18:49:00.258  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: session_started. With value: {schema_version=1.0, entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634140248E12, is_first_session=false, build_number=40, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, platform=android}
+09-05 18:49:00.259  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getInt(Ljava/lang/Object;J)I (greylist, linking, allowed)
+09-05 18:49:00.259  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getObject(Ljava/lang/Object;J)Ljava/lang/Object; (greylist, linking, allowed)
+09-05 18:49:00.260  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putObject(Ljava/lang/Object;JLjava/lang/Object;)V (greylist, linking, allowed)
+09-05 18:49:00.260  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putInt(Ljava/lang/Object;JI)V (greylist, linking, allowed)
+09-05 18:49:00.260  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getLong(Ljava/lang/Object;J)J (greylist,core-platform-api, linking, allowed)
+09-05 18:49:00.260  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putLong(Ljava/lang/Object;JJ)V (greylist, linking, allowed)
+09-05 18:49:00.260  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getLong(Ljava/lang/Object;J)J (greylist,core-platform-api, linking, allowed)
+09-05 18:49:00.272  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_START
+09-05 18:49:00.277  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Finish foreground session
+09-05 18:49:00.277  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Start foreground session
+09-05 18:49:00.285  6358  6358 I ReactNative: [GESTURE HANDLER] Initialize gesture handler for root view com.facebook.react.runtime.ReactSurfaceView{78963bd V.E...... ......ID 0,0-1080,1920 #1}
+09-05 18:49:00.292  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name session_started with value {"schema_version":1,"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634140248,"is_first_session":false,"build_number":"40","session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android"}
+09-05 18:49:00.352  6358  6371 I loat.blockblas: NativeAlloc concurrent copying GC freed 15227(852KB) AllocSpace objects, 0(0B) LOS objects, 36% free, 10MB/16MB, paused 672us total 104.483ms
+09-05 18:49:00.574  6358  6396 I VideoCapabilities: Unsupported profile 4 for video/mp4v-es
+09-05 18:49:00.736  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: ad_requested. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634140735E12, format=banner, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, platform=android, schema_version=1.0, attempt_id=banner:game:1788634140735, build_number=40, placement=game}
+09-05 18:49:00.743  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name ad_requested with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634140735,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:00.774  6358  6449 W loat.blockblas: Accessing hidden method Ljava/io/ObjectStreamClass;->getConstructorId(Ljava/lang/Class;)J (greylist, reflection, allowed)
+09-05 18:49:00.774  6358  6449 W loat.blockblas: Accessing hidden field Lsun/misc/Unsafe;->theUnsafe:Lsun/misc/Unsafe; (greylist, reflection, allowed)
+09-05 18:49:00.774  6358  6449 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->allocateInstance(Ljava/lang/Class;)Ljava/lang/Object; (greylist, reflection, allowed)
+09-05 18:49:00.791  6358  6358 I ExoPlayerImpl: Init d9f7165 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.810  6358  6358 I MediaSessionImpl: Init e568048 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.838  6358  6358 I ExoPlayerImpl: Init ea0d28c [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.842  6358  6488 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getUnsafe()Lsun/misc/Unsafe; (greylist,core-platform-api, linking, allowed)
+09-05 18:49:00.843  6358  6488 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putObject(Ljava/lang/Object;JLjava/lang/Object;)V (greylist, linking, allowed)
+09-05 18:49:00.843  6358  6358 I MediaSessionImpl: Init 712a9ea [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.843  6358  6488 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z (greylist, linking, allowed)
+09-05 18:49:00.862  6358  6358 I ExoPlayerImpl: Init aa292af [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.868  6358  6358 I MediaSessionImpl: Init d858645 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.905  6358  6358 I ExoPlayerImpl: Init ac4dcbb [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.911  6358  6358 I MediaSessionImpl: Init 4b525d8 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.941  6358  6358 I ExoPlayerImpl: Init 179831c [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.953  6358  6358 I MediaSessionImpl: Init cee26c6 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.953  6358  6489 W loat.blockblas: Accessing hidden method Landroid/media/AudioTrack;->getLatency()I (greylist, reflection, allowed)
+09-05 18:49:00.953  6358  6487 W loat.blockblas: Accessing hidden method Landroid/media/AudioTrack;->getLatency()I (greylist, reflection, allowed)
+09-05 18:49:00.984  6358  6358 I ExoPlayerImpl: Init 6474b02 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:00.987  6358  6358 I MediaSessionImpl: Init ac1bc13 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.020  6358  6358 I ExoPlayerImpl: Init 761d003 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.028  6358  6358 I MediaSessionImpl: Init a0235b9 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.069  6358  6358 I ExoPlayerImpl: Init fadf4b0 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.080  6358  6358 I MediaSessionImpl: Init ec752ae [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.122  6358  6358 I ExoPlayerImpl: Init 5b90499 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.127  6358  6358 I MediaSessionImpl: Init 455033f [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.171  6358  6358 I ExoPlayerImpl: Init e55c00e [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.184  6358  6358 I MediaSessionImpl: Init f6c483c [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.212  6358  6358 I ExoPlayerImpl: Init cb848be [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.226  6358  6358 I MediaSessionImpl: Init b70386c [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.267  6358  6358 I ExoPlayerImpl: Init c28ac46 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.276  6358  6358 I MediaSessionImpl: Init c775d5d [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.292  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_START
+09-05 18:49:01.300  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name session_started with value {"schema_version":1,"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634140248,"is_first_session":false,"build_number":"40","session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android"}
+09-05 18:49:01.307  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name ad_requested with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634140735,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:01.316  6358  6358 I ExoPlayerImpl: Init 4a6a3c9 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.327  6358  6358 I MediaSessionImpl: Init 7512ace [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.385  6358  6358 I ExoPlayerImpl: Init fc3e37e [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.396  6358  6358 I MediaSessionImpl: Init 72c70df [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.449  6358  6358 I ExoPlayerImpl: Init eb94fcf [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.458  6358  6358 I MediaSessionImpl: Init 6de5865 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.508  6358  6358 I ExoPlayerImpl: Init e4af8de [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.523  6358  6358 I MediaSessionImpl: Init 409c4ea [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.588  6358  6358 I ExoPlayerImpl: Init 6dfc743 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.610  6358  6358 I MediaSessionImpl: Init 4ad949f [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.655  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [] [375-IAA-NC] Created OkHttp Network Client Builder
+09-05 18:49:01.665  6358  6358 I ExoPlayerImpl: Init ac3caf0 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.676  6358  6371 I loat.blockblas: Background concurrent copying GC freed 36773(2370KB) AllocSpace objects, 42(2172KB) LOS objects, 24% free, 18MB/24MB, paused 753us total 470.949ms
+09-05 18:49:01.685  6358  6358 I MediaSessionImpl: Init b2a61c [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 18:49:01.799  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: adventure_level_start. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.78863414179E12, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, attempt=0.0, platform=android, objective=score, schema_version=1.0, levelIndex=6.0, seasonId=1.0, build_number=40}
+09-05 18:49:01.885  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name adventure_level_start with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634141790,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"attempt":0,"platform":"android","objective":"score","schema_version":1,"levelIndex":6,"seasonId":1,"build_number":"40"}
+09-05 18:49:02.135  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:49:02.257  6358  6371 I loat.blockblas: Background young concurrent copying GC freed 88197(5551KB) AllocSpace objects, 10(280KB) LOS objects, 21% free, 19MB/24MB, paused 1.235ms total 150.692ms
+09-05 18:49:02.828  6358  6379 I YandexAds: [Integration] Ad type interstitial was integrated successfully
+09-05 18:49:02.865  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name adventure_level_start with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634141790,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"attempt":0,"platform":"android","objective":"score","schema_version":1,"levelIndex":6,"seasonId":1,"build_number":"40"}
+09-05 18:49:02.881  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [] [375-IAA-NC] Created OkHttp Network Client Builder
+09-05 18:49:03.365  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_START
+09-05 18:49:03.366  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name session_started with value {"schema_version":1,"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634140248,"is_first_session":false,"build_number":"40","session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android"}
+09-05 18:49:03.366  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name ad_requested with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634140735,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:03.366  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name adventure_level_start with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634141790,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"attempt":0,"platform":"android","objective":"score","schema_version":1,"levelIndex":6,"seasonId":1,"build_number":"40"}
+09-05 18:49:03.366  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: Session heartbeat
+09-05 18:49:03.366  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: Session start
+09-05 18:49:03.366  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: session_started with value {"schema_version":1,"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634140248,"is_first_session":false,"build_number":"40","session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android"}
+09-05 18:49:03.366  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"interstitial\",\"ad_unit_id\":\"R-M-19446153-2\",\"sdk_version\":\"8.3.0\"}","source":"yandex","event":"ad_request","layer":"native"}
+09-05 18:49:03.367  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"rewarded\",\"ad_unit_id\":\"R-M-19446153-3\",\"sdk_version\":\"8.3.0\"}","source":"yandex","event":"ad_request","layer":"native"}
+09-05 18:49:03.367  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: ad_requested with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634140735,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:03.367  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"rewarded\",\"ad_unit_id\":\"R-M-19446153-3\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\"}","source":"yandex","event":"ad_attempt","layer":"native"}
+09-05 18:49:03.367  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"interstitial\",\"ad_unit_id\":\"R-M-19446153-2\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\"}","source":"yandex","event":"ad_attempt","layer":"native"}
+09-05 18:49:03.367  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: adventure_level_start with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634141790,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"attempt":0,"platform":"android","objective":"score","schema_version":1,"levelIndex":6,"seasonId":1,"build_number":"40"}
+09-05 18:49:03.369  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"interstitial\",\"ad_unit_id\":\"R-M-19446153-2\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\",\"banner_id\":\"1920489724780477507\"}","source":"yandex","event":"ad_filled_request","layer":"native"}
+09-05 18:49:03.673  6358  6544 I YandexAds: [Integration] Ad type rewarded was integrated successfully
+09-05 18:49:03.821  6358  6371 I loat.blockblas: NativeAlloc concurrent copying GC freed 40875(1928KB) AllocSpace objects, 2(272KB) LOS objects, 23% free, 19MB/25MB, paused 764us total 112.428ms
+09-05 18:49:03.895  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [] [375-IAA-NC] Created OkHttp Network Client Builder
+09-05 18:49:04.864  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] App opened via deeplink: blockblast://adventure-level
+09-05 18:49:04.866  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_APP_OPEN
+09-05 18:49:05.330  6358  6371 I loat.blockblas: NativeAlloc concurrent copying GC freed 31833(1349KB) AllocSpace objects, 0(0B) LOS objects, 23% free, 19MB/25MB, paused 562us total 175.709ms
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Entering merged library JNI_OnLoad.
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x7ec2c36f33e0
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x7ec2c393dc30
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x7ec2c394ffe0
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x7ec2c39f5f90
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x7ec2c3cc1590
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x7ec2c3ce4800
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x7ec2c3cea2e0
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x7ec2c3d67120
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x7ec2c3eb5ec0
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x7ec2c3ecc910
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x7ec2c3edb890
+09-05 18:49:05.569  6358  6449 D jni_lib_merge: About to register 11 actual methods.
+09-05 18:49:05.875  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_APP_OPEN
+09-05 18:49:06.098  6358  6595 W cr_ChildProcLH: Create a new ChildConnectionAllocator with package name = com.google.android.webview, sandboxed = true
+09-05 18:49:06.101  6358  6595 W loat.blockblas: Accessing hidden method Landroid/content/Context;->bindServiceAsUser(Landroid/content/Intent;Landroid/content/ServiceConnection;ILandroid/os/Handler;Landroid/os/UserHandle;)Z (greylist, reflection, allowed)
+09-05 18:49:06.106  6358  6358 I cr_BrowserStartup: Initializing chromium process, singleProcess=false
+09-05 18:49:06.270  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/textclassifier/logging/SmartSelectionEventTracker;-><init>(Landroid/content/Context;I)V (greylist, reflection, allowed)
+09-05 18:49:06.270  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/textclassifier/logging/SmartSelectionEventTracker;->logEvent(Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent;)V (greylist, reflection, allowed)
+09-05 18:49:06.270  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent;->selectionStarted(I)Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent; (greylist, reflection, allowed)
+09-05 18:49:06.270  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent;->selectionModified(II)Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent; (greylist, reflection, allowed)
+09-05 18:49:06.270  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent;->selectionModified(IILandroid/view/textclassifier/TextClassification;)Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent; (greylist, reflection, allowed)
+09-05 18:49:06.270  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent;->selectionModified(IILandroid/view/textclassifier/TextSelection;)Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent; (greylist, reflection, allowed)
+09-05 18:49:06.270  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent;->selectionAction(III)Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent; (greylist, reflection, allowed)
+09-05 18:49:06.270  6358  6358 W loat.blockblas: Accessing hidden method Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent;->selectionAction(IIILandroid/view/textclassifier/TextClassification;)Landroid/view/textclassifier/logging/SmartSelectionEventTracker$SelectionEvent; (greylist, reflection, allowed)
+09-05 18:49:06.293  6358  6627 D HostConnection: HostConnection::get() New Host Connection established 0x7ec123c73e60, tid 6627
+09-05 18:49:06.293  6358  6627 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+09-05 18:49:06.293  6358  6627 E chromium: [ERROR:gl_surface_egl.cc(342)] eglChooseConfig failed with error EGL_SUCCESS
+09-05 18:49:06.298  6358  6608 W cr_media: Requires BLUETOOTH permission
+09-05 18:49:06.340  6358  6627 D EGL_emulation: eglCreateContext: 0x7ec123c73fa0: maj 2 min 0 rcv 2
+09-05 18:49:06.342  6358  6627 D EGL_emulation: eglMakeCurrent: 0x7ec123c73fa0: ver 2 0 (tinfo 0x7ec10d9de860)
+09-05 18:49:06.366  6358  6627 E chromium: [ERROR:gl_surface_egl.cc(342)] eglChooseConfig failed with error EGL_SUCCESS
+09-05 18:49:06.376  6358  6627 W cr_MediaCodecUtil: HW encoder for video/avc is not available on this device.
+09-05 18:49:06.451  6358  6358 I YandexAds: [Integration] Ad type banner was integrated successfully
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: Unhandled SoftException
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: java.lang.IllegalArgumentException: getJSModule(RCTEventEmitter) is not recommended in the new architecture and will stop working with interop disabled. Please use UIManagerHelper.getEventDispatcher instead
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.runtime.BridgelessReactContext.getJSModule(BridgelessReactContext.kt:136)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.uimanager.ThemedReactContext.getJSModule(ThemedReactContext.kt:75)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.common.EventEmitter.receiveEvent(EventEmitter.kt:26)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.banner.YandexBannerView$AdEventListener.onAdLoaded(YandexBannerView.kt:129)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.b(SourceFile:2)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at com.monetization.ads.core.utils.CallbackStackTraceMarker.<init>(SourceFile:3)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.b(SourceFile:1)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn.b(SourceFile:3)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.handleCallback(Handler.java:883)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Looper.loop(Looper.java:214)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at android.app.ActivityThread.main(ActivityThread.java:7356)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at java.lang.reflect.Method.invoke(Native Method)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+09-05 18:49:06.480  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: Unhandled SoftException
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: java.lang.IllegalArgumentException: getJSModule(RCTEventEmitter) is not recommended in the new architecture and will stop working with interop disabled. Please use UIManagerHelper.getEventDispatcher instead
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.runtime.BridgelessReactContext.getJSModule(BridgelessReactContext.kt:136)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.uimanager.ThemedReactContext.getJSModule(ThemedReactContext.kt:75)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.common.EventEmitter.receiveEvent(EventEmitter.kt:26)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.banner.YandexBannerView$AdEventListener.onImpression(YandexBannerView.kt:102)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.a(SourceFile:14)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at com.monetization.ads.core.utils.CallbackStackTraceMarker.<init>(SourceFile:3)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.a(SourceFile:13)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn.a(SourceFile:8)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.handleCallback(Handler.java:883)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Looper.loop(Looper.java:214)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at android.app.ActivityThread.main(ActivityThread.java:7356)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at java.lang.reflect.Method.invoke(Native Method)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+09-05 18:49:06.503  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+09-05 18:49:06.549  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [] [375-IAA-NC] Created OkHttp Network Client Builder
+09-05 18:49:06.549  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: ad_loaded. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634146547E12, format=banner, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, platform=android, schema_version=1.0, attempt_id=banner:game:1788634140735, build_number=40, placement=game}
+09-05 18:49:06.554  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: ad_shown. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634146552E12, format=banner, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, platform=android, schema_version=1.0, attempt_id=banner:game:1788634140735, build_number=40, placement=game}
+09-05 18:49:06.577  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name ad_loaded with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634146547,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:06.599  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name ad_shown with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634146552,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:06.944  6358  6627 D EGL_emulation: eglCreateContext: 0x7ec123cabea0: maj 2 min 0 rcv 2
+09-05 18:49:06.945  6358  6627 D EGL_emulation: eglMakeCurrent: 0x7ec123cabea0: ver 2 0 (tinfo 0x7ec10d9de860)
+09-05 18:49:07.092  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name ad_loaded with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634146547,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:07.092  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name ad_shown with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634146552,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:07.489  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [] [375-IAA-NC] Created OkHttp Network Client Builder
+09-05 18:49:08.364  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_APP_OPEN
+09-05 18:49:08.364  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name ad_loaded with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634146547,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:08.364  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name ad_shown with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634146552,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:08.364  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"rewarded\",\"ad_unit_id\":\"R-M-19446153-3\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\",\"banner_id\":\"1901316832926925013\"}","source":"yandex","event":"ad_filled_request","layer":"native"}
+09-05 18:49:08.364  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: Open
+09-05 18:49:08.365  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"banner\",\"ad_unit_id\":\"R-M-19446153-1\",\"sdk_version\":\"8.3.0\"}","source":"yandex","event":"ad_request","layer":"native"}
+09-05 18:49:08.365  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"banner\",\"ad_unit_id\":\"R-M-19446153-1\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\"}","source":"yandex","event":"ad_attempt","layer":"native"}
+09-05 18:49:08.366  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"banner\",\"ad_unit_id\":\"R-M-19446153-1\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\",\"banner_id\":\"1920489376886522032\"}","source":"yandex","event":"ad_filled_request","layer":"native"}
+09-05 18:49:08.366  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"banner\",\"ad_unit_id\":\"R-M-19446153-1\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\",\"banner_id\":\"1920489376886522032\",\"ad_revenue\":\"0.005764753\",\"currency\":\"RUB\",\"precision\":\"estimated\"}","source":"yandex","event":"ad_impression","layer":"native"}
+09-05 18:49:08.367  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: ad_loaded with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634146547,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:08.367  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: ad_shown with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634146552,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634140735","build_number":"40","placement":"game"}
+09-05 18:49:12.069  6358  6379 I ReactRuStorePushClient:VkpnsMessagingService: Stop service immediately
+09-05 18:49:12.070  6358  6358 I ReactRuStorePushClient:VkpnsMessagingService: Service is destroying
+09-05 18:49:12.071  6358  6358 I ReactRuStorePushClient:VkpnsMessagingService:ClientServiceInteractor: Destroying
+09-05 18:49:12.072  6358  6358 I ReactRuStorePushClient:MessagesIPC: onDestroy
+09-05 18:49:20.181  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:49:20.207  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:49:20.544  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:49:45.863  6358  6358 W loat.blockblas: Accessing hidden field Landroid/widget/ScrollView;->mScroller:Landroid/widget/OverScroller; (greylist, reflection, allowed)
+09-05 18:49:45.954  6358  6371 I loat.blockblas: NativeAlloc concurrent copying GC freed 111269(4194KB) AllocSpace objects, 1(32KB) LOS objects, 22% free, 20MB/26MB, paused 1.770ms total 196.218ms
+09-05 18:49:46.630  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: home_viewed. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634186626E12, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, platform=android, home_state=continue, schema_version=1.0, cards_visible=[adventure, classic, quick_links], build_number=40}
+09-05 18:49:46.631  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name home_viewed with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634186626,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","home_state":"continue","schema_version":1,"cards_visible":["adventure","classic","quick_links"],"build_number":"40"}
+09-05 18:49:47.051  6358  6358 W cr_AwContents: WebView.destroy() called while WebView is still attached to window.
+09-05 18:49:47.642  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name home_viewed with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634186626,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","home_state":"continue","schema_version":1,"cards_visible":["adventure","classic","quick_links"],"build_number":"40"}
+09-05 18:50:06.925  6358  6550 E DownloadManager: Task failed: null:1, false
+09-05 18:50:06.925  6358  6550 E DownloadManager:   yads.eg2: java.net.SocketTimeoutException: timeout
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at yads.xj0.a(SourceFile:201)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at yads.dj0.a(SourceFile:116)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at yads.zy4.a(SourceFile:1)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at yads.ov.a(SourceFile:176)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at yads.ov.a(SourceFile:58)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at yads.xv.a(SourceFile:70)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at yads.z64.b(SourceFile:1)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at yads.vg4.run(SourceFile:9)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at java.lang.Thread.run(Thread.java:919)
+09-05 18:50:06.925  6358  6550 E DownloadManager:   Caused by: java.net.SocketTimeoutException: timeout
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.okio.Okio$3.newTimeoutException(Okio.java:214)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.okio.AsyncTimeout.exit(AsyncTimeout.java:263)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.okio.AsyncTimeout$2.read(AsyncTimeout.java:217)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.okio.RealBufferedSource.indexOf(RealBufferedSource.java:307)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.okio.RealBufferedSource.indexOf(RealBufferedSource.java:301)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.okio.RealBufferedSource.readUtf8LineStrict(RealBufferedSource.java:197)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.internal.http.Http1xStream.readResponse(Http1xStream.java:188)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.internal.http.Http1xStream.readResponseHeaders(Http1xStream.java:129)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.internal.http.HttpEngine.readNetworkResponse(HttpEngine.java:750)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.internal.http.HttpEngine.readResponse(HttpEngine.java:622)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.HttpURLConnectionImpl.execute(HttpURLConnectionImpl.java:475)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.HttpURLConnectionImpl.getResponse(HttpURLConnectionImpl.java:411)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.HttpURLConnectionImpl.getResponseCode(HttpURLConnectionImpl.java:542)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.DelegatingHttpsURLConnection.getResponseCode(DelegatingHttpsURLConnection.java:106)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:30)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at yads.xj0.a(SourceFile:13)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       ... 10 more
+09-05 18:50:06.925  6358  6550 E DownloadManager:   Caused by: java.net.SocketException: socket is closed
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.org.conscrypt.ConscryptFileDescriptorSocket$SSLInputStream.read(ConscryptFileDescriptorSocket.java:554)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.okio.Okio$2.read(Okio.java:138)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       at com.android.okhttp.okio.AsyncTimeout$2.read(AsyncTimeout.java:213)
+09-05 18:50:06.925  6358  6550 E DownloadManager:       ... 23 more
+09-05 18:50:16.368  6358  6550 E DownloadManager: Task failed: null:0, false
+09-05 18:50:16.368  6358  6550 E DownloadManager:   yads.eg2: java.net.SocketTimeoutException: timeout
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at yads.xj0.a(SourceFile:201)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at yads.dj0.a(SourceFile:116)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at yads.zy4.a(SourceFile:1)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at yads.ov.a(SourceFile:176)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at yads.ov.a(SourceFile:58)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at yads.xv.a(SourceFile:70)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at yads.z64.b(SourceFile:1)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at yads.vg4.run(SourceFile:9)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at java.lang.Thread.run(Thread.java:919)
+09-05 18:50:16.368  6358  6550 E DownloadManager:   Caused by: java.net.SocketTimeoutException: timeout
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.okio.Okio$3.newTimeoutException(Okio.java:214)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.okio.AsyncTimeout.exit(AsyncTimeout.java:263)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.okio.AsyncTimeout$2.read(AsyncTimeout.java:217)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.okio.RealBufferedSource.indexOf(RealBufferedSource.java:307)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.okio.RealBufferedSource.indexOf(RealBufferedSource.java:301)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.okio.RealBufferedSource.readUtf8LineStrict(RealBufferedSource.java:197)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.internal.http.Http1xStream.readResponse(Http1xStream.java:188)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.internal.http.Http1xStream.readResponseHeaders(Http1xStream.java:129)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.internal.http.HttpEngine.readNetworkResponse(HttpEngine.java:750)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.internal.http.HttpEngine.readResponse(HttpEngine.java:622)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.HttpURLConnectionImpl.execute(HttpURLConnectionImpl.java:475)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.HttpURLConnectionImpl.getResponse(HttpURLConnectionImpl.java:411)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.HttpURLConnectionImpl.getResponseCode(HttpURLConnectionImpl.java:542)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.DelegatingHttpsURLConnection.getResponseCode(DelegatingHttpsURLConnection.java:106)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.internal.huc.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:30)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at yads.xj0.a(SourceFile:13)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       ... 10 more
+09-05 18:50:16.368  6358  6550 E DownloadManager:   Caused by: java.net.SocketException: socket is closed
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.org.conscrypt.ConscryptFileDescriptorSocket$SSLInputStream.read(ConscryptFileDescriptorSocket.java:554)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.okio.Okio$2.read(Okio.java:138)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       at com.android.okhttp.okio.AsyncTimeout$2.read(AsyncTimeout.java:213)
+09-05 18:50:16.368  6358  6550 E DownloadManager:       ... 23 more
+09-05 18:50:18.794  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: mode_selected. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634218791E12, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, source=home_reference_menu, locale=en-US, session_index=19.0, platform=android, mode=adventure, schema_version=1.0, build_number=40}
+09-05 18:50:18.815  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name mode_selected with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634218791,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"source":"home_reference_menu","locale":"en-US","session_index":19,"platform":"android","mode":"adventure","schema_version":1,"build_number":"40"}
+09-05 18:50:19.640  6358  6794 D HostConnection: HostConnection::get() New Host Connection established 0x7ec2c4e2d020, tid 6794
+09-05 18:50:19.643  6358  6794 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+09-05 18:50:19.644  6358  6794 E EGL_emulation: eglCreateContext: EGL_BAD_CONFIG: no ES 3 support
+09-05 18:50:19.644  6358  6794 E EGL_emulation: tid 6794: eglCreateContext(1571): error 0x3005 (EGL_BAD_CONFIG)
+09-05 18:50:19.664  6358  6794 D EGL_emulation: eglCreateContext: 0x7ec2c4e2e420: maj 2 min 0 rcv 2
+09-05 18:50:19.665  6358  6794 W Gralloc3: allocator 3.x is not supported
+09-05 18:50:19.705  6358  6794 D EGL_emulation: eglMakeCurrent: 0x7ec2c4e2e420: ver 2 0 (tinfo 0x7ec2c050db60)
+09-05 18:50:19.707  6358  6794 E EGL_emulation: tid 6794: eglSurfaceAttrib(1400): error 0x3009 (EGL_BAD_MATCH)
+09-05 18:50:19.708  6358  6794 E EXGL    : EGL error = 0x3009
+09-05 18:50:19.747  6358  6449 W ReactNativeJS: THREE.WebGLRenderer: WebGL 1 support was deprecated in r153 and will be removed in r163.
+09-05 18:50:19.777  6358  6449 W ReactNativeJS: THREE.WebGLRenderer: EXT_blend_minmax extension not supported.
+09-05 18:50:19.784  6358  6449 W ReactNativeJS: THREE.WebGLRenderer: OES_vertex_array_object extension not supported.
+09-05 18:50:19.825  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name mode_selected with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634218791,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"source":"home_reference_menu","locale":"en-US","session_index":19,"platform":"android","mode":"adventure","schema_version":1,"build_number":"40"}
+09-05 18:50:22.408  6358  6437 D AdvertisingIdClient: AdvertisingIdClient already created.
+09-05 18:50:22.408  6358  6437 D AdvertisingIdClient: AdvertisingIdClient is not bounded. Starting to bind it...
+09-05 18:50:22.447  6358  6437 D AdvertisingIdClient: AdvertisingIdClient is bounded
+09-05 18:50:22.452  6358  6437 I AdvertisingIdClient: shouldSendLog -1
+09-05 18:50:22.459  6358  6437 I AdvertisingIdClient: GetInfoInternal elapse 44ms
+09-05 18:50:22.469  6358  6412 W GooglePlayServicesUtil: Google Play services out of date for com.intstrfloat.blockblast.  Requires 203400000 but found 202414023
+09-05 18:50:22.470  6358  6412 W GoogleApiManager: The service for com.google.android.gms.common.internal.service.zap is not available: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:50:22.480  6358  6358 I AdvertisingIdClient: getting error as 17: API: ClientTelemetry.API is not available on this device. Connection failed with: ConnectionResult{statusCode=SERVICE_VERSION_UPDATE_REQUIRED, resolution=null, message=null, clientMethodKey=null}
+09-05 18:50:35.065  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: ad_requested. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634235064E12, format=banner, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, platform=android, schema_version=1.0, attempt_id=banner:game:1788634235063, build_number=40, placement=game}
+09-05 18:50:35.075  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name ad_requested with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634235064,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:35.084  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: adventure_level_start. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634235083E12, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, attempt=0.0, platform=android, objective=score, schema_version=1.0, levelIndex=6.0, seasonId=1.0, build_number=40}
+09-05 18:50:35.090  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name adventure_level_start with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634235083,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"attempt":0,"platform":"android","objective":"score","schema_version":1,"levelIndex":6,"seasonId":1,"build_number":"40"}
+09-05 18:50:36.087  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name ad_requested with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634235064,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:36.087  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name adventure_level_start with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634235083,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"attempt":0,"platform":"android","objective":"score","schema_version":1,"levelIndex":6,"seasonId":1,"build_number":"40"}
+09-05 18:50:36.837  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [] [375-IAA-NC] Created OkHttp Network Client Builder
+09-05 18:50:37.390  6358  6371 I loat.blockblas: Background young concurrent copying GC freed 142496(5053KB) AllocSpace objects, 2(32KB) LOS objects, 17% free, 22MB/27MB, paused 5.249ms total 29.688ms
+09-05 18:50:37.748  6358  6794 E Surface : getSlotFromBufferLocked: unknown buffer: 0x0
+09-05 18:50:38.848  6358  6358 I YandexAds: [Integration] Ad type banner was integrated successfully
+09-05 18:50:38.872  6358  6627 D EGL_emulation: eglMakeCurrent: 0x7ec123cabea0: ver 2 0 (tinfo 0x7ec10d9de860)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: Unhandled SoftException
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: java.lang.IllegalArgumentException: getJSModule(RCTEventEmitter) is not recommended in the new architecture and will stop working with interop disabled. Please use UIManagerHelper.getEventDispatcher instead
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.runtime.BridgelessReactContext.getJSModule(BridgelessReactContext.kt:136)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.uimanager.ThemedReactContext.getJSModule(ThemedReactContext.kt:75)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.common.EventEmitter.receiveEvent(EventEmitter.kt:26)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.banner.YandexBannerView$AdEventListener.onAdLoaded(YandexBannerView.kt:129)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.b(SourceFile:2)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at com.monetization.ads.core.utils.CallbackStackTraceMarker.<init>(SourceFile:3)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.b(SourceFile:1)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn.b(SourceFile:3)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.handleCallback(Handler.java:883)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Looper.loop(Looper.java:214)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at android.app.ActivityThread.main(ActivityThread.java:7356)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at java.lang.reflect.Method.invoke(Native Method)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+09-05 18:50:38.900  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+09-05 18:50:38.915  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: ad_loaded. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634238914E12, format=banner, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, platform=android, schema_version=1.0, attempt_id=banner:game:1788634235063, build_number=40, placement=game}
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: Unhandled SoftException
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: java.lang.IllegalArgumentException: getJSModule(RCTEventEmitter) is not recommended in the new architecture and will stop working with interop disabled. Please use UIManagerHelper.getEventDispatcher instead
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.runtime.BridgelessReactContext.getJSModule(BridgelessReactContext.kt:136)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.uimanager.ThemedReactContext.getJSModule(ThemedReactContext.kt:75)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.common.EventEmitter.receiveEvent(EventEmitter.kt:26)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.banner.YandexBannerView$AdEventListener.onImpression(YandexBannerView.kt:102)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.a(SourceFile:14)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at com.monetization.ads.core.utils.CallbackStackTraceMarker.<init>(SourceFile:3)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.a(SourceFile:13)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn.a(SourceFile:8)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.handleCallback(Handler.java:883)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Looper.loop(Looper.java:214)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at android.app.ActivityThread.main(ActivityThread.java:7356)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at java.lang.reflect.Method.invoke(Native Method)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+09-05 18:50:38.939  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+09-05 18:50:38.950  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name ad_loaded with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634238914,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:39.287  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: ad_shown. With value: {entry_source=deeplink, app_version=1.1.35, event_timestamp_ms=1.788634239286E12, format=banner, is_first_session=false, session_id=1788634140221-uswh64wz, games_played=0.0, locale=en-US, session_index=19.0, platform=android, schema_version=1.0, attempt_id=banner:game:1788634235063, build_number=40, placement=game}
+09-05 18:50:39.307  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name ad_shown with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634239286,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:39.850  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [] [375-IAA-NC] Created OkHttp Network Client Builder
+09-05 18:50:39.884  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name ad_loaded with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634238914,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:39.885  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name ad_shown with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634239286,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:40.352  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [] [375-IAA-NC] Created OkHttp Network Client Builder
+09-05 18:50:41.220  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name home_viewed with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634186626,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","home_state":"continue","schema_version":1,"cards_visible":["adventure","classic","quick_links"],"build_number":"40"}
+09-05 18:50:41.220  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name mode_selected with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634218791,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"source":"home_reference_menu","locale":"en-US","session_index":19,"platform":"android","mode":"adventure","schema_version":1,"build_number":"40"}
+09-05 18:50:41.220  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name ad_requested with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634235064,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:41.221  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name adventure_level_start with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634235083,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"attempt":0,"platform":"android","objective":"score","schema_version":1,"levelIndex":6,"seasonId":1,"build_number":"40"}
+09-05 18:50:41.221  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name ad_loaded with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634238914,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:41.221  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name ad_shown with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634239286,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:41.221  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: home_viewed with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634186626,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","home_state":"continue","schema_version":1,"cards_visible":["adventure","classic","quick_links"],"build_number":"40"}
+09-05 18:50:41.221  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: mode_selected with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634218791,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"source":"home_reference_menu","locale":"en-US","session_index":19,"platform":"android","mode":"adventure","schema_version":1,"build_number":"40"}
+09-05 18:50:41.222  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: ad_requested with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634235064,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:41.222  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: adventure_level_start with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634235083,"is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"attempt":0,"platform":"android","objective":"score","schema_version":1,"levelIndex":6,"seasonId":1,"build_number":"40"}
+09-05 18:50:41.222  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"banner\",\"ad_unit_id\":\"R-M-19446153-1\",\"sdk_version\":\"8.3.0\"}","source":"yandex","event":"ad_request","layer":"native"}
+09-05 18:50:41.222  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"banner\",\"ad_unit_id\":\"R-M-19446153-1\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\"}","source":"yandex","event":"ad_attempt","layer":"native"}
+09-05 18:50:41.222  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"banner\",\"ad_unit_id\":\"R-M-19446153-1\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\",\"banner_id\":\"72057611754896840\"}","source":"yandex","event":"ad_filled_request","layer":"native"}
+09-05 18:50:41.223  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: ad_loaded with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634238914,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:41.223  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"banner\",\"ad_unit_id\":\"R-M-19446153-1\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\",\"banner_id\":\"72057611754896840\",\"ad_revenue\":\"0.008983818\",\"currency\":\"RUB\",\"precision\":\"estimated\"}","source":"yandex","event":"ad_impression","layer":"native"}
+09-05 18:50:41.223  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: ad_shown with value {"entry_source":"deeplink","app_version":"1.1.35","event_timestamp_ms":1788634239286,"format":"banner","is_first_session":false,"session_id":"1788634140221-uswh64wz","games_played":0,"locale":"en-US","session_index":19,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:50:46.978  6358  6358 W unknown:BridgelessReact: ReactHost{0}.onUserLeaveHint(activity)
+09-05 18:50:46.984  6358  6358 W unknown:BridgelessReact: ReactHost{0}.onHostPause(activity)
+09-05 18:50:46.986  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Pause session
+09-05 18:50:46.988  6358  6358 W unknown:BridgelessReact: ReactHost{0}.ReactContext.onHostPause()
+09-05 18:50:47.002  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Send event buffer
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: Unhandled SoftException
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: java.lang.IllegalArgumentException: getJSModule(RCTEventEmitter) is not recommended in the new architecture and will stop working with interop disabled. Please use UIManagerHelper.getEventDispatcher instead
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.runtime.BridgelessReactContext.getJSModule(BridgelessReactContext.kt:136)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at com.facebook.react.uimanager.ThemedReactContext.getJSModule(ThemedReactContext.kt:75)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.common.EventEmitter.receiveEvent(EventEmitter.kt:26)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.common.EventEmitter.receiveEvent$default(EventEmitter.kt:20)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at com.yandexmobileads.banner.YandexBannerView$AdEventListener.onAdClicked(YandexBannerView.kt:106)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.a(SourceFile:10)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5$$ExternalSyntheticLambda3.invoke(D8$$SyntheticClass:0)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at com.monetization.ads.core.utils.CallbackStackTraceMarker.<init>(SourceFile:3)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at yads.sp5.a(SourceFile:9)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn.c(SourceFile:3)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at yads.nn$$ExternalSyntheticLambda4.run(D8$$SyntheticClass:0)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.handleCallback(Handler.java:883)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at android.os.Looper.loop(Looper.java:214)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at android.app.ActivityThread.main(ActivityThread.java:7356)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at java.lang.reflect.Method.invoke(Native Method)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+09-05 18:50:47.018  6358  6358 E unknown:BridgelessReactContext: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+09-05 18:50:47.033  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_PURGE_BUFFER
+09-05 18:50:48.263  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:51:07.831  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Resume session
+09-05 18:51:07.854  6358  6358 W unknown:BridgelessReact: ReactHost{0}.onHostResume(activity)
+09-05 18:51:07.863  6358  6358 W unknown:BridgelessReact: ReactHost{0}.ReactContext.onHostResume()
+09-05 18:51:08.020  6358  6401 D HostConnection: HostConnection::get() New Host Connection established 0x7ec3160a01c0, tid 6401
+09-05 18:51:08.025  6358  6401 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+09-05 18:51:08.025  6358  6401 W OpenGLRenderer: Failed to choose config with EGL_SWAP_BEHAVIOR_PRESERVED, retrying without...
+09-05 18:51:08.047  6358  6401 D EGL_emulation: eglCreateContext: 0x7ec3160a29c0: maj 2 min 0 rcv 2
+09-05 18:51:08.070  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:51:08.173  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:51:08.339  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Updated data sending enabled: true
+09-05 18:51:08.345  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: ad_clicked. With value: {entry_source=organic, app_version=1.1.35, event_timestamp_ms=1.78863424706E12, format=banner, is_first_session=false, session_id=1788634268304-l3elv8dn, games_played=0.0, locale=en-US, session_index=20.0, platform=android, schema_version=1.0, attempt_id=banner:game:1788634235063, build_number=40, placement=game}
+09-05 18:51:08.345  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: session_started. With value: {schema_version=1.0, entry_source=organic, app_version=1.1.35, event_timestamp_ms=1.788634268326E12, is_first_session=false, build_number=40, session_id=1788634268304-l3elv8dn, games_played=0.0, locale=en-US, session_index=20.0, platform=android}
+09-05 18:51:08.353  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getInt(Ljava/lang/Object;J)I (greylist, linking, allowed)
+09-05 18:51:08.353  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getObject(Ljava/lang/Object;J)Ljava/lang/Object; (greylist, linking, allowed)
+09-05 18:51:08.354  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putObject(Ljava/lang/Object;JLjava/lang/Object;)V (greylist, linking, allowed)
+09-05 18:51:08.354  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putInt(Ljava/lang/Object;JI)V (greylist, linking, allowed)
+09-05 18:51:08.354  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->putLong(Ljava/lang/Object;JJ)V (greylist, linking, allowed)
+09-05 18:51:08.354  6358  6433 W loat.blockblas: Accessing hidden method Lsun/misc/Unsafe;->getLong(Ljava/lang/Object;J)J (greylist,core-platform-api, linking, allowed)
+09-05 18:51:08.444  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_START
+09-05 18:51:08.448  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Finish foreground session
+09-05 18:51:08.448  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Start foreground session
+09-05 18:51:08.505  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name ad_clicked with value {"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634247060,"format":"banner","is_first_session":false,"session_id":"1788634268304-l3elv8dn","games_played":0,"locale":"en-US","session_index":20,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:51:08.538  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name session_started with value {"schema_version":1,"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634268326,"is_first_session":false,"build_number":"40","session_id":"1788634268304-l3elv8dn","games_played":0,"locale":"en-US","session_index":20,"platform":"android"}
+09-05 18:51:09.469  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_START
+09-05 18:51:09.471  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name ad_clicked with value {"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634247060,"format":"banner","is_first_session":false,"session_id":"1788634268304-l3elv8dn","games_played":0,"locale":"en-US","session_index":20,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:51:09.471  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name session_started with value {"schema_version":1,"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634268326,"is_first_session":false,"build_number":"40","session_id":"1788634268304-l3elv8dn","games_played":0,"locale":"en-US","session_index":20,"platform":"android"}
+09-05 18:51:09.478  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:51:09.495  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:51:20.443  6358  6358 W unknown:BridgelessReact: ReactHost{0}.onHostPause(activity)
+09-05 18:51:20.443  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Pause session
+09-05 18:51:20.445  6358  6358 W unknown:BridgelessReact: ReactHost{0}.ReactContext.onHostPause()
+09-05 18:51:20.458  6358  6358 I RustorePushModule: onNewIntent
+09-05 18:51:20.461  6358  6358 W unknown:BridgelessReact: ReactHost{0}.onHostResume(activity)
+09-05 18:51:20.463  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Send event buffer
+09-05 18:51:20.464  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Resume session
+09-05 18:51:20.464  6358  6358 W unknown:BridgelessReact: ReactHost{0}.ReactContext.onHostResume()
+09-05 18:51:20.480  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_PURGE_BUFFER
+09-05 18:51:20.501  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [] [375-IAA-NC] Created OkHttp Network Client Builder
+09-05 18:51:20.508  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_START
+09-05 18:51:20.547  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Updated data sending enabled: true
+09-05 18:51:20.548  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: notification_scheduled. With value: {entry_source=organic, app_version=1.1.35, kind=seasonEnding, event_timestamp_ms=1.788634280537E12, is_first_session=false, session_id=1788634280543-i5mydlso, games_played=0.0, locale=en-US, session_index=21.0, platform=android, schema_version=1.0, build_number=40}
+09-05 18:51:20.550  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: session_started. With value: {schema_version=1.0, entry_source=organic, app_version=1.1.35, event_timestamp_ms=1.788634280549E12, is_first_session=false, build_number=40, session_id=1788634280543-i5mydlso, games_played=0.0, locale=en-US, session_index=21.0, platform=android}
+09-05 18:51:20.554  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name notification_scheduled with value {"entry_source":"organic","app_version":"1.1.35","kind":"seasonEnding","event_timestamp_ms":1788634280537,"is_first_session":false,"session_id":"1788634280543-i5mydlso","games_played":0,"locale":"en-US","session_index":21,"platform":"android","schema_version":1,"build_number":"40"}
+09-05 18:51:20.564  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name session_started with value {"schema_version":1,"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634280549,"is_first_session":false,"build_number":"40","session_id":"1788634280543-i5mydlso","games_played":0,"locale":"en-US","session_index":21,"platform":"android"}
+09-05 18:51:20.946  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_START
+09-05 18:51:20.947  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name ad_clicked with value {"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634247060,"format":"banner","is_first_session":false,"session_id":"1788634268304-l3elv8dn","games_played":0,"locale":"en-US","session_index":20,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:51:20.947  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event removed from db: EVENT_TYPE_REGULAR with name session_started with value {"schema_version":1,"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634268326,"is_first_session":false,"build_number":"40","session_id":"1788634268304-l3elv8dn","games_played":0,"locale":"en-US","session_index":20,"platform":"android"}
+09-05 18:51:20.948  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: appmetrica_system_event_42 with value {"native_supported_sources":"[\"yandex\"]","sender":"ads_sdk","payload":"{\"ad_type\":\"banner\",\"ad_unit_id\":\"R-M-19446153-1\",\"sdk_version\":\"8.3.0\",\"ad_network\":\"yandex\",\"banner_id\":\"72057611754896840\"}","source":"yandex","event":"ad_click","layer":"native"}
+09-05 18:51:20.948  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: Session heartbeat
+09-05 18:51:20.948  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: Session start
+09-05 18:51:20.948  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: ad_clicked with value {"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634247060,"format":"banner","is_first_session":false,"session_id":"1788634268304-l3elv8dn","games_played":0,"locale":"en-US","session_index":20,"platform":"android","schema_version":1,"attempt_id":"banner:game:1788634235063","build_number":"40","placement":"game"}
+09-05 18:51:20.948  6358  6435 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [375-IAA-NC] Event sent: session_started with value {"schema_version":1,"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634268326,"is_first_session":false,"build_number":"40","session_id":"1788634268304-l3elv8dn","games_played":0,"locale":"en-US","session_index":20,"platform":"android"}
+09-05 18:51:21.559  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name notification_scheduled with value {"entry_source":"organic","app_version":"1.1.35","kind":"seasonEnding","event_timestamp_ms":1788634280537,"is_first_session":false,"session_id":"1788634280543-i5mydlso","games_played":0,"locale":"en-US","session_index":21,"platform":"android","schema_version":1,"build_number":"40"}
+09-05 18:51:21.559  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name session_started with value {"schema_version":1,"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634280549,"is_first_session":false,"build_number":"40","session_id":"1788634280543-i5mydlso","games_played":0,"locale":"en-US","session_index":21,"platform":"android"}
+09-05 18:51:40.433  6358  6401 D EGL_emulation: eglMakeCurrent: 0x7ec3160a29c0: ver 2 0 (tinfo 0x7ec3161dd3c0)
+09-05 18:51:44.554  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: home_viewed. With value: {entry_source=organic, app_version=1.1.35, event_timestamp_ms=1.788634304553E12, is_first_session=false, session_id=1788634280543-i5mydlso, games_played=0.0, locale=en-US, session_index=21.0, platform=android, home_state=continue, schema_version=1.0, cards_visible=[adventure, classic, quick_links], build_number=40}
+09-05 18:51:44.569  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name home_viewed with value {"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634304553,"is_first_session":false,"session_id":"1788634280543-i5mydlso","games_played":0,"locale":"en-US","session_index":21,"platform":"android","home_state":"continue","schema_version":1,"cards_visible":["adventure","classic","quick_links"],"build_number":"40"}
+09-05 18:51:44.980  6358  6358 W cr_AwContents: WebView.destroy() called while WebView is still attached to window.
+09-05 18:51:45.588  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name home_viewed with value {"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634304553,"is_first_session":false,"session_id":"1788634280543-i5mydlso","games_played":0,"locale":"en-US","session_index":21,"platform":"android","home_state":"continue","schema_version":1,"cards_visible":["adventure","classic","quick_links"],"build_number":"40"}
+09-05 18:51:45.709  6358  6449 I MMKV    : <MMKV_IO.cpp:609::writeActualSize> [blockblast] increase sequence to 750, crc 752047026, actualSize 2841
+09-05 18:51:45.709  6358  6449 I MMKV    : <MMKV.cpp:1208::sync> MMKV::sync, SyncFlag = 1
+09-05 18:51:47.044  6358  6449 I MMKV    : <MMKV_IO.cpp:530::expandAndWriteBack> extending [blockblast] file size from 8192 to 32768, incoming size:16645, future usage:9810
+09-05 18:51:47.044  6358  6449 I MMKV    : <MemoryFile.cpp:103::open> open fd[87], flag 0x7, /data/data/com.intstrfloat.blockblast/files/mmkv/blockblast
+09-05 18:51:47.044  6358  6449 I MMKV    : <MemoryFile.cpp:250::mmapOrCleanup> mmap to address [0x7ec3190a8000], oldPtr [0x7ec3a5935000], [/data/data/com.intstrfloat.blockblast/files/mmkv/blockblast]
+09-05 18:51:47.044  6358  6449 I MMKV    : <MemoryFile.cpp:109::close> closing fd[87], /data/data/com.intstrfloat.blockblast/files/mmkv/blockblast
+09-05 18:51:47.044  6358  6449 I MMKV    : <MMKV_IO.cpp:609::writeActualSize> [blockblast] increase sequence to 751, crc 3466405690, actualSize 3936
+09-05 18:51:47.044  6358  6449 I MMKV    : <MMKV.cpp:1208::sync> MMKV::sync, SyncFlag = 1
+09-05 18:51:47.049  6358  6424 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [366-IAA-CDE-1] Event received: leaderboard_loaded. With value: {entry_source=organic, app_version=1.1.35, event_timestamp_ms=1.788634307047E12, is_first_session=false, session_id=1788634280543-i5mydlso, games_played=0.0, source=remote, locale=en-US, session_index=21.0, platform=android, schema_version=1.0, build_number=40}
+09-05 18:51:47.054  6358  6438 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [378-IAA-STE-11] Event received on service: EVENT_TYPE_REGULAR with name leaderboard_loaded with value {"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634307047,"is_first_session":false,"session_id":"1788634280543-i5mydlso","games_played":0,"source":"remote","locale":"en-US","session_index":21,"platform":"android","schema_version":1,"build_number":"40"}
+09-05 18:51:48.074  6358  6434 I AppMetrica: [com.intstrfloat.blockblast] : [1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84] [374-IAA-SPT-8] Event saved to db: EVENT_TYPE_REGULAR with name leaderboard_loaded with value {"entry_source":"organic","app_version":"1.1.35","event_timestamp_ms":1788634307047,"is_first_session":false,"session_id":"1788634280543-i5mydlso","games_played":0,"source":"remote","locale":"en-US","session_index":21,"platform":"android","schema_version":1,"build_number":"40"}

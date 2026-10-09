@@ -101,6 +101,43 @@ export interface WeeklyLeaderboardSnapshot {
   entries: LeaderboardEntry[];
 }
 
+export interface WeeklyRewardPayload {
+  rank: number;
+  points: number;
+  cosmeticId: string;
+}
+
+export interface WeeklyRewardEntitlement {
+  rewardId: string;
+  prize: WeeklyRewardPayload;
+}
+
+export interface WeeklyClaimReceipt {
+  receiptId: string;
+  rewardId: string;
+  weekKey: string;
+  rank: number;
+  prize: WeeklyRewardPayload;
+  claimedAt: string;
+  effectScope: 'local_profile';
+}
+
+export interface WeeklyServerOutcome {
+  weekKey: string;
+  finalizedAt: string;
+  rank: number;
+  weeklyBest: number;
+  runsCount: number;
+  achievedAt: string | null;
+  reward: WeeklyRewardEntitlement | null;
+  receipt: WeeklyClaimReceipt | null;
+}
+
+export interface WeeklyOutcomesResponse {
+  outcomes: WeeklyServerOutcome[];
+  effectScope: 'local_profile';
+}
+
 export interface WeeklyImpact {
   score: number;
   weeklyBest: number;

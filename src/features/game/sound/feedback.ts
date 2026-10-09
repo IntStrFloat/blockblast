@@ -21,9 +21,9 @@ function androidHaptic(type: Haptics.AndroidHaptics): void {
 }
 
 function placementHapticFor(event: PlacementEvent): Haptics.AndroidHaptics {
-  if (event.gameOver) return Haptics.AndroidHaptics.Reject;
   const lines = event.clearedRows.length + event.clearedCols.length;
   if (lines >= 1 || event.onFire || event.boardCleared) return Haptics.AndroidHaptics.Confirm;
+  if (event.gameOver) return Haptics.AndroidHaptics.Reject;
   return Haptics.AndroidHaptics.Gesture_End;
 }
 
@@ -47,12 +47,13 @@ export function playGrabFeedback(settings: FeedbackSettings): void {
   if (settings.haptics) androidHaptic(Haptics.AndroidHaptics.Drag_Start);
 }
 
-/**
- * Дроп на занятую позицию доски (фигура вернулась в трей). Только хаптика:
- * отказ должен быть «понятен телом», но не наказывать звуком.
- */
-export function playInvalidDropFeedback(settings: FeedbackSettings): void {
-  if (settings.haptics) androidHaptic(Haptics.AndroidHaptics.Reject);
+/** Returning a piece has a release cue; only occupied cells reject haptically. */
+export function playInvalidDropFeedback(
+  settings: FeedbackSettings,
+  reason: 'occupied' | 'outside-board' = 'occupied',
+): void {
+  if (settings.sound) playSound('drop');
+  if (settings.haptics && reason === 'occupied') androidHaptic(Haptics.AndroidHaptics.Reject);
 }
 
 export function playRecordFeedback(settings: FeedbackSettings): void {

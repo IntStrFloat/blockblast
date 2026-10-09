@@ -7,7 +7,7 @@ export const colors = {
   cellEmpty: '#1E2F55',
   boardLine: '#0E1830',
   textPrimary: '#FFFFFF',
-  textDim: '#8FA3C8',
+  textDim: '#B7C9EA',
   accent: '#FFC93C',
   danger: '#FF5A5F',
   overlayScrim: 'rgba(8,14,28,0.72)',
@@ -80,6 +80,21 @@ export const spacing = {
   m: 16,
   l: 24,
   xl: 32,
+} as const;
+
+/** Explicit glyph-safe typography roles. System text deliberately omits fontFamily. */
+export const fontFamilies = {
+  display: 'Unbounded_700Bold',
+  score: 'Unbounded_800ExtraBold',
+} as const;
+
+export const typography = {
+  title: { fontFamily: fontFamilies.display, fontSize: 24, lineHeight: 30 },
+  score: { fontFamily: fontFamilies.score, fontSize: 40, lineHeight: 46 },
+  body: { fontSize: 16, lineHeight: 22 },
+  caption: { fontSize: 13, lineHeight: 18 },
+  button: { fontFamily: fontFamilies.display, fontSize: 15, lineHeight: 20 },
+  speech: { fontSize: 15, lineHeight: 21, fontWeight: '600' as const },
 } as const;
 
 export const radii = {

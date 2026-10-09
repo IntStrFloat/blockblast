@@ -1,4 +1,4 @@
-import { Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
+import { Fredoka_500Medium, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import {
   Unbounded_700Bold,
   Unbounded_800ExtraBold,
@@ -7,17 +7,39 @@ import {
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getLocales } from 'expo-localization';
+import * as Notifications from 'expo-notifications';
 import { Stack, ThemeProvider, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { AppState, Platform } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { AppState, Dimensions, Linking, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { KEYS, getJSON, setJSON } from '@/core/storage';
-import { useAnalyticsStore, type AnalyticsCommonContext } from '@/features/analytics';
-import { getAds } from '@/features/monetization';
-import { getPush, useLocalNotifications } from '@/features/notifications';
+import {
+  recordNotificationAttribution,
+  useAnalyticsStore,
+  clearActiveProductSession,
+  pauseProductSession,
+  resolveProductSession,
+  type AnalyticsEntrySource,
+} from '@/features/analytics';
+import {
+  getSavedAdventureSummary,
+  getSavedGameSummary,
+  useGameStore,
+} from '@/features/game';
+import { getAds, initializeInterstitialExperiment } from '@/features/monetization';
+import { recoverAdventureXpBonuses } from '@/features/monetization/adventureXpBonus';
+import {
+  getManagedLocalNotificationResponse,
+  getInitialSessionIntent,
+  getPush,
+  createRemoteTapDedupeState,
+  shouldHandleRemoteTap,
+  resolveNotificationTargetRoute,
+  useLocalNotifications,
+  type PushNotificationTap,
+} from '@/features/notifications';
 import { useWelcomePromptStore } from '@/features/onboarding';
 import { useScores } from '@/features/scores';
 import { colors } from '@/ui';
@@ -25,27 +47,9 @@ import { appNavigationTheme } from '@/ui/navigationTheme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-let processSessionContext: AnalyticsCommonContext | null = null;
-
-function getProcessSessionContext(): AnalyticsCommonContext {
-  if (processSessionContext) return processSessionContext;
-  const previous = getJSON<{ sessionIndex?: number }>(KEYS.analyticsSessionMeta);
-  const sessionIndex = Math.max(0, previous?.sessionIndex ?? 0) + 1;
-  setJSON(KEYS.analyticsSessionMeta, { sessionIndex });
-  processSessionContext = {
-    schema_version: 1,
-    session_id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-    session_index: sessionIndex,
-    app_version: Constants.expoConfig?.version ?? 'unknown',
-    build_number: String(Constants.expoConfig?.android?.versionCode ?? 'unknown'),
-    platform: Platform.OS,
-    locale: getLocales()[0]?.languageTag ?? 'unknown',
-    games_played: useScores.getState().gamesPlayed,
-    is_first_session: sessionIndex === 1,
-    entry_source: 'unknown',
-  };
-  return processSessionContext;
-}
+// Cold start always waits for the shared intent promise. This tiny warm-start window lets
+// native tap/url events that accompany the foreground transition win over an ordinary open.
+const WARM_ENTRY_SETTLE_MS = 50;
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -54,43 +58,217 @@ export default function RootLayout() {
     // Голос Капи (округлый, тёплый) — отделён от системного UI (Unbounded), спека 09.
     // Fredoka_700Bold — крупный «сочный» леттеринг похвал/комбо (как в оригинале).
     Fredoka_500Medium,
-    Fredoka_600SemiBold,
     Fredoka_700Bold,
   });
   const router = useRouter();
   const welcomePromptResolved = useWelcomePromptStore((state) => state.resolved);
-  const gamesPlayed = useScores((state) => state.gamesPlayed);
+  const analyticsOptOut = useAnalyticsStore((state) => state.optOut);
+  const appStateRef = useRef(AppState.currentState);
+  const initialIntentResolvedRef = useRef(false);
+  const pendingEntrySourceRef = useRef<AnalyticsEntrySource>('unknown');
+  const pendingRemoteTapRef = useRef<PushNotificationTap | null>(null);
+  const foregroundStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remoteTapDedupeRef = useRef(createRemoteTapDedupeState());
+  const navigationReadyRef = useRef(fontsLoaded);
+  const pendingNotificationRouteRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
-  }, [fontsLoaded]);
-
-  useEffect(() => {
+  const startAnalyticsSession = useCallback((entrySource: AnalyticsEntrySource) => {
     const analytics = useAnalyticsStore.getState();
-    analytics.initialize(getProcessSessionContext());
-    analytics.track('session_started', {});
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') useAnalyticsStore.getState().flush();
+    const appVersion = Constants.expoConfig?.version ?? 'unknown';
+    const resolution = resolveProductSession({
+      now: Date.now(),
+      appVersion,
+      buildNumber: String(Constants.expoConfig?.android?.versionCode ?? 'unknown'),
+      platform: Platform.OS,
+      locale: getLocales()[0]?.languageTag ?? 'unknown',
+      deviceClass:
+        Platform.OS === 'web'
+          ? 'desktop'
+          : Dimensions.get('window').width >= 600
+            ? 'tablet'
+            : 'phone',
+      lifetimeGames: useScores.getState().gamesPlayed,
+      entrySource,
+      idFactory: () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     });
-    return () => subscription.remove();
+    if (resolution.kind === 'started' && resolution.previous) {
+      analytics.initialize(resolution.previous.context);
+      analytics.exitRun(resolution.previous.reason);
+      analytics.track('session_ended', { reason: resolution.previous.reason });
+      analytics.endSession();
+      clearActiveProductSession();
+    }
+    analytics.initialize(resolution.context);
+    recoverAdventureXpBonuses();
+    initializeInterstitialExperiment(resolution.context);
+    if (resolution.kind === 'resumed') {
+      if (analytics.activeRun && !analytics.activeRun.terminal_reported) {
+        analytics.resumeRun(analytics.activeRun.mode, 'saved');
+        if (analytics.activeRun.mode === 'classic') {
+          useGameStore.getState().resumeClassicActivity();
+        }
+      }
+      analytics.track('session_resumed', { paused_duration_ms: resolution.pausedDurationMs });
+    } else {
+      analytics.track('session_started', {});
+    }
   }, []);
+
+  const recordRemoteNotificationOpen = useCallback(
+    (tap: PushNotificationTap) => {
+      if (!shouldHandleRemoteTap(tap, remoteTapDedupeRef.current)) return;
+      const resolvedRoute = resolveNotificationTargetRoute(tap.route, {
+        classicCanContinue: getSavedGameSummary().canContinue,
+        adventureKind: getSavedAdventureSummary().kind,
+      });
+      const attributionId = tap.id ?? ('remote:' + tap.kind + ':' + resolvedRoute);
+      recordNotificationAttribution({
+        attributionId,
+        kind: tap.kind,
+        route: resolvedRoute,
+      });
+      useAnalyticsStore.getState().track('notification_opened', {
+        kind: tap.kind,
+        origin: 'remote',
+        attribution_id: attributionId,
+        route: resolvedRoute,
+      });
+      if (navigationReadyRef.current) {
+        router.navigate(resolvedRoute as never);
+      } else {
+        pendingNotificationRouteRef.current = resolvedRoute;
+      }
+    },
+    [router],
+  );
+
+  const beginPendingSession = useCallback(() => {
+    if (!initialIntentResolvedRef.current) return;
+    if (
+      useAnalyticsStore.getState().context &&
+      pendingEntrySourceRef.current === 'unknown'
+    ) return;
+    const source =
+      pendingEntrySourceRef.current === 'unknown' ? 'organic' : pendingEntrySourceRef.current;
+    startAnalyticsSession(source);
+    const remoteTap = pendingRemoteTapRef.current;
+    pendingRemoteTapRef.current = null;
+    if (remoteTap) recordRemoteNotificationOpen(remoteTap);
+  }, [recordRemoteNotificationOpen, startAnalyticsSession]);
+
+  const schedulePendingSession = useCallback(() => {
+    if (foregroundStartTimerRef.current) clearTimeout(foregroundStartTimerRef.current);
+    foregroundStartTimerRef.current = setTimeout(() => {
+      foregroundStartTimerRef.current = null;
+      beginPendingSession();
+    }, WARM_ENTRY_SETTLE_MS);
+  }, [beginPendingSession]);
+
+  const markPendingEntrySource = useCallback((source: AnalyticsEntrySource) => {
+    if (AppState.currentState === 'active' && useAnalyticsStore.getState().context) return;
+    const priority: Record<AnalyticsEntrySource, number> = {
+      unknown: 0,
+      organic: 1,
+      deeplink: 2,
+      notification: 3,
+    };
+    if (priority[source] > priority[pendingEntrySourceRef.current]) {
+      pendingEntrySourceRef.current = source;
+    }
+  }, []);
+
+  useEffect(() => {
+    navigationReadyRef.current = fontsLoaded;
+    if (!fontsLoaded) return;
+    SplashScreen.hideAsync().catch(() => {});
+    const pendingRoute = pendingNotificationRouteRef.current;
+    pendingNotificationRouteRef.current = null;
+    if (pendingRoute) router.navigate(pendingRoute as never);
+  }, [fontsLoaded, router]);
+
+  useEffect(() => {
+    let active = true;
+    const push = getPush();
+
+    const pushTapSubscription = push.onNotificationTap((tap) => {
+      if (AppState.currentState !== 'active' || !useAnalyticsStore.getState().context) {
+        markPendingEntrySource('notification');
+        pendingRemoteTapRef.current = tap;
+        return;
+      }
+      recordRemoteNotificationOpen(tap);
+    });
+    const localTapSubscription = Notifications.addNotificationResponseReceivedListener((event) => {
+      if (getManagedLocalNotificationResponse(event)) markPendingEntrySource('notification');
+    });
+    const linkSubscription = Linking.addEventListener('url', () => {
+      markPendingEntrySource('deeplink');
+    });
+
+    void getInitialSessionIntent().then((intent) => {
+      if (!active) return;
+      markPendingEntrySource(intent.source);
+      if (intent.remoteTap) pendingRemoteTapRef.current = intent.remoteTap;
+      initialIntentResolvedRef.current = true;
+      if (AppState.currentState === 'active') schedulePendingSession();
+    });
+
+    const appStateSubscription = AppState.addEventListener('change', (nextState) => {
+      const previousState = appStateRef.current;
+      appStateRef.current = nextState;
+      if (nextState !== 'active') {
+        if (previousState === 'active') {
+          if (foregroundStartTimerRef.current) {
+            clearTimeout(foregroundStartTimerRef.current);
+            foregroundStartTimerRef.current = null;
+          }
+          const analytics = useAnalyticsStore.getState();
+          useGameStore.getState().pauseClassicActivity();
+          analytics.pauseRun();
+          analytics.flush();
+          pauseProductSession(Date.now());
+          pendingEntrySourceRef.current = 'organic';
+          pendingRemoteTapRef.current = null;
+        }
+        return;
+      }
+      if (previousState !== 'active') schedulePendingSession();
+    });
+
+    return () => {
+      active = false;
+      if (foregroundStartTimerRef.current) clearTimeout(foregroundStartTimerRef.current);
+      pushTapSubscription();
+      localTapSubscription.remove();
+      linkSubscription.remove();
+      appStateSubscription.remove();
+    };
+  }, [
+    beginPendingSession,
+    markPendingEntrySource,
+    recordRemoteNotificationOpen,
+    schedulePendingSession,
+  ]);
+
+  useEffect(() => {
+    if (analyticsOptOut || !initialIntentResolvedRef.current) return;
+    if (!useAnalyticsStore.getState().context && AppState.currentState === 'active') {
+      schedulePendingSession();
+    }
+  }, [analyticsOptOut, schedulePendingSession]);
 
   useEffect(() => {
     void getAds().init();
   }, []);
 
   useEffect(() => {
-    if (!welcomePromptResolved || gamesPlayed < 2) return;
+    if (!welcomePromptResolved) return;
     const push = getPush();
     void push.init();
-    const unsubscribe = push.onNotificationTap((route) => {
-      router.navigate(route as never);
-    });
-    return unsubscribe;
-  }, [welcomePromptResolved, gamesPlayed, router]);
+  }, [welcomePromptResolved]);
 
   // Локальные напоминания (retention фаза 4): план пересобирается при уходе в фон.
-  useLocalNotifications();
+  useLocalNotifications(fontsLoaded);
 
   if (!fontsLoaded) return null;
 

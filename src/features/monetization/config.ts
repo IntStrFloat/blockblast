@@ -21,10 +21,22 @@ export const MONETIZATION = {
     /** Первую межстраничку держим до 6-й партии: доход с D0-новичка копеечный,
      *  а фуллскрин в первой сессии стоит заметной доли D1 (retention > ARPDAU здесь). */
     minGamesBeforeFirst: 6,
-    /** Плюс страховочный интервал: не чаще одного показа в ~90 секунд. */
-    minIntervalSec: 90,
-    /** Затем показ на каждый третий game over */
-    everyNGameovers: 3,
+    /** Общая пауза после любого fullscreen, включая добровольную награду. */
+    minIntervalSec: 180,
+    /** Не чаще одной межстранички за четыре завершения. */
+    everyNGameovers: 4,
+  },
+  interstitialExperiment: {
+    id: 'interstitial-first-session-v1',
+    /** Compile-time kill switch: false returns every install to current control policy. */
+    enabled: process.env.EXPO_PUBLIC_INTERSTITIAL_EXPERIMENT_ENABLED !== 'false',
+    variants: ['control', 'first_session_capped'] as const,
+    treatmentMaxShowsPerSession: 2,
+  },
+  placementPolicy: {
+    version: 'contextual-breaks-v2-four-rounds',
+    // Initial testable product threshold, not a claim of an optimal eCPM.
+    classicMinActiveMs: 120_000,
   },
   fakeRewardedInDev: false,
 } as const;

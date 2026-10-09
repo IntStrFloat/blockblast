@@ -2,36 +2,15 @@ import {
   WEEKLY_PRIZES,
   championRankOf,
   isPrizeRank,
+  normalizeWeeklyPrizeRecord,
   prizeForRank,
-  settleWeeklyPrize,
   unclaimedPrize,
+  weeklyPrizeRecordFromOutcome,
   type WeeklyPrizeRecord,
 } from '../weeklyPrize';
-import type { LeaderboardEntry, WeeklyLeaderboardSnapshot } from '../types';
+import type { WeeklyServerOutcome } from '../types';
 
 const NOW = new Date('2026-06-22T12:00:00.000Z'); // понедельник недели 2026-06-22
-
-function makeSnapshot(weekKey: string, rank: number | null): WeeklyLeaderboardSnapshot {
-  const currentPlayer: LeaderboardEntry = {
-    nickname: 'LimeComet',
-    tag: '00H',
-    rank,
-    weeklyBest: 4200,
-    runsCount: 3,
-    achievedAt: null,
-    isCurrentPlayer: true,
-  };
-  return {
-    weekKey,
-    weekStartIso: `${weekKey}T00:00:00.000Z`,
-    weekEndIso: `${weekKey}T00:00:00.000Z`,
-    generatedAt: NOW.toISOString(),
-    source: 'remote',
-    isCached: false,
-    currentPlayer,
-    entries: [currentPlayer],
-  };
-}
 
 describe('prizeForRank / isPrizeRank', () => {
   it('даёт приз только за места 1..3', () => {
@@ -55,46 +34,47 @@ describe('prizeForRank / isPrizeRank', () => {
   });
 });
 
-describe('settleWeeklyPrize', () => {
-  it('null снапшот → нет приза', () => {
-    expect(settleWeeklyPrize(null, '2026-06-22', [], NOW)).toBeNull();
-  });
-
-  it('неделя не сменилась → нет приза', () => {
-    const snap = makeSnapshot('2026-06-22', 1);
-    expect(settleWeeklyPrize(snap, '2026-06-22', [], NOW)).toBeNull();
-  });
-
-  it('место вне топ-3 → нет приза', () => {
-    const snap = makeSnapshot('2026-06-15', 7);
-    expect(settleWeeklyPrize(snap, '2026-06-22', [], NOW)).toBeNull();
-  });
-
-  it('топ-3 прошлой недели → призовая запись', () => {
-    const snap = makeSnapshot('2026-06-15', 2);
-    const record = settleWeeklyPrize(snap, '2026-06-22', [], NOW);
-    expect(record).toEqual({
+describe('server weekly outcome conversion', () => {
+  it('creates entitlement only from a server-confirmed rewardId', () => {
+    const outcome: WeeklyServerOutcome = {
+      weekKey: '2026-06-15',
+      finalizedAt: NOW.toISOString(),
+      rank: 2,
+      weeklyBest: 4_200,
+      runsCount: 3,
+      achievedAt: NOW.toISOString(),
+      reward: { rewardId: 'weekly:reward-2', prize: WEEKLY_PRIZES[2] },
+      receipt: null,
+    };
+    expect(weeklyPrizeRecordFromOutcome(outcome)).toMatchObject({
+      rewardId: 'weekly:reward-2',
       weekKey: '2026-06-15',
       rank: 2,
-      prize: WEEKLY_PRIZES[2],
       claimed: false,
-      earnedAt: NOW.toISOString(),
+      origin: 'server',
     });
+    expect(weeklyPrizeRecordFromOutcome({ ...outcome, reward: null })).toBeNull();
   });
 
-  it('идемпотентно: повторная неделя не дублируется', () => {
-    const snap = makeSnapshot('2026-06-15', 1);
-    const existing: WeeklyPrizeRecord[] = [
-      { weekKey: '2026-06-15', rank: 1, prize: WEEKLY_PRIZES[1], claimed: false, earnedAt: NOW.toISOString() },
-    ];
-    expect(settleWeeklyPrize(snap, '2026-06-22', existing, NOW)).toBeNull();
+  it('preserves claimed legacy rewards without replaying them through G03', () => {
+    expect(normalizeWeeklyPrizeRecord({
+      weekKey: '2026-06-08',
+      rank: 1,
+      prize: WEEKLY_PRIZES[1],
+      claimed: true,
+      earnedAt: NOW.toISOString(),
+    })).toMatchObject({
+      origin: 'legacy_local',
+      claimed: true,
+      localAppliedAt: NOW.toISOString(),
+    });
   });
 });
 
 describe('unclaimedPrize / championRankOf', () => {
   const records: WeeklyPrizeRecord[] = [
-    { weekKey: '2026-06-01', rank: 3, prize: WEEKLY_PRIZES[3], claimed: true, earnedAt: NOW.toISOString() },
-    { weekKey: '2026-06-08', rank: 1, prize: WEEKLY_PRIZES[1], claimed: false, earnedAt: NOW.toISOString() },
+    { rewardId: 'r3', weekKey: '2026-06-01', rank: 3, prize: WEEKLY_PRIZES[3], claimed: true, earnedAt: NOW.toISOString(), receipt: null, origin: 'server', localAppliedAt: NOW.toISOString() },
+    { rewardId: 'r1', weekKey: '2026-06-08', rank: 1, prize: WEEKLY_PRIZES[1], claimed: false, earnedAt: NOW.toISOString(), receipt: null, origin: 'server', localAppliedAt: null },
   ];
 
   it('первый неполученный приз', () => {

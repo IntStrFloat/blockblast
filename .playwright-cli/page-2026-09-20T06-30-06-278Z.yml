@@ -1,0 +1,25 @@
+- generic [ref=f17e10]:
+  - generic:
+    - generic:
+      - generic: Приключение · 1
+      - button "Настройки"
+    - generic "Очки 81/128": 81/128
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Освободи место другой фигурой."
+        - generic:
+          - generic:
+            - button "Освободи место другой фигурой."
+        - generic:
+          - generic:
+            - button "Освободи место другой фигурой."
+  - generic [ref=f17e16]:
+    - generic [ref=f17e17]: Ходов больше нет
+    - generic "Счёт 81/128, осталось 47" [ref=f17e18]: 81/128
+    - generic [ref=f17e25]:
+      - button "Попробовать ещё" [ref=f17e26] [cursor=pointer]
+      - button "Выйти" [ref=f17e28] [cursor=pointer]
+    - button "Совет" [active] [ref=f17e30] [cursor=pointer]
+    - generic [ref=f17e34]: "Совет: оставляй в центре место для крупных фигур."

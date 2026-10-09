@@ -1,12 +1,10 @@
-import { applyPlacement, findPlacements } from '@/core/engine/board';
-import { SHAPES_BY_ID } from '@/core/engine/shapes';
+import { findPlacements } from '@/core/engine/board';
 import { place } from '@/core/engine/game';
 
 import {
   createTutorialGame,
   findTutorialRecommendation,
   isTutorialRecommendationValid,
-  withTutorialRecoveryPiece,
 } from '../tutorialGame';
 
 describe('curated tutorial opening', () => {
@@ -56,22 +54,13 @@ describe('curated tutorial opening', () => {
     expect(isTutorialRecommendationValid(game, recommendation)).toBe(true);
   });
 
-  it('puts a player-placeable recovery piece in the next tray without auto-placement', () => {
+  it('returns no hint when the visible tray has no legal short path', () => {
     const game = createTutorialGame(42);
-    const dot = SHAPES_BY_ID.get('dot')!;
-    const h2 = SHAPES_BY_ID.get('h2')!;
-    let board = applyPlacement(game.board, dot, 0, 0, 1).board;
-    board = applyPlacement(board, dot, 0, 1, 2).board;
-    board = applyPlacement(board, h2, 0, 2, 3).board;
-
-    const fallbackTray = [
-      { shape: h2, colorId: 1 },
-      { shape: h2, colorId: 2 },
-      { shape: h2, colorId: 3 },
-    ];
-    const recovered = withTutorialRecoveryPiece(board, fallbackTray);
-    expect(recovered).not.toBeNull();
-    expect(isTutorialRecommendationValid({ board, tray: recovered!.tray }, recovered!.recommendation)).toBe(true);
-    expect(recovered!.recommendation.placementsToClear).toBe(1);
+    expect(
+      findTutorialRecommendation({
+        board: game.board.map(() => 1),
+        tray: game.tray,
+      }),
+    ).toBeNull();
   });
 });

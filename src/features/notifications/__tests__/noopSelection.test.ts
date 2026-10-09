@@ -9,6 +9,7 @@ describe('push provider selection (web/test)', () => {
   it('NoopPushProvider reports unavailable and no-ops', async () => {
     await expect(NoopPushProvider.init()).resolves.toBeUndefined();
     await expect(NoopPushProvider.requestPermission()).resolves.toBe('unavailable');
+    await expect(NoopPushProvider.getInitialNotificationTap()).resolves.toBeNull();
     const unsubscribe = NoopPushProvider.onNotificationTap(() => {});
     expect(typeof unsubscribe).toBe('function');
     expect(() => unsubscribe()).not.toThrow();

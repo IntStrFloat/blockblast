@@ -1,0 +1,25 @@
+Signer #1:
+
+Certificate #1:
+Owner: CN=IntStrFloat, OU=Dev, O=IntStrFloat, L=Moscow, C=RU
+Issuer: CN=IntStrFloat, OU=Dev, O=IntStrFloat, L=Moscow, C=RU
+Serial number: 2ceb59ba51994324
+Valid from: Fri Jun 12 20:23:02 MSK 2026 until: Tue Oct 28 20:23:02 MSK 2053
+Certificate fingerprints:
+	 SHA1: 68:55:A5:11:77:A8:DC:08:E2:AD:61:87:E4:0C:FB:BF:88:6C:79:5B
+	 SHA256: 74:2D:E4:9B:C8:AC:57:19:FD:64:02:94:0F:A8:13:C1:A9:8C:D8:50:B6:7F:40:5B:1D:13:DE:D7:5E:6D:20:E3
+Signature algorithm name: SHA384withRSA
+Subject Public Key Algorithm: 2048-bit RSA key
+Version: 3
+
+Extensions: 
+
+#1: ObjectId: 2.5.29.14 Criticality=false
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: B3 59 60 CF C7 2F 5B 80   30 5F 71 2A E3 71 12 73  .Y`../[.0_q*.q.s
+0010: 09 88 51 D2                                        ..Q.
+]
+]
+
+

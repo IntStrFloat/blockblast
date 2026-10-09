@@ -1,16 +1,32 @@
 import { type Href, useRouter } from 'expo-router';
-import { GLView, type ExpoWebGLRenderingContext } from 'expo-gl';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as THREE from 'three';
 import Svg, { Path } from 'react-native-svg';
 
 import { t } from '@/core/i18n';
-import { absoluteLevelNumber, useAdventure } from '@/features/adventure';
-import { useReducedMotion } from '@/features/game/animation/useReducedMotion';
-import { useProfileStore } from '@/features/profile';
+import { KEYS, getJSON, setJSON } from '@/core/storage';
+import {
+  recordNotificationTargetAction,
+  recordNotificationTargetViewed,
+} from '@/features/analytics';
+import {
+  absoluteLevelNumber,
+  adventureSkinFor,
+  useAdventure,
+  useSeasonWindowRefresh,
+  type AdventureSkin,
+} from '@/features/adventure';
+import { CurrentLevelCrystal } from '@/features/adventure/components/CurrentLevelCrystal';
 import { useLang } from '@/features/settings';
 import { AppText, ChevronIcon } from '@/ui';
 
@@ -48,6 +64,32 @@ const MAP_ROWS = [
 ] as const;
 const MAP_LEVEL_COUNT = MAP_ROWS.reduce((total, row) => total + row.count, 0);
 
+interface AdventureMapScrollState {
+  version: 5;
+  seasonId: number;
+  levelIndex: number;
+  offsetY: number;
+}
+
+export function adventureMapCellPosition(index: number, width: number) {
+  const cell = width / 11;
+  let cursor = 0;
+  for (let rowIndex = 0; rowIndex < MAP_ROWS.length; rowIndex += 1) {
+    const row = MAP_ROWS[rowIndex];
+    for (let columnIndex = 0; columnIndex < row.count; columnIndex += 1) {
+      if (cursor === index) {
+        return {
+          left: (row.offset + columnIndex) * cell,
+          top: (MAP_ROWS.length - 1 - rowIndex) * cell,
+          cell,
+        };
+      }
+      cursor += 1;
+    }
+  }
+  return null;
+}
+
 function AdventureTrophy({ size, color, starColor }: { size: number; color: string; starColor: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120" fill="none">
@@ -59,140 +101,16 @@ function AdventureTrophy({ size, color, starColor }: { size: number; color: stri
   );
 }
 
-function CurrentLevelCrystal({ size }: { size: number }) {
-  const reducedMotion = useReducedMotion();
-  const frameRef = useRef<number | null>(null);
-  const disposeRef = useRef<(() => void) | null>(null);
-
-  const stopRenderer = useCallback(() => {
-    if (frameRef.current !== null) {
-      cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
-    }
-    disposeRef.current?.();
-    disposeRef.current = null;
-  }, []);
-
-  useEffect(() => stopRenderer, [stopRenderer]);
-
-  const onContextCreate = useCallback((gl: ExpoWebGLRenderingContext) => {
-    stopRenderer();
-
-    const canvas = {
-      width: gl.drawingBufferWidth,
-      height: gl.drawingBufferHeight,
-      clientHeight: gl.drawingBufferHeight,
-      style: {},
-      addEventListener: () => undefined,
-      removeEventListener: () => undefined,
-    } as unknown as HTMLCanvasElement;
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      context: gl as unknown as WebGLRenderingContext,
-      alpha: true,
-      antialias: true,
-    });
-    renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
-    renderer.setClearColor(0x000000, 0);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.26;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(30, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.1, 20);
-    camera.position.set(0, 0.45, 4.85);
-    camera.lookAt(0, 0.03, 0);
-
-    const crystal = new THREE.Group();
-    crystal.rotation.set(0.18, 0.36, 0.14);
-
-    const gemGeometry = new THREE.OctahedronGeometry(0.82, 0);
-    const gemMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xffba20,
-      emissive: 0x4f2300,
-      emissiveIntensity: 0.38,
-      metalness: 0.22,
-      roughness: 0.19,
-      flatShading: true,
-    });
-    const gem = new THREE.Mesh(gemGeometry, gemMaterial);
-    gem.scale.set(1, 0.88, 0.82);
-    crystal.add(gem);
-
-    const highlightGeometry = new THREE.OctahedronGeometry(0.825, 0);
-    const highlightMaterial = new THREE.MeshBasicMaterial({
-      color: 0xfff5a7,
-      transparent: true,
-      opacity: 0.21,
-      side: THREE.FrontSide,
-      depthWrite: false,
-    });
-    const highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
-    highlight.scale.set(0.996, 0.875, 0.816);
-    crystal.add(highlight);
-    scene.add(crystal);
-
-    scene.add(new THREE.HemisphereLight(0xfff6c2, 0xd76b03, 1.95));
-    const keyLight = new THREE.DirectionalLight(0xfff3c4, 2.6);
-    keyLight.position.set(-2.5, 3.6, 4.4);
-    scene.add(keyLight);
-    const rimLight = new THREE.PointLight(0xffc31c, 5.8, 6);
-    rimLight.position.set(2.2, -0.35, 2.1);
-    scene.add(rimLight);
-
-    const startedAt = Date.now();
-    const render = () => {
-      const elapsed = (Date.now() - startedAt) / 1000;
-      if (!reducedMotion) {
-        crystal.position.y = Math.sin(elapsed * 2.15) * 0.09;
-        crystal.rotation.y = 0.36 + Math.sin(elapsed * 1.05) * 0.22;
-        crystal.rotation.z = 0.14 + Math.sin(elapsed * 1.62) * 0.055;
-      }
-      renderer.render(scene, camera);
-      gl.endFrameEXP();
-      frameRef.current = requestAnimationFrame(render);
-    };
-    render();
-
-    disposeRef.current = () => {
-      gemGeometry.dispose();
-      gemMaterial.dispose();
-      highlightGeometry.dispose();
-      highlightMaterial.dispose();
-      renderer.dispose();
-    };
-  }, [reducedMotion, stopRenderer]);
-
-  return (
-    <View
-      pointerEvents="none"
-      style={[styles.currentMarker, { width: size, height: size * 1.05 }]}
-      accessibilityLabel="Текущий уровень"
-    >
-      <GLView style={styles.currentMarkerCanvas} onContextCreate={onContextCreate} />
-    </View>
-  );
-}
-
-function AdventureLevelMap({ currentIndex, firstLevel, width }: { currentIndex: number; firstLevel: number; width: number }) {
+function AdventureLevelMap({ currentIndex, firstLevel, width, skin }: {
+  currentIndex: number;
+  firstLevel: number;
+  width: number;
+  skin: AdventureSkin | null;
+}) {
   const cell = width / 11;
   const height = cell * MAP_ROWS.length;
   let levelIndex = 0;
-  const currentPosition = (() => {
-    let index = 0;
-    for (let rowIndex = 0; rowIndex < MAP_ROWS.length; rowIndex += 1) {
-      const row = MAP_ROWS[rowIndex];
-      for (let columnIndex = 0; columnIndex < row.count; columnIndex += 1) {
-        if (index === currentIndex) {
-          return {
-            left: (row.offset + columnIndex) * cell,
-            top: (MAP_ROWS.length - 1 - rowIndex) * cell,
-          };
-        }
-        index += 1;
-      }
-    }
-    return null;
-  })();
+  const currentPosition = adventureMapCellPosition(currentIndex, width);
 
   const cells = MAP_ROWS.flatMap((row, rowIndex) => Array.from({ length: row.count }, (_, columnIndex) => {
     const index = levelIndex++;
@@ -209,12 +127,12 @@ function AdventureLevelMap({ currentIndex, firstLevel, width }: { currentIndex: 
         }
       : cleared
         ? {
-            backgroundColor: ADVENTURE_MAP_THEME.clearedCell,
+            backgroundColor: skin?.boardFrame ?? ADVENTURE_MAP_THEME.clearedCell,
             borderColor: ADVENTURE_MAP_THEME.clearedBorder,
             textColor: ADVENTURE_MAP_THEME.clearedText,
           }
         : {
-            backgroundColor: ADVENTURE_MAP_THEME.lockedCell,
+            backgroundColor: skin?.boardBg ?? ADVENTURE_MAP_THEME.lockedCell,
             borderColor: ADVENTURE_MAP_THEME.lockedBorder,
             textColor: ADVENTURE_MAP_THEME.lockedText,
           };
@@ -239,7 +157,7 @@ function AdventureLevelMap({ currentIndex, firstLevel, width }: { currentIndex: 
         <View pointerEvents="none" style={styles.mapCellLabelLayer}>
           <AppText
             preset="speech"
-            allowFontScaling={false}
+            maxFontSizeMultiplier={1.3}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.66}
@@ -291,33 +209,95 @@ export default function AdventureScreen() {
   const { width, height } = useWindowDimensions();
   const seasonId = useAdventure((s) => s.seasonId);
   const levelIndex = useAdventure((s) => s.levelIndex);
-  const syncSeasonWindow = useAdventure((s) => s.syncSeasonWindow);
-  const authToken = useProfileStore((s) => s.authToken);
-  const bootstrapRemote = useProfileStore((s) => s.bootstrapRemote);
+  const seasonWindow = useAdventure((s) => s.seasonWindow);
+  useSeasonWindowRefresh();
+  useEffect(() => {
+    recordNotificationTargetViewed('/adventure');
+  }, []);
   const level = absoluteLevelNumber(seasonId, levelIndex);
+  const skin = seasonWindow ? adventureSkinFor(level, seasonWindow) : null;
   const firstLevel = absoluteLevelNumber(seasonId, 0);
   const mapWidth = Math.min(width - 32, 520);
+  const currentMapIndex = Math.min(levelIndex, MAP_LEVEL_COUNT - 1);
+  const mapScrollRef = useRef<ScrollView>(null);
+  const mapTopRef = useRef<number | null>(null);
+  const viewportHeightRef = useRef(0);
+  const contentHeightRef = useRef(0);
+  const initialScrollDoneRef = useRef(false);
+  const initialScrollScheduledRef = useRef(false);
+  const manualScrollStartedRef = useRef(false);
+  const initialScrollRetryTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const compactLayout = width < 280 || height < 500;
   const trophySize = Math.min(90, Math.max(58, Math.min(mapWidth * 0.245, height * 0.14)));
   const heroTop = compactLayout ? 12 : Math.max(22, Math.min(52, height * 0.045));
+  const [initialContentOffset] = useState(() => {
+    const saved = getJSON<AdventureMapScrollState>(KEYS.adventureMapScroll);
+    const position = adventureMapCellPosition(currentMapIndex, mapWidth);
+    const estimatedViewportHeight = Math.max(1, height - 64 - (compactLayout ? 66 : 88));
+    const estimatedMapTop = heroTop + trophySize + 9 + 44 + (compactLayout ? 14 : 26);
+    return saved?.version === 5 && saved.seasonId === seasonId && saved.levelIndex === levelIndex
+      ? saved.offsetY
+      : Math.max(0, estimatedMapTop + (position?.top ?? 0) - estimatedViewportHeight / 2 + (position?.cell ?? 0) / 2);
+  });
 
-  useEffect(() => {
-    let active = true;
-    void (async () => {
-      const token = authToken ?? (await bootstrapRemote())?.authToken ?? null;
-      if (active && token) await syncSeasonWindow(token);
-    })();
-    return () => {
-      active = false;
+  useEffect(() => () => {
+    initialScrollRetryTimersRef.current.forEach(clearTimeout);
+    initialScrollRetryTimersRef.current = [];
+  }, []);
+
+  const startLevel = () => {
+    recordNotificationTargetAction('start_adventure_level');
+    router.push('/adventure-level' as Href);
+  };
+
+  const scrollToCurrentOrSaved = useCallback(() => {
+    if (
+      initialScrollDoneRef.current ||
+      initialScrollScheduledRef.current ||
+      mapTopRef.current === null ||
+      viewportHeightRef.current <= 0 ||
+      contentHeightRef.current <= 0
+    ) return;
+    const saved = getJSON<AdventureMapScrollState>(KEYS.adventureMapScroll);
+    const position = adventureMapCellPosition(currentMapIndex, mapWidth);
+    if (!position) return;
+    const desired = saved?.version === 5 && saved.seasonId === seasonId && saved.levelIndex === levelIndex
+      ? saved.offsetY
+      : mapTopRef.current + position.top - viewportHeightRef.current / 2 + position.cell / 2;
+    const maxOffset = Math.max(0, contentHeightRef.current - viewportHeightRef.current);
+    const targetY = Math.max(0, Math.min(maxOffset, desired));
+    initialScrollScheduledRef.current = true;
+    const applyInitialOffset = () => {
+      if (manualScrollStartedRef.current) return;
+      mapScrollRef.current?.scrollTo({ y: targetY, animated: false });
     };
-  }, [authToken, bootstrapRemote, syncSeasonWindow]);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        applyInitialOffset();
+      });
+    });
+    initialScrollRetryTimersRef.current = [400, 1200, 2500].map((delay, index, delays) => setTimeout(() => {
+      applyInitialOffset();
+      if (index === delays.length - 1) {
+        initialScrollDoneRef.current = true;
+        initialScrollScheduledRef.current = false;
+      }
+    }, delay));
+  }, [currentMapIndex, levelIndex, mapWidth, seasonId]);
 
-  const startLevel = () => router.push('/adventure-level' as Href);
+  const persistMapOffset = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setJSON(KEYS.adventureMapScroll, {
+      version: 5,
+      seasonId,
+      levelIndex,
+      offsetY: Math.max(0, event.nativeEvent.contentOffset.y),
+    } satisfies AdventureMapScrollState);
+  }, [levelIndex, seasonId]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.safeArea, skin && { backgroundColor: skin.bgBottom }]} edges={['top', 'bottom']}>
       <LinearGradient
-        colors={[ADVENTURE_MAP_THEME.headerTop, ADVENTURE_MAP_THEME.headerBottom]}
+        colors={[skin?.bgTop ?? ADVENTURE_MAP_THEME.headerTop, skin?.bgBottom ?? ADVENTURE_MAP_THEME.headerBottom]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -334,7 +314,7 @@ export default function AdventureScreen() {
         <View pointerEvents="none" style={[styles.headerTitleWrap, { maxWidth: Math.max(96, width - 88) }]}>
           <AppText
             preset="speech"
-            allowFontScaling={false}
+            maxFontSizeMultiplier={1.1}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.45}
@@ -348,27 +328,48 @@ export default function AdventureScreen() {
       <View style={styles.stage}>
         <LinearGradient
           pointerEvents="none"
-          colors={[ADVENTURE_MAP_THEME.stageTop, ADVENTURE_MAP_THEME.stageBottom]}
+          colors={[skin?.bgTop ?? ADVENTURE_MAP_THEME.stageTop, skin?.bgBottom ?? ADVENTURE_MAP_THEME.stageBottom]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
         <ScrollView
+          ref={mapScrollRef}
+          contentOffset={{ x: 0, y: initialContentOffset }}
           contentContainerStyle={styles.mapScrollContent}
           showsVerticalScrollIndicator={false}
           style={styles.mapScroll}
+          onLayout={(event) => {
+            viewportHeightRef.current = event.nativeEvent.layout.height;
+            scrollToCurrentOrSaved();
+          }}
+          onContentSizeChange={(_width, contentHeight) => {
+            contentHeightRef.current = contentHeight;
+            scrollToCurrentOrSaved();
+          }}
+          onScrollEndDrag={persistMapOffset}
+          onMomentumScrollEnd={persistMapOffset}
+          onScrollBeginDrag={() => {
+            manualScrollStartedRef.current = true;
+          }}
         >
           <View style={[styles.hero, { marginTop: heroTop }]}>
             <AdventureTrophy size={trophySize} color="#F8FBFF" starColor="#FFE46B" />
             <AppText preset="speech" style={styles.trophyHint}>{t('adventure.trophyHint', lang)}</AppText>
           </View>
-          <View style={[styles.mapWrap, compactLayout && styles.mapWrapCompact]}>
-            <AdventureLevelMap currentIndex={Math.min(levelIndex, MAP_LEVEL_COUNT - 1)} firstLevel={firstLevel} width={mapWidth} />
+          <View
+            onLayout={(event) => {
+              mapTopRef.current = event.nativeEvent.layout.y;
+              scrollToCurrentOrSaved();
+            }}
+            style={[styles.mapWrap, compactLayout && styles.mapWrapCompact]}
+          >
+            <AdventureLevelMap currentIndex={currentMapIndex} firstLevel={firstLevel} width={mapWidth} skin={skin} />
           </View>
         </ScrollView>
       </View>
 
-      <View style={[styles.footer, compactLayout && styles.footerCompact]}>
+      <View style={[styles.footer, skin && { backgroundColor: skin.boardBg }, compactLayout && styles.footerCompact]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${t('adventure.level', lang)} ${level}`}
@@ -381,7 +382,14 @@ export default function AdventureScreen() {
             end={{ x: 0, y: 1 }}
             style={[styles.playButtonFace, compactLayout && styles.playButtonFaceCompact]}
           >
-            <AppText preset="speech" style={[styles.playButtonLabel, compactLayout && styles.playButtonLabelCompact]}>
+            <AppText
+              preset="speech"
+              maxFontSizeMultiplier={1.3}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.55}
+              style={[styles.playButtonLabel, compactLayout && styles.playButtonLabelCompact]}
+            >
               {t('adventure.level', lang)} {level}
             </AppText>
           </LinearGradient>
@@ -421,7 +429,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 28,
     textShadowColor: 'rgba(11,23,56,0.72)',
     textShadowOffset: { width: 0, height: 3 },
@@ -429,12 +437,12 @@ const styles = StyleSheet.create({
   },
   stage: { flex: 1, overflow: 'hidden' },
   mapScroll: { flex: 1, width: '100%' },
-  mapScrollContent: { alignItems: 'center', paddingBottom: 32 },
+  mapScrollContent: { alignItems: 'center', paddingBottom: 220 },
   hero: { alignItems: 'center', gap: 9 },
   trophyHint: {
     maxWidth: 280,
     color: '#F4FAFF',
-    fontFamily: 'Fredoka_500Medium',
+    fontWeight: '600',
     fontSize: 17,
     lineHeight: 22,
     textAlign: 'center',
@@ -457,16 +465,6 @@ const styles = StyleSheet.create({
   mapCellLabelLayer: {
     zIndex: 1,
     elevation: 1,
-  },
-  currentMarker: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  currentMarkerCanvas: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
   },
   footer: {
     alignItems: 'center',
@@ -502,11 +500,11 @@ const styles = StyleSheet.create({
   },
   playButtonFaceCompact: { minHeight: 48 },
   playButtonLabel: {
-    color: '#FFFFFF',
-    fontFamily: 'Fredoka_700Bold',
-    fontSize: 26,
-    lineHeight: 31,
-    fontStyle: 'italic',
+    color: '#4B2600',
+    fontFamily: 'Unbounded_700Bold',
+    fontSize: 22,
+    lineHeight: 28,
+    textAlign: 'center',
     textShadowColor: 'rgba(111,51,0,0.5)',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 1,

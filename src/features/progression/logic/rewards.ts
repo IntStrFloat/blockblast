@@ -1,5 +1,6 @@
 import { PROGRESSION_CONFIG, type ProgressionConfig } from './config';
-import { worldForLevel, isWorldStart } from './worlds';
+import { thresholdForLevel, levelForPoints } from './levels';
+import { worldForLevel, isWorldStart, nextWorldLevel } from './worlds';
 import type { HelperId, LevelReward, Stage } from './types';
 
 /** Уровень, на котором помощник выдаётся наградой (источник истины — levelRewards), или null. */
@@ -63,4 +64,76 @@ export function rewardsBetween(
     if (r !== null) out.push(r);
   }
   return out;
+}
+
+export function levelForReward(
+  reward: LevelReward,
+  cfg: ProgressionConfig = PROGRESSION_CONFIG,
+): number | null {
+  const rewardId = reward.kind === 'world' ? reward.themeId : reward.id;
+  for (let level = 1; level <= cfg.maxAuthoredLevel; level += 1) {
+    const candidate = rewardForLevel(level, cfg);
+    const candidateId = candidate?.kind === 'world' ? candidate.themeId : candidate?.id;
+    if (candidate?.kind === reward.kind && candidateId === rewardId) return level;
+  }
+  return null;
+}
+
+export interface RewardMilestone {
+  level: number;
+  threshold: number;
+  reward: LevelReward;
+  remaining: number;
+  available: boolean;
+}
+
+/**
+ * The next concrete reward in the player's current world segment. Once every
+ * reward in that segment is open, Home can fall back to the weekly goal
+ * instead of promising an ever more distant unlock.
+ */
+export function nextRewardInCurrentWorld(
+  lifetimePoints: number,
+  cfg: ProgressionConfig = PROGRESSION_CONFIG,
+): RewardMilestone | null {
+  const points = Math.max(0, Math.floor(lifetimePoints));
+  const currentLevel = levelForPoints(points, cfg);
+  const nextWorld = nextWorldLevel(currentLevel, cfg);
+
+  for (let level = currentLevel; level < (nextWorld ?? cfg.maxAuthoredLevel + 1); level += 1) {
+    const reward = rewardForLevel(level, cfg);
+    if (!reward) continue;
+    const threshold = thresholdForLevel(level, cfg);
+    if (threshold < points) continue;
+    return {
+      level,
+      threshold,
+      reward,
+      remaining: Math.max(0, threshold - points),
+      available: points >= threshold,
+    };
+  }
+  return null;
+}
+
+/** Nearest authored reward regardless of world, used on result screens. */
+export function nextRewardMilestone(
+  lifetimePoints: number,
+  cfg: ProgressionConfig = PROGRESSION_CONFIG,
+): RewardMilestone | null {
+  const points = Math.max(0, Math.floor(lifetimePoints));
+  for (let level = 1; level <= cfg.maxAuthoredLevel; level += 1) {
+    const reward = rewardForLevel(level, cfg);
+    if (!reward) continue;
+    const threshold = thresholdForLevel(level, cfg);
+    if (threshold < points) continue;
+    return {
+      level,
+      threshold,
+      reward,
+      remaining: Math.max(0, threshold - points),
+      available: points >= threshold,
+    };
+  }
+  return null;
 }

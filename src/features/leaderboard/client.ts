@@ -5,6 +5,9 @@ import type {
   RunMove,
   WeeklyImpact,
   WeeklyLeaderboardSnapshot,
+  WeeklyClaimReceipt,
+  WeeklyOutcomesResponse,
+  WeeklyServerOutcome,
 } from './types';
 import { createRemoteLeaderboardClient } from './remoteClient';
 
@@ -20,9 +23,15 @@ export interface LeaderboardClient {
   }) => Promise<{ nickname: string; tag: string }>;
   issueTickets: (input: { authToken: string }) => Promise<RankedTicket[]>;
   getWeeklySnapshot: (input: { authToken?: string }) => Promise<WeeklyLeaderboardSnapshot | null>;
+  getWeeklyOutcomes?: (input: { authToken: string }) => Promise<WeeklyOutcomesResponse>;
+  claimWeeklyReward?: (input: {
+    authToken: string;
+    rewardId: string;
+  }) => Promise<{ outcome: WeeklyServerOutcome; receipt: WeeklyClaimReceipt }>;
   getAdventureSeason?: (input: { authToken: string }) => Promise<AdventureSeasonWindow | null>;
   submitRun: (input: {
     authToken: string;
+    proofId: string;
     ticketId: string | null;
     score: number;
     seed: number;
@@ -49,6 +58,10 @@ export function createLeaderboardClient(): LeaderboardClient {
       renameProfile: async ({ nickname }) => ({ nickname, tag: '' }),
       issueTickets: async () => [],
       getWeeklySnapshot: async () => null,
+      getWeeklyOutcomes: async () => ({ outcomes: [], effectScope: 'local_profile' }),
+      claimWeeklyReward: async () => {
+        throw new Error('remote_unavailable');
+      },
       getAdventureSeason: async () => null,
       submitRun: async () => null,
     };

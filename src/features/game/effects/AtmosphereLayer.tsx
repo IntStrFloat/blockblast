@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo, useEffect } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -101,6 +101,8 @@ interface AtmosphereLayerProps {
   glowColors: readonly string[];
   /** Акцент темы — тёплая часть авроры. */
   accent: string;
+  /** Keeps the fixed pool mounted while fading the scene in/out on the UI thread. */
+  active?: boolean;
 }
 
 /**
@@ -108,7 +110,7 @@ interface AtmosphereLayerProps {
  * фазе) + фикс-пул эмбиент-искр. Пул монтируется один раз; фаза меняется не
  * чаще раза в ход, всё анимируемое — transform/opacity (спека 07).
  */
-export function AtmosphereLayer({ glowColors, accent }: AtmosphereLayerProps) {
+export function AtmosphereLayer({ glowColors, accent, active = true }: AtmosphereLayerProps) {
   const { width, height } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const score = useGameStore((s) => s.game.score);
@@ -116,6 +118,16 @@ export function AtmosphereLayer({ glowColors, accent }: AtmosphereLayerProps) {
   const phase = atmospherePhaseForScore(score);
   const recordProgress = recordProgressFor(score, runBestAtStart);
   const recordIntensity = recordSceneIntensityFor(recordProgress.stage);
+
+  const layerOpacity = useSharedValue(active ? 1 : 0);
+  useEffect(() => {
+    cancelAnimation(layerOpacity);
+    layerOpacity.value = withTiming(active ? 1 : 0, {
+      duration: reducedMotion ? 1 : ATMOSPHERE.auroraFadeMs,
+    });
+    return () => cancelAnimation(layerOpacity);
+  }, [active, layerOpacity, reducedMotion]);
+  const layerStyle = useAnimatedStyle(() => ({ opacity: layerOpacity.value }));
 
   const auroraOpacity = useSharedValue(0);
   useEffect(() => {
@@ -138,7 +150,7 @@ export function AtmosphereLayer({ glowColors, accent }: AtmosphereLayerProps) {
   );
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, layerStyle]}>
       <Animated.View style={[StyleSheet.absoluteFill, auroraStyle]}>
         <LinearGradient
           colors={[hexToRgba(auroraA, 0.3), hexToRgba(auroraA, 0)]}
@@ -184,7 +196,7 @@ export function AtmosphereLayer({ glowColors, accent }: AtmosphereLayerProps) {
               screenHeight={height}
             />
           ))}
-    </View>
+    </Animated.View>
   );
 }
 

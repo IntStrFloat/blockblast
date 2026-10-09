@@ -1,5 +1,6 @@
 import {
   adventureSeasonRemainingMs,
+  adventureSeasonWindowNeedsRefresh,
   formatAdventureSeasonRemaining,
 } from '../logic/seasonWindow';
 
@@ -13,12 +14,22 @@ describe('adventure season countdown', () => {
   };
 
   it('uses backend serverNow plus local elapsed time after sync', () => {
-    const remaining = adventureSeasonRemainingMs(window, 1_000, 60 * 60 * 1000 + 1_000);
-    expect(remaining).toBe(Date.parse(window.windowEndIso) - Date.parse(window.serverNowIso) - 60 * 60 * 1000);
-    expect(formatAdventureSeasonRemaining(remaining)).toBe('Осталось 13 д 8 ч');
+    const remaining = adventureSeasonRemainingMs(window, 1_000, 30 * 60 * 1000 + 1_000);
+    expect(remaining).toBe(Date.parse(window.windowEndIso) - Date.parse(window.serverNowIso) - 30 * 60 * 1000);
+    expect(formatAdventureSeasonRemaining(remaining, 'ru')).toBe('Оформление обновится через 13 д 8 ч');
   });
 
-  it('shows sync copy until a server window is available', () => {
-    expect(formatAdventureSeasonRemaining(adventureSeasonRemainingMs(null, null))).toBe('Обновляем время');
+  it('uses neutral copy until a server window is available', () => {
+    expect(formatAdventureSeasonRemaining(adventureSeasonRemainingMs(null, null), 'ru'))
+      .toBe('Календарное оформление');
+  });
+
+  it('refreshes expired, stale, and clock-rollback windows', () => {
+    const syncedAt = Date.parse(window.serverNowIso);
+    expect(adventureSeasonWindowNeedsRefresh(window, syncedAt, syncedAt + 60_000)).toBe(false);
+    expect(adventureSeasonWindowNeedsRefresh(window, syncedAt, syncedAt + 2 * 60 * 60 * 1000)).toBe(true);
+    expect(adventureSeasonRemainingMs(window, syncedAt, syncedAt + 2 * 60 * 60 * 1000)).toBeNull();
+    expect(adventureSeasonWindowNeedsRefresh(window, syncedAt, syncedAt - 10 * 60 * 1000)).toBe(true);
+    expect(adventureSeasonRemainingMs(window, syncedAt, syncedAt - 10 * 60 * 1000)).toBeNull();
   });
 });

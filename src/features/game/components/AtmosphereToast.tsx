@@ -6,6 +6,7 @@ import { useLang, useSettings } from '@/features/settings';
 import { AppText, radii } from '@/ui';
 
 import { ATMOSPHERE, atmospherePhaseForScore } from '../animation/atmosphere';
+import { EFFECT_SEQUENCE_TIMING } from '../animation/effectSequence';
 import { useGameStore } from '../store';
 
 /**
@@ -15,6 +16,7 @@ import { useGameStore } from '../store';
  */
 export function AtmosphereToast() {
   const score = useGameStore((s) => s.game.score);
+  const lastEvent = useGameStore((s) => s.lastEvent);
   const recordCelebration = useGameStore((s) => s.recordCelebration);
   const phase = atmospherePhaseForScore(score);
   const tone = useSettings((s) => s.praiseTone);
@@ -22,11 +24,13 @@ export function AtmosphereToast() {
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
   const prevPhaseRef = useRef<number | null>(null);
   const counter = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (showTimerRef.current) clearTimeout(showTimerRef.current);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     },
     [],
   );
@@ -39,13 +43,28 @@ export function AtmosphereToast() {
     const text = atmosphereText(phase, tone, lang);
     if (!text) return;
     const id = ++counter.current;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setToast({ id, text });
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      if (counter.current === id) setToast(null);
-    }, ATMOSPHERE.toastDurationMs);
-  }, [lang, phase, recordCelebration, score, tone]);
+    if (showTimerRef.current) clearTimeout(showTimerRef.current);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+
+    const show = () => {
+      showTimerRef.current = null;
+      setToast({ id, text });
+      hideTimerRef.current = setTimeout(() => {
+        hideTimerRef.current = null;
+        if (counter.current === id) setToast(null);
+      }, ATMOSPHERE.toastDurationMs);
+    };
+    const heroClearActive =
+      lastEvent?.score === score && lastEvent.clearedCells.length > 0;
+    if (heroClearActive) {
+      showTimerRef.current = setTimeout(
+        show,
+        EFFECT_SEQUENCE_TIMING.celebrationEndMs + 80,
+      );
+    } else {
+      show();
+    }
+  }, [lang, lastEvent, phase, recordCelebration, score, tone]);
 
   if (!toast) return null;
 

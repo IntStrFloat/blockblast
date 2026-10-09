@@ -4,6 +4,7 @@ import { act, create } from 'react-test-renderer';
 import { useSettings } from '@/features/settings';
 
 import { ATMOSPHERE } from '../animation/atmosphere';
+import { EFFECT_SEQUENCE_TIMING } from '../animation/effectSequence';
 import { AtmosphereToast } from '../components/AtmosphereToast';
 import { useGameStore } from '../store';
 
@@ -51,6 +52,7 @@ describe('AtmosphereToast', () => {
       useGameStore.setState((state) => ({
         game: { ...state.game, score: 0 },
         recordCelebration: null,
+        lastEvent: null,
       }));
       renderer = create(<AtmosphereToast />);
     });
@@ -80,5 +82,37 @@ describe('AtmosphereToast', () => {
 
     act(() => jest.advanceTimersByTime(1));
     expect(toastCount()).toBe(0);
+  });
+
+  it('waits until the hero clear celebration is over before showing a phase toast', () => {
+    act(() => {
+      useGameStore.setState((state) => ({
+        game: { ...state.game, score: 500 },
+        lastEvent: {
+          placed: [[0, 0]],
+          colorId: 1,
+          clearedRows: [0],
+          clearedCols: [],
+          clearedCells: Array.from({ length: 8 }, (_, col) => [0, col] as const),
+          clearedColors: Array.from({ length: 8 }, () => 1),
+          scoreDelta: 500,
+          score: 500,
+          combo: 1,
+          praise: 'good',
+          onFire: false,
+          boardCleared: false,
+          newTray: false,
+          gameOver: false,
+        },
+      }));
+    });
+
+    expect(toastCount()).toBe(0);
+    act(() =>
+      jest.advanceTimersByTime(EFFECT_SEQUENCE_TIMING.celebrationEndMs + 79),
+    );
+    expect(toastCount()).toBe(0);
+    act(() => jest.advanceTimersByTime(1));
+    expect(toastCount()).toBeGreaterThan(0);
   });
 });

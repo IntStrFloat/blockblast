@@ -1,0 +1,3 @@
+[    3113ms] [WARNING] "debugSource" found.
+This will override any same-named client-supplied configSource fields.
+This setting "sticks" across session, use "setDebugSource(null)" to clear @ https://apps.apple.com/assets/mt-client-logger-core.esm~DFLHsSWhNI.js:0

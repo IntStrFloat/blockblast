@@ -1,0 +1,25 @@
+PASS src/features/game/__tests__/gameOverOverlay.test.tsx (27.418 s)
+PASS src/features/monetization/__tests__/interstitialExperiment.test.ts
+PASS src/features/monetization/__tests__/yandexAdsLifecycle.test.ts
+PASS src/features/monetization/__tests__/frequency.test.ts
+PASS src/features/monetization/__tests__/adventureXpBonus.test.ts
+PASS src/features/adventure/__tests__/adventureXpBonus.test.tsx
+PASS src/features/monetization/__tests__/yandexAdsSource.test.ts
+PASS src/features/monetization/__tests__/revenue.test.ts
+PASS src/features/monetization/__tests__/config.test.ts
+PASS src/features/monetization/__tests__/game-banner-dock.test.tsx
+PASS src/features/monetization/__tests__/policy.test.ts
+PASS src/features/monetization/__tests__/rewardedOfferPolicy.test.ts
+PASS src/features/monetization/__tests__/placementPolicy.test.ts
+PASS src/features/monetization/__tests__/interstitialCallsitesSource.test.ts
+
+Test Suites: 14 passed, 14 total
+Tests:       101 passed, 101 total
+Snapshots:   0 total
+Time:        43.536 s
+Ran all test suites matching /src\\features\\monetization|src\\features\\game\\__tests__\\gameOverOverlay.test.tsx|src\\features\\adventure\\__tests__\\adventureXpBonus.test.tsx/i.
+npm notice
+npm notice New major version of npm available! 11.16.0 -> 12.1.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+npm notice To update run: npm install -g npm@12.1.0
+npm notice

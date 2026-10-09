@@ -1,114 +1,166 @@
 import { type Href, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, View, useWindowDimensions } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
+import {
+  BackHandler,
+  Pressable,
+  View,
+  useWindowDimensions,
+  type LayoutChangeEvent,
+  type LayoutRectangle,
+} from 'react-native';
+import Animated, { FadeIn, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import type { AdventureHelpPolicy } from '@/core/engine';
 import { t } from '@/core/i18n';
 import {
-  seasonRewardCosmetic,
   FailOverlay,
   JewelBoardLayer,
+  JewelCollectionFlightLayer,
   JewelIcon,
   LevelResultView,
-  LevelUpBanner,
   ObjectivePanel,
   absoluteLevelNumber,
+  adventureCompletionIdentity,
+  adventureFailurePresentation,
   adventureSkinFor,
+  findAdventureHelpMove,
   levelFor,
+  seasonLength,
+  shouldOfferAdventureHelp,
   useAdventure,
+  useSeasonWindowRefresh,
+  type AdventureObjectiveArrival,
 } from '@/features/adventure';
-import { useAnalyticsStore } from '@/features/analytics';
+import {
+  recordNotificationTargetAction,
+  recordNotificationTargetViewed,
+  useAnalyticsStore,
+} from '@/features/analytics';
 import {
   BoardView,
   DragProvider,
   EMPTY_MASK,
+  EFFECT_SEQUENCE_TIMING,
+  InvalidDropNotice,
   PraiseBanner,
+  PLAYFIELD_LAYOUT,
   TrayView,
+  getAdventurePlayfieldMetrics,
+  getSavedAdventureSummary,
+  previewMask,
+  useDelayedTray,
   useGameFeedback,
+  useInvalidDropNotice,
   useGameStore,
+  turnReadinessSource,
 } from '@/features/game';
 import type { DragCtx } from '@/features/game';
 import { PauseOverlay } from '@/features/game/components/PauseOverlay';
 import {
-  AdBanner,
+  GameBannerDock,
   MONETIZATION,
+  evaluateInterstitialOpportunity,
   getAds,
   loadAdsMeta,
-  recordAdventureFail,
-  recordAdventureLevelWin,
   recordInterstitialShown,
   saveAdsMeta,
-  shouldShowInterstitial,
   useEntitlements,
 } from '@/features/monetization';
 import type { InterstitialCounter } from '@/features/monetization';
-import { useMascot } from '@/features/mascot';
-import { recordMeaningfulSessionForPush } from '@/features/notifications';
+import { rememberRewardedOffer, leaveRewardedOffer } from '@/features/monetization/rewardedOfferPolicy';
 import { useFtueStore } from '@/features/onboarding';
-import { useProfileStore } from '@/features/profile';
 import { useScores } from '@/features/scores';
 import { useLang } from '@/features/settings';
-import { todayISO, useStreak } from '@/features/streak';
-import { AppText, ConfirmDialog, GearIcon, getBoardMetrics, spacing } from '@/ui';
+import { AppText, ConfirmDialog, GearIcon, spacing } from '@/ui';
+import { useReducedMotion } from '@/features/game/animation/useReducedMotion';
 
-type Phase = 'playing' | 'levelup' | 'result' | 'failed';
+type Phase = 'playing' | 'settling' | 'result' | 'failed';
 // Рамка BoardView: сетка клеток начинается с этим отступом от угла обёртки,
 // оверлей кристаллов обязан учитывать его, иначе джевелы уползают к углу клетки.
-const BOARD_FRAME_WIDTH = 6;
-// Вертикальный бюджет экрана: доска ужимается так, чтобы хедер, панель цели,
-// трей и рекламный баннер поместились без наезда (иначе фигуры трея вылезали
-// «под пространство» и на баннер). Значения — приблизительные габариты чрома.
-const HEADER_HEIGHT = 56;
-const OBJECTIVE_HEIGHT = 76;
-const TRAY_HEIGHT = 150;
-// Резерв под sticky-баннер Яндекса (реальная высота ~50–90) + запас.
-const AD_RESERVE = 108;
-// Пауза перед празднованием «уровень пройден»: даём радужному бару цели
-// (текущему, не новому) добежать до 100% на глазах у игрока.
-const LEVEL_WIN_FILL_MS = 480;
+const BOARD_FRAME_WIDTH = PLAYFIELD_LAYOUT.boardFrameWidth;
+const TRAY_HEIGHT = PLAYFIELD_LAYOUT.adventureTrayHeight;
 const EMPTY_JEWEL_MARKERS: NonNullable<ReturnType<typeof useGameStore.getState>['adventure']>['jewelsInTray'] = [];
 
 export default function AdventureLevelScreen() {
   const router = useRouter();
   const lang = useLang();
+  useEffect(() => {
+    recordNotificationTargetViewed('/adventure-level');
+  }, []);
+  const reducedMotion = useReducedMotion();
   const gamesPlayed = useScores((state) => state.gamesPlayed);
   const ftueStatus = useFtueStore((state) => state.status);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const seasonId = useAdventure((s) => s.seasonId);
   const levelIndex = useAdventure((s) => s.levelIndex);
-  const syncSeasonWindow = useAdventure((s) => s.syncSeasonWindow);
-  const authToken = useProfileStore((s) => s.authToken);
-  const bootstrapRemote = useProfileStore((s) => s.bootstrapRemote);
-  const spec = useMemo(() => levelFor(seasonId, levelIndex), [seasonId, levelIndex]);
-  // Скин игровой зоны меняется каждые ADVENTURE_CONFIG.skinEveryLevels уровней по
-  // сквозному номеру (спека 17): фон + доска + рамка + цвет блока.
-  const skin = useMemo(
-    () => adventureSkinFor(absoluteLevelNumber(seasonId, levelIndex)),
-    [seasonId, levelIndex],
+  const seasonWindow = useAdventure((s) => s.seasonWindow);
+  useSeasonWindowRefresh();
+  // Progress advances when the win is saved; the visible run advances only on Next.
+  const [spec, setSpec] = useState(() => levelFor(seasonId, levelIndex));
+  const completedAdventureLevels = useMemo(
+    () => Math.max(0, absoluteLevelNumber(spec.seasonId, spec.levelIndex) - 1),
+    [spec],
   );
-  const [phase, setPhase] = useState<Phase>('playing');
+  const bannerGamesPlayed = gamesPlayed + completedAdventureLevels;
+  // Календарь меняет оформление, а уровень и его генерация зависят от прохождения.
+  const skin = useMemo(
+    () => adventureSkinFor(absoluteLevelNumber(spec.seasonId, spec.levelIndex), seasonWindow),
+    [spec, seasonWindow],
+  );
+  const runStatus = useGameStore((s) => s.adventure?.status);
+  const activeAdventure = useGameStore((s) => s.adventure);
+  const runLevelId = useGameStore((s) => s.adventure?.level.id);
+  const activeAdventureRunId = useGameStore((s) => s.adventure?.runId ?? 'preview');
+  const [requestedPhase, setPhase] = useState<Phase>('playing');
+  const phase = requestedPhase === 'playing' && runLevelId === spec.id &&
+    (runStatus === 'won' || runStatus === 'failed') ? 'settling' : requestedPhase;
   const [attempt, setAttempt] = useState(0);
   const [paused, setPaused] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
   const [adBusy, setAdBusy] = useState(false);
+  const adBusyRef = useRef(false);
+  const resultContextId = adventureCompletionIdentity(spec.seasonId, spec.levelIndex).completionId;
+  const onBonusBusyChange = useCallback((value: boolean) => {
+    const currentRun = useGameStore.getState().adventure;
+    if (value && (adBusyRef.current || !currentRun || currentRun.status !== 'won' ||
+        currentRun.level.id !== spec.id)) return false;
+    adBusyRef.current = value;
+    setAdBusy(value);
+    return true;
+  }, [spec.id]);
+  useEffect(() => {
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (adBusyRef.current) return true;
+      leaveRewardedOffer(resultContextId);
+      return false;
+    });
+    return () => listener.remove();
+  }, [resultContextId]);
+  const [objectiveLayout, setObjectiveLayout] = useState<LayoutRectangle | null>(null);
+  const [objectiveCounterLayout, setObjectiveCounterLayout] = useState<LayoutRectangle | null>(null);
+  const [objectiveArrival, setObjectiveArrival] = useState<AdventureObjectiveArrival | null>(null);
+  const [adventureBoardLayout, setAdventureBoardLayout] =
+    useState<LayoutRectangle | null>(null);
+  const [playfieldHeight, setPlayfieldHeight] = useState<number | null>(null);
   const handledOutcome = useRef(false);
-  const [wonLevelNumber, setWonLevelNumber] = useState(absoluteLevelNumber(seasonId, levelIndex));
+  const winCommittedAtRef = useRef<number | null>(null);
+  const resultAcceleratedRef = useRef(false);
+  const leavingRef = useRef(false);
+  const returnedAtRef = useRef<number | null>(null);
+  const returnedRunIdRef = useRef<string | null>(null);
   const removeAds = useEntitlements((s) => s.removeAds);
 
   const insets = useSafeAreaInsets();
-  // Доска ограничена и по ширине (getBoardMetrics), и по вертикальному бюджету:
-  // на высоких экранах остаётся крупной (во всю ширину), на низких — ужимается,
-  // чтобы трей и баннер не наезжали друг на друга и не уходили за нижний край.
-  const usableHeight = Math.max(560, screenHeight - insets.top - insets.bottom);
-  const verticalReserve =
-    spacing.s + HEADER_HEIGHT + OBJECTIVE_HEIGHT + spacing.l + BOARD_FRAME_WIDTH * 2 +
-    TRAY_HEIGHT + spacing.s + AD_RESERVE;
-  const boardSizeMax = Math.max(240, usableHeight - verticalReserve);
-  const { boardSize, cellGap: baseCellGap } = getBoardMetrics(screenWidth, boardSizeMax);
-  const cellGap = Math.min(baseCellGap, 2);
-  const cellSize = (boardSize - cellGap * 7) / 8;
+  // Баннер — отдельный sibling ниже playfield. После первого layout используем
+  // уже оставшуюся фактическую высоту и не вычитаем рекламный слот второй раз.
+  const { boardSize, cellSize, cellGap } = getAdventurePlayfieldMetrics(
+    screenWidth,
+    playfieldHeight ?? screenHeight,
+    playfieldHeight == null ? insets : { top: 0, bottom: 0 },
+    objectiveLayout?.height,
+  );
   const geom = useMemo(() => ({ boardSize, cell: cellSize, gap: cellGap, pad: 0 }), [boardSize, cellGap, cellSize]);
   // Реальный слот трея: он центрирован (maxWidth 390) внутри горизонтального
   // паддинга контента, поэтому фактическая ширина слота уже, чем (экран−16)/3.
@@ -121,36 +173,73 @@ export default function AdventureLevelScreen() {
     [traySlotWidth],
   );
   const boardOrigin = useSharedValue({ x: 0, y: 0 });
-  const boardMeasureRef = useRef<(() => void) | null>(null);
+  const [measureBoard, setMeasureBoard] = useState<() => void>(() => () => {});
+  const handleMeasureBoardReady = useCallback((nextMeasureBoard: () => void) => {
+    setMeasureBoard(() => nextMeasureBoard);
+  }, []);
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
+  const assistPreview = useSharedValue<number[]>(EMPTY_MASK);
+  const assistPreviewColor = useSharedValue(0);
+  const invalidPreview = useSharedValue<number[]>(EMPTY_MASK);
+  const invalidReason = useSharedValue(0);
+  const clearPrelude = useSharedValue(0);
   const dragActive = useSharedValue(0);
   const dragOwner = useSharedValue(-1);
-  const { onGrab, onInvalidDrop } = useGameFeedback();
-  const tray = useGameStore((s) => s.game.tray);
+  const { onGrab: feedbackOnGrab, onInvalidDrop: feedbackOnInvalidDrop } = useGameFeedback();
+  const invalidDropNotice = useInvalidDropNotice('adventure');
+  const onGrab = useCallback(() => {
+    useAnalyticsStore.getState().recordFirstGrab('adventure');
+  }, []);
+  const onInvalidDrop = useCallback((reason: 'occupied' | 'outside-board') => {
+    feedbackOnInvalidDrop(reason);
+    invalidDropNotice.report(reason);
+  }, [feedbackOnInvalidDrop, invalidDropNotice]);
+  const onReturn = useCallback(() => {
+    feedbackOnInvalidDrop('outside-board');
+  }, [feedbackOnInvalidDrop]);
+  const onUnavailablePiecePress = useCallback((shapeId: string) => {
+    invalidDropNotice.report('unavailable', shapeId);
+  }, [invalidDropNotice]);
+  const rawTray = useGameStore((s) => s.game.tray);
+  const lastEvent = useGameStore((s) => s.lastEvent);
+  const lastAdventureEvent = useGameStore((s) => s.lastAdventureEvent);
+  const tray = useDelayedTray(rawTray, lastEvent);
+  const [trayReadyToken, setTrayReadyToken] = useState<string | null>(null);
+  const pendingTrayReadyRef = useRef<{
+    token: string;
+    committedAt: number;
+    clearedLines: number;
+  } | null>(null);
   const gameEpoch = useGameStore((s) => s.epoch);
-  const runStatus = useGameStore((s) => s.adventure?.status);
   const jewelMarkers = useGameStore((s) => s.adventure?.jewelsInTray ?? EMPTY_JEWEL_MARKERS);
+  const handleTrayInteractiveReady = useCallback((token: string) => {
+    const pending = pendingTrayReadyRef.current;
+    if (!pending || pending.token !== token) return;
+    if (useGameStore.getState().adventure?.status !== 'playing') {
+      pendingTrayReadyRef.current = null;
+      setTrayReadyToken(null);
+      return;
+    }
+    pendingTrayReadyRef.current = null;
+    setTrayReadyToken(null);
+    useAnalyticsStore.getState().track('turn_input_ready', {
+      mode: 'adventure',
+      elapsed_ms: Math.max(0, Date.now() - pending.committedAt),
+      new_tray: true,
+      cleared_lines: pending.clearedLines,
+      readiness_source: 'native_layout',
+    });
+  }, []);
 
   useEffect(() => {
-    let active = true;
-    void (async () => {
-      const token = authToken ?? (await bootstrapRemote())?.authToken ?? null;
-      if (active && token) await syncSeasonWindow(token);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [authToken, bootstrapRemote, syncSeasonWindow]);
-
-  useEffect(() => {
-    if (phase !== 'playing') return;
+    if (phase !== 'playing' || leavingRef.current) return;
     handledOutcome.current = false;
     const store = useGameStore.getState();
     const current = store.adventure;
     if (
-      current?.status === 'playing' &&
+      current &&
       current.attempt === attempt &&
       current.level.seasonId === spec.seasonId &&
       current.level.levelIndex === spec.levelIndex &&
@@ -159,87 +248,196 @@ export default function AdventureLevelScreen() {
     ) {
       return;
     }
+    if (current) {
+      useAnalyticsStore.getState().track('resume_attempt', {
+        mode: 'adventure',
+        saved_state: `${current.status}:attached_mismatch`,
+      });
+      useAnalyticsStore.getState().track('resume_result', {
+        mode: 'adventure',
+        result: 'fallback',
+        reason: 'incompatible',
+      });
+      store.suspendAdventure();
+      router.replace('/adventure' as Href);
+      return;
+    }
     // Холодный вход (процесс убит или экран размонтирован системной «назад»):
     // сперва пробуем продолжить сохранённый ран этого же уровня (FR-7).
     if (!current) {
+      const savedSummary = getSavedAdventureSummary();
+      if (savedSummary.fallbackReason) {
+        useAnalyticsStore.getState().track('resume_attempt', {
+          mode: 'adventure',
+          saved_state: 'archived',
+        });
+        useAnalyticsStore.getState().track('resume_result', {
+          mode: 'adventure',
+          result: 'fallback',
+          reason: savedSummary.fallbackReason,
+        });
+        router.replace('/adventure' as Href);
+        return;
+      }
+      if (savedSummary.kind !== 'none') {
+        useAnalyticsStore.getState().track('resume_attempt', {
+          mode: 'adventure',
+          saved_state: `${savedSummary.kind}:${savedSummary.status}`,
+        });
+      }
       const resumed = store.resumeSavedAdventure(spec);
       if (resumed) {
+        useAnalyticsStore.getState().track('resume_result', {
+          mode: 'adventure',
+          result: resumed.status === 'playing' ? 'resumed' : 'result_opened',
+          reason: resumed.status === 'playing' ? 'active' : 'terminal_final',
+        });
+        if (resumed.status === 'playing') {
+          returnedAtRef.current = Date.now();
+          returnedRunIdRef.current = resumed.runId;
+        }
+        if (resumed.level.id !== spec.id) {
+          setTimeout(() => setSpec(resumed.level as typeof spec), 0);
+        }
         if (resumed.attempt !== attempt) {
           setTimeout(() => setAttempt(resumed.attempt), 0);
         }
         return;
       }
+      if (savedSummary.kind !== 'none') {
+        useAnalyticsStore.getState().track('resume_result', {
+          mode: 'adventure',
+          result: 'fallback',
+          reason: 'incompatible',
+        });
+        router.replace('/adventure' as Href);
+        return;
+      }
     }
     store.newAdventureGame(spec, attempt);
-  }, [attempt, phase, spec]);
+  }, [attempt, phase, router, spec]);
 
   // Системная кнопка «назад» минует exitToHub: отцепляем ран от стора, чтобы
   // Endless-партия не продолжила играть по adventure-доске. Снапшот в MMKV
   // остаётся — уровень восстановится при следующем входе.
-  useEffect(() => () => useGameStore.getState().suspendAdventure(), []);
+  useEffect(() => () => {
+    const analytics = useAnalyticsStore.getState();
+    if (analytics.activeRun?.mode === 'adventure' && !analytics.activeRun.terminal_reported) {
+      analytics.leaveRun('home');
+    }
+    useGameStore.getState().suspendAdventure();
+  }, []);
 
   useEffect(() => {
     if (!runStatus || runStatus === 'playing' || handledOutcome.current) return;
     const state = useGameStore.getState().adventure;
     if (!state) return;
-    // Исход читаем СВЕЖИМ из стора, а не из render-захваченного runStatus:
-    // recordWin двигает levelIndex → spec пересчитывается → стартовый эффект
-    // выше в ЭТОМ ЖЕ коммите сбрасывает handledOutcome и пересоздаёт ран
-    // следующего уровня. Устаревший runStatus='won' при совпавшем уровне
-    // свежего рана записывал победу дважды (счётчики ×2, скип уровней).
     if (state.status === 'playing') return;
-    if (state.level.seasonId !== spec.seasonId || state.level.levelIndex !== spec.levelIndex) return;
     handledOutcome.current = true;
-
-    if (state.status === 'won') {
-      const completedLevelNumber = absoluteLevelNumber(state.level.seasonId, state.level.levelIndex);
-      saveAdsMeta(recordAdventureLevelWin(loadAdsMeta()));
-      useAdventure.getState().recordWin(todayISO());
-      useStreak.getState().markPlayedToday();
-      const sessionId = useAnalyticsStore.getState().context?.session_id;
-      if (sessionId) recordMeaningfulSessionForPush(sessionId);
-      useAnalyticsStore.getState().track('adventure_level_win', {
-        seasonId: state.level.seasonId,
-        levelIndex: state.level.levelIndex,
-        attempt: state.attempt,
-        consecutive: useAdventure.getState().consecutive,
-      });
-      const completedSeason = useAdventure.getState().lastWinCompletedSeason;
-      if (completedSeason !== null) {
-        useAnalyticsStore.getState().track('adventure_season_complete', { seasonId: state.level.seasonId });
-        // Сезонная награда — эксклюзивная косметика Капи (retention фаза 3).
-        const seasonCosmetic = seasonRewardCosmetic(completedSeason);
-        if (seasonCosmetic !== null) {
-          useMascot.getState().unlock(seasonCosmetic);
-          useAnalyticsStore.getState().track('season_reward_granted', {
-            seasonId: completedSeason,
-            cosmeticId: seasonCosmetic,
-          });
-        }
-      }
-      // Не открываем празднование сразу: сперва радужный бар цели (текущий,
-      // тот же что весь уровень) добегает до 100% на глазах у игрока, и только
-      // потом — конфетти. Никакого нового прогресс-бара.
-      setTimeout(() => {
-        setWonLevelNumber(completedLevelNumber);
-        setPhase('levelup');
-      }, LEVEL_WIN_FILL_MS);
-    } else {
-      saveAdsMeta(recordAdventureFail(loadAdsMeta()));
-      useAdventure.getState().recordFail();
-      useAnalyticsStore.getState().track('adventure_level_fail', {
-        seasonId: state.level.seasonId,
-        levelIndex: state.level.levelIndex,
-        attempt: state.attempt,
-      });
-      setTimeout(() => setPhase('failed'), 0);
+    // Settlement is a durable Adventure store action. The screen is only a
+    // recovery trigger and presentation owner; Classic hooks are not involved.
+    if (!state.outcomeSettledAt) {
+      useGameStore.getState().settleAdventureOutcome(state.runId);
     }
-  }, [runStatus, spec.levelIndex, spec.seasonId]);
+  }, [runStatus]);
+
+  useEffect(() => {
+    if (phase !== 'result' || winCommittedAtRef.current === null) return;
+    const runId = useGameStore.getState().adventure?.runId ?? 'missing';
+    useAnalyticsStore.getState().trackOnce(
+      `adventure-result-ready:${runId}`,
+      'adventure_result_ready',
+      {
+        elapsed_ms: Math.max(0, Date.now() - winCommittedAtRef.current),
+        objective: spec.objective.type,
+        reduced_motion: reducedMotion,
+        accelerated: resultAcceleratedRef.current,
+      },
+    );
+  }, [phase, reducedMotion, spec.objective.type]);
+
+  useEffect(() => {
+    if (phase !== 'settling') return;
+    // The board, jewel flight and goal fill finish on the same mounted run.
+    const won = runStatus === 'won';
+    const waitingForFinalJewelArrival =
+      won &&
+      spec.objective.type === 'jewels' &&
+      (lastAdventureEvent?.jewelsCollectedThisMove ?? 0) > 0 &&
+      (objectiveArrival?.total ?? 0) < spec.objective.target;
+    if (waitingForFinalJewelArrival) {
+      const fallbackTimer = setTimeout(
+        () => setPhase('result'),
+        EFFECT_SEQUENCE_TIMING.adventureOutcomeFallbackMs,
+      );
+      return () => clearTimeout(fallbackTimer);
+    }
+    const delay = won
+      ? spec.objective.type === 'jewels'
+        ? reducedMotion ? 0 : EFFECT_SEQUENCE_TIMING.adventureResultSettleMs
+        : reducedMotion
+          ? EFFECT_SEQUENCE_TIMING.adventureOutcomeReducedMs
+          : EFFECT_SEQUENCE_TIMING.adventureOutcomeReadyMs
+      : reducedMotion
+        ? 0
+        : lastEvent?.clearedCells.length
+          ? EFFECT_SEQUENCE_TIMING.afterglowEndMs
+          : 180;
+    const timer = setTimeout(() => setPhase(won ? 'result' : 'failed'), delay);
+    return () => clearTimeout(timer);
+  }, [lastAdventureEvent, lastEvent, objectiveArrival, phase, reducedMotion, runStatus, spec.objective]);
 
   const onDrop = useCallback(
-    (trayIndex: number, row: number, col: number) =>
-      useGameStore.getState().placePiece(trayIndex, row, col) !== null,
-    [],
+    (trayIndex: number, row: number, col: number) => {
+      if (phase !== 'playing' || paused || useGameStore.getState().adventure?.status !== 'playing') return false;
+      const commitStartedAt = Date.now();
+      const event = useGameStore.getState().placePiece(trayIndex, row, col);
+      const placed = event !== null;
+      if (placed) {
+        recordNotificationTargetAction('adventure_move');
+        invalidDropNotice.recordValidDrop();
+        boardMirror.value = [...useGameStore.getState().game.board];
+        const clearedLines = event.clearedRows.length + event.clearedCols.length;
+        const postCommitPlayable = useGameStore.getState().adventure?.status === 'playing';
+        const readinessSource = turnReadinessSource(event.newTray, postCommitPlayable);
+        if (!readinessSource) {
+          pendingTrayReadyRef.current = null;
+          setTrayReadyToken(null);
+        } else if (readinessSource === 'native_layout') {
+          const token = `adventure:${event.score}:${commitStartedAt}`;
+          pendingTrayReadyRef.current = { token, committedAt: commitStartedAt, clearedLines };
+          setTrayReadyToken(token);
+        } else {
+          useAnalyticsStore.getState().track('turn_input_ready', {
+            mode: 'adventure',
+            elapsed_ms: Math.max(0, Date.now() - commitStartedAt),
+            new_tray: false,
+            cleared_lines: clearedLines,
+            readiness_source: readinessSource,
+          });
+        }
+        if (useGameStore.getState().adventure?.status === 'won') {
+          winCommittedAtRef.current = commitStartedAt;
+          resultAcceleratedRef.current = false;
+        }
+        if (returnedAtRef.current !== null && returnedRunIdRef.current) {
+          const analytics = useAnalyticsStore.getState();
+          analytics.trackOnce(
+            `return-first-move:${returnedRunIdRef.current}:${analytics.context?.session_id ?? 'bootstrap'}`,
+            'return_first_move',
+            {
+              mode: 'adventure',
+              elapsed_ms: Math.max(0, Date.now() - returnedAtRef.current),
+              placement_index: analytics.activeRun?.placements ?? 1,
+            },
+          );
+          returnedAtRef.current = null;
+          returnedRunIdRef.current = null;
+        }
+      }
+      return placed;
+    },
+    [boardMirror, invalidDropNotice, paused, phase],
   );
 
   const dragCtx: DragCtx = useMemo(
@@ -247,10 +445,15 @@ export default function AdventureLevelScreen() {
       geom,
       trayFit,
       boardOrigin,
-      boardMeasureRef,
+      measureBoard,
       boardMirror,
       preview,
       previewColor,
+      assistPreview,
+      assistPreviewColor,
+      invalidPreview,
+      invalidReason,
+      clearPrelude,
       dragActive,
       dragOwner,
       cellColors: [skin.blockColor],
@@ -258,29 +461,125 @@ export default function AdventureLevelScreen() {
       cellEmpty: skin.cellEmpty,
       cellRadius: 3,
       onDrop,
+      onTouch: feedbackOnGrab,
       onGrab,
+      onReturn,
       onInvalidDrop,
+      onUnavailablePiecePress,
+      unavailablePieceLabel: t('game.pieceNoSpace', lang),
     }),
     // Shared values are stable; реактивные входы — геометрия, скин и колбэки.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [geom, trayFit, skin, onDrop, onGrab, onInvalidDrop],
+    [geom, trayFit, skin, measureBoard, onDrop, feedbackOnGrab, onGrab, onReturn, onInvalidDrop, onUnavailablePiecePress, lang],
   );
 
+  useEffect(() => {
+    if (
+      phase !== 'playing' ||
+      !activeAdventure ||
+      activeAdventure.status !== 'playing' ||
+      activeAdventure.helpPolicy !== 'highlight' ||
+      activeAdventure.helpUsed
+    ) {
+      return;
+    }
+    const move = findAdventureHelpMove(
+      activeAdventure.game.board,
+      activeAdventure.game.tray,
+    );
+    const piece = move ? activeAdventure.game.tray[move.trayIndex] : null;
+    if (!move || !piece) return;
+    assistPreview.value = previewMask(
+      activeAdventure.game.board,
+      piece.shape.cells,
+      move.row,
+      move.col,
+    );
+    assistPreviewColor.value = piece.colorId;
+    return () => {
+      assistPreview.value = EMPTY_MASK;
+      assistPreviewColor.value = 0;
+    };
+  }, [activeAdventure, assistPreview, assistPreviewColor, phase]);
+
+  const failurePresentation = activeAdventure
+    ? adventureFailurePresentation(activeAdventure)
+    : null;
+  const helpEligible = activeAdventure
+    ? shouldOfferAdventureHelp(activeAdventure.level.levelIndex, activeAdventure.failureCount)
+    : false;
+
   const exitToHub = useCallback(() => {
-    useGameStore.getState().exitAdventure();
+    if (adBusyRef.current) return;
+    leaveRewardedOffer(resultContextId);
+    leavingRef.current = true;
+    const store = useGameStore.getState();
+    const analytics = useAnalyticsStore.getState();
+    if (store.adventure?.status === 'failed') {
+      analytics.track('adventure_retry_decision', {
+        seasonId: store.adventure.level.seasonId,
+        levelIndex: store.adventure.level.levelIndex,
+        attempt: store.adventure.attempt,
+        failure_count: store.adventure.failureCount,
+        decision: 'exit',
+      });
+    }
+    if (store.adventure?.status === 'playing') analytics.leaveRun('home');
+    else analytics.exitRun('home');
+    if (store.adventure?.status === 'failed') {
+      // Keep the settled failure checkpoint: it owns the per-level retry count
+      // and explicit help choice when the player returns from the hub.
+      store.exitAdventure();
+    } else if (store.adventure?.outcomeSettledAt) {
+      store.discardAdventure();
+    } else {
+      store.exitAdventure();
+    }
     router.replace('/adventure' as Href);
-  }, [router]);
+  }, [resultContextId, router]);
 
   const exitToHome = useCallback(() => {
-    useGameStore.getState().exitAdventure();
+    if (adBusyRef.current) return;
+    leaveRewardedOffer(resultContextId);
+    leavingRef.current = true;
+    const store = useGameStore.getState();
+    const analytics = useAnalyticsStore.getState();
+    if (store.adventure?.status === 'playing') analytics.leaveRun('home');
+    else analytics.exitRun('home');
+    if (store.adventure?.outcomeSettledAt) store.discardAdventure();
+    else store.exitAdventure();
     router.replace('/' as Href);
-  }, [router]);
+  }, [resultContextId, router]);
 
   const startCurrentLevel = useCallback(
-    (nextAttempt = 0) => {
-      useGameStore.getState().newAdventureGame(spec, nextAttempt);
+    (nextAttempt = 0, helpPolicy?: AdventureHelpPolicy) => {
+      const progress = useAdventure.getState();
+      const nextSpec = levelFor(progress.seasonId, progress.levelIndex);
+      if (progress.lastWinCompletedSeason !== null) progress.ackSeasonCelebration();
+      handledOutcome.current = false;
+      winCommittedAtRef.current = null;
+      resultAcceleratedRef.current = false;
+      setObjectiveArrival(null);
+      setSpec(nextSpec);
+      setAttempt(nextAttempt);
+      const store = useGameStore.getState();
+      if (helpPolicy) {
+        store.newAdventureGame(
+          nextSpec,
+          nextAttempt,
+          nextAttempt > 0 ? 'restart' : 'next',
+          helpPolicy,
+        );
+      } else {
+        store.newAdventureGame(
+          nextSpec,
+          nextAttempt,
+          nextAttempt > 0 ? 'restart' : 'next',
+        );
+      }
+      setPhase('playing');
     },
-    [spec],
+    [],
   );
 
   const confirmRestart = useCallback(() => {
@@ -288,22 +587,40 @@ export default function AdventureLevelScreen() {
     setRestartOpen(true);
   }, []);
 
+  const handlePlayfieldLayout = useCallback((event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    setPlayfieldHeight((current) => (current === height ? current : height));
+  }, []);
+
   const restartCurrentLevel = useCallback(() => {
     setRestartOpen(false);
-    setAttempt((currentAttempt) => {
-      const nextAttempt = currentAttempt + 1;
-      startCurrentLevel(nextAttempt);
-      return nextAttempt;
-    });
-  }, [startCurrentLevel]);
+    const run = useGameStore.getState().adventure;
+    const analytics = useAnalyticsStore.getState();
+    if (run) {
+      analytics.track('adventure_retry_decision', {
+        seasonId: run.level.seasonId,
+        levelIndex: run.level.levelIndex,
+        attempt: run.attempt,
+        failure_count: run.failureCount,
+        decision: 'voluntary_restart',
+      });
+    }
+    analytics.exitRun('restart');
+    startCurrentLevel(attempt + 1);
+  }, [attempt, startCurrentLevel]);
 
   const runAfterInterstitial = useCallback(
     async (counter: InterstitialCounter, after: () => void) => {
-      if (adBusy) return;
+      if (adBusyRef.current) return;
+      const currentRun = useGameStore.getState().adventure;
+      if (!currentRun || currentRun.level.id !== spec.id ||
+          currentRun.status !== (counter === 'adventure_fail' ? 'failed' : 'won')) return;
+      adBusyRef.current = true;
+      const rewardedOfferPresented = leaveRewardedOffer(resultContextId);
       setAdBusy(true);
       try {
         const meta = loadAdsMeta();
-        const show = shouldShowInterstitial(
+        const opportunity = evaluateInterstitialOpportunity(
           meta,
           {
             enabled: MONETIZATION.adsEnabled,
@@ -311,34 +628,73 @@ export default function AdventureLevelScreen() {
             nowMs: Date.now(),
           },
           counter,
+          'adventure',
+          { rewardedOfferPresented, resultContextId },
         );
-        if (show) {
-          const result = await getAds().showInterstitial(counter);
-          if (result === 'shown') {
-            saveAdsMeta(recordInterstitialShown(meta, Date.now(), counter));
-          }
+        if (!opportunity.baseEligible) {
+          useAnalyticsStore.getState().track('ad_eligible', {
+            format: 'interstitial',
+            placement: counter,
+            blocked_reason: 'frequency_policy',
+          });
+        } else if (!opportunity.shouldRequest) {
+          useAnalyticsStore.getState().track('ad_eligible', {
+            format: 'interstitial',
+            placement: counter,
+            blocked_reason: opportunity.decision,
+            ...opportunity.telemetry,
+          });
+        }
+        if (opportunity.shouldRequest) {
+          let impressionRecorded = false;
+          await getAds().showInterstitial(
+            counter,
+            opportunity.telemetry ?? undefined,
+            () => {
+              if (impressionRecorded) return;
+              impressionRecorded = true;
+              saveAdsMeta(recordInterstitialShown(
+                loadAdsMeta(),
+                Date.now(),
+                counter,
+                opportunity.telemetry?.product_session_id,
+              ), true);
+            },
+          );
         }
       } finally {
+        adBusyRef.current = false;
         setAdBusy(false);
         after();
       }
     },
-    [adBusy, removeAds],
+    [removeAds, resultContextId, spec.id],
   );
-
-  if (phase === 'result') {
-    return (
-      <LevelResultView
-        disabled={adBusy}
-        onNext={() => void runAfterInterstitial('adventure_level', () => {
-          startCurrentLevel(0);
-          setAttempt(0);
-          setPhase('playing');
-        })}
-        onExit={() => void runAfterInterstitial('adventure_level', exitToHub)}
-      />
-    );
-  }
+  const retryFailedLevel = useCallback((withHelp: boolean) => {
+    if (adBusyRef.current) return;
+    const run = useGameStore.getState().adventure;
+    if (!run) return;
+    const eligible = shouldOfferAdventureHelp(run.level.levelIndex, run.failureCount);
+    const policy: AdventureHelpPolicy | undefined = withHelp
+      ? 'highlight'
+      : eligible
+        ? 'declined'
+        : undefined;
+    if (policy && !useGameStore.getState().setAdventureRetryPolicy(run.runId, policy)) {
+      return;
+    }
+    useAnalyticsStore.getState().track('adventure_retry_decision', {
+      seasonId: run.level.seasonId,
+      levelIndex: run.level.levelIndex,
+      attempt: run.attempt,
+      failure_count: run.failureCount,
+      decision: withHelp ? 'help' : 'standard',
+    });
+    void runAfterInterstitial('adventure_fail', () => {
+      startCurrentLevel(run.attempt + 1, policy);
+    });
+  }, [runAfterInterstitial, startCurrentLevel]);
+  const overlayBlocksPlayfield = paused || restartOpen || phase === 'result' || phase === 'failed';
 
   return (
     <DragProvider value={dragCtx}>
@@ -347,7 +703,15 @@ export default function AdventureLevelScreen() {
           colors={[skin.bgTop, skin.bgBottom]}
           style={{ position: 'absolute', inset: 0 }}
         />
-        <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: spacing.m, paddingTop: spacing.s }}>
+        <View
+          // Keep the native parent stable when exit/settling changes pointerEvents.
+          // Flattening it reparents animated children out of SafeAreaView on Android.
+          collapsable={false}
+          importantForAccessibility={overlayBlocksPlayfield ? 'no-hide-descendants' : 'auto'}
+          onLayout={handlePlayfieldLayout}
+          pointerEvents={phase === 'playing' && runStatus === 'playing' ? 'auto' : 'none'}
+          style={{ flex: 1, alignItems: 'center', paddingHorizontal: spacing.m, paddingTop: spacing.s }}
+        >
           <View style={{ width: '100%', maxWidth: 390, height: 56, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
             <View
               pointerEvents="none"
@@ -363,8 +727,14 @@ export default function AdventureLevelScreen() {
                 borderColor: 'rgba(255,238,210,0.38)',
               }}
             >
-              <AppText preset="speech" numberOfLines={1} style={{ color: '#FFF6E9', fontFamily: 'Fredoka_700Bold', fontSize: 16 }}>
-                {t('adventure.title', lang)} · {absoluteLevelNumber(seasonId, levelIndex)}
+              <AppText
+                preset="speech"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.55}
+                style={{ color: '#FFF6E9', fontFamily: 'Unbounded_700Bold', fontSize: 16 }}
+              >
+                {t('adventure.title', lang)} · {absoluteLevelNumber(spec.seasonId, spec.levelIndex)}
               </AppText>
             </View>
             <Pressable
@@ -390,10 +760,39 @@ export default function AdventureLevelScreen() {
             </Pressable>
           </View>
 
-          <ObjectivePanel />
+          <ObjectivePanel
+            key={`objective:${activeAdventureRunId}`}
+            arrival={objectiveArrival}
+            onLayout={(event) => setObjectiveLayout(event.nativeEvent.layout)}
+            onTargetLayout={(event) => setObjectiveCounterLayout(event.nativeEvent.layout)}
+          />
+
+          {phase === 'playing' &&
+          activeAdventure?.helpPolicy === 'highlight' &&
+          !activeAdventure.helpUsed ? (
+            <View
+              accessible
+              accessibilityRole="summary"
+              style={{
+                marginTop: spacing.s,
+                minHeight: 44,
+                justifyContent: 'center',
+                paddingHorizontal: spacing.m,
+                borderRadius: 14,
+                backgroundColor: 'rgba(255, 206, 85, 0.18)',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 224, 132, 0.68)',
+              }}
+            >
+              <AppText preset="caption" style={{ color: '#FFF4C4', fontWeight: '700', textAlign: 'center' }}>
+                {t('adventure.helpActive', lang)}
+              </AppText>
+            </View>
+          ) : null}
 
           <View
             key={`${spec.id}-${attempt}-${gameEpoch}`}
+            onLayout={(event) => setAdventureBoardLayout(event.nativeEvent.layout)}
             style={{
               position: 'relative',
               marginTop: spacing.l,
@@ -420,7 +819,11 @@ export default function AdventureLevelScreen() {
                 borderColor: 'rgba(255, 239, 211, 0.38)',
               }}
             >
-              <BoardView style={{ borderRadius: 10 }} />
+              <BoardView
+                clearStyle="shatter"
+                style={{ borderRadius: 10 }}
+                onMeasureBoardReady={handleMeasureBoardReady}
+              />
             </View>
             <JewelBoardLayer cell={cellSize} gap={cellGap} offset={BOARD_FRAME_WIDTH} />
             <PraiseBanner />
@@ -433,8 +836,8 @@ export default function AdventureLevelScreen() {
                 position: 'absolute',
                 left: 8,
                 right: 8,
-                top: 14,
-                bottom: 10,
+                top: 8,
+                bottom: 8,
                 borderRadius: 28,
                 backgroundColor: 'rgba(91, 49, 29, 0.28)',
                 borderWidth: 1,
@@ -443,6 +846,8 @@ export default function AdventureLevelScreen() {
             />
             <TrayView
               tray={tray}
+              readyToken={trayReadyToken}
+              onInteractiveReady={handleTrayInteractiveReady}
               style={{ width: '100%', height: '100%' }}
               renderPieceCellOverlay={(slot, cellIndex, size) =>
                 jewelMarkers.some((m) => m.slot === slot && m.cell === cellIndex) ? (
@@ -455,28 +860,92 @@ export default function AdventureLevelScreen() {
           </View>
         </View>
 
-        {phase === 'levelup' ? (
-          <LevelUpBanner fromLevel={wonLevelNumber - 1} onDone={() => setPhase('result')} />
+        <JewelCollectionFlightLayer
+          key={`flight:${activeAdventureRunId}`}
+          boardLayout={adventureBoardLayout}
+          objectiveLayout={objectiveLayout && objectiveCounterLayout ? {
+            x: objectiveLayout.x + objectiveCounterLayout.x,
+            y: objectiveLayout.y + objectiveCounterLayout.y,
+            width: objectiveCounterLayout.width,
+            height: objectiveCounterLayout.height,
+          } : null}
+          cell={cellSize}
+          gap={cellGap}
+          boardOffset={BOARD_FRAME_WIDTH}
+          onArrive={setObjectiveArrival}
+        />
+        <InvalidDropNotice message={invalidDropNotice.message} />
+
+        {phase === 'settling' && runStatus === 'won' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('adventure.showResult', lang)}
+            onPress={() => {
+              resultAcceleratedRef.current = true;
+              setPhase('result');
+            }}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              right: spacing.l,
+              bottom: spacing.l,
+              zIndex: 60,
+              minHeight: 48,
+              justifyContent: 'center',
+              paddingHorizontal: spacing.m,
+              borderRadius: 14,
+              backgroundColor: 'rgba(17,39,79,0.92)',
+              opacity: pressed ? 0.72 : 1,
+            })}
+          >
+            <AppText preset="button" style={{ color: '#FFFFFF' }}>
+              {t('adventure.showResult', lang)}
+            </AppText>
+          </Pressable>
+        ) : null}
+
+        {phase === 'result' ? (
+          <Animated.View entering={FadeIn.duration(240)} style={{ position: 'absolute', inset: 0, zIndex: 40 }}>
+            <LevelResultView
+              completedLevel={absoluteLevelNumber(spec.seasonId, spec.levelIndex)}
+              runId={useGameStore.getState().adventure?.runId ?? null}
+              completionId={adventureCompletionIdentity(
+                spec.seasonId,
+                spec.levelIndex,
+              ).completionId}
+              completedSeason={
+                spec.levelIndex + 1 >= seasonLength(spec.seasonId)
+                  ? spec.seasonId
+                  : null
+              }
+              disabled={adBusy}
+              onBonusOfferAvailable={() => rememberRewardedOffer(resultContextId)}
+              onBonusBusyChange={onBonusBusyChange}
+              onNext={() => void runAfterInterstitial('adventure_level', () => startCurrentLevel(0))}
+              onExit={exitToHub}
+            />
+          </Animated.View>
         ) : null}
         {phase === 'failed' ? (
           <FailOverlay
             disabled={adBusy}
-            onRetry={() => void runAfterInterstitial('adventure_fail', () => {
-              setAttempt((value) => {
-                const nextAttempt = value + 1;
-                startCurrentLevel(nextAttempt);
-                return nextAttempt;
-              });
-              setPhase('playing');
-            })}
-            onExit={() => void runAfterInterstitial('adventure_fail', exitToHub)}
+            objective={activeAdventure?.level.objective.type ?? spec.objective.type}
+            current={failurePresentation?.current ?? 0}
+            target={failurePresentation?.target ?? spec.objective.target}
+            remaining={failurePresentation?.remaining ?? spec.objective.target}
+            tip={failurePresentation?.tip ?? 'open_space'}
+            helpEligible={helpEligible}
+            onRetry={() => retryFailedLevel(false)}
+            onRetryWithHelp={() => retryFailedLevel(true)}
+            onExit={exitToHub}
           />
         ) : null}
-        <AdBanner
-          placement="game"
-          ftueComplete={ftueStatus === 'complete' || ftueStatus === 'skipped'}
-          gamesPlayed={gamesPlayed}
-        />
+        <View importantForAccessibility={overlayBlocksPlayfield ? 'no-hide-descendants' : 'auto'}>
+          <GameBannerDock
+            hidden={overlayBlocksPlayfield || adBusy}
+            ftueComplete={ftueStatus === 'complete' || ftueStatus === 'skipped'}
+            gamesPlayed={bannerGamesPlayed}
+          />
+        </View>
 
         {paused ? (
           <PauseOverlay

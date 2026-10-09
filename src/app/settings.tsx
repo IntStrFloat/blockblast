@@ -9,6 +9,9 @@ import { t } from '@/core/i18n';
 import type { LangSetting } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
 import { MONETIZATION } from '@/features/monetization';
+import {
+  requestNotificationPermissions,
+} from '@/features/notifications';
 import { PROGRESSION_CONFIG } from '@/features/progression';
 import { useScores } from '@/features/scores';
 import { useLang, useSettings } from '@/features/settings';
@@ -130,7 +133,7 @@ function ThemeTile({
       <View style={styles.themeTileLabel}>
         {!unlocked ? <LockIcon size={13} color="rgba(230,244,255,0.72)" /> : null}
         {active ? <CheckIcon size={13} color="#FFF7D6" /> : null}
-        <AppText preset="caption" numberOfLines={1} style={styles.themeTileText}>
+        <AppText preset="caption" numberOfLines={2} style={styles.themeTileText}>
           {label}
         </AppText>
       </View>
@@ -173,6 +176,20 @@ export default function SettingsScreen() {
   const unlockedThemeIds = new Set(useUnlockedWorldThemes().map((theme) => theme.id));
   const [activeTab, setActiveTab] = useState<SettingsTab>('game');
   const [resetOpen, setResetOpen] = useState(false);
+  const [notificationBusy, setNotificationBusy] = useState(false);
+
+  const configureNotifications = async () => {
+    if (notificationBusy) return;
+    setNotificationBusy(true);
+    try {
+      const decision = await requestNotificationPermissions('settings');
+      if (decision.outcome !== 'granted') {
+        await Linking.openSettings();
+      }
+    } finally {
+      setNotificationBusy(false);
+    }
+  };
 
   const langOptions: { value: LangSetting; label: string }[] = [
     { value: 'system', label: t('settings.langSystem', lang) },
@@ -194,7 +211,7 @@ export default function SettingsScreen() {
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel={t('settings.title', lang)}
+          accessibilityLabel={t('leaderboard.back', lang)}
           hitSlop={8}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
         >
@@ -229,6 +246,9 @@ export default function SettingsScreen() {
                 <Switch
                   value={settings.sound}
                   onValueChange={(value) => settings.update({ sound: value })}
+                  accessibilityRole="switch"
+                  accessibilityLabel={t('settings.sound', lang)}
+                  accessibilityState={{ checked: settings.sound }}
                   trackColor={switchTrack}
                   thumbColor="#FFFFFF"
                 />
@@ -237,6 +257,9 @@ export default function SettingsScreen() {
                 <Switch
                   value={settings.haptics}
                   onValueChange={(value) => settings.update({ haptics: value })}
+                  accessibilityRole="switch"
+                  accessibilityLabel={t('settings.haptics', lang)}
+                  accessibilityState={{ checked: settings.haptics }}
                   trackColor={switchTrack}
                   thumbColor="#FFFFFF"
                 />
@@ -248,6 +271,9 @@ export default function SettingsScreen() {
                 <Switch
                   value={settings.showMascot}
                   onValueChange={(value) => settings.update({ showMascot: value })}
+                  accessibilityRole="switch"
+                  accessibilityLabel={t('settings.showMascot', lang)}
+                  accessibilityState={{ checked: settings.showMascot }}
                   trackColor={switchTrack}
                   thumbColor="#FFFFFF"
                 />
@@ -318,8 +344,21 @@ export default function SettingsScreen() {
                 <Switch
                   value={!analyticsOptOut}
                   onValueChange={(value) => setAnalyticsOptOut(!value)}
+                  accessibilityRole="switch"
+                  accessibilityLabel={t('settings.analytics', lang)}
+                  accessibilityState={{ checked: !analyticsOptOut }}
                   trackColor={switchTrack}
                   thumbColor="#FFFFFF"
+                />
+              </Row>
+              <Row label={t('settings.notifications', lang)}>
+                <GameButton
+                  label={t('settings.notificationsManage', lang)}
+                  disabled={notificationBusy}
+                  onPress={() => {
+                    void configureNotifications();
+                  }}
+                  variant="ghost"
                 />
               </Row>
             </Section>
@@ -395,9 +434,9 @@ const styles = {
     paddingTop: spacing.xs,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     backgroundColor: 'rgba(255,255,255,0.11)',
@@ -405,12 +444,12 @@ const styles = {
     borderColor: 'rgba(255,255,255,0.25)',
   },
   headerSpacer: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
   },
   title: {
     color: '#FFFFFF',
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 27,
   },
   tabRail: {
@@ -425,7 +464,7 @@ const styles = {
   },
   tab: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 48,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     paddingHorizontal: 4,
@@ -437,7 +476,7 @@ const styles = {
   },
   tabText: {
     color: 'rgba(237,249,255,0.82)',
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 13,
   },
   tabTextActive: {
@@ -453,7 +492,7 @@ const styles = {
   sectionTitle: {
     marginLeft: spacing.s,
     color: 'rgba(240,250,255,0.78)',
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 12,
     letterSpacing: 0.7,
   },
@@ -480,7 +519,7 @@ const styles = {
   rowLabel: {
     flexShrink: 1,
     color: '#FFFFFF',
-    fontFamily: 'Fredoka_600SemiBold',
+    fontFamily: 'Unbounded_700Bold',
   },
   rowControl: {
     alignItems: 'flex-end' as const,
@@ -493,7 +532,7 @@ const styles = {
     gap: 6,
   },
   chip: {
-    minHeight: 38,
+    minHeight: 48,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -510,7 +549,7 @@ const styles = {
   },
   chipText: {
     color: 'rgba(244,250,255,0.92)',
-    fontFamily: 'Fredoka_600SemiBold',
+    fontFamily: 'Unbounded_700Bold',
   },
   chipTextActive: {
     color: '#1A56C7',
@@ -558,7 +597,7 @@ const styles = {
   themeTileText: {
     flexShrink: 1,
     color: '#FFFFFF',
-    fontFamily: 'Fredoka_600SemiBold',
+    fontFamily: 'Unbounded_700Bold',
   },
   purchaseActions: {
     gap: spacing.s,
@@ -569,7 +608,7 @@ const styles = {
     marginTop: -spacing.s,
   },
   privacyLink: {
-    minHeight: 38,
+    minHeight: 48,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     paddingHorizontal: spacing.s,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type React from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -11,6 +11,7 @@ import Animated, {
 import { hasPlacement } from '@/core/engine';
 import type { PieceInstance } from '@/core/engine';
 import { TRAY_ACTIVATION, TRAY_MOTION, trayRestingScale } from '../animation/motion';
+import { useReducedMotion } from '../animation/useReducedMotion';
 import { useDragCtx } from '../drag/DragContext';
 import type { SlotMeasure } from '../drag/useDrag';
 import { useDrag } from '../drag/useDrag';
@@ -21,11 +22,21 @@ interface TrayPieceProps {
   piece: PieceInstance;
   trayIndex: number;
   renderCellOverlay?: (cellIndex: number, cellSizePx: number) => React.ReactNode;
+  readyToken?: string | null;
+  onInteractiveReady?: (trayIndex: number, token: string) => void;
 }
 
-export function TrayPiece({ piece, trayIndex, renderCellOverlay }: TrayPieceProps) {
+export function TrayPiece({
+  piece,
+  trayIndex,
+  renderCellOverlay,
+  readyToken = null,
+  onInteractiveReady,
+}: TrayPieceProps) {
+  const reducedMotion = useReducedMotion();
   const ctx = useDragCtx();
   const { geom, cellColors } = ctx;
+  const { boardMirror, measureBoard } = ctx;
   const { cell } = geom;
   const trayCellGap = Math.min(2, Math.max(1, Math.round(cell * 0.035)));
 
@@ -48,12 +59,12 @@ export function TrayPiece({ piece, trayIndex, renderCellOverlay }: TrayPieceProp
   // от shape.id+colorId: иначе при рефилле слота такой же формой того же цвета
   // эффект не срабатывал и фигура оставалась невидимой (committedOpacity=0).
   useEffect(() => {
-    appearScale.value = TRAY_MOTION.appearFromScale;
+    appearScale.value = reducedMotion ? 1 : TRAY_MOTION.appearFromScale;
     appearOpacity.value = 0.7;
     appearScale.value = withTiming(1, { duration: TRAY_MOTION.appearDurationMs });
     appearOpacity.value = withTiming(1, { duration: TRAY_MOTION.appearDurationMs });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [piece]);
+  }, [piece, reducedMotion]);
 
   const appearStyle = useAnimatedStyle(() => ({
     opacity: appearOpacity.value,
@@ -83,12 +94,24 @@ export function TrayPiece({ piece, trayIndex, renderCellOverlay }: TrayPieceProp
 
   const measureForDrag = useCallback(() => {
     measureSlot();
-    ctx.boardMeasureRef.current?.();
-    // Свежее зеркало доски на старт drag: worklet проверяет позицию по нему, а не
-    // по отстающему useEffect. Иначе под лагами тень ложится на занятые клетки и
-    // дроп отклоняется движком (баги наслаивания на доске и пропажи фигуры).
-    ctx.boardMirror.value = [...useGameStore.getState().game.board];
-  }, [ctx.boardMeasureRef, ctx.boardMirror, measureSlot]);
+    measureBoard();
+    boardMirror.value = [...useGameStore.getState().game.board];
+  }, [boardMirror, measureBoard, measureSlot]);
+
+  useEffect(() => {
+    if (!readyToken || !onInteractiveReady) return;
+    let active = true;
+    const frame = requestAnimationFrame(() => {
+      containerRef.current?.measureInWindow((x, y, width, height) => {
+        slotMeasure.value = { x, y, width, height };
+        if (active) onInteractiveReady(trayIndex, readyToken);
+      });
+    });
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+    };
+  }, [onInteractiveReady, piece, readyToken, slotMeasure, trayIndex]);
 
   const { gesture, animatedStyle } = useDrag({
     trayIndex,
@@ -105,70 +128,79 @@ export function TrayPiece({ piece, trayIndex, renderCellOverlay }: TrayPieceProp
   });
 
   return (
-    <GestureDetector gesture={gesture}>
-      <View
-        testID={`tray-hit-${trayIndex}`}
-        collapsable={false}
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: TRAY_ACTIVATION.bottom,
-          left: 0,
-          overflow: 'visible',
-        }}
+    <View
+      ref={containerRef}
+      collapsable={false}
+      onLayout={measureSlot}
+      style={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'visible',
+      }}
+    >
+      <GestureDetector
+        key={disabled ? 'unavailable' : 'interactive'}
+        gesture={gesture}
       >
-        <View
-          ref={containerRef}
+        <Pressable
+          testID={`tray-hit-${trayIndex}`}
           collapsable={false}
-          onLayout={measureSlot}
+          accessible={disabled}
+          accessibilityRole={disabled ? 'button' : undefined}
+          accessibilityLabel={disabled ? ctx.unavailablePieceLabel : undefined}
+          accessibilityState={disabled ? { disabled: true } : undefined}
+          onAccessibilityTap={disabled
+            ? () => ctx.onUnavailablePiecePress?.(shape.id)
+            : undefined}
+          onPress={disabled
+            ? () => ctx.onUnavailablePiecePress?.(shape.id)
+            : undefined}
           style={{
             position: 'absolute',
             top: 0,
             right: 0,
-            bottom: -TRAY_ACTIVATION.bottom,
+            bottom: TRAY_ACTIVATION.bottom,
             left: 0,
-            alignItems: 'center',
-            justifyContent: 'center',
             overflow: 'visible',
           }}
+        />
+      </GestureDetector>
+      <Animated.View pointerEvents="none" style={[{ width: figW, height: figH, flexShrink: 0 }, appearStyle]}>
+        <Animated.View
+          style={[
+            {
+              width: figW,
+              height: figH,
+              flexShrink: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: disabled ? 0.35 : 1,
+            },
+            animatedStyle,
+          ]}
         >
-          <Animated.View style={appearStyle}>
-            <Animated.View
-              style={[
-                {
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: disabled ? 0.35 : 1,
-                },
-                animatedStyle,
-              ]}
-            >
+          <View style={{ width: figW, height: figH, position: 'relative' }}>
+            {(cells as readonly (readonly [number, number])[]).map(([dr, dc], index) => (
               <View
+                key={index}
                 style={{
-                  width: figW,
-                  height: figH,
-                  position: 'relative',
+                  position: 'absolute',
+                  left: dc * (cell + trayCellGap),
+                  top: dr * (cell + trayCellGap),
                 }}
               >
-                {(cells as readonly (readonly [number, number])[]).map(([dr, dc], index) => (
-                  <View
-                    key={index}
-                    style={{
-                      position: 'absolute',
-                      left: dc * (cell + trayCellGap),
-                      top: dr * (cell + trayCellGap),
-                    }}
-                    >
-                      <Block size={cell} color={color} />
-                      {renderCellOverlay?.(index, cell)}
-                    </View>
-                  ))}
+                <Block size={cell} color={color} />
+                {renderCellOverlay?.(index, cell)}
               </View>
-            </Animated.View>
-          </Animated.View>
-        </View>
-      </View>
-    </GestureDetector>
+            ))}
+          </View>
+        </Animated.View>
+      </Animated.View>
+    </View>
   );
 }

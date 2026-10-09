@@ -1,21 +1,26 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
-import { AppText, ChevronIcon, IconButton, colors, spacing } from '@/ui';
+import { AppText } from '../AppText';
+import { ChevronIcon } from '../icons/ChevronIcon';
+import { colors, spacing } from '../theme';
+import { IconButton } from './IconButton';
 
 export function ScreenHeader({
   title,
   onBack,
   right,
+  backLabel = 'Back',
 }: {
   title: string;
   onBack?: () => void;
   right?: ReactNode;
+  backLabel?: string;
 }) {
   return (
     <View style={{ minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.s, paddingHorizontal: spacing.m }}>
       {onBack ? (
-        <IconButton onPress={onBack} accessibilityLabel="Назад" size={48}>
+        <IconButton onPress={onBack} accessibilityLabel={backLabel} size={48}>
           <ChevronIcon direction="left" />
         </IconButton>
       ) : <View style={{ width: 48 }} />}

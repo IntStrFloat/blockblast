@@ -107,7 +107,7 @@ export function RecordStatusBadge() {
         style={{
           maxWidth: 144,
           color: emphasized ? '#FFF2B0' : '#DCEAFF',
-          fontFamily: 'Fredoka_600SemiBold',
+          fontFamily: 'Unbounded_700Bold',
           fontSize: 14,
           lineHeight: 17,
           fontVariant: ['tabular-nums'],

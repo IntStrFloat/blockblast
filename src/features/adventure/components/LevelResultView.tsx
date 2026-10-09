@@ -1,52 +1,95 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { useEffect } from 'react';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
+import { Confetti } from '@/features/game';
+import { useReducedMotion } from '@/features/game/animation/useReducedMotion';
+import { LevelUpReveal } from '@/features/mascot';
+import { RewardProgressSummary, rewardReceiptKey, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
-import { AppText, ChevronIcon, GameButton } from '@/ui';
+import { AppText, ChevronIcon, FireIcon, GameButton, TrophyIcon } from '@/ui';
 
 import { ADVENTURE_THEME } from '../theme';
 import { useAdventure } from '../store';
 import { MosaicView } from './MosaicView';
 import { SeasonCelebration } from './SeasonCelebration';
+import { AdventureXpBonus } from './AdventureXpBonus';
 
 interface Props {
+  completedLevel: number;
+  runId: string | null;
+  completionId: string | null;
+  completedSeason?: number | null;
   onNext: () => void;
   onExit: () => void;
   disabled?: boolean;
+  onBonusOfferAvailable?: () => void;
+  onBonusBusyChange?: (busy: boolean) => boolean | void;
 }
 
-export function LevelResultView({ onNext, onExit, disabled = false }: Props) {
+export function LevelResultView({
+  completedLevel,
+  runId,
+  completionId,
+  completedSeason = null,
+  onNext,
+  onExit,
+  disabled = false,
+  onBonusOfferAvailable,
+  onBonusBusyChange,
+}: Props) {
   const lang = useLang();
-  const { width } = useWindowDimensions();
+  const reduced = useReducedMotion();
+  const { width, height } = useWindowDimensions();
   const seasonId = useAdventure((s) => s.seasonId);
   const levelIndex = useAdventure((s) => s.levelIndex);
   const consecutive = useAdventure((s) => s.consecutive);
-  const completedSeason = useAdventure((s) => s.lastWinCompletedSeason);
+  const lifetimePoints = useProgression((s) => s.lifetimePoints);
+  const earnedXp = useProgression((s) =>
+    completionId
+      ? (s.rewardReceipts[rewardReceiptKey(completionId, 'xp')]?.grantedAmount ?? 0)
+      : 0,
+  );
+
+  useEffect(() => {
+    if (runId) useProgression.getState().presentRevealForRun(runId);
+  }, [runId]);
 
   if (completedSeason !== null) {
     return (
-      <SeasonCelebration
-        seasonId={completedSeason}
-        onContinue={() => {
-          useAdventure.getState().ackSeasonCelebration();
-          onNext();
-        }}
-      />
+      <>
+        <SeasonCelebration
+          seasonId={completedSeason}
+          disabled={disabled}
+          earnedXp={earnedXp}
+          lifetimePoints={lifetimePoints}
+          onContinue={onNext}
+        />
+        <LevelUpReveal />
+      </>
     );
   }
 
-  const mosaicWidth = Math.min(260, width - 104);
+  const mosaicWidth = Math.min(210, width - 120, height * 0.25);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: ADVENTURE_THEME.resultBottom }} edges={['top', 'bottom']}>
+    <SafeAreaView
+      accessibilityViewIsModal
+      importantForAccessibility="yes"
+      style={{ flex: 1, backgroundColor: ADVENTURE_THEME.resultBottom }}
+      edges={['top', 'bottom']}
+    >
       <LinearGradient
         colors={[ADVENTURE_THEME.resultTop, ADVENTURE_THEME.resultBottom]}
         style={{ position: 'absolute', inset: 0 }}
       />
-      <View style={{ flex: 1, alignItems: 'center', padding: 24, paddingTop: 34, gap: 18 }}>
-        <View style={{ width: '100%', alignItems: 'flex-start' }}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12, gap: 12 }}
+        showsVerticalScrollIndicator
+      >
+        <View style={{ position: 'absolute', top: 8, left: 12, zIndex: 2 }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('adventure.exit', lang)}
@@ -58,13 +101,26 @@ export function LevelResultView({ onNext, onExit, disabled = false }: Props) {
             <ChevronIcon size={28} direction="left" color="#C8F4FF" />
           </Pressable>
         </View>
-        <BlockBlastLogo />
+        <View accessible accessibilityLabel={`${t('adventure.levelClear', lang)}. ${t('adventure.level', lang)} ${completedLevel}`} style={{ alignItems: 'center', gap: 4 }}>
+          <TrophyIcon size={44} color="#FFE06B" />
+          <AppText preset="title" accessibilityRole="header" style={{ color: '#FFFFFF', fontSize: 24, textAlign: 'center' }}>
+            {t('adventure.level', lang)} {completedLevel}
+          </AppText>
+        </View>
         <MosaicView seasonId={seasonId} cleared={levelIndex} justFilled={levelIndex - 1} width={mosaicWidth} />
-        <AppText preset="button" style={{ color: 'rgba(220,241,255,0.62)', fontSize: 22, textAlign: 'center' }}>
-          Заверши сезон и собери мозаику!
-        </AppText>
+        <RewardProgressSummary earnedXp={earnedXp} lifetimePoints={lifetimePoints} light />
+        {completionId && runId ? (
+          <AdventureXpBonus
+            key={completionId}
+            completionId={completionId}
+            runId={runId}
+            disabled={disabled}
+            onOfferAvailable={onBonusOfferAvailable}
+            onBusyChange={onBonusBusyChange}
+          />
+        ) : null}
         <GameButton
-          label="Следующий уровень"
+          label={t('adventure.nextLevel', lang)}
           onPress={onNext}
           disabled={disabled}
           style={{
@@ -77,67 +133,15 @@ export function LevelResultView({ onNext, onExit, disabled = false }: Props) {
             borderBottomColor: '#B34D12',
           }}
         />
-        <AppText preset="button" style={{ color: '#DDF6FF', fontSize: 21 }}>
-          Побед подряд {consecutive}
-        </AppText>
-      </View>
+        {consecutive > 1 ? (
+          <View accessible accessibilityLabel={`${t('adventure.consecutive', lang)}: ${consecutive}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <FireIcon size={20} />
+            <AppText preset="button" style={{ color: '#062842' }}>{consecutive}</AppText>
+          </View>
+        ) : null}
+      </ScrollView>
+      {reduced ? null : <Confetti count={14} />}
+      <LevelUpReveal />
     </SafeAreaView>
-  );
-}
-
-function BlockBlastLogo() {
-  const firstLine = [
-    ['Б', '#FF9A24'],
-    ['Л', '#2EC8FF'],
-    ['О', '#FF4845'],
-    ['К', '#FFD338'],
-  ] as const;
-  const secondLine = [
-    ['Б', '#2EC8FF'],
-    ['Л', '#2EC8FF'],
-    ['А', '#2EC8FF'],
-    ['С', '#2EC8FF'],
-    ['Т', '#2EC8FF'],
-    ['И', '#2EC8FF'],
-    ['К', '#2EC8FF'],
-  ] as const;
-  return (
-    <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 6 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-        {firstLine.map(([letter, color]) => (
-          <AppText
-            key={letter}
-            preset="title"
-            style={{
-              color,
-              fontSize: 40,
-              textShadowColor: 'rgba(9,28,94,0.55)',
-              textShadowOffset: { width: 0, height: 4 },
-              textShadowRadius: 2,
-              transform: [{ rotate: letter === 'Б' ? '-6deg' : letter === 'К' ? '6deg' : '0deg' }],
-            }}
-          >
-            {letter}
-          </AppText>
-        ))}
-      </View>
-      <View style={{ flexDirection: 'row', marginTop: -6 }}>
-        {secondLine.map(([letter, color]) => (
-          <AppText
-            key={`second-${letter}`}
-            preset="title"
-            style={{
-              color,
-              fontSize: 34,
-              textShadowColor: 'rgba(9,28,94,0.55)',
-              textShadowOffset: { width: 0, height: 4 },
-              textShadowRadius: 2,
-            }}
-          >
-            {letter}
-          </AppText>
-        ))}
-      </View>
-    </View>
   );
 }

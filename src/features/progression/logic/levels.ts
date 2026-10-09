@@ -2,9 +2,19 @@ import { PROGRESSION_CONFIG, type ProgressionConfig } from './config';
 import { worldForLevel } from './worlds';
 import type { ProgressInfo } from './types';
 
+function introLevelCost(level: number, cfg: ProgressionConfig): number | null {
+  const introCosts = cfg.introLevelCosts;
+  if (!introCosts || level > introCosts.length) return null;
+  return Math.round(introCosts[level - 1]);
+}
+
+function formulaLevelCost(level: number, cfg: ProgressionConfig): number {
+  return Math.round(cfg.levelCost.base * Math.pow(cfg.levelCost.growth, level - 1));
+}
+
 export function levelCost(level: number, cfg: ProgressionConfig = PROGRESSION_CONFIG): number {
   const L = Math.max(1, Math.floor(level));
-  return Math.round(cfg.levelCost.base * Math.pow(cfg.levelCost.growth, L - 1));
+  return introLevelCost(L, cfg) ?? formulaLevelCost(L, cfg);
 }
 
 export function thresholdForLevel(

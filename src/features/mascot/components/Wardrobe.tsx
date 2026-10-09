@@ -3,15 +3,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { t } from '@/core/i18n';
 import type { Lang } from '@/core/i18n';
-import { PROGRESSION_CONFIG, progressFor, stageForLevel, useProgression } from '@/features/progression';
+import { PROGRESSION_CONFIG, progressFor, rewardDisplayName, stageForLevel, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
-import { AppText, colors, mascotPalette, spacing } from '@/ui';
+import { AppText, CheckIcon, LockIcon, colors, mascotPalette, spacing } from '@/ui';
 
 import { COSMETICS } from '../logic/cosmetics';
 import type { Cosmetic } from '../logic/types';
 import { useMascot } from '../store';
 import { Mascot, useMascotMotion } from './Mascot';
-import { CosmeticIcon, MascotMark } from './MascotArt';
+import { CosmeticIcon } from './MascotArt';
 
 // Источник истины косметики-наград — Уровень Игры (спека 15): id→уровень разлока.
 const COSMETIC_UNLOCK_LEVEL: Record<string, number> = (() => {
@@ -25,13 +25,13 @@ const COSMETIC_UNLOCK_LEVEL: Record<string, number> = (() => {
 const COSMETIC_BY_ID = new Map(COSMETICS.map((item) => [item.id, item]));
 
 // Legacy bonus cosmetics stay visible for players who already unlocked them.
-const LEGACY_BONUS_COSMETIC_IDS = [
-  'skin-chrome',
-  'hat-tophat',
-  'face-vr-visor',
-  'skin-obsidian',
-  'hat-halo',
-] as const;
+const LEGACY_BONUS_NAMES: Record<string, Record<Lang, string>> = {
+  'skin-chrome': { ru: 'Хромированный образ', en: 'Chrome look' },
+  'hat-tophat': { ru: 'Цилиндр', en: 'Top hat' },
+  'face-vr-visor': { ru: 'VR-очки', en: 'VR visor' },
+  'skin-obsidian': { ru: 'Обсидиановый образ', en: 'Obsidian look' },
+  'hat-halo': { ru: 'Нимб', en: 'Halo' },
+};
 
 // Все обретаемые косметики: награды уровней + ранее выданные legacy-предметы.
 const OBTAINABLE_IDS: string[] = [
@@ -41,7 +41,7 @@ const OBTAINABLE_IDS: string[] = [
         reward !== undefined && reward.kind === 'cosmetic',
     )
     .map((reward) => reward.id),
-  ...LEGACY_BONUS_COSMETIC_IDS,
+  ...Object.keys(LEGACY_BONUS_NAMES),
 ];
 
 const WARDROBE_COSMETICS: Cosmetic[] = Array.from(new Set(OBTAINABLE_IDS))
@@ -66,29 +66,28 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
   const lifetimePoints = useProgression((s) => s.lifetimePoints);
   const unlocked = useMascot((s) => s.unlocked);
   const equipped = useMascot((s) => s.equipped);
+  const visibleCosmetics = WARDROBE_COSMETICS.filter((item) =>
+    COSMETIC_UNLOCK_LEVEL[item.id] !== undefined ||
+    unlocked.includes(item.id) || equipped[item.slot] === item.id,
+  );
 
   const p = progressFor(lifetimePoints);
   const stage = stageForLevel(p.level);
   const total = p.pointsInLevel + p.pointsToNext;
-  const fillPct = total > 0 ? (p.pointsInLevel / total) * 100 : 100;
-  const copy = wardrobeCopy(lang);
+  const fillPct = total > 0 ? Math.max(0, Math.min(100, (p.pointsInLevel / total) * 100)) : 100;
   const panelWidth = Math.min(width - spacing.m * 2, 392);
   const panelMaxHeight = Math.min(height - spacing.l * 2, 680);
   const tileSize = Math.floor((panelWidth - spacing.m * 2 - spacing.s * 3) / 4);
-  const unlockedCount = WARDROBE_COSMETICS.filter((item) => unlocked.includes(item.id)).length;
-  const nextRewardLevel = Object.keys(PROGRESSION_CONFIG.levelRewards)
-    .map(Number)
-    .filter((level) => level > p.level)
-    .sort((a, b) => a - b)[0];
-  const xpLabel = `${p.pointsInLevel}/${total} ${copy.pointsShort}`;
-  const nextLabel = nextRewardLevel ? `${copy.next} ${copy.levelShort}${nextRewardLevel}` : copy.maxed;
 
   // Preview motion (neutral, static)
   const motion = useMascotMotion();
 
   return (
-    <Pressable style={styles.scrim} onPress={onClose}>
+    <Pressable importantForAccessibility="yes" style={styles.scrim} onPress={onClose}>
       <Pressable
+        accessibilityViewIsModal
+        importantForAccessibility="yes"
+        onAccessibilityEscape={onClose}
         style={[styles.card, { width: panelWidth, maxHeight: panelMaxHeight }]}
         onPress={(e) => e.stopPropagation()}
       >
@@ -101,60 +100,26 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
             pointerEvents="none"
           />
 
+          <View style={styles.titleRow}>
+            <AppText preset="button" style={styles.title}>{t('mascot.wardrobeTitle', lang)}</AppText>
+            <Pressable accessibilityRole="button" accessibilityLabel={lang === 'ru' ? 'Закрыть' : 'Close'} onPress={onClose} style={styles.closeButton}>
+              <AppText preset="title">×</AppText>
+            </Pressable>
+          </View>
           <View style={styles.hero}>
-            <View style={styles.heroText}>
-              <View style={styles.eyebrowRow}>
-                <MascotMark size={18} />
-                <AppText preset="caption" style={styles.eyebrow}>
-                  {copy.currentLevel}
-                </AppText>
-              </View>
-              <View style={styles.levelHeadlineRow}>
-                <AppText preset="score" style={styles.levelNumber}>
-                  {p.level}
-                </AppText>
-                <View style={styles.levelMeta}>
-                  <AppText preset="button" style={styles.title}>
-                    {t('mascot.wardrobeTitle', lang)}
-                  </AppText>
-                  <AppText preset="caption" style={styles.stageText}>
-                    {`${copy.stage} ${stage} / ${copy.maxLevel} ${PROGRESSION_CONFIG.maxAuthoredLevel}`}
-                  </AppText>
-                </View>
-              </View>
-              <View style={styles.xpTrackLarge}>
-                <View style={[styles.xpFill, { width: `${fillPct}%` }]} />
-              </View>
-              <View style={styles.levelStats}>
-                <AppText preset="caption" style={styles.statText}>
-                  {xpLabel}
-                </AppText>
-                <AppText preset="caption" style={styles.statText}>
-                  {nextLabel}
-                </AppText>
-              </View>
-            </View>
             <View style={styles.previewPod}>
               <View style={styles.previewHalo} />
-              <Mascot motion={motion} stage={stage} equipped={equipped} size={84} />
+              <Mascot motion={motion} stage={stage} equipped={equipped} size={76} />
             </View>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryPill}>
-              <AppText preset="caption" style={styles.summaryLabel}>
-                {copy.unlocked}
+            <View style={styles.heroText}>
+              <AppText preset="button" style={styles.levelNumber}>
+                {lang === 'ru' ? 'Ур.' : 'Lv.'} {p.level}
               </AppText>
-              <AppText preset="button" style={styles.summaryValue}>
-                {`${unlockedCount}/${WARDROBE_COSMETICS.length}`}
-              </AppText>
-            </View>
-            <View style={styles.summaryPill}>
-              <AppText preset="caption" style={styles.summaryLabel}>
-                {copy.equipped}
-              </AppText>
-              <AppText preset="button" style={styles.summaryValue}>
-                {Object.keys(equipped).length.toString()}
+              <View style={styles.xpTrackLarge} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: p.pointsInLevel }} accessibilityLabel={lang === 'ru' ? 'До следующего уровня' : 'Next level'}>
+                <View style={[styles.xpFill, { width: `${fillPct}%` }]} />
+              </View>
+              <AppText preset="caption" style={styles.statText}>
+                {p.pointsInLevel} / {total} XP
               </AppText>
             </View>
           </View>
@@ -166,9 +131,9 @@ function WardrobeInner({ onClose }: { onClose: () => void }) {
             contentContainerStyle={styles.grid}
             showsVerticalScrollIndicator={false}
           >
-            {WARDROBE_COSMETICS.map((item) => {
-              const isUnlocked = unlocked.includes(item.id);
+            {visibleCosmetics.map((item) => {
               const isEquipped = equipped[item.slot] === item.id;
+              const isUnlocked = isEquipped || unlocked.includes(item.id);
               const unlockLevel = COSMETIC_UNLOCK_LEVEL[item.id];
 
               return (
@@ -221,6 +186,10 @@ function CosmeticTile({
   size,
   onPress,
 }: CosmeticTileProps) {
+  const name = LEGACY_BONUS_NAMES[itemId]?.[lang] ?? rewardDisplayName({ kind: 'cosmetic', id: itemId }, lang);
+  const lockedLabel = unlockLevel !== undefined
+    ? `${t('mascot.locked', lang)}${unlockLevel}`
+    : lang === 'ru' ? 'Закрыто' : 'Locked';
   return (
     <Pressable
       onPress={onPress}
@@ -231,12 +200,14 @@ function CosmeticTile({
         pressed && isUnlocked && styles.tilePressed,
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${isUnlocked ? '' : `${t('mascot.locked', lang)}${unlockLevel ?? ''} `}${itemId}`}
+      accessibilityLabel={`${name}. ${isEquipped ? lang === 'ru' ? 'Надето. Снять' : 'Equipped. Unequip' : isUnlocked ? lang === 'ru' ? 'Надеть' : 'Equip' : lockedLabel}`}
       accessibilityState={{ disabled: !isUnlocked, selected: isEquipped }}
     >
-      <CosmeticIcon id={itemId} size={Math.round(size * 0.52)} muted={!isUnlocked} simple />
+      <CosmeticIcon id={itemId} size={Math.round(size * 0.52)} simple />
+      {isEquipped ? <View style={styles.equippedCheck}><CheckIcon size={15} color={mascotPalette.block} /></View> : null}
       {!isUnlocked && (
         <View style={styles.lockRow}>
+          <LockIcon size={11} color="#DCE7FF" />
           <AppText preset="caption" style={styles.lockLabel}>
             {unlockLevel !== undefined ? unlockLevel.toString() : ''}
           </AppText>
@@ -244,33 +215,6 @@ function CosmeticTile({
       )}
     </Pressable>
   );
-}
-
-function wardrobeCopy(lang: Lang) {
-  if (lang === 'ru') {
-    return {
-      currentLevel: 'Текущий уровень',
-      levelShort: 'ур.',
-      maxLevel: 'макс.',
-      stage: 'стадия',
-      maxed: 'максимум',
-      next: 'следующая награда',
-      pointsShort: 'очк.',
-      unlocked: 'открыто',
-      equipped: 'надето',
-    };
-  }
-  return {
-    currentLevel: 'Current level',
-    levelShort: 'lvl ',
-    maxLevel: 'max',
-    stage: 'stage',
-    maxed: 'maxed',
-    next: 'next reward',
-    pointsShort: 'pts',
-    unlocked: 'unlocked',
-    equipped: 'equipped',
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -317,44 +261,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 128,
+    minHeight: 84,
     gap: spacing.m,
   },
   heroText: {
     flex: 1,
-    gap: spacing.xs,
-  },
-  eyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  eyebrow: {
-    color: mascotPalette.auraBlue,
-    fontSize: 11,
-    textTransform: 'uppercase',
-  },
-  levelHeadlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing.s,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  closeButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   levelNumber: {
     color: mascotPalette.block,
-    fontSize: 56,
-    lineHeight: 62,
-  },
-  levelMeta: {
-    flex: 1,
-    gap: 2,
+    fontSize: 22,
+    lineHeight: 28,
   },
   title: {
     fontSize: 17,
     lineHeight: 21,
-  },
-  stageText: {
-    color: '#B8C8EA',
-    fontSize: 11,
   },
   xpTrackLarge: {
     height: 8,
@@ -367,19 +299,15 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: mascotPalette.block,
   },
-  levelStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.s,
-  },
   statText: {
     color: '#C8D4F2',
-    fontSize: 10,
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
   },
   previewPod: {
-    width: 104,
-    height: 104,
-    borderRadius: 28,
+    width: 84,
+    height: 84,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -388,33 +316,10 @@ const styles = StyleSheet.create({
   },
   previewHalo: {
     position: 'absolute',
-    width: 86,
-    height: 86,
-    borderRadius: 43,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: 'rgba(255,210,63,0.1)',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: spacing.s,
-  },
-  summaryPill: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 14,
-    paddingHorizontal: spacing.s,
-    paddingVertical: spacing.xs,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  summaryLabel: {
-    color: '#91A7D2',
-    fontSize: 10,
-  },
-  summaryValue: {
-    color: colors.textPrimary,
-    fontSize: 15,
   },
   scrollArea: {
     maxHeight: 326,
@@ -453,11 +358,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,210,63,0.18)',
   },
   tileLocked: {
-    backgroundColor: 'rgba(8,15,31,0.9)',
-    borderColor: 'rgba(255,255,255,0.09)',
+    backgroundColor: '#41607C',
+    borderColor: 'rgba(206,233,255,0.24)',
   },
   tilePressed: {
     backgroundColor: colors.surfacePressed,
+  },
+  equippedCheck: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
   },
   lockRow: {
     position: 'absolute',
@@ -465,6 +375,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 5,
     minHeight: 16,
+    flexDirection: 'row',
+    gap: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },

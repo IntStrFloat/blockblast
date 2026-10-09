@@ -5,7 +5,7 @@ import {
   findPlacements,
   idx,
 } from '@/core/engine/board';
-import { SHAPES, SHAPES_BY_ID } from '@/core/engine/shapes';
+import { SHAPES_BY_ID } from '@/core/engine/shapes';
 import { BOARD_SIZE } from '@/core/engine/types';
 import type { Board, GameState, PieceInstance, Shape } from '@/core/engine/types';
 
@@ -114,40 +114,6 @@ export function findTutorialRecommendation(
       placementsToClear: path.length,
       targetCells: first.shape.cells.map(([dr, dc]) => [first.row + dr, first.col + dc]),
     };
-  }
-  return null;
-}
-
-/**
- * Adds a real, player-placeable recovery piece to the next generated tray when the
- * current recommendation path was exhausted. No piece is auto-placed.
- */
-export function withTutorialRecoveryPiece(
-  board: Board,
-  nextTray: readonly (PieceInstance | null)[],
-  colorId = 3,
-): { tray: (PieceInstance | null)[]; recommendation: TutorialRecommendation } | null {
-  for (const shape of SHAPES) {
-    for (const [row, col] of findPlacements(board, shape)) {
-      const placed = applyPlacement(board, shape, row, col, colorId).board;
-      const lines = findFullLines(placed);
-      if (lines.rows.length + lines.cols.length === 0) continue;
-
-      const tray = nextTray.slice();
-      const trayIndex = Math.max(0, tray.findIndex((piece) => piece !== null));
-      tray[trayIndex] = { shape, colorId };
-      return {
-        tray,
-        recommendation: {
-          trayIndex,
-          row,
-          col,
-          shapeId: shape.id,
-          placementsToClear: 1,
-          targetCells: shape.cells.map(([dr, dc]) => [row + dr, col + dc]),
-        },
-      };
-    }
   }
   return null;
 }

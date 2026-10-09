@@ -1,0 +1,5 @@
+- generic [ref=f6e3]:
+  - generic [ref=f6e5]: "错误号: 412"
+  - generic [ref=f6e6]:
+    - text: 由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝。
+    - generic [ref=f6e7]: The request was rejected because of the bilibili security control policy.

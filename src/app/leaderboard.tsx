@@ -1,26 +1,29 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
-import { useAnalyticsStore } from '@/features/analytics';
+import { recordNextGoalClick, useAnalyticsStore } from '@/features/analytics';
 import {
   LeaderboardRow,
   Podium,
   getUtcWeekCountdown,
   getWeeklyGoal,
+  currentWeeklyGoal,
+  useWeeklyGoalStore,
+  useWeeklyGoalWeekKey,
   resolveWeeklyView,
+  selectPreviousWeeklyBest,
   selectMyChampionRank,
   unclaimedPrize,
   useLeaderboardStore,
   weeklyStatusLabel,
 } from '@/features/leaderboard';
-import { useMascot } from '@/features/mascot';
-import { useProgression } from '@/features/progression';
+import { RewardVisual } from '@/features/progression/components/RewardVisual';
 import { useLang } from '@/features/settings';
-import { AppText, ChevronIcon, CrownIcon, TrophyIcon, spacing } from '@/ui';
+import { AppText, CheckIcon, ChevronIcon, CrownIcon, TrophyIcon, spacing } from '@/ui';
 
 const ARCADE_BLUE = ['#2548B8', '#1998DC'] as const;
 
@@ -48,9 +51,28 @@ function ArcadeBackButton({ onPress, label }: { onPress: () => void; label: stri
   );
 }
 
-function ClaimButton({ label, onPress }: { label: string; onPress: () => void }) {
+function ClaimButton({
+  label,
+  onPress,
+  disabled = false,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.claimButton, pressed && styles.claimButtonPressed]}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      style={({ pressed }) => [
+        styles.claimButton,
+        pressed && styles.claimButtonPressed,
+        disabled && { opacity: 0.58 },
+      ]}
+    >
       <LinearGradient colors={['#A9E16E', '#82C958']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.claimButtonSurface}>
         <AppText preset="speech" style={styles.claimButtonLabel}>{label}</AppText>
       </LinearGradient>
@@ -66,8 +88,15 @@ export default function LeaderboardScreen() {
   const lastError = useLeaderboardStore((state) => state.lastError);
   const localWeekly = useLeaderboardStore((state) => state.localWeeklyResult);
   const weeklyPrizes = useLeaderboardStore((state) => state.weeklyPrizes);
+  const weeklyOutcomes = useLeaderboardStore((state) => state.weeklyOutcomes);
+  const prizeSyncState = useLeaderboardStore((state) => state.prizeSyncState);
+  const prizeLastError = useLeaderboardStore((state) => state.prizeLastError);
+  const claimingRewardId = useLeaderboardStore((state) => state.claimingRewardId);
+  const weeklyGoals = useWeeklyGoalStore((state) => state.goals);
   const overtaken = useLeaderboardStore((state) => state.overtaken);
   const [loading, setLoading] = useState(false);
+  const currentWeekKey = useWeeklyGoalWeekKey();
+  const goalNow = new Date();
 
   const runRefresh = useCallback(() => {
     setLoading(true);
@@ -98,25 +127,77 @@ export default function LeaderboardScreen() {
   const statusLabel = weeklyStatusLabel(viewState, snapshot?.source, lang);
   const myChampionRank = selectMyChampionRank(weeklyPrizes);
   const pendingPrize = unclaimedPrize(weeklyPrizes);
-  const view = resolveWeeklyView(snapshot, localWeekly, myChampionRank, new Date());
+  const latestOutcome = weeklyOutcomes[0] ?? null;
+  const missedPrizeCount = weeklyPrizes.filter(
+    (record) => record.origin === 'server' && !record.claimed,
+  ).length;
+  const view = resolveWeeklyView(snapshot, localWeekly, myChampionRank, goalNow);
   const weeklyBest = view.effectiveBest;
-  const goal = getWeeklyGoal(weeklyBest);
+  const previousWeeklyBest = selectPreviousWeeklyBest(snapshot, localWeekly, goalNow);
+  const assignedGoal = currentWeeklyGoal(
+    weeklyGoals,
+    goalNow,
+    weeklyBest,
+    previousWeeklyBest,
+  );
+  const goal = getWeeklyGoal(
+    Math.max(weeklyBest, assignedGoal.progress),
+    assignedGoal.target,
+  );
+
+  useEffect(() => {
+    const synced = useWeeklyGoalStore.getState().sync(
+      new Date(),
+      weeklyBest,
+      'leaderboard',
+      previousWeeklyBest,
+    );
+    useWeeklyGoalStore.getState().expose(synced, 'leaderboard');
+  }, [currentWeekKey, previousWeeklyBest, weeklyBest]);
   const progressPercent = goal.target > 0 ? Math.min(100, Math.round((goal.progress / goal.target) * 100)) : 0;
   const rank = view.rank;
   const rankLabel = rank != null ? `#${rank}` : t('leaderboard.unranked', lang);
+  const goalStateLabel = goal.complete
+    ? lang === 'ru' ? 'Выполнено' : 'Complete'
+    : `${lang === 'ru' ? 'Осталось' : 'Left'} ${goal.remaining}`;
   const currentEntry = view.currentEntry;
   const entries = view.entries;
   const podium = entries.slice(0, 3);
   const listData = entries.slice(3);
   const showPinnedCurrent = Boolean(currentEntry) && !entries.some((entry) => entry.isCurrentPlayer);
+  const emptyStateLabel = podium.length > 0 ? null : lastError
+    ? t('leaderboard.error', lang)
+    : viewState === 'loading'
+      ? t('leaderboard.loading', lang)
+      : viewState === 'empty' ? t('leaderboard.empty', lang) : null;
+  const consolidateEmptyStatus = entries.length === 0 && !pendingPrize && weeklyOutcomes.length === 0;
+  const combinedStatusLabel = lastError || viewState === 'error' || prizeSyncState === 'error'
+    ? t('leaderboard.error', lang)
+    : viewState === 'loading'
+      ? t('leaderboard.loading', lang)
+      : prizeSyncState === 'offline' || statusLabel
+        ? statusLabel ?? t('leaderboard.offline', lang)
+        : emptyStateLabel ?? t('leaderboard.empty', lang);
+  const retryEmptyStatus = Boolean(lastError) ||
+    viewState === 'error' || viewState === 'cached' || viewState === 'empty' ||
+    prizeSyncState === 'offline' || prizeSyncState === 'error';
+
+  const playWeeklyGoal = () => {
+    recordNextGoalClick('weekly', assignedGoal.goalId);
+    if (goal.complete) {
+      useWeeklyGoalStore.getState().advanceCompleted(new Date(), goal.current);
+    }
+    router.push({ pathname: '/game', params: { entry: 'new' } });
+  };
 
   const claimPrize = useCallback(() => {
     if (!pendingPrize) return;
-    const record = useLeaderboardStore.getState().claimWeeklyPrize(pendingPrize.weekKey);
-    if (!record) return;
-    useProgression.getState().addPoints(record.prize.points);
-    useMascot.getState().unlock(record.prize.cosmeticId);
+    void useLeaderboardStore.getState().claimWeeklyPrize(pendingPrize.rewardId);
   }, [pendingPrize]);
+
+  const retryPrizeSync = useCallback(() => {
+    void useLeaderboardStore.getState().syncWeeklyOutcomes();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -134,7 +215,7 @@ export default function LeaderboardScreen() {
             <View style={styles.topBar}>
               <ArcadeBackButton onPress={() => router.back()} label={t('leaderboard.back', lang)} />
               <AppText preset="speech" style={styles.screenTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78}>
-                {t('leaderboard.title', lang)}
+                {lang === 'ru' ? 'Рейтинг' : 'Leaderboard'}
               </AppText>
               <View style={styles.countdown} accessible accessibilityLabel={`${t('leaderboard.resetsIn', lang)} ${formatCountdown()}`}>
                 <TrophyIcon size={16} color="#FFE46B" />
@@ -143,49 +224,115 @@ export default function LeaderboardScreen() {
             </View>
 
             {overtaken ? (
-              <View style={styles.overtakenBanner}>
+              <View style={styles.overtakenBanner} accessible accessibilityLabel={overtaken.by ? `${t('leaderboard.overtakenBy', lang)} ${overtaken.by}` : t('leaderboard.overtaken', lang)}>
                 <AppText preset="speech" style={styles.overtakenText} numberOfLines={2}>
-                  {overtaken.by
-                    ? `${t('leaderboard.overtakenBy', lang)} ${overtaken.by} — ${t('leaderboard.fightBack', lang)}`
-                    : `${t('leaderboard.overtaken', lang)} #${overtaken.from} → #${overtaken.to} — ${t('leaderboard.fightBack', lang)}`}
+                  #{overtaken.from} → #{overtaken.to}
                 </AppText>
               </View>
             ) : null}
 
             <View style={styles.weeklyHero}>
               <LinearGradient colors={['#FFC33A', '#F2940A']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.weeklyHeroSurface}>
-                <View style={styles.heroIcon}><CrownIcon size={33} color="#173C91" /></View>
-                <View style={styles.heroCopy}>
-                  <AppText preset="speech" style={styles.heroKicker} numberOfLines={1}>
-                    {t('leaderboard.weeklyBest', lang)}{statusLabel ? ` · ${statusLabel}` : ''}
-                  </AppText>
-                  <AppText preset="score" style={styles.heroScore} numberOfLines={1}>{weeklyBest}</AppText>
+                <View style={styles.heroTop}>
+                  <View style={styles.heroIcon}><CrownIcon size={29} color="#173C91" /></View>
+                  <AppText preset="speech" style={styles.heroKicker}>{lang === 'ru' ? 'Цель недели' : 'Weekly goal'}</AppText>
+                  <View style={styles.rankPill} accessible accessibilityLabel={rankLabel}><AppText preset="speech" style={styles.rankPillText}>{rank == null ? '—' : rankLabel}</AppText></View>
                 </View>
-                <View style={styles.rankPill}><AppText preset="speech" style={styles.rankPillText}>{rankLabel}</AppText></View>
-                <View style={styles.goalTrack}>
-                  <View style={[styles.goalFill, { width: `${Math.max(progressPercent, 2)}%` as `${number}%` }]} />
+                <View style={styles.goalValue} accessible accessibilityLabel={`${t('leaderboard.weeklyBest', lang)} ${weeklyBest}. ${goal.current}/${goal.target}. ${goalStateLabel}`}>
+                  <AppText preset="score" style={styles.heroScore} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{`${goal.current}/${goal.target}`}</AppText>
+                  {goal.complete ? <CheckIcon size={23} color="#1746A7" /> : null}
+                </View>
+                <View style={styles.goalTrack} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: goal.target, now: Math.min(goal.current, goal.target) }}>
+                  <View style={[styles.goalFill, { width: `${progressPercent}%` as `${number}%` }]} />
                 </View>
               </LinearGradient>
             </View>
 
+            <ClaimButton
+              label={goal.complete
+                ? lang === 'ru' ? 'Следующая цель · Играть' : 'Next goal · Play'
+                : lang === 'ru' ? 'Играть' : 'Play'}
+              onPress={playWeeklyGoal}
+            />
+
             {pendingPrize ? (
               <View style={styles.prizeCard}>
-                <View style={styles.prizeCopy}>
-                  <CrownIcon size={23} color="#FFE46B" />
+                <View style={styles.prizeCopy} accessible accessibilityLabel={`${t('leaderboard.prizeReady', lang)} ${t('leaderboard.prizePlace', lang)} ${pendingPrize.rank}. +${pendingPrize.prize.points} XP${missedPrizeCount > 1 ? `. ${lang === 'ru' ? 'Ещё наград' : 'More rewards'}: ${missedPrizeCount - 1}` : ''}`}>
+                  <RewardVisual reward={{ kind: 'cosmetic', id: pendingPrize.prize.cosmeticId }} size={48} />
                   <View style={{ flex: 1 }}>
-                    <AppText preset="speech" style={styles.prizeTitle}>{t('leaderboard.prizeReady', lang)}</AppText>
-                    <AppText preset="caption" style={styles.prizeDetail} numberOfLines={2}>
-                      {t('leaderboard.prizePlace', lang)} #{pendingPrize.rank} · +{pendingPrize.prize.points} {t('leaderboard.prizePoints', lang)}
-                    </AppText>
+                    <AppText preset="speech" style={styles.prizeTitle}>#{pendingPrize.rank} · +{pendingPrize.prize.points} XP</AppText>
                   </View>
+                  {missedPrizeCount > 1 ? <AppText preset="button" style={styles.prizeDetail}>+{missedPrizeCount - 1}</AppText> : null}
                 </View>
-                <ClaimButton label={t('leaderboard.claim', lang)} onPress={claimPrize} />
+                <ClaimButton
+                  label={claimingRewardId === pendingPrize.rewardId
+                    ? lang === 'ru' ? 'Получаем…' : 'Claiming…'
+                    : t('leaderboard.claim', lang)}
+                  onPress={claimPrize}
+                  disabled={claimingRewardId !== null}
+                />
               </View>
             ) : null}
 
-            {viewState === 'loading' && podium.length === 0 ? <AppText preset="speech" style={styles.stateText}>{t('leaderboard.loading', lang)}</AppText> : null}
-            {viewState === 'empty' ? <AppText preset="speech" style={styles.stateText}>{t('leaderboard.empty', lang)}</AppText> : null}
-            {lastError && podium.length === 0 ? <AppText preset="speech" style={styles.stateText}>{t('leaderboard.error', lang)}</AppText> : null}
+            {!consolidateEmptyStatus && !pendingPrize && !lastError && snapshot?.source === 'remote' && viewState !== 'error' && viewState !== 'cached' &&
+            (prizeSyncState === 'idle' || prizeSyncState === 'loading') &&
+            weeklyOutcomes.length === 0 ? (
+              <AppText preset="caption" style={styles.stateText}>
+                {lang === 'ru' ? 'Подводим итог прошлой недели…' : 'Finalizing last week…'}
+              </AppText>
+            ) : null}
+            {!consolidateEmptyStatus && prizeSyncState === 'offline' ? (
+              <View style={styles.prizeCard}>
+                <AppText preset="speech" style={styles.prizeTitle}>
+                  {lang === 'ru'
+                    ? 'Нет сети — проверим итог позже'
+                    : 'Offline — we’ll check the result later'}
+                </AppText>
+                {prizeLastError ? (
+                  <ClaimButton
+                    label={t('leaderboard.retry', lang)}
+                    onPress={retryPrizeSync}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+            {!consolidateEmptyStatus && prizeSyncState === 'error' ? (
+              <View style={styles.prizeCard}>
+                <AppText preset="speech" style={styles.prizeTitle}>
+                  {lang === 'ru'
+                    ? 'Не удалось проверить или получить награду'
+                    : 'Could not check or claim the reward'}
+                </AppText>
+                <ClaimButton
+                  label={t('leaderboard.retry', lang)}
+                  onPress={pendingPrize ? claimPrize : retryPrizeSync}
+                  disabled={claimingRewardId !== null}
+                />
+              </View>
+            ) : null}
+            {!pendingPrize && prizeSyncState === 'ready' && latestOutcome ? (
+              <View style={styles.prizeCard}>
+                <AppText preset="speech" style={styles.prizeTitle}>
+                  {latestOutcome.reward
+                    ? lang === 'ru' ? 'Награда недели получена' : 'Weekly reward claimed'
+                    : lang === 'ru'
+                      ? `Итог недели: #${latestOutcome.rank} · без приза`
+                      : `Final result: #${latestOutcome.rank} · no prize`}
+                </AppText>
+              </View>
+            ) : null}
+
+            {consolidateEmptyStatus ? (
+              <View style={styles.emptyStatus} testID="leaderboard-empty-status">
+                <AppText preset="caption" style={styles.stateText}>{combinedStatusLabel}</AppText>
+                {retryEmptyStatus ? <ClaimButton label={t('leaderboard.retry', lang)} onPress={() => { void runRefresh(); retryPrizeSync(); }} /> : null}
+              </View>
+            ) : (
+              <>
+                {emptyStateLabel && prizeSyncState !== 'offline' && prizeSyncState !== 'error' ? <AppText preset="caption" style={styles.stateText}>{emptyStateLabel}</AppText> : null}
+                {statusLabel && !emptyStateLabel && prizeSyncState !== 'offline' && prizeSyncState !== 'error' ? <AppText preset="caption" style={styles.statusText}>{statusLabel}</AppText> : null}
+              </>
+            )}
 
             {podium.length > 0 ? <Podium entries={podium} /> : null}
           </View>
@@ -193,7 +340,7 @@ export default function LeaderboardScreen() {
         ListFooterComponent={
           <View style={styles.footer}>
             {showPinnedCurrent && currentEntry ? <LeaderboardRow entry={currentEntry} /> : null}
-            {viewState === 'error' || viewState === 'cached' || viewState === 'empty' ? <ClaimButton label={t('leaderboard.retry', lang)} onPress={() => void runRefresh()} /> : null}
+            {!consolidateEmptyStatus && (viewState === 'error' || viewState === 'cached' || viewState === 'empty') ? <ClaimButton label={t('leaderboard.retry', lang)} onPress={() => void runRefresh()} /> : null}
           </View>
         }
         renderItem={({ item }) => <LeaderboardRow entry={item} />}
@@ -210,29 +357,32 @@ const styles = StyleSheet.create({
   topBar: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.s },
   backButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.30)' },
   backButtonPressed: { opacity: 0.7, transform: [{ scale: 0.95 }] },
-  screenTitle: { flex: 1, color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 28, lineHeight: 32 },
+  screenTitle: { flex: 1, color: '#FFFFFF', fontFamily: 'Unbounded_700Bold', fontSize: 28, lineHeight: 34 },
   countdown: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, borderRadius: 18, backgroundColor: 'rgba(15,65,165,0.30)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
-  countdownText: { color: '#F4FAFF', fontFamily: 'Fredoka_700Bold', fontSize: 14 },
+  countdownText: { color: '#F4FAFF', fontFamily: 'Unbounded_700Bold', fontSize: 14 },
   overtakenBanner: { borderRadius: 14, paddingHorizontal: spacing.m, paddingVertical: spacing.s, backgroundColor: '#E63D2E', borderWidth: 1, borderColor: 'rgba(255,255,255,0.36)' },
-  overtakenText: { color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 16 },
+  overtakenText: { color: '#FFFFFF', fontFamily: 'Unbounded_700Bold', fontSize: 16 },
   weeklyHero: { borderRadius: 24, backgroundColor: '#A95A06', shadowColor: 'rgba(3,45,116,0.75)', shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.58, shadowRadius: 5, elevation: 7 },
-  weeklyHeroSurface: { minHeight: 154, borderRadius: 24, padding: spacing.m, borderWidth: 2, borderColor: 'rgba(255,255,255,0.42)' },
-  heroIcon: { width: 54, height: 54, borderRadius: 20, position: 'absolute', left: spacing.m, top: spacing.m, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.40)' },
-  heroCopy: { marginLeft: 67, paddingRight: 76 },
-  heroKicker: { color: '#173C91', fontFamily: 'Fredoka_700Bold', fontSize: 18 },
-  heroScore: { marginTop: 2, color: '#FFFFFF', fontFamily: 'Unbounded_800ExtraBold', fontSize: 43, lineHeight: 52, textShadowColor: 'rgba(125,70,0,0.34)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1 },
-  rankPill: { position: 'absolute', right: spacing.m, top: spacing.m + 7, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: '#1746A7' },
-  rankPillText: { color: '#FFE46B', fontFamily: 'Fredoka_700Bold', fontSize: 18 },
-  goalTrack: { position: 'absolute', left: spacing.m, right: spacing.m, bottom: spacing.m, height: 12, borderRadius: 6, backgroundColor: 'rgba(19,61,137,0.55)', overflow: 'hidden' },
+  weeklyHeroSurface: { borderRadius: 24, padding: spacing.m, gap: spacing.s, borderWidth: 2, borderColor: 'rgba(255,255,255,0.42)' },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.s },
+  heroIcon: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.40)' },
+  heroKicker: { flex: 1, color: '#173C91', fontFamily: 'Unbounded_700Bold', fontSize: 15 },
+  goalValue: { flexDirection: 'row', alignItems: 'center', gap: spacing.s },
+  heroScore: { flex: 1, color: '#FFFFFF', fontFamily: 'Unbounded_800ExtraBold', fontSize: 32, lineHeight: 42, textShadowColor: 'rgba(125,70,0,0.34)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1 },
+  rankPill: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: '#1746A7' },
+  rankPillText: { color: '#FFE46B', fontFamily: 'Unbounded_700Bold', fontSize: 18 },
+  goalTrack: { height: 12, borderRadius: 6, backgroundColor: 'rgba(19,61,137,0.55)', overflow: 'hidden' },
   goalFill: { height: '100%', borderRadius: 6, backgroundColor: '#FFFFFF' },
   prizeCard: { gap: spacing.s, padding: spacing.m, borderRadius: 20, backgroundColor: '#276FC7', borderWidth: 1, borderColor: 'rgba(255,255,255,0.30)' },
   prizeCopy: { flexDirection: 'row', alignItems: 'center', gap: spacing.s },
-  prizeTitle: { color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 18 },
+  prizeTitle: { color: '#FFFFFF', fontFamily: 'Unbounded_700Bold', fontSize: 18 },
   prizeDetail: { color: 'rgba(244,250,255,0.80)', marginTop: 2 },
   claimButton: { width: '100%', borderRadius: 13, backgroundColor: '#397D2D', shadowColor: 'rgba(3,45,116,0.55)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 3, elevation: 4 },
   claimButtonPressed: { opacity: 0.82, transform: [{ translateY: 2 }] },
   claimButtonSurface: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(255,255,255,0.40)' },
-  claimButtonLabel: { color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 20, fontStyle: 'italic' },
-  stateText: { color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 17, textAlign: 'center' },
+  claimButtonLabel: { color: '#FFFFFF', fontFamily: 'Unbounded_700Bold', fontSize: 18 },
+  stateText: { color: '#FFFFFF', fontSize: 13, textAlign: 'center' },
+  emptyStatus: { gap: spacing.s },
+  statusText: { color: 'rgba(244,250,255,0.8)', fontSize: 12, textAlign: 'center' },
   footer: { gap: spacing.s, paddingBottom: spacing.l },
 });

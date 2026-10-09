@@ -1,0 +1,5 @@
+- generic [ref=f2e553]:
+  - generic [ref=f2e554]:
+    - generic: Приключение · 1
+    - button "Настройки" [ref=f2e555] [cursor=pointer]
+  - 'generic "Цель по очкам: 0/128" [ref=f2e559]': "128"

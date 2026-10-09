@@ -1,7 +1,14 @@
 import { emptyBoard, findPlacements } from '../board';
+import { DEFAULT_CONFIG } from '../config';
 import { createGame, place, revive } from '../game';
 import { SHAPES_BY_ID } from '../shapes';
-import { deserialize, serialize } from '../serialize';
+import {
+  CLASSIC_CHECKPOINT_VERSION,
+  deserialize,
+  deserializeClassicCheckpoint,
+  serialize,
+  serializeClassicCheckpoint,
+} from '../serialize';
 import type { GameState } from '../types';
 
 const dot = SHAPES_BY_ID.get('dot')!;
@@ -27,6 +34,72 @@ function expectRoundTrip(state: GameState): void {
 }
 
 describe('serialize / deserialize', () => {
+  it('round-trips a versioned checkpoint with run rules and cumulative counters', () => {
+    const game = playMoves(createGame(7, DEFAULT_CONFIG), 2);
+    const raw = serializeClassicCheckpoint(game, {
+      checkpointVersion: CLASSIC_CHECKPOINT_VERSION,
+      runId: 'run-7',
+      runKind: 'classic',
+      lifecycle: 'active',
+      configId: 'classic-experience-0',
+      activeConfig: DEFAULT_CONFIG,
+      linesCleared: 7,
+      placements: 2,
+      activeDurationMs: 1_234,
+      activeSinceAt: 5_000,
+      bestAtStart: 99,
+      settlement: null,
+    });
+
+    expect(deserializeClassicCheckpoint(raw)).toEqual({
+      game,
+      meta: expect.objectContaining({
+        checkpointVersion: CLASSIC_CHECKPOINT_VERSION,
+        runId: 'run-7',
+        configId: 'classic-experience-0',
+        activeConfig: DEFAULT_CONFIG,
+        linesCleared: 7,
+        placements: 2,
+        activeDurationMs: 1_234,
+      }),
+    });
+  });
+
+  it('rejects incomplete generator rules and inconsistent completed settlements', () => {
+    const game = createGame(7, DEFAULT_CONFIG);
+    const base = JSON.parse(serializeClassicCheckpoint(game, {
+      checkpointVersion: CLASSIC_CHECKPOINT_VERSION,
+      runId: 'run-7',
+      runKind: 'classic',
+      lifecycle: 'active',
+      configId: 'classic-experience-0',
+      activeConfig: DEFAULT_CONFIG,
+      linesCleared: 0,
+      placements: 0,
+      activeDurationMs: 0,
+      activeSinceAt: 1,
+      bestAtStart: 0,
+      settlement: null,
+    }));
+    delete base.meta.activeConfig.spawn.candidates;
+    expect(deserializeClassicCheckpoint(JSON.stringify(base))).toBeNull();
+
+    base.meta.activeConfig = DEFAULT_CONFIG;
+    base.game.status = 'over';
+    base.meta.lifecycle = 'terminal_final';
+    base.meta.settlement = {
+      revision: 1,
+      previousTargetScore: 0,
+      targetScore: 10,
+      reason: 'game_over',
+      result: null,
+      phase: 'complete',
+      committedAt: 1,
+      completedAt: 2,
+    };
+    expect(deserializeClassicCheckpoint(JSON.stringify(base))).toBeNull();
+  });
+
   it('round-trips an active game in v1 format', () => {
     expectRoundTrip(playMoves(createGame(7), 4));
   });

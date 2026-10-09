@@ -34,8 +34,14 @@ export function getUtcWeekCountdown(now: Date) {
   };
 }
 
-export function getWeeklyGoal(current: number) {
-  if (current <= 0) return { current, target: 1500, progress: 0 };
-  const target = Math.ceil((current + 400) / 500) * 500;
-  return { current, target, progress: current };
+export function getWeeklyGoal(current: number, assignedTarget = 1500) {
+  const progress = Math.max(0, Math.floor(current));
+  const target = Math.max(500, Math.floor(assignedTarget));
+  return {
+    current: progress,
+    target,
+    progress,
+    remaining: Math.max(0, target - progress),
+    complete: progress >= target,
+  };
 }

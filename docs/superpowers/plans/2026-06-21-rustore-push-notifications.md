@@ -13,7 +13,7 @@
 - Эталонный паттерн — `src/features/monetization/` (`types.ts`, `noop.ts`, `config.ts`, `index.ts`, `yandexAds.ts` + `yandexAds.native.ts`, `__tests__/config.test.ts`, `__tests__/yandexAdsSource.test.ts`). Копируем стиль, не изобретаем.
 - Конвенции (`CLAUDE.md`): TS strict; `npx tsc --noEmit` и `npm test` зелёные перед каждым коммитом; `features/*` экспортируют public API только через `index.ts`; тексты — через `core/i18n` (ru/en); цвета — `ui/theme.ts`; коммиты conventional, на русском допустимо.
 - **В репозитории работают параллельные агенты (worktrees).** Перед правкой уже существующих файлов (`src/app/_layout.tsx`, `src/features/game/components/GameOverOverlay.tsx`, `src/core/storage/index.ts`, `src/core/i18n/*.ts`, `app.json`, спеки) проверь `git status`/`git log -1 <file>` и убедись, что не перетираешь чужую правку.
-- **projectId:** `M0xzrLkJBflEHvW4vaoyf134MX9yxBF3`. В код кладём **только** через env `EXPO_PUBLIC_RUSTORE_PUSH_PROJECT_ID`; реальное значение в коммиты не пишем (кладётся в `.env.local`/CI). Сервисный токен RuStore в коде не используется вообще.
+- **production projectId:** `YH4iM4My5jfr2e3ok7Z3IU5A-j90rJ2v` (проект `Block Blast Production`, пакет `com.intstrfloat.blockblast`). В код кладём **только** через env `EXPO_PUBLIC_RUSTORE_PUSH_PROJECT_ID`; сервисный токен RuStore в коде не используется вообще.
 - **AGENTS.md:** перед написанием нативного кода открыть версионную доку RuStore Push под закреплённый мажор `react-native-rustore-push` (https://www.rustore.ru/help/en/sdk/push-notifications/react) и сверить точные имена методов/событий — см. Task 5.
 
 ---
@@ -847,7 +847,7 @@ git commit -m "docs(push): спека 16 + правки бюджета 07 и а�
 
 ## Финальная проверка (вне TDD-цикла, ручная на устройстве)
 
-- [ ] Release-сборка на реальном Android-устройстве **с установленным RuStore и авторизацией** (см. `docs/specs/08-build-release.md` и скилл `build-signed-aab`). Указать реальный `EXPO_PUBLIC_RUSTORE_PUSH_PROJECT_ID=M0xzrLkJBflEHvW4vaoyf134MX9yxBF3`.
+- [ ] Release-сборка на реальном Android-устройстве **с установленным RuStore и авторизацией** (см. `docs/specs/08-build-release.md` и скилл `build-signed-aab`). Указать production `EXPO_PUBLIC_RUSTORE_PUSH_PROJECT_ID=YH4iM4My5jfr2e3ok7Z3IU5A-j90rJ2v`.
 - [ ] Проверить инициализацию (в dev — лог токена), `sendTestNotification` (если testMode), затем реальную тест-кампанию из RuStore Console.
 - [ ] Тап по пушу с `data.route` ведёт на нужный экран; без `route` — на Home.
 - [ ] Soft-ask появляется после первого Game Over, повторно не доспрашивает.

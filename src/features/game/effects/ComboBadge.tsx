@@ -49,7 +49,7 @@ export function ComboBadge() {
         preset="button"
         numberOfLines={1}
         style={{
-          fontFamily: 'Fredoka_700Bold',
+          fontFamily: 'Unbounded_700Bold',
           color: '#FFE9A8',
           fontSize: 14,
           lineHeight: 18,

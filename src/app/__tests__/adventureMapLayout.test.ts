@@ -18,4 +18,14 @@ describe('Adventure map layout', () => {
     expect(source).toContain('styles.footer');
     expect(source.indexOf('</ScrollView>')).toBeLessThan(source.indexOf('styles.footer'));
   });
+
+  it('centers the active level on first entry and restores the saved offset on repeat entry', () => {
+    expect(source).toContain('scrollToCurrentOrSaved');
+    expect(source).toContain('saved?.version === 5');
+    expect(source).toContain('saved.seasonId === seasonId && saved.levelIndex === levelIndex');
+    expect(source).toContain('mapScrollRef.current?.scrollTo');
+    expect(source).toContain('KEYS.adventureMapScroll');
+    expect(source).toContain('onScrollEndDrag={persistMapOffset}');
+    expect(source).toContain('onMomentumScrollEnd={persistMapOffset}');
+  });
 });

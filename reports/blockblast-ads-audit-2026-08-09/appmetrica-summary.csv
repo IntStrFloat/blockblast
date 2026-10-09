@@ -1,0 +1,2 @@
+app_id,period_start,period_end,direct_clicks,direct_installs,organic_installs,click_to_install,active_users,retention_d1,retention_d7,retention_d14,crash_groups,crash_free,ad_revenue_rub,ad_arpu_rub,ad_ecpm_rub,direct_spend_rub,provisional_roas,shortfall_rub
+6315187,2026-07-10,2026-08-09,7550,584,66,0.0774,757,0.24,0.0563,0.0299,3,0.9996,2155.51,3.28,43.34,2860,0.7537,704.49

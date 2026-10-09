@@ -1,54 +1,45 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { useProfileStore } from '@/features/profile';
+import { useLang } from '@/features/settings';
 import { AppText } from '@/ui';
 
 import { adventureSeasonRemainingMs, formatAdventureSeasonRemaining } from '../logic/seasonWindow';
+import { useSeasonWindowRefresh } from '../hooks/useSeasonWindowRefresh';
 import { useAdventure } from '../store';
 
 interface Props {
   compact?: boolean;
   short?: boolean;
   variant?: 'default' | 'ribbon';
+  autoRefresh?: boolean;
 }
 
-export function SeasonCountdownBadge({ compact = false, short = false, variant = 'default' }: Props) {
+export function SeasonCountdownBadge({
+  compact = false,
+  short = false,
+  variant = 'default',
+  autoRefresh = true,
+}: Props) {
   const seasonWindow = useAdventure((s) => s.seasonWindow);
   const syncedAtMs = useAdventure((s) => s.seasonWindowSyncedAtMs);
-  const syncStatus = useAdventure((s) => s.syncStatus);
-  const syncSeasonWindow = useAdventure((s) => s.syncSeasonWindow);
-  const authToken = useProfileStore((s) => s.authToken);
-  const bootstrapRemote = useProfileStore((s) => s.bootstrapRemote);
+  const lang = useLang();
   const [nowMs, setNowMs] = useState(() => Date.now());
+  useSeasonWindowRefresh(autoRefresh);
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 60_000);
     return () => clearInterval(timer);
   }, []);
 
-  // Бейдж сам добывает окно сезона: на Home экраны adventure не монтируются,
-  // и без этого запроса «Обновляем время» висело бы вечно.
-  useEffect(() => {
-    if (seasonWindow || syncStatus !== 'idle') return;
-    let active = true;
-    void (async () => {
-      const token = authToken ?? (await bootstrapRemote())?.authToken ?? null;
-      if (active && token) await syncSeasonWindow(token);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [authToken, bootstrapRemote, seasonWindow, syncSeasonWindow, syncStatus]);
-
   const label = useMemo(() => {
-    if (!seasonWindow && syncStatus === 'error') return 'Не удалось обновить время';
     return formatAdventureSeasonRemaining(
       adventureSeasonRemainingMs(seasonWindow, syncedAtMs, nowMs),
+      lang,
+      short,
     );
-  }, [nowMs, seasonWindow, syncedAtMs, syncStatus]);
+  }, [lang, nowMs, seasonWindow, short, syncedAtMs]);
   const isRibbon = variant === 'ribbon';
-  const displayedLabel = short ? label.replace('Осталось ', '') : label;
 
   return (
     <View
@@ -73,12 +64,12 @@ export function SeasonCountdownBadge({ compact = false, short = false, variant =
         minimumFontScale={0.75}
         style={{
           color: isRibbon ? '#FFFFFF' : compact ? '#F8FCFF' : '#EFF5FF',
-          fontFamily: isRibbon ? 'Fredoka_700Bold' : undefined,
+          fontFamily: isRibbon ? 'Unbounded_700Bold' : undefined,
           fontSize: isRibbon ? 11 : compact ? 12 : 13,
           textAlign: 'center',
         }}
       >
-        {displayedLabel}
+        {label}
       </AppText>
     </View>
   );

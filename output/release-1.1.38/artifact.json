@@ -1,0 +1,17 @@
+{
+  "version": "1.1.38",
+  "versionCode": 43,
+  "package": "com.intstrfloat.blockblast",
+  "path": "C:/Users/Dima2/Documents/blockblast/dist/blockblast-1.1.38-vc43-release.aab",
+  "bytes": 90789921,
+  "sha256": "C315C328F768C01377A9F1FF1C633CE7791B28125065AD42EA5B95A24161DE78",
+  "certificateSha256": "74:2D:E4:9B:C8:AC:57:19:FD:64:02:94:0F:A8:13:C1:A9:8C:D8:50:B6:7F:40:5B:1D:13:DE:D7:5E:6D:20:E3",
+  "jarVerified": true,
+  "bundleValidated": true,
+  "homeFixInReleaseSourceMap": true,
+  "bundledJavaScriptMatchesBuild": true,
+  "testsPassed": 877,
+  "backendTestsPassed": 12,
+  "buildDurationSeconds": 511,
+  "buildTasksExecuted": 784
+}

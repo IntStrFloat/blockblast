@@ -1,10 +1,9 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, {
-  FadeIn,
-  FadeOut,
-  Keyframe,
+  cancelAnimation,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -46,26 +45,6 @@ interface GameBackgroundProps {
   /** Акцент темы (похвалы) — цвет ореола и комбо-пульса. */
   haloColor: string;
   tutorial?: boolean;
-}
-
-function buildPulseIn(reducedMotion: boolean) {
-  return reducedMotion
-    ? FadeIn.duration(120)
-    : new Keyframe({
-        0: { opacity: 0, transform: [{ scale: 0.985 }] },
-        28: { opacity: 0.68, transform: [{ scale: 1.03 }] },
-        62: { opacity: 0.5, transform: [{ scale: 1.012 }] },
-        100: { opacity: 0, transform: [{ scale: 1.02 }] },
-      }).duration(280);
-}
-
-function buildPulseOut(reducedMotion: boolean) {
-  return reducedMotion
-    ? FadeOut.duration(100)
-    : new Keyframe({
-        0: { opacity: 0.5, transform: [{ scale: 1.012 }] },
-        100: { opacity: 0, transform: [{ scale: 1 }] },
-      }).duration(140);
 }
 
 export function GameBackground({
@@ -119,38 +98,43 @@ export function GameBackground({
       pulseEdgeFade: hexToRgba(warmA, 0),
     };
   }, [bgBottom, bgTop, glowColors, haloColor]);
-  const [pulseKey, setPulseKey] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pulseVisible = pulseKey > 0 && lastEvent?.score === pulseKey;
-
+  const pulseVisible = Boolean(lastEvent && lastEvent.scoreDelta > 0 && lastEvent.combo >= 2);
+  const pulseProgress = useSharedValue(1);
   useEffect(() => {
-    const clearPulseTimer = () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-
-    if (!lastEvent || lastEvent.scoreDelta <= 0 || lastEvent.combo < 2) {
-      clearPulseTimer();
-      return clearPulseTimer;
+    cancelAnimation(pulseProgress);
+    if (!pulseVisible) {
+      pulseProgress.value = 1;
+      return;
     }
 
-    const eventKey = lastEvent.score;
-    clearPulseTimer();
-    timerRef.current = setTimeout(() => {
-      setPulseKey(eventKey);
-      timerRef.current = setTimeout(
-        () => {
-          setPulseKey((current) => (current === eventKey ? 0 : current));
-          timerRef.current = null;
-        },
-        reducedMotion ? 220 : 300,
-      );
-    }, 0);
+    // The shell stays mounted. Only its UI-thread progress restarts for a new
+    // event, so the finish state cannot be restored to an opaque base style.
+    pulseProgress.value = 0;
+    pulseProgress.value = withTiming(1, {
+      duration: reducedMotion ? 220 : 280,
+    });
+    return () => cancelAnimation(pulseProgress);
+  }, [lastEvent, pulseProgress, pulseVisible, reducedMotion]);
+  const pulseStyle = useAnimatedStyle(() => {
+    const progress = pulseProgress.value;
+    const opacity = reducedMotion
+      ? interpolate(progress, [0, 0.38, 1], [0, 0.38, 0])
+      : interpolate(progress, [0, 0.28, 0.62, 1], [0, 0.68, 0.5, 0]);
+    const scale = reducedMotion
+      ? 1
+      : interpolate(progress, [0, 0.28, 0.62, 1], [0.985, 1.03, 1.012, 1.02]);
+    return { opacity, transform: [{ scale }] };
+  }, [reducedMotion]);
 
-    return clearPulseTimer;
-  }, [lastEvent, reducedMotion]);
+  const tutorialCover = useSharedValue(tutorial ? 1 : 0);
+  useEffect(() => {
+    cancelAnimation(tutorialCover);
+    tutorialCover.value = withTiming(tutorial ? 1 : 0, {
+      duration: reducedMotion ? 1 : 180,
+    });
+    return () => cancelAnimation(tutorialCover);
+  }, [reducedMotion, tutorial, tutorialCover]);
+  const tutorialCoverStyle = useAnimatedStyle(() => ({ opacity: tutorialCover.value }));
 
   const haloWidth = boardSize * 1.74;
   const haloHeight = boardSize * 1.18;
@@ -158,17 +142,6 @@ export function GameBackground({
   const boardCenterY = boardLayout ? boardLayout.y + boardLayout.height / 2 : null;
   const haloTop =
     (boardCenterY ?? Math.max(height * 0.31, boardSize * 0.82)) - haloHeight / 2;
-
-  const pulseIn = buildPulseIn(reducedMotion);
-  const pulseOut = buildPulseOut(reducedMotion);
-
-  if (tutorial) {
-    return (
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#40588F' }]} />
-      </View>
-    );
-  }
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -250,42 +223,44 @@ export function GameBackground({
 
       <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.vignette }]} />
 
-      {pulseVisible ? (
-        <Animated.View
-          key={pulseKey}
-          entering={pulseIn}
-          exiting={pulseOut}
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFill, styles.pulseShell]}
-        >
-          <LinearGradient
-            colors={[palette.pulseCore, palette.pulseCoreFade]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={[
-              styles.pulseCore,
-              {
-                width: haloWidth * 0.92,
-                height: haloHeight * 0.78,
-                borderRadius: haloWidth,
-              },
-            ]}
-          />
-          <LinearGradient
-            colors={[palette.pulseEdge, palette.pulseEdgeFade]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={[
-              styles.pulseCore,
-              {
-                width: haloWidth * 0.78,
-                height: haloHeight * 0.66,
-                borderRadius: haloWidth,
-              },
-            ]}
-          />
-        </Animated.View>
-      ) : null}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.pulseShell, pulseStyle]}
+      >
+        <LinearGradient
+          colors={[palette.pulseCore, palette.pulseCoreFade]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[
+            styles.pulseCore,
+            {
+              width: haloWidth * 0.92,
+              height: haloHeight * 0.78,
+              borderRadius: haloWidth,
+            },
+          ]}
+        />
+        <LinearGradient
+          colors={[palette.pulseEdge, palette.pulseEdgeFade]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={[
+            styles.pulseCore,
+            {
+              width: haloWidth * 0.78,
+              height: haloHeight * 0.66,
+              borderRadius: haloWidth,
+            },
+          ]}
+        />
+      </Animated.View>
+
+      {/* The full themed scene is prewarmed under this cheap cover. Completing
+          FTUE now fades one composited layer instead of mounting all gradients. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.tutorialCover, tutorialCoverStyle]}
+      />
     </View>
   );
 }
@@ -301,5 +276,8 @@ const styles = StyleSheet.create({
   pulseCore: {
     position: "absolute",
     opacity: 1,
+  },
+  tutorialCover: {
+    backgroundColor: "#40588F",
   },
 });

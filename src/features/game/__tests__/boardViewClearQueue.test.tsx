@@ -37,10 +37,13 @@ let mockBoardState: {
 const mockDragCtx = {
   geom: { boardSize: 94, cell: 10, gap: 2, pad: 0 },
   boardOrigin: { value: { x: 0, y: 0 } },
-  boardMeasureRef: { current: null },
+  measureBoard: jest.fn(),
   boardMirror: { value: [] as number[] },
   preview: { value: [] as number[] },
   previewColor: { value: 0 },
+  invalidPreview: { value: [] as number[] },
+  invalidReason: { value: 0 },
+  clearPrelude: { value: 0 },
   cellColors: ['#ff4d67', '#ffc93c', '#4cc9ff'],
   boardBg: '#101010',
   cellEmpty: '#222222',
@@ -78,8 +81,17 @@ jest.mock('../effects/useShake', () => ({
 
 jest.mock('../animation/clearPresentation', () => ({
   MAX_ACTIVE_CLEAR_PRESENTATIONS: 2,
+  budgetClearPresentations: (presentations: unknown[]) => presentations.slice(-2),
   buildClearPresentation: (event: MockPlacementEvent) => ({
     key: `presentation-${event.id}`,
+    sequence: {
+      tier: 'line_1',
+      stages: [{ stage: 'impact', startMs: 145, endMs: 230 }],
+      beams: [],
+      motes: [],
+      impact: null,
+      reducedMotion: false,
+    },
     debris: [],
     sparks: [],
     shards: [],
@@ -198,6 +210,14 @@ jest.mock('../effects/ClearSparkLayer', () => ({
   ClearSparkLayer: () => null,
 }));
 
+jest.mock('../effects/ClearChoreographyLayer', () => ({
+  ClearChoreographyLayer: () => null,
+}));
+
+jest.mock('../effects/ComboAuraFrame', () => ({
+  ComboAuraFrame: () => null,
+}));
+
 function makeEvent(id: string, lifetimeMs: number): MockPlacementEvent {
   return {
     id,
@@ -239,6 +259,7 @@ describe('BoardView clear presentation queue', () => {
     mockDragCtx.boardMirror.value = [];
     mockDragCtx.preview.value = [];
     mockDragCtx.previewColor.value = 0;
+    mockDragCtx.cellColors = ['#ff4d67', '#ffc93c', '#4cc9ff'];
   });
 
   afterEach(() => {
@@ -357,7 +378,7 @@ describe('BoardView clear presentation queue', () => {
 
     expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);  });
 
-  it('releases an expired presentation id so the same instance can be queued again later', async () => {
+  it('allows an equivalent new clear event to be queued after the prior presentation expires', async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
 
@@ -368,7 +389,7 @@ describe('BoardView clear presentation queue', () => {
       renderer = create(<BoardView />);
     });
 
-    mockBoardState.lastEvent = replayableEvent;
+    mockBoardState.lastEvent = { ...replayableEvent };
     act(() => {
       renderer!.update(<BoardView />);
     });
@@ -392,6 +413,42 @@ describe('BoardView clear presentation queue', () => {
 
     expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations).toHaveLength(1);
     expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations?.[0]?.id).toBeDefined();
+  });
+
+  it.each(['clear', 'placement'])('does not replay expired %s effects when theme colors change', (kind) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+    const next = makeEvent('retired', 100);
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => { renderer = create(<BoardView />); });
+    mockBoardState.lastEvent = kind === 'clear'
+      ? next
+      : { ...next, clearedCells: [], clearedRows: [], clearedCols: [], clearedColors: [] };
+    act(() => { renderer!.update(<BoardView />); });
+    act(() => { jest.advanceTimersByTime(101); });
+    const clearCount = () => (mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).length;
+    const placementCount = () => (mockGameEffectsLayerSpy.mock.lastCall?.[0]?.placementEffects ?? []).length;
+    expect(clearCount()).toBe(0);
+    expect(placementCount()).toBe(0);
+    mockTriggerShakeSpy.mockClear();
+    mockDragCtx.cellColors = ['#123456', '#ABCDEF', '#654321'];
+    act(() => { renderer!.update(<BoardView />); });
+    expect(clearCount()).toBe(0);
+    expect(placementCount()).toBe(0);
+    expect(mockTriggerShakeSpy).not.toHaveBeenCalled();
+    act(() => renderer!.unmount());
+  });
+
+  it('retires a clear already present when the board mounts', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+    mockBoardState.lastEvent = makeEvent('mount', 100);
+    let renderer: ReturnType<typeof create> | null = null;
+    act(() => { renderer = create(<BoardView />); });
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations).toHaveLength(1);
+    act(() => { jest.advanceTimersByTime(101); });
+    expect(mockClearDebrisLayerSpy.mock.lastCall?.[0]?.presentations ?? []).toHaveLength(0);
+    act(() => renderer!.unmount());
   });
 
   it('keeps a three-clear burst bounded to two active presentations and 96 theoretical nodes', async () => {

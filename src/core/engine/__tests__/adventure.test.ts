@@ -71,6 +71,8 @@ describe('adventure run', () => {
     const result = placeAdventure(run, 0, 0, 7, ADVENTURE_GAME_CONFIG);
 
     expect(result.event.jewelsCollectedThisMove).toBe(1);
+    expect(result.event.presentationId).toBe(`${run.runId}:${run.attempt}:${result.event.score}`);
+    expect(result.event.collectedJewelCells).toEqual([idx(0, 0)]);
     expect(result.run.collectedJewels).toBe(1);
     expect(result.run.status).toBe('won');
   });
@@ -122,5 +124,34 @@ describe('adventure run', () => {
 
     expect(deserializeAdventureRun(serializeAdventureRun(run))).toEqual(run);
     expect(deserializeAdventureRun('{')).toBeNull();
+    const corrupt = JSON.parse(serializeAdventureRun(run));
+    corrupt.game.board = [1, 2];
+    expect(deserializeAdventureRun(JSON.stringify(corrupt))).toBeNull();
+    const badShape = JSON.parse(serializeAdventureRun(run));
+    badShape.game.tray[0].shape.id = 'removed-shape';
+    expect(deserializeAdventureRun(JSON.stringify(badShape))).toBeNull();
+  });
+
+  it('migrates v2 checkpoints without inventing historical failures or help', () => {
+    const run = createAdventureRun({
+      id: 'save-v2',
+      seasonId: 1,
+      levelIndex: 2,
+      seed: 6,
+      objective: { type: 'score', target: 180 },
+    }, 3);
+    const legacy = JSON.parse(serializeAdventureRun(run));
+    legacy.v = 2;
+    delete legacy.failureCount;
+    delete legacy.helpPolicy;
+    delete legacy.helpUsed;
+
+    expect(deserializeAdventureRun(JSON.stringify(legacy))).toMatchObject({
+      runId: run.runId,
+      attempt: 3,
+      failureCount: 0,
+      helpPolicy: 'none',
+      helpUsed: false,
+    });
   });
 });

@@ -13,4 +13,19 @@ describe('home screen layout', () => {
     expect(source).not.toContain('<AdBanner');
     expect(source).not.toContain("from '@/features/monetization'");
   });
+
+  it('mounts the progressive next-action card on Home instead of the first-launch push overlay', () => {
+    expect(source).toContain('selectNextAction({');
+    expect(source).toContain('<NextActionCard');
+    expect(source).not.toContain('<WelcomeNotificationOverlay');
+  });
+
+  it('shows a compact streak recovery CTA without replacing the main classic CTA', () => {
+    expect(source).toContain('<StreakStatusCard');
+    expect(source).toContain("t('home.streakKeep', lang)");
+    expect(source).toContain("t('home.streakRecover', lang)");
+    expect(source).toContain('accessibilityRole="button"');
+    expect(source).toContain('onPress={play}');
+    expect(source).toContain('testID="home-menu-classic"');
+  });
 });

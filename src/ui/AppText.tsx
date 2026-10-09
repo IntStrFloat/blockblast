@@ -1,39 +1,35 @@
 import { StyleSheet, Text } from 'react-native';
 import type { TextProps, TextStyle } from 'react-native';
 
-import { colors } from './theme';
+import { colors, typography } from './theme';
 
 type Preset = 'title' | 'score' | 'body' | 'caption' | 'button' | 'speech';
 
 const presets: Record<Preset, TextStyle> = StyleSheet.create({
   title: {
-    fontFamily: 'Unbounded_700Bold',
-    fontSize: 24,
+    ...typography.title,
     color: colors.textPrimary,
   },
   score: {
-    fontFamily: 'Unbounded_800ExtraBold',
-    fontSize: 40,
+    ...typography.score,
     color: colors.textPrimary,
     fontVariant: ['tabular-nums'],
   },
   body: {
-    fontSize: 16,
+    ...typography.body,
     color: colors.textPrimary,
   },
   caption: {
-    fontSize: 13,
+    ...typography.caption,
     color: colors.textDim,
   },
   button: {
-    fontFamily: 'Unbounded_700Bold',
-    fontSize: 15,
+    ...typography.button,
     color: colors.textPrimary,
   },
-  // Голос Капи: округлый Fredoka, отделяет реплику персонажа от системного UI (спека 09).
+  // System sans has complete Cyrillic coverage; do not rely on font fallback.
   speech: {
-    fontFamily: 'Fredoka_500Medium',
-    fontSize: 15,
+    ...typography.speech,
     color: colors.textPrimary,
   },
 });

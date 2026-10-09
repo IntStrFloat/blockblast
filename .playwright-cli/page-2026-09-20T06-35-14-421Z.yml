@@ -1,0 +1,53 @@
+- generic [ref=f19e10]:
+  - generic [ref=f19e11]:
+    - button "Назад" [ref=f19e12] [cursor=pointer]
+    - generic [ref=f19e15]: Капи
+  - generic [ref=f19e17]:
+    - generic [ref=f19e18]: уровень 2
+    - generic [ref=f19e35]:
+      - generic [ref=f19e36]: Коллекция
+      - generic [ref=f19e37]:
+        - button "Образ. мятный образ. скоро" [ref=f19e38] [cursor=pointer]:
+          - generic [ref=f19e47]: Образ
+        - button "Головной убор. кепка Капи. получено" [ref=f19e48] [cursor=pointer]:
+          - generic [ref=f19e53]: Головной убор
+        - button "Лицо. очки Капи. скоро" [ref=f19e54] [cursor=pointer]:
+          - generic [ref=f19e63]: Лицо
+        - button "Аксессуар. наушники Капи. скоро" [ref=f19e64] [cursor=pointer]:
+          - generic [ref=f19e74]: Аксессуар
+      - button "Открыть гардероб" [active] [ref=f19e75] [cursor=pointer]
+      - generic [ref=f19e77]:
+        - button "Профиль и никнейм" [ref=f19e78] [cursor=pointer]
+        - button "Настройки" [ref=f19e80] [cursor=pointer]
+  - generic [ref=f19e83] [cursor=pointer]:
+    - generic [ref=f19e84]:
+      - generic [ref=f19e85]:
+        - generic [ref=f19e86]: Гардероб
+        - button "Закрыть" [ref=f19e87]:
+          - generic [ref=f19e88]: ×
+      - generic [ref=f19e107]:
+        - generic [ref=f19e108]: Ур. 2
+        - progressbar "До следующего уровня" [ref=f19e109]
+        - generic [ref=f19e111]: 2 / 3500 XP
+    - generic [ref=f19e114]:
+      - button "кепка Капи. Надеть" [ref=f19e115]
+      - button "очки Капи. ур.3" [ref=f19e120]:
+        - generic [ref=f19e125]: "3"
+      - button "наушники Капи. ур.5" [ref=f19e130]:
+        - generic [ref=f19e136]: "5"
+      - button "мятный образ. ур.7" [ref=f19e141]:
+        - generic [ref=f19e146]: "7"
+      - button "панама Капи. ур.9" [ref=f19e151]:
+        - generic [ref=f19e156]: "9"
+      - button "солнечные очки. ур.11" [ref=f19e161]:
+        - generic [ref=f19e166]: "11"
+      - button "шарф Капи. ур.14" [ref=f19e171]:
+        - generic [ref=f19e176]: "14"
+      - button "коралловый образ. ур.16" [ref=f19e181]:
+        - generic [ref=f19e186]: "16"
+      - button "шапка Капи. ур.18" [ref=f19e191]:
+        - generic [ref=f19e196]: "18"
+      - button "звёздные очки. ур.21" [ref=f19e201]:
+        - generic [ref=f19e206]: "21"
+      - button "рюкзак Капи. ур.24" [ref=f19e211]:
+        - generic [ref=f19e216]: "24"

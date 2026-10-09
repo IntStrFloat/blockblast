@@ -1,12 +1,12 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 // eslint-disable-next-line import/no-unresolved -- GitFlic-пакет без node-entry, типы в rustore-push.d.ts
 import RustorePushClient, { eventEmitter, PushEvents } from 'react-native-rustore-push';
-// eslint-disable-next-line import/no-unresolved -- см. выше
 import type { RemoteMessage } from 'react-native-rustore-push';
 
 import { PUSH } from './config';
+import { requestAndroidPushPermission } from './rustorePermission';
 import { resolvePushRoute } from './routing';
-import type { PushPermissionResult, PushProvider } from './types';
+import type { PushNotificationTap, PushPermissionResult, PushProvider } from './types';
 
 // RuStore Push SDK 6.x инициализируется автоматически из manifest meta-data
 // `ru.rustore.sdk.pushclient.project_id` (его проставляет plugins/withRuStorePush.js).
@@ -37,6 +37,15 @@ function routeFromMessage(message: RemoteMessage | null): string {
   return resolvePushRoute({ route });
 }
 
+function tapFromMessage(message: RemoteMessage | null): PushNotificationTap | null {
+  if (!message) return null;
+  const kind =
+    message.data?.key === 'kind' && message.data.value.trim() !== ''
+      ? message.data.value
+      : 'unknown';
+  return { id: message.messageId ?? null, route: routeFromMessage(message), kind };
+}
+
 async function init(): Promise<void> {
   if (PUSH.projectId === '') return;
   try {
@@ -51,34 +60,38 @@ async function init(): Promise<void> {
 }
 
 async function requestPermission(): Promise<PushPermissionResult> {
-  if (Platform.OS !== 'android') return 'unavailable';
-  // Android < 13 не требует runtime-разрешения уведомлений.
-  if (typeof Platform.Version === 'number' && Platform.Version < 33) return 'granted';
-  try {
-    const status = await PermissionsAndroid.request(
+  return requestAndroidPushPermission({
+    platform: Platform.OS,
+    version: Platform.Version,
+    grantedValue: PermissionsAndroid.RESULTS.GRANTED,
+    request: () => PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-    );
-    return status === PermissionsAndroid.RESULTS.GRANTED ? 'granted' : 'denied';
+    ),
+    onError: (error) => reportPushError('permission', error),
+  });
+}
+
+async function getInitialNotificationTap(): Promise<PushNotificationTap | null> {
+  if (PUSH.projectId === '') return null;
+  try {
+    ensureEmitter();
+    return tapFromMessage(await RustorePushClient.getInitialNotification());
   } catch (error) {
-    reportPushError('permission', error);
-    return 'denied';
+    reportPushError('getInitialNotification', error);
+    return null;
   }
 }
 
-function onNotificationTap(handler: (route: string) => void): () => void {
+function onNotificationTap(handler: (tap: PushNotificationTap) => void): () => void {
   try {
     ensureEmitter();
-    // Тап по пушу, когда приложение в foreground.
     const subscription = eventEmitter.addListener(
       PushEvents.ON_OPENED,
-      (message: RemoteMessage) => handler(routeFromMessage(message)),
+      (message: RemoteMessage) => {
+        const tap = tapFromMessage(message);
+        if (tap) handler(tap);
+      },
     );
-    // Приложение открыто тапом по пушу из фона/холодного старта.
-    RustorePushClient.getInitialNotification()
-      .then((message) => {
-        if (message) handler(routeFromMessage(message));
-      })
-      .catch((error) => reportPushError('getInitialNotification', error));
     return () => {
       try {
         subscription.remove();
@@ -95,5 +108,6 @@ function onNotificationTap(handler: (route: string) => void): () => void {
 export const RuStorePushProvider: PushProvider = {
   init,
   requestPermission,
+  getInitialNotificationTap,
   onNotificationTap,
 };

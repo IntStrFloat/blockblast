@@ -1,9 +1,15 @@
-import { View, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { t } from '@/core/i18n';
 import { Confetti } from '@/features/game';
 import { useReducedMotion } from '@/features/game/animation/useReducedMotion';
-import { AppText, GameButton, TrophyIcon } from '@/ui';
+import { RewardProgressSummary } from '@/features/progression';
+import { RewardVisual } from '@/features/progression/components/RewardVisual';
+import { rewardDisplayName } from '@/features/progression/logic/presentation';
+import { useLang } from '@/features/settings';
+import { AppText, CheckIcon, GameButton, TrophyIcon } from '@/ui';
 
 import { seasonRewardCosmetic } from '../logic/config';
 import { MosaicView } from './MosaicView';
@@ -11,40 +17,34 @@ import { MosaicView } from './MosaicView';
 interface Props {
   seasonId: number;
   onContinue: () => void;
+  disabled?: boolean;
+  earnedXp?: number;
+  lifetimePoints?: number;
 }
 
-export function SeasonCelebration({ seasonId, onContinue }: Props) {
+export function SeasonCelebration({ seasonId, onContinue, disabled = false, earnedXp = 0, lifetimePoints = 0 }: Props) {
   const reduced = useReducedMotion();
-  const { width } = useWindowDimensions();
+  const lang = useLang();
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const cosmeticId = seasonRewardCosmetic(seasonId);
+  const reward = cosmeticId ? { kind: 'cosmetic' as const, id: cosmeticId } : null;
 
   return (
-    <Animated.View
-      entering={FadeIn.duration(260)}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundColor: 'rgba(6, 26, 42, 0.96)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 18,
-        padding: 24,
-        zIndex: 50,
-      }}
-    >
-      <Animated.View entering={ZoomIn.duration(reduced ? 0 : 500)}>
-        <TrophyIcon size={88} color="#FFE06B" />
-      </Animated.View>
-      <AppText preset="title">Сезон завершён</AppText>
-      <AppText preset="caption">
-        {seasonRewardCosmetic(seasonId)
-          ? 'Кубок получен · 🎁 новый предмет Капи'
-          : 'Кубок получен'}
-      </AppText>
-      <MosaicView seasonId={seasonId} cleared={0} revealed width={Math.min(280, width - 80)} />
-      <AppText preset="caption" style={{ opacity: 0.82 }}>
-        Новый сезон готов.
-      </AppText>
-      <GameButton label="Следующий уровень" onPress={onContinue} />
+    <Animated.View entering={FadeIn.duration(260)} style={{ position: 'absolute', inset: 0, backgroundColor: '#061A2A', zIndex: 50 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
+        <TrophyIcon size={58} color="#FFE06B" />
+        <AppText preset="title" style={{ fontSize: 24, textAlign: 'center' }}>{t('adventure.seasonComplete', lang)}</AppText>
+        <MosaicView seasonId={seasonId} cleared={0} revealed width={Math.min(230, width - 96, height * 0.3)} />
+        {reward ? (
+          <View accessible accessibilityLabel={rewardDisplayName(reward, lang)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <RewardVisual reward={reward} size={44} />
+            <CheckIcon size={24} color="#8EEAA0" />
+          </View>
+        ) : null}
+        <RewardProgressSummary earnedXp={earnedXp} lifetimePoints={lifetimePoints} light />
+        <GameButton label={t('adventure.nextLevel', lang)} onPress={onContinue} disabled={disabled} style={{ width: '100%', maxWidth: 320 }} />
+      </ScrollView>
       {reduced ? null : <Confetti />}
     </Animated.View>
   );

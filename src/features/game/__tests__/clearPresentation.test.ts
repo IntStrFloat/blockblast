@@ -3,11 +3,13 @@ import type { PlacementEvent } from '@/core/engine';
 import {
   buildClearPresentation,
   countAnimatedClearNodes,
+  clearPresentationLifetimeMs,
   praiseFontSize,
   shakeForClear,
   type ClearBurstShard,
 } from '../animation/clearPresentation';
-import { BURST_MOTION, GAME_FEEL_MOTION } from '../animation/motion';
+import { BURST_MOTION, SPECTACLE_MOTION } from '../animation/motion';
+import { EFFECT_NODE_BUDGET } from '../animation/effectSequence';
 
 const CELL_COLORS = ['#ff4d67', '#ffc93c', '#4cc9ff'];
 const GEOM = { boardSize: 94, cell: 10, gap: 2 };
@@ -132,27 +134,49 @@ function shardsOfCell(shards: readonly ClearBurstShard[], row: number, col: numb
 }
 
 describe('clear presentation basics', () => {
+  it('keeps richer clear particles small, bounded to two cells, and short-lived', () => {
+    const geom = { boardSize: 360, cell: 43.25, gap: 2 };
+    for (const event of [rowEvent(), crossEvent(), boardClearEvent()]) {
+      const presentation = buildClearPresentation(event, geom, CELL_COLORS, false);
+      for (const particle of presentation.debris) {
+        expect(particle.size).toBeLessThanOrEqual(geom.cell * 0.18);
+        expect(Math.hypot(particle.dx, particle.dy)).toBeLessThan(geom.cell * 1.8);
+        expect(particle.delay + particle.duration).toBeLessThanOrEqual(340);
+      }
+      for (const spark of presentation.sparks) {
+        expect(spark.size).toBeLessThanOrEqual(geom.cell * 0.18);
+        for (const fraction of [0.25, 0.5, 0.75, 1]) {
+          const seconds = spark.duration * fraction / 1000;
+          const dx = spark.velocityX * seconds;
+          const dy = spark.velocityY * seconds + 0.5 * spark.gravity * seconds * seconds;
+          expect(Math.hypot(dx, dy)).toBeLessThan(geom.cell * 1.8);
+        }
+        expect(spark.delay + spark.duration).toBeLessThanOrEqual(340);
+      }
+    }
+  });
+
   it('is deterministic and keeps fragments plus glow particles within budget', () => {
     const first = buildClearPresentation(crossEvent(), GEOM, CELL_COLORS, false);
     const second = buildClearPresentation(crossEvent(), GEOM, CELL_COLORS, false);
 
     expect(second).toEqual(first);
-    // Крошка — акцент: 1 частица на 2 ячейки (cross = 15 ячеек → 7), падает за доску.
-    expect(first.debris).toHaveLength(7);
-    expect(first.debris.some(({ dy }) => dy > GEOM.boardSize)).toBe(true);
+    // Local square confetti is deterministic and pooled.
+    expect(first.debris).toHaveLength(BURST_MOTION.debrisCap);
+    expect(first.debris.every(({ dx, dy }) => Math.hypot(dx, dy) < GEOM.cell * 1.8)).toBe(true);
     expect(first.sparks).toHaveLength(BURST_MOTION.sparkCap);
   });
 
   it('caps debris chips regardless of clear size', () => {
-    expect(buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false).debris).toHaveLength(4);
-    expect(buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false).debris).toHaveLength(
+    expect(buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false).debris).toHaveLength(11);
+    expect(buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false).debris.length).toBeLessThanOrEqual(
       BURST_MOTION.debrisCap,
     );
   });
 
   it('caps luminous sparks regardless of clear size', () => {
-    expect(buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false).sparks).toHaveLength(4);
-    expect(buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false).sparks).toHaveLength(
+    expect(buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false).sparks).toHaveLength(11);
+    expect(buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false).sparks.length).toBeLessThanOrEqual(
       BURST_MOTION.sparkCap,
     );
   });
@@ -163,7 +187,60 @@ describe('clear presentation basics', () => {
 
     for (const chip of presentation.debris) {
       expect(chip.delay).toBeGreaterThanOrEqual(0);
-      expect(chip.delay).toBeLessThanOrEqual(maxWave + BURST_MOTION.debrisDelayJitterMs);
+      expect(chip.delay).toBeLessThanOrEqual(
+        maxWave + BURST_MOTION.debrisDelayJitterMs +
+        SPECTACLE_MOTION.debrisStartMs - SPECTACLE_MOTION.crushStartMs,
+      );
+    }
+  });
+
+  it('gives a first single-line clear 2.5 times as many chips and sparks, spread across every block', () => {
+    const presentation = buildClearPresentation({ ...rowEvent(), combo: 1 }, GEOM, CELL_COLORS, false);
+    expect(presentation.debris).toHaveLength(10);
+    expect(presentation.sparks).toHaveLength(10);
+    for (const col of rowEvent().clearedCells.map(([, col]) => col)) {
+      expect(presentation.debris.some((chip) => Math.floor(chip.x / STEP) === col)).toBe(true);
+      expect(presentation.sparks.some((spark) => Math.floor(spark.x / STEP) === col)).toBe(true);
+    }
+    expect(presentation.debris.some((chip) => Math.hypot(chip.dx, chip.dy) > GEOM.cell * 0.8)).toBe(true);
+  });
+
+  it('escalates a single-line streak without increasing the pool or covering the board in large particles', () => {
+    const presentations = [1, 2, 5, 10, 100].map((combo) =>
+      buildClearPresentation({ ...rowEvent(), combo }, GEOM, CELL_COLORS, false),
+    );
+    expect(presentations.map(({ debris }) => debris.length)).toEqual([10, 11, 12, 14, 14]);
+    expect(presentations.map(({ sparks }) => sparks.length)).toEqual([10, 11, 12, 14, 14]);
+    for (const presentation of presentations) {
+      expect(countAnimatedClearNodes(presentation)).toBeLessThanOrEqual(48);
+    }
+  });
+
+  it.each(['dissolve', 'shatter'] as const)('keeps %s deterministic within every pool and the global budget at all intensities', (style) => {
+    for (const lineCount of [1, 2, 3, 4, 8]) {
+      const clearedCells = Array.from({ length: lineCount }, (_, row) =>
+        Array.from({ length: 8 }, (_, col) => [row, col] as const),
+      ).flat();
+      for (const combo of [1, 2, 5, 10, 100]) {
+        const event: PlacementEvent = {
+          ...rowEvent(),
+          clearedRows: Array.from({ length: lineCount }, (_, row) => row),
+          clearedCells,
+          clearedColors: clearedCells.map(() => 1),
+          combo,
+          boardCleared: lineCount === 8,
+        };
+        const presentation = buildClearPresentation(event, GEOM, CELL_COLORS, false, style);
+        expect(presentation).toEqual(buildClearPresentation(event, GEOM, CELL_COLORS, false, style));
+        expect(presentation.shards.length).toBeLessThanOrEqual(BURST_MOTION.shardPoolSize);
+        expect(presentation.debris.length).toBeLessThanOrEqual(BURST_MOTION.debrisCap);
+        expect(presentation.sparks.length).toBeLessThanOrEqual(BURST_MOTION.sparkCap);
+        expect(presentation.sequence.motes.length).toBeLessThanOrEqual(8);
+        expect(countAnimatedClearNodes(presentation)).toBeLessThanOrEqual(EFFECT_NODE_BUDGET.clearAndPlacement);
+        expect(countAnimatedClearNodes(presentation) + EFFECT_NODE_BUDGET.comboCelebrationMax +
+          EFFECT_NODE_BUDGET.persistentAuraMax).toBeLessThanOrEqual(EFFECT_NODE_BUDGET.total);
+        expect(clearPresentationLifetimeMs(presentation)).toBe(800);
+      }
     }
   });
 
@@ -188,137 +265,67 @@ describe('clear presentation basics', () => {
       expect(spark.gravity).toBeGreaterThan(0);
       expect(Math.abs(spark.velocityX)).toBeGreaterThan(0);
       expect(spark.delay).toBeLessThanOrEqual(maxShardDelay + BURST_MOTION.sparkDelayJitterMs);
-      expect(['diamond', 'dot']).toContain(spark.shape);
     }
   });
 });
 
-describe('burst shards: раскол ячеек', () => {
-  it('single line: каждая ячейка колется на четыре куска, тайлящих её без зазора', () => {
-    const presentation = buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false);
-
-    expect(presentation.shards).toHaveLength(32);
-    for (const [row, col] of rowEvent().clearedCells) {
-      const pieces = shardsOfCell(presentation.shards, row, col);
-      expect(pieces).toHaveLength(4);
-      const area = pieces.reduce((sum, piece) => sum + piece.width * piece.height, 0);
-      expect(area).toBeCloseTo(GEOM.cell * GEOM.cell);
-    }
-  });
-
-  it('two lines: бюджет 40 осколков, ближние к месту хода ячейки колются сильнее', () => {
-    const event = twoRowEvent();
-    const presentation = buildClearPresentation(event, GEOM, CELL_COLORS, false);
-
-    expect(presentation.shards).toHaveLength(BURST_MOTION.shardBudget);
-
-    let quadCells = 0;
-    for (const [row, col] of event.clearedCells) {
-      const pieces = shardsOfCell(presentation.shards, row, col);
-      // Каждая ячейка накрыта кусками полностью — блок не «мигает» в пустоту.
-      const area = pieces.reduce((sum, piece) => sum + piece.width * piece.height, 0);
-      expect(area).toBeCloseTo(GEOM.cell * GEOM.cell);
-      if (pieces.length === 4) {
-        quadCells += 1;
-        // 4 куска получают ячейки в эпицентре — прямо под ходом.
-        expect(event.placed).toContainEqual([row, col]);
+describe('cell dissolution', () => {
+  it.each([rowEvent(), twoRowEvent(), crossEvent(), boardClearEvent()])(
+    'covers every removed cell exactly once before fading in place', (event) => {
+      const presentation = buildClearPresentation(event, GEOM, CELL_COLORS, false);
+      expect(presentation.shards).toHaveLength(event.clearedCells.length);
+      expect(presentation.shards.length).toBeLessThanOrEqual(BURST_MOTION.shardPoolSize);
+      for (const [row, col] of event.clearedCells) {
+        const pieces = shardsOfCell(presentation.shards, row, col);
+        expect(pieces).toHaveLength(1);
+        expect(pieces[0]!.width * pieces[0]!.height).toBe(GEOM.cell * GEOM.cell);
+        expect(pieces[0]!.flashColor).not.toBe(pieces[0]!.color);
+        expect(pieces[0]!.delay + pieces[0]!.duration).toBeLessThanOrEqual(240);
       }
-    }
-    expect(quadCells).toBe(4);
-  });
+    },
+  );
 
-  it('осколки разлетаются от центра расколотой ячейки', () => {
+  it('keeps the farthest clear cells within a short wave from the placement', () => {
     const presentation = buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false);
-    const pieces = shardsOfCell(presentation.shards, 3, 5);
-    const left = pieces.filter((piece) => piece.x % STEP < GEOM.cell / 2);
-    const right = pieces.filter((piece) => piece.x % STEP >= GEOM.cell / 2);
-
-    expect(left.length).toBeGreaterThan(0);
-    expect(right.length).toBeGreaterThan(0);
-    // Правые куски дрейфуют правее левых: трещина расходится в стороны.
-    const avg = (items: readonly ClearBurstShard[]) =>
-      items.reduce((sum, item) => sum + item.driftX, 0) / items.length;
-    expect(avg(right)).toBeGreaterThan(avg(left));
+    const near = shardsOfCell(presentation.shards, 3, 3)[0]!;
+    const far = shardsOfCell(presentation.shards, 3, 0)[0]!;
+    expect(far.delay).toBeGreaterThan(near.delay);
+    expect(far.delay - near.delay).toBeLessThanOrEqual(30);
   });
 
-  it('каждый осколок вспыхивает светлым краком, подскакивает и падает за доску', () => {
-    const presentation = buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false);
-
-    expect(presentation.shards.length).toBeGreaterThan(0);
-    for (const shard of presentation.shards) {
-      expect(shard.flashColor).not.toBe(shard.color); // вспышка-крак
-      expect(shard.jumpY).toBeLessThan(0); // подскок — вверх
-      expect(shard.y + shard.dy).toBeGreaterThan(GEOM.boardSize); // финиш ниже доски
-      expect(shard.fallDuration).toBeGreaterThanOrEqual(BURST_MOTION.fallDurationMinMs);
-      expect(shard.fallDuration).toBeLessThanOrEqual(
-        BURST_MOTION.fallDurationMinMs + BURST_MOTION.fallDurationJitterMs,
-      );
-    }
-  });
-
-  it('board clear: остаётся в общем бюджете узлов эффектов', () => {
-    const presentation = buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false);
-
-    expect(presentation.shards).toHaveLength(BURST_MOTION.shardBudget);
-    expect(countAnimatedClearNodes(presentation)).toBeLessThanOrEqual(
-      GAME_FEEL_MOTION.oneLineExternalEffectTargetCap,
-    );
-  });
-
-  it('интенсивность растёт с размером комбинации', () => {
-    const oneLine = buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false);
-    const boardClear = buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false);
-
-    const maxJump = (shards: readonly { jumpY: number }[]) =>
-      Math.max(...shards.map((shard) => Math.abs(shard.jumpY)));
-    expect(maxJump(boardClear.shards)).toBeGreaterThan(maxJump(oneLine.shards));
-  });
-
-  it('волна: задержка осколка растёт с удалением от места хода', () => {
-    const presentation = buildClearPresentation(rowEvent(), GEOM, CELL_COLORS, false);
-    const near = shardsOfCell(presentation.shards, 3, 3);
-    const far = shardsOfCell(presentation.shards, 3, 0);
-    expect(near.length).toBeGreaterThan(0);
-    expect(far.length).toBeGreaterThan(0);
-
-    const minDelay = (items: readonly ClearBurstShard[]) =>
-      Math.min(...items.map((item) => item.delay));
-    expect(minDelay(far)).toBeGreaterThan(minDelay(near));
-  });
-
-  it('reduced motion: целая ячейка, ни движения, ни вспышки', () => {
+  it('uses only opacity coverage under reduced motion', () => {
     const presentation = buildClearPresentation(crossEvent(), GEOM, CELL_COLORS, true);
-
-    expect(presentation.shards).toHaveLength(crossEvent().clearedCells.length);
+    expect(presentation.debris).toEqual([]);
+    expect(presentation.sparks).toEqual([]);
+    expect(presentation.sequence.motes).toEqual([]);
     for (const shard of presentation.shards) {
-      expect(shard.width).toBe(GEOM.cell);
-      expect(shard.height).toBe(GEOM.cell);
       expect(shard.flashColor).toBe(shard.color);
-      expect(shard.jumpY).toBe(0);
-      expect(shard.driftX).toBe(0);
-      expect(shard.dx).toBe(0);
-      expect(shard.dy).toBe(0);
-      expect(shard.rotate).toBe(0);
       expect(shard.delay).toBe(0);
+      expect(shard.duration).toBeLessThanOrEqual(150);
     }
+  });
+
+  it('keeps full-board coverage and secondary effects under the board node cap', () => {
+    const presentation = buildClearPresentation(boardClearEvent(), GEOM, CELL_COLORS, false);
+    expect(countAnimatedClearNodes(presentation)).toBeLessThanOrEqual(EFFECT_NODE_BUDGET.clearAndPlacement);
   });
 });
 
 describe('spectacle severity', () => {
   it('scales shake by line count and always disables it for reduced motion', () => {
     expect(shakeForClear(1, false, false)).toEqual(
-      expect.objectContaining({ amplitude: 1, scale: 1 }),
+      expect.objectContaining({ amplitude: 0, scale: 1 }),
     );
     expect(shakeForClear(2, false, false)).toEqual(
-      expect.objectContaining({ amplitude: 3, scale: 1 }),
+      expect.objectContaining({ amplitude: 1, scale: 1 }),
     );
     expect(shakeForClear(3, false, false)).toEqual(
-      expect.objectContaining({ amplitude: 4, scale: 1.01 }),
+      expect.objectContaining({ amplitude: 1.5, scale: 1 }),
     );
     expect(shakeForClear(4, false, false)).toEqual(
-      expect.objectContaining({ amplitude: 5, scale: 1.015 }),
+      expect.objectContaining({ amplitude: 2, scale: 1 }),
     );
-    expect(shakeForClear(1, true, false).amplitude).toBe(5);
+    expect(shakeForClear(1, true, false).amplitude).toBe(2);
     expect(shakeForClear(4, true, true).amplitude).toBe(0);
   });
 

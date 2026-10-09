@@ -13,7 +13,8 @@ describe('leaderboard rank presentation', () => {
     // Единый источник недельного рекорда: max(серверный, локальный ТЕКУЩЕЙ недели).
     // Иначе экран/карточка показывали 0, пока сабмит в очереди или нет бэкенда.
     expect(presentationSource).toContain('export function selectEffectiveWeeklyBest');
-    expect(presentationSource).toContain('snapshot?.currentPlayer.weeklyBest ?? 0');
+    expect(presentationSource).toContain('snapshot?.weekKey === weekKey');
+    expect(presentationSource).toContain('snapshot.currentPlayer.weeklyBest');
     expect(presentationSource).toContain('localWeekly');
   });
 

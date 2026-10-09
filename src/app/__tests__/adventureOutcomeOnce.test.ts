@@ -12,17 +12,24 @@ const levelSource = fs.readFileSync(`${__dirname}/../adventure-level.tsx`, 'utf8
  * из стора (state.status), 'playing' выходит раньше любых записей.
  */
 describe('adventure outcome is recorded exactly once per win', () => {
-  it('branches on fresh state.status, never on render-captured runStatus', () => {
-    expect(levelSource).not.toContain("runStatus === 'won'");
-    expect(levelSource).toContain("state.status === 'won'");
+  it('delegates accounting to the durable Adventure settlement action', () => {
+    const outcomeStart = levelSource.indexOf('handledOutcome.current) return;');
+    const outcomeEnd = levelSource.indexOf('}, [runStatus', outcomeStart);
+    expect(outcomeStart).toBeGreaterThan(-1);
+    expect(outcomeEnd).toBeGreaterThan(outcomeStart);
+    const outcomeSource = levelSource.slice(outcomeStart, outcomeEnd);
+    expect(outcomeSource).toContain("state.status === 'playing'");
+    expect(outcomeSource).toContain('settleAdventureOutcome(state.runId)');
+    expect(outcomeSource).not.toContain('recordWinOnce');
+    expect(outcomeSource).not.toContain('grantReward');
   });
 
   it('bails out early when the fresh run is already playing (restarted next level)', () => {
     const outcomeStart = levelSource.indexOf('handledOutcome.current) return;');
-    const recordWinAt = levelSource.indexOf('recordWin(todayISO())');
+    const settleAt = levelSource.indexOf('settleAdventureOutcome(state.runId)');
     const freshPlayingGuard = levelSource.indexOf("state.status === 'playing'");
     expect(outcomeStart).toBeGreaterThan(-1);
     expect(freshPlayingGuard).toBeGreaterThan(outcomeStart);
-    expect(freshPlayingGuard).toBeLessThan(recordWinAt);
+    expect(freshPlayingGuard).toBeLessThan(settleAt);
   });
 });

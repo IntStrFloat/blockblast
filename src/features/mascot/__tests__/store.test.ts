@@ -81,6 +81,19 @@ describe('useHelper', () => {
     const saved = getJSON<{ helpersUsedDay: Record<string, string> }>(KEYS.mascot);
     expect(saved!.helpersUsedDay['hint']).toBe(todayISO());
   });
+
+  it('one confirmed charged use consumes one charge and a rapid duplicate is rejected', () => {
+    useProgression.setState({ level: 6 });
+    useMascot.setState({
+      helpersUsedDay: { hint: todayISO() },
+      helperCharges: { hint: 1 },
+    });
+
+    expect(useMascot.getState().useHelper('hint')).toBe(true);
+    expect(useMascot.getState().helperCharges.hint).toBe(0);
+    expect(useMascot.getState().useHelper('hint')).toBe(false);
+    expect(useMascot.getState().helperCharges.hint).toBe(0);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -7,31 +7,17 @@ import {
   TRAY_ACTIVATION,
   TRAY_MOTION,
   TRAY_SLOT_INNER_GAP,
-  burstIntensityFor,
   clearCellDelay,
   particleSourceIndexes,
   shouldPulseOnFill,
   trayRestingScale,
 } from '../animation/motion';
 
-describe('burst motion (тяжёлая гравитация)', () => {
-  it('масштабирует интенсивность по числу линий и капит сверху', () => {
-    expect(burstIntensityFor(1, false)).toBe(1);
-    expect(burstIntensityFor(2, false)).toBe(1.25);
-    expect(burstIntensityFor(3, false)).toBe(1.5);
-    expect(burstIntensityFor(4, false)).toBe(1.8);
-    expect(burstIntensityFor(8, false)).toBe(1.8);
-    expect(burstIntensityFor(1, true)).toBe(1.8); // фулл-клир — всегда максимум
-    expect(burstIntensityFor(0, false)).toBe(1); // защита от вырожденного входа
-  });
-
-  it('держит суммарную длительность полёта осколка в пределах бюджета', () => {
-    const worstCase =
-      BURST_MOTION.jumpDurationMs +
-      BURST_MOTION.fallDurationMinMs +
-      BURST_MOTION.fallDurationJitterMs;
-    expect(worstCase).toBeLessThanOrEqual(650);
-    expect(BURST_MOTION.fadeDurationMs).toBeLessThan(BURST_MOTION.fallDurationMinMs);
+describe('cell dissolution motion', () => {
+  it('clears locally within 240 ms and preserves an opacity-only reduced mode', () => {
+    expect(BURST_MOTION.dissolveDurationMs + 14 * CLEAR_MOTION.staggerMs).toBeLessThanOrEqual(240);
+    expect(BURST_MOTION.dissolveScale).toBeGreaterThanOrEqual(0.7);
+    expect(BURST_MOTION.reducedFadeMs).toBeLessThanOrEqual(150);
   });
 });
 
@@ -61,8 +47,8 @@ describe('tray interaction motion', () => {
 
   it('keeps appearance and invalid-drop return compact', () => {
     expect(TRAY_MOTION.appearFromScale).toBeGreaterThanOrEqual(0.9);
-    expect(TRAY_MOTION.appearDurationMs).toBeLessThanOrEqual(120);
-    expect(TRAY_MOTION.grabScale).toBeLessThan(1);
+    expect(TRAY_MOTION.appearDurationMs).toBeLessThanOrEqual(150);
+    expect(TRAY_MOTION.grabScale).toBe(1);
     expect(TRAY_MOTION.returnDurationMs).toBeLessThanOrEqual(140);
     expect(TRAY_MOTION.returnScaleDurationMs).toBeLessThanOrEqual(110);
   });
@@ -116,10 +102,10 @@ describe('line clear motion', () => {
       [4, 4],
     ] as const;
 
-    expect(clearCellDelay([4, 3], placed)).toBe(5);
-    expect(clearCellDelay([4, 7], placed)).toBe(35);
-    expect(CLEAR_MOTION.staggerMs).toBe(10);
-    expect(CLEAR_MOTION.popScale).toBeGreaterThan(1);
+    expect(clearCellDelay([4, 3], placed)).toBe(2);
+    expect(clearCellDelay([4, 7], placed)).toBe(14);
+    expect(CLEAR_MOTION.staggerMs).toBeLessThanOrEqual(4);
+    expect(CLEAR_MOTION.popScale).toBe(1);
   });
 
   it('caps particle sources while allowing three fragments per source', () => {

@@ -1,0 +1,147 @@
+INFO         | Android emulator version 36.6.11.0 (build_id 15507667) (CL:N/A)
+INFO         | Graphics backend: gfxstream
+INFO         | Found systemPath C:\Users\Dima2\AppData\Local\Android\Sdk\system-images\android-29\google_apis\x86_64\
+WARNING      | Please update the emulator to one that supports the feature(s): Vulkan
+INFO         | Increasing RAM size to 2048MB
+INFO         | IPv4 server found: 1.1.1.1
+INFO         | Ignore IPv6 address: 1004:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 1004:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 1004:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: a:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: a:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: a:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 3810:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 3810:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 3810:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 18:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 18:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 18:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: b81f:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: b81f:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: b81f:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: e825:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: e825:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: e825:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 182c:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 4036:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 4036:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 4036:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 603c:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 603c:c536:2702:0:b0fc:c436:2702:0
+INFO         | Ignore IPv6 address: 603c:c536:2702:0:b0fc:c436:2702:0
+INFO         | Guest GLES Driver: Auto (ext controls)
+INFO         | emuglConfig_get_vulkan_hardware_gpu_support_info: Found physical GPU 'NVIDIA GeForce RTX 4060', type: VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, apiVersion: 1.3.280, driverVersion: 560.94
+
+INFO         | emuglConfig_init: vulkan_mode_selected:host gles_mode_selected:host
+INFO         | Checking system compatibility:
+INFO         |   Checking: hasCompatibleHypervisor
+INFO         |      Ok: Hypervisor compatibility to run avd: `Arrows_API_29` are met
+INFO         |   Checking: hasSufficientSystem
+INFO         |      Ok: System requirements to run avd: `Arrows_API_29` are met
+INFO         |   Checking: hasSufficientHwGpu
+INFO         |      Ok: Hardware GPU requirements to run avd: `Arrows_API_29` are passed
+INFO         |   Checking: hasSufficientDiskSpace
+INFO         |      Ok: Disk space requirements to run avd: `Arrows_API_29` are met
+WARNING      | FeatureControl is requesting a non existing feature.
+INFO         | Critical: Failed to load opengl32sw (Не найден указанный модуль.) (:0, )
+INFO         | Warning: Software OpenGL failed. Falling back to system OpenGL. (:0, )
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_default_environment_selected() (:0, )
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_none_selected() (:0, )
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_custom_image_selected() (:0, )
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_custom_video_selected() (:0, )
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_custom_360_image_selected() (:0, )
+INFO         | Storing crashdata in: C:\Users\Dima2\AppData\Local\Temp\\AndroidEmulator\emu-crash-36.6.11.db, detection is enabled for process: 37644
+INFO         | Initializing gfxstream backend
+INFO         | startOpenglesRendererImpl: gpu info
+INFO         | GPU #1
+  Make: 10de
+  Model: NVIDIA GeForce RTX 4060
+  Device ID: 2882
+
+INFO         | Disabling implicit Vulkan layers to avoid compatibility issues. Set VK_LOADER_LAYERS_DISABLE manually to disable this behavior.
+INFO         | SharedLibrary::open for [C:\Users\Dima2\AppData\Local\Android\Sdk\emulator\qemu\windows-x86_64\lib64\vulkan\vulkan-1.dll]
+INFO         | SharedLibrary::open for [C:\Users\Dima2\AppData\Local\Android\Sdk\emulator\lib64\vulkan\vulkan-1.dll]
+INFO         | Added library: C:\Users\Dima2\AppData\Local\Android\Sdk\emulator\lib64\vulkan\vulkan-1.dll
+INFO         | Selecting Vulkan device: NVIDIA GeForce RTX 4060, Version: 1.3.280
+INFO         | Using Vulkan externalMemoryMode: OpaqueWin32 for VkEmulation
+INFO         | Initializing VkEmulation features:
+INFO         |     glInteropSupported: true
+INFO         |     useDeferredCommands: true
+INFO         |     createResourceWithRequirements: true
+INFO         |     useVulkanComposition: false
+INFO         |     useVulkanNativeSwapchain: false
+INFO         |     enable guestRenderDoc: false
+INFO         |     ASTC LDR emulation mode: Gpu
+INFO         |     enable ETC2 emulation: true
+INFO         |     enable Ycbcr emulation: false
+INFO         |     guestVulkanOnly: false
+INFO         |     useDedicatedAllocations: false
+INFO         |     guestVulkanMaxApiVersion: 1.3.0
+INFO         |     enableProtectedMemoryEmulation: false
+INFO         | Graphics Adapter Vendor Google (NVIDIA Corporation)
+INFO         | Graphics Adapter Android Emulator OpenGL ES Translator (NVIDIA GeForce RTX 4060/PCIe/SSE2)
+INFO         | Graphics API Version OpenGL ES 3.0 (4.5.0 NVIDIA 560.94)
+INFO         | Graphics API Extensions GL_OES_EGL_sync GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_depth24 GL_OES_depth32 GL_OES_element_index_uint GL_OES_texture_float GL_OES_texture_float_linear GL_OES_compressed_paletted_texture GL_OES_compressed_ETC1_RGB8_texture GL_OES_depth_texture GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_packed_depth_stencil GL_OES_vertex_half_float GL_OES_texture_npot GL_OES_rgb8_rgba8 GL_OVR_multiview2 GL_EXT_multiview_texture_multisample GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_texture_format_BGRA8888 GL_APPLE_texture_format_BGRA8888 GL_EXT_texture_buffer 
+INFO         | Graphics Device Extensions N/A
+INFO         | Disabling sparse binding feature support
+INFO         | Userspace boot properties:
+INFO         |   android.bootanim=0
+INFO         |   android.qemud=1
+INFO         |   androidboot.boot_devices=pci0000:00/0000:00:03.0 pci0000:00/0000:00:06.0
+INFO         |   androidboot.hardware=ranchu
+INFO         |   androidboot.hardware.vulkan=ranchu
+INFO         |   androidboot.serialno=EMULATOR36X6X11X0
+INFO         |   androidboot.vbmeta.digest=e565d59c032d8f786b6463dbea3d0c8d823a00cdec3d0e5de905a3c535fef13b
+INFO         |   androidboot.vbmeta.hash_alg=sha256
+INFO         |   androidboot.vbmeta.size=4352
+INFO         |   qemu=1
+INFO         |   qemu.avd_name=Arrows_API_29
+INFO         |   qemu.camera_hq_edge_processing=0
+INFO         |   qemu.dalvik.vm.heapsize=512m
+INFO         |   qemu.encrypt=1
+INFO         |   qemu.gles=1
+INFO         |   qemu.gltransport=pipe
+INFO         |   qemu.gltransport.drawFlushInterval=800
+INFO         |   qemu.hwcodec.avcdec=2
+INFO         |   qemu.hwcodec.hevcdec=2
+INFO         |   qemu.hwcodec.vpxdec=2
+INFO         |   qemu.opengles.version=131072
+INFO         |   qemu.settings.system.screen_off_timeout=2147483647
+INFO         |   qemu.skin=1080x1920
+INFO         |   qemu.vsync=60
+INFO         |   qemu.wifi=1
+WHPX on Windows 10.0.19045 detected.
+Windows Hypervisor Platform accelerator is operational
+INFO         | Monitoring duration of emulator setup.
+WARNING      | The emulator now requires a signed jwt token for gRPC access! Use the -grpc flag if you really want an open unprotected grpc port
+INFO         | Using security allow list from: C:\Users\Dima2\AppData\Local\Android\Sdk\emulator\lib\emulator_access.json
+INFO         | The active JSON Web Key Sets can be found here: C:\Users\Dima2\AppData\Local\Temp\avd\running\37644\jwks\18f93ce3-0b86-432a-904f-d70faea124f0\active.jwk
+INFO         | Scanning C:\Users\Dima2\AppData\Local\Temp\avd\running\37644\jwks\18f93ce3-0b86-432a-904f-d70faea124f0 for jwk keys.
+INFO         | Started GRPC server at 127.0.0.1:8554, security: Local, auth: +token
+INFO         | Advertising in: C:\Users\Dima2\AppData\Local\Temp\avd\running\pid_37644.ini
+INFO         | Setting display: 0 configuration to: 1080x1920, dpi: 420x420 
+INFO         | setDisplayActiveConfig: id:0, 1080x1920
+INFO         | emulatorSetupEnvironment: Environment scene is not required
+INFO         | Checking system compatibility:
+INFO         |   Checking: hasCompatibleHypervisor
+INFO         |      Ok: Hypervisor compatibility to run avd: `Arrows_API_29` are met
+INFO         |   Checking: hasSufficientSystem
+INFO         |      Ok: System requirements to run avd: `Arrows_API_29` are met
+INFO         |   Checking: hasSufficientHwGpu
+INFO         |      Ok: Hardware GPU requirements to run avd: `Arrows_API_29` are passed
+INFO         |   Checking: hasSufficientDiskSpace
+INFO         |      Ok: Disk space requirements to run avd: `Arrows_API_29` are met
+INFO         | Loading snapshot 'default_boot'...
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_rgbcSensorValueWidget_valueChanged() (:0, )
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_posture_valueChanged(int) (:0, )
+INFO         | Warning: QObject::connect: Cannot queue arguments of type 'std::vector<android::emulation::control::SnapshotInfo>'
+(Make sure 'std::vector<android::emulation::control::SnapshotInfo>' is registered using qRegisterMetaType().) (:0, )
+INFO         | AVD supportsNativeGLES=1, supportsGuestAngle=0
+INFO         | Platform does not support Guest Angle
+INFO         | Created extended window in 432.362ms
+INFO         | Successfully loaded snapshot 'default_boot' using 849 ms
+INFO         | Wait for emulator (pid 37644) 20 seconds to shutdown gracefully before kill;you can set environment variable ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL(in seconds) to change the default value (20 seconds)
+
+INFO         | Saving with gfxstream=1
+INFO         | Saving snapshot 'default_boot' using 768 ms
+INFO         | removeAll

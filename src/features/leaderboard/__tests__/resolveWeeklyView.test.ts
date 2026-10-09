@@ -137,4 +137,18 @@ describe('resolveWeeklyView — единый источник истины ре�
     expect(view.pending).toBe(false);
     expect(view.rank).toBe(2);
   });
+
+  it('не переносит серверный рекорд прошлой недели в текущую цель', () => {
+    const me = entry({ tag: 'ME', weeklyBest: 9_000, rank: 1, isCurrentPlayer: true });
+    const staleSnapshot = {
+      ...snapshot(me, [me]),
+      weekKey: '2026-06-08',
+      weekStartIso: '2026-06-07T21:00:00.000Z',
+      weekEndIso: '2026-06-14T21:00:00.000Z',
+    };
+
+    const view = resolveWeeklyView(staleSnapshot, null, null, NOW);
+
+    expect(view.effectiveBest).toBe(0);
+  });
 });

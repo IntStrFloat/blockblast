@@ -165,7 +165,7 @@ describe('comboFrameFor', () => {
 
 describe('game-feel budgets', () => {
   it('centralizes hard caps used by the presentation helpers', () => {
-    expect(GAME_FEEL_MOTION.placementParticleMax).toBe(8);
+    expect(GAME_FEEL_MOTION.placementParticleMax).toBe(4);
     expect(GAME_FEEL_MOTION.placementQueueCap).toBe(2);
     expect(GAME_FEEL_MOTION.recordConfettiMax).toBe(14);
     expect(GAME_FEEL_MOTION.oneLineExternalEffectTargetCap).toBe(48);

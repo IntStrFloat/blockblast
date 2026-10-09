@@ -2,13 +2,18 @@ import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { t } from '@/core/i18n';
-import { useAnalyticsStore } from '@/features/analytics';
 import { useLang } from '@/features/settings';
 import { AppText, ChevronIcon, ClayCard, CrownIcon, colors, radii, spacing } from '@/ui';
 
 import { useLeaderboardStore } from '../store';
-import { resolveWeeklyView, weeklyStatusLabel } from '../presentation';
+import {
+  resolveWeeklyView,
+  selectPreviousWeeklyBest,
+  weeklyStatusLabel,
+} from '../presentation';
 import { getWeeklyGoal } from '../week';
+import { currentWeeklyGoal, useWeeklyGoalStore } from '../weeklyGoalStore';
+import { useWeeklyGoalWeekKey } from '../useWeeklyGoalWeekKey';
 
 interface WeeklyCardProps {
   onPress: () => void;
@@ -19,16 +24,27 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
   const snapshot = useLeaderboardStore((state) => state.snapshot);
   const viewState = useLeaderboardStore((state) => state.viewState);
   const localWeekly = useLeaderboardStore((state) => state.localWeeklyResult);
+  const goalRecords = useWeeklyGoalStore((state) => state.goals);
+  const currentWeekKey = useWeeklyGoalWeekKey();
+  const goalNow = new Date();
 
   // Единый источник истины с экраном рейтинга: и рекорд, и место берём из одного
   // селектора (max(сервер, локальный текущей недели) + провизорное место до синка),
   // поэтому карточка и экран никогда не расходятся.
-  const view = resolveWeeklyView(snapshot, localWeekly, null, new Date());
+  const view = resolveWeeklyView(snapshot, localWeekly, null, goalNow);
   const weeklyBest = view.effectiveBest;
+  const previousWeeklyBest = selectPreviousWeeklyBest(snapshot, localWeekly, goalNow);
 
-  const goal = getWeeklyGoal(weeklyBest);
-  const goalCurrent = goal.current;
-  const goalTarget = goal.target;
+  const assignedGoal = currentWeeklyGoal(
+    goalRecords,
+    goalNow,
+    weeklyBest,
+    previousWeeklyBest,
+  );
+  const goal = getWeeklyGoal(
+    Math.max(weeklyBest, assignedGoal.progress),
+    assignedGoal.target,
+  );
   const progressPercent =
     goal.target > 0 ? Math.min(100, Math.round((goal.progress / goal.target) * 100)) : 0;
 
@@ -37,15 +53,18 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
   const overtaken = useLeaderboardStore((state) => state.overtaken);
 
   useEffect(() => {
-    useAnalyticsStore.getState().track('weekly_goal_exposed', {
-      source: snapshot?.isCached ? 'cached' : 'home_card',
-    });
-    if (goalCurrent >= goalTarget) {
-      useAnalyticsStore.getState().track('weekly_goal_completed', {
-        source: snapshot?.isCached ? 'cached' : 'home_card',
-      });
-    }
-  }, [goalCurrent, goalTarget, snapshot?.isCached]);
+    const source = snapshot?.isCached ? 'cached' : 'home_card';
+    const synced = useWeeklyGoalStore.getState().sync(
+      new Date(),
+      weeklyBest,
+      source,
+      previousWeeklyBest,
+    );
+    useWeeklyGoalStore.getState().expose(
+      synced,
+      source,
+    );
+  }, [currentWeekKey, previousWeeklyBest, snapshot?.isCached, weeklyBest]);
 
   const statusLabel = weeklyStatusLabel(viewState, snapshot?.source, lang);
 
@@ -101,6 +120,12 @@ export function WeeklyCard({ onPress }: WeeklyCardProps) {
             }}
           />
         </View>
+
+        <AppText preset="caption" style={{ color: colors.textDim }} numberOfLines={1}>
+          {goal.complete
+            ? `${goal.current}/${goal.target}`
+            : `${goal.current}/${goal.target} · ${goal.remaining}`}
+        </AppText>
 
         {overtaken ? (
           <AppText preset="caption" style={{ color: colors.accent }} numberOfLines={1}>

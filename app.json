@@ -2,7 +2,7 @@
   "expo": {
     "name": "Блок Бластик! Block Blast",
     "slug": "blockblast",
-    "version": "1.1.30",
+    "version": "1.1.42",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "blockblast",
@@ -10,11 +10,14 @@
     "backgroundColor": "#0F1B33",
     "ios": {
       "icon": "./assets/images/icon.png",
-      "bundleIdentifier": "com.intstrfloat.blockblast"
+      "bundleIdentifier": "com.intstrfloat.blockblast",
+      "infoPlist": {
+        "CADisableMinimumFrameDurationOnPhone": true
+      }
     },
     "android": {
       "package": "com.intstrfloat.blockblast",
-      "versionCode": 35,
+      "versionCode": 47,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -41,7 +44,9 @@
       "expo-notifications",
       "./plugins/withHuaweiAgconnect",
       "./plugins/withAppMetrica",
-      "./plugins/withRuStorePush"
+      "./plugins/withYandexVkMediation",
+      "./plugins/withRuStorePush",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

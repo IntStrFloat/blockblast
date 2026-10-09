@@ -24,6 +24,7 @@ export {
 } from './adventure';
 export type {
   AdventureCellPrefill,
+  AdventureHelpPolicy,
   AdventureLevelSpec,
   AdventureObjective,
   AdventurePlacementEvent,
@@ -32,4 +33,11 @@ export type {
   AdventureTrayJewel,
 } from './adventure';
 export { engineFingerprint } from './fingerprint';
-export { serialize, deserialize } from './serialize';
+export {
+  CLASSIC_CHECKPOINT_VERSION,
+  deserialize,
+  deserializeClassicCheckpoint,
+  serialize,
+  serializeClassicCheckpoint,
+} from './serialize';
+export type { ClassicCheckpointMeta, ClassicCheckpointSettlement } from './serialize';

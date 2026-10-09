@@ -1,44 +1,39 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  FadeIn,
-  cancelAnimation,
-  runOnJS,
-  useAnimatedReaction,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { t } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
 import {
   MONETIZATION,
+  evaluateInterstitialOpportunity,
   getAds,
   getRewardedCtaPolicy,
   loadAdsMeta,
+  recordFullscreenCooldown,
   recordGameOver,
   recordInterstitialShown,
   saveAdsMeta,
-  shouldShowInterstitial,
   useEntitlements,
 } from '@/features/monetization';
 import { recordGameOverForPush } from '@/features/notifications';
+import { rememberRewardedOffer, leaveRewardedOffer } from '@/features/monetization/rewardedOfferPolicy';
+import { useRewardedReady } from '@/features/monetization/useRewardedReady';
 import { useScores } from '@/features/scores';
+import { RewardProgressSummary, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
 import { AppText, CrownIcon, GearIcon, radii, spacing } from '@/ui';
 
 import { Confetti } from '../effects/Confetti';
 import { gameOverPresentationFor } from '../gameOverPresentation';
 import { useGameStore } from '../store';
-import { useReducedMotion } from '../animation/useReducedMotion';
 import { ReviveButton } from './ReviveButton';
 
 const GAME_OVER_GRADIENT = ['#163EAE', '#1763CE', '#1798E0'] as const;
 const RECORD_GRADIENT = ['#4B0EAB', '#7529CE', '#9D68E8'] as const;
-const SCORE_COUNT_UP_DURATION = 900;
 
 interface GameOverOverlayProps {
   onPlayAgain: () => void;
@@ -46,31 +41,6 @@ interface GameOverOverlayProps {
 }
 
 function AnimatedFinalScore({ score }: { score: number }) {
-  const reducedMotion = useReducedMotion();
-  const progress = useSharedValue(0);
-  const [displayedScore, setDisplayedScore] = useState(0);
-
-  useEffect(() => {
-    cancelAnimation(progress);
-    progress.value = 0;
-    progress.value = reducedMotion
-      ? 1
-      : withTiming(1, {
-          duration: SCORE_COUNT_UP_DURATION,
-          easing: Easing.out(Easing.cubic),
-        });
-
-    return () => cancelAnimation(progress);
-  }, [progress, reducedMotion]);
-
-  useAnimatedReaction(
-    () => Math.round(progress.value * score),
-    (nextScore, previousScore) => {
-      if (nextScore !== previousScore) runOnJS(setDisplayedScore)(nextScore);
-    },
-    [score],
-  );
-
   return (
     <AppText
       preset="score"
@@ -79,7 +49,7 @@ function AnimatedFinalScore({ score }: { score: number }) {
       minimumFontScale={0.55}
       style={styles.score}
     >
-      {displayedScore}
+      {score}
     </AppText>
   );
 }
@@ -99,19 +69,23 @@ function PlayIcon() {
 }
 
 export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlayProps) {
+  const insets = useSafeAreaInsets();
   const game = useGameStore((s) => s.game);
   const lastEvent = useGameStore((s) => s.lastEvent);
   const finalResult = useGameStore((s) => s.finalResult);
   const continueGame = useGameStore((s) => s.continueGame);
+  const epoch = useGameStore((s) => s.epoch);
   const runBestAtStart = useGameStore((s) => s.runBestAtStart);
+  const classicMeta = useGameStore((s) => s.classicMeta);
   const removeAds = useEntitlements((s) => s.removeAds);
   const best = useScores((s) => s.best);
+  const lifetimePoints = useProgression((s) => s.lifetimePoints);
   const lang = useLang();
 
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [rewardedReady, setRewardedReady] = useState(false);
-  const countedRef = useRef(false);
+  const busyRef = useRef(false);
+  const countedEpochRef = useRef<number | null>(null);
 
   const presentation = gameOverPresentationFor(game.status, lastEvent);
   const isOver = presentation.visible;
@@ -120,72 +94,124 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
   // transient submit result is gone, but the persisted best still identifies
   // the run that established it.
   const newRecord =
-    !firstResult && (finalResult?.newRecord ?? (game.score > 0 && game.score === best));
-  const canOfferRevive = !game.reviveUsed;
+    !firstResult && (finalResult?.newRecord ?? game.score > runBestAtStart);
+  const canOfferRevive = classicMeta?.lifecycle === 'terminal_revivable';
+  const rewardedReady = useRewardedReady(isOver && canOfferRevive && !busy);
   const revivePolicy = getRewardedCtaPolicy({
     offerAllowed: canOfferRevive,
     rewardedReady,
     busy,
   });
+  const earnedXp = classicMeta?.settlement
+    ? Math.max(0, classicMeta.settlement.targetScore - classicMeta.settlement.previousTargetScore)
+    : 0;
+
+  const resultContextId = classicMeta?.runId ?? `classic-result:${epoch}`;
+  useEffect(() => {
+    if (isOver && (!presentation.fresh || visible) && revivePolicy.visible) {
+      rememberRewardedOffer(resultContextId);
+    }
+  }, [isOver, presentation.fresh, resultContextId, revivePolicy.visible, visible]);
 
   useEffect(() => {
-    if (!isOver) return;
-    let active = true;
-    if (presentation.fresh && !countedRef.current) {
-      countedRef.current = true;
+    if (!isOver) {
+      busyRef.current = false;
+      return;
+    }
+    if (presentation.fresh && countedEpochRef.current !== epoch) {
+      countedEpochRef.current = epoch;
       saveAdsMeta(recordGameOver(loadAdsMeta()));
       recordGameOverForPush();
     }
-    void getAds()
-      .init()
-      .finally(() => {
-        if (!active) return;
-        const available = getAds().isRewardedReady();
-        setRewardedReady(available);
-        if (canOfferRevive) {
-          useAnalyticsStore.getState().track('revive_shown', { available });
-        }
-      });
     const timer = presentation.fresh
       ? setTimeout(() => setVisible(true), presentation.revealDelayMs)
       : null;
     return () => {
-      active = false;
       if (timer) clearTimeout(timer);
       setVisible(false);
-      setRewardedReady(false);
-      countedRef.current = false;
     };
-  }, [canOfferRevive, isOver, presentation.fresh, presentation.revealDelayMs]);
+  }, [canOfferRevive, epoch, isOver, presentation.fresh, presentation.revealDelayMs]);
+
+  useEffect(() => {
+    if (isOver && (!presentation.fresh || visible) && revivePolicy.visible) {
+      useAnalyticsStore.getState().trackOnce(
+        `revive-offered:${resultContextId}`,
+        'revive_shown',
+        { available: true },
+      );
+    }
+  }, [isOver, presentation.fresh, resultContextId, revivePolicy.visible, visible]);
 
   useEffect(() => {
     if (isOver && (!presentation.fresh || visible)) {
-      useAnalyticsStore.getState().track('result_viewed', {
-        mode: 'classic',
-        score: game.score,
-        is_new_record: newRecord,
-        best_at_start: runBestAtStart,
-        game_depth: useScores.getState().gamesPlayed,
-      });
+      if (classicMeta?.runId) {
+        useProgression.getState().presentRevealForRun(classicMeta.runId);
+      }
+      useAnalyticsStore.getState().trackOnce(
+        `classic-result-viewed:${classicMeta?.runId ?? 'legacy'}`,
+        'result_viewed',
+        {
+          mode: 'classic',
+          score: game.score,
+          is_new_record: newRecord,
+          best_at_start: runBestAtStart,
+          game_depth: useScores.getState().gamesPlayed,
+        },
+      );
     }
-  }, [game.score, isOver, newRecord, presentation.fresh, runBestAtStart, visible]);
+  }, [classicMeta?.runId, game.score, isOver, newRecord, presentation.fresh, runBestAtStart, visible]);
 
   if (!isOver || (presentation.fresh && !visible)) return null;
 
   const closeWithInterstitial = async (action: 'replay', after: () => void) => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
+    const rewardedOfferPresented = leaveRewardedOffer(resultContextId) || revivePolicy.visible;
     useAnalyticsStore.getState().track('game_over_action', { action });
     setBusy(true);
     try {
       const meta = loadAdsMeta();
-      const show = shouldShowInterstitial(meta, {
-        enabled: MONETIZATION.adsEnabled,
-        removeAds,
-        nowMs: Date.now(),
-      });
-      if (show) {
-        const result = await getAds().showInterstitial('gameover');
-        if (result === 'shown') saveAdsMeta(recordInterstitialShown(meta, Date.now()));
+      const opportunity = evaluateInterstitialOpportunity(
+        meta,
+        {
+          enabled: MONETIZATION.adsEnabled,
+          removeAds,
+          nowMs: Date.now(),
+        },
+        'gameover',
+        'classic',
+        { activePlayMs: classicMeta?.activeDurationMs, rewardedOfferPresented, resultContextId },
+      );
+      if (!opportunity.baseEligible) {
+        useAnalyticsStore.getState().track('ad_eligible', {
+          format: 'interstitial',
+          placement: 'gameover',
+          blocked_reason: 'frequency_policy',
+        });
+      } else if (!opportunity.shouldRequest) {
+        useAnalyticsStore.getState().track('ad_eligible', {
+          format: 'interstitial',
+          placement: 'gameover',
+          blocked_reason: opportunity.decision,
+          ...opportunity.telemetry,
+        });
+      }
+      if (opportunity.shouldRequest) {
+        let impressionRecorded = false;
+        await getAds().showInterstitial(
+          'gameover',
+          opportunity.telemetry ?? undefined,
+          () => {
+            if (impressionRecorded) return;
+            impressionRecorded = true;
+            saveAdsMeta(recordInterstitialShown(
+              loadAdsMeta(),
+              Date.now(),
+              'gameover',
+              opportunity.telemetry?.product_session_id,
+            ), true);
+          },
+        );
       }
     } finally {
       setBusy(false);
@@ -194,20 +220,36 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
   };
 
   const handleRevive = async () => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     useAnalyticsStore.getState().track('game_over_action', { action: 'revive' });
     setBusy(true);
     try {
       const result = await getAds().showRewarded('revive');
-      if (result === 'rewarded') continueGame();
-      setRewardedReady(getAds().isRewardedReady());
+      if (result !== 'unavailable') {
+        saveAdsMeta(recordFullscreenCooldown(loadAdsMeta(), Date.now()));
+      }
+      if (result === 'rewarded') {
+        const continued = continueGame();
+        if (!continued) {
+          useAnalyticsStore.getState().track('revive_used', { result: 'rewarded' });
+        }
+      } else {
+        useAnalyticsStore.getState().track('revive_used', { result });
+      }
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
   return (
-    <Animated.View entering={FadeIn.duration(180)} style={styles.screen}>
+    <Animated.View
+      entering={FadeIn.duration(180)}
+      accessibilityViewIsModal
+      importantForAccessibility="yes"
+      style={styles.screen}
+    >
       <LinearGradient
         colors={newRecord ? RECORD_GRADIENT : GAME_OVER_GRADIENT}
         start={{ x: 0.5, y: 0 }}
@@ -220,15 +262,23 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
         accessibilityRole="button"
         accessibilityLabel={t('settings.title', lang)}
         hitSlop={12}
-        onPress={onOpenSettings}
+        disabled={busy}
+        onPress={() => {
+          if (busyRef.current) return;
+          leaveRewardedOffer(resultContextId);
+          onOpenSettings();
+        }}
         style={({ pressed }) => [styles.gear, pressed && styles.pressed]}
       >
         <GearIcon size={30} color="#FFFFFF" />
       </Pressable>
 
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 72, paddingBottom: insets.bottom + spacing.l }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.heading}>
-          {newRecord ? <CrownIcon size={72} /> : null}
+          {newRecord ? <CrownIcon size={48} /> : null}
           <AppText
             preset="speech"
             numberOfLines={1}
@@ -249,19 +299,29 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
             {t('gameOver.score', lang)}
           </AppText>
           <AnimatedFinalScore score={game.score} />
-          {!newRecord ? (
-            <View style={styles.bestBlock}>
-              <AppText preset="speech" style={styles.label}>
-                {t('gameOver.best', lang)}
-              </AppText>
+          {!newRecord && best > game.score ? (
+            <View style={styles.bestBlock} accessible accessibilityLabel={`${t('gameOver.best', lang)}: ${best}`}>
+              <CrownIcon size={20} color="#FFC733" />
               <AppText preset="score" style={styles.bestScore}>
                 {best}
               </AppText>
             </View>
           ) : null}
+          <RewardProgressSummary
+            earnedXp={earnedXp}
+            lifetimePoints={lifetimePoints}
+            light
+          />
         </View>
 
         <View style={styles.actions}>
+          {revivePolicy.visible ? (
+            <ReviveButton
+              label={t('gameOver.revive', lang)}
+              onPress={handleRevive}
+              disabled={revivePolicy.disabled}
+            />
+          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('gameOver.playAgain', lang)}
@@ -281,15 +341,8 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
             </LinearGradient>
           </Pressable>
 
-          {revivePolicy.visible ? (
-            <ReviveButton
-              label={t('gameOver.revive', lang)}
-              onPress={handleRevive}
-              disabled={revivePolicy.disabled}
-            />
-          ) : null}
         </View>
-      </View>
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -319,13 +372,13 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.l,
     paddingTop: 72,
     paddingBottom: spacing.xl,
-    gap: 46,
+    gap: 24,
   },
   heading: {
     width: '100%',
@@ -335,9 +388,9 @@ const styles = StyleSheet.create({
   title: {
     width: '100%',
     textAlign: 'center',
-    fontFamily: 'Fredoka_700Bold',
-    fontSize: 54,
-    lineHeight: 60,
+    fontFamily: 'Unbounded_700Bold',
+    fontSize: 28,
+    lineHeight: 36,
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 2,
   },
@@ -356,9 +409,9 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#46D9F2',
-    fontFamily: 'Fredoka_600SemiBold',
-    fontSize: 24,
-    letterSpacing: 2,
+    fontFamily: 'Unbounded_700Bold',
+    fontSize: 14,
+    letterSpacing: 1,
   },
   recordLabel: {
     color: '#D886EA',
@@ -374,14 +427,15 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   bestBlock: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingTop: spacing.m,
+    gap: 6,
+    paddingBottom: spacing.s,
   },
   bestScore: {
     color: '#FFC733',
-    fontSize: 42,
-    lineHeight: 50,
+    fontSize: 20,
+    lineHeight: 26,
     textShadowColor: 'rgba(124,73,0,0.4)',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 2,
@@ -402,7 +456,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#B66700',
   },
   playSurface: {
-    minHeight: 82,
+    minHeight: 72,
     borderRadius: radii.button,
     alignItems: 'center',
     justifyContent: 'center',

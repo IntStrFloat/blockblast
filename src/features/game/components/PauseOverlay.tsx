@@ -59,12 +59,21 @@ function ToggleRow({
   return (
     <View style={styles.row}>
       <SettingsIcon icon={icon} />
-      <AppText preset="button" style={styles.rowLabel}>
+      <AppText
+        preset="button"
+        style={styles.rowLabel}
+        numberOfLines={2}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+      >
         {label}
       </AppText>
       <Switch
         value={value}
         onValueChange={onValueChange}
+        accessibilityRole="switch"
+        accessibilityLabel={label}
+        accessibilityState={{ checked: value }}
         trackColor={{ false: '#293D87', true: '#53D45E' }}
         thumbColor="#FFFFFF"
       />
@@ -86,15 +95,19 @@ function ActionRow({
   return (
     <View style={styles.row}>
       <SettingsIcon icon={icon} />
-      <AppText preset="button" style={styles.rowLabel}>
-        {label}
-      </AppText>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={label}
         onPress={onPress}
-        style={({ pressed }) => [styles.actionButton, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.actionButton, styles.actionButtonWide, pressed && styles.pressed]}
       >
-        <AppText preset="button" style={styles.actionButtonText} numberOfLines={1}>
+        <AppText
+          preset="button"
+          style={styles.actionButtonText}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+        >
           {buttonLabel}
         </AppText>
       </Pressable>
@@ -109,10 +122,21 @@ export function PauseOverlay({ onClose, onRestart, onHome }: PauseOverlayProps) 
   const update = useSettings((s) => s.update);
 
   return (
-    <Animated.View entering={FadeIn.duration(120)} style={styles.scrim}>
-      <View style={styles.panel}>
+    <Animated.View entering={FadeIn.duration(120)} importantForAccessibility="yes" style={styles.scrim}>
+      <View
+        accessibilityViewIsModal
+        importantForAccessibility="yes"
+        onAccessibilityEscape={onClose}
+        style={styles.panel}
+      >
         <View style={styles.header}>
-          <AppText preset="title" style={styles.title}>
+          <AppText
+            preset="title"
+            style={styles.title}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.55}
+          >
             {t('settings.title', lang)}
           </AppText>
           <Pressable
@@ -122,7 +146,7 @@ export function PauseOverlay({ onClose, onRestart, onHome }: PauseOverlayProps) 
             onPress={onClose}
             style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
           >
-            <AppText preset="title" style={styles.closeText}>×</AppText>
+            <AppText preset="title" maxFontSizeMultiplier={1} style={styles.closeText}>×</AppText>
           </Pressable>
         </View>
 
@@ -188,7 +212,7 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'center',
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 32,
   },
   closeButton: {
@@ -202,7 +226,7 @@ const styles = StyleSheet.create({
   },
   closeText: {
     color: '#DCE7FF',
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 46,
     lineHeight: 48,
   },
@@ -225,7 +249,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     flex: 1,
-    fontFamily: 'Fredoka_600SemiBold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 20,
   },
   actionButton: {
@@ -235,14 +259,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#24C91D',
+    backgroundColor: '#137A22',
     borderWidth: 1,
-    borderColor: '#64EF5E',
+    borderColor: '#45C95A',
     boxShadow: '0 5px 6px rgba(5, 66, 7, 0.45)',
+  },
+  actionButtonWide: {
+    flex: 1,
   },
   actionButtonText: {
     color: colors.textPrimary,
-    fontFamily: 'Fredoka_600SemiBold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 16,
   },
   pressed: {

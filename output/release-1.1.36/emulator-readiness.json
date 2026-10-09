@@ -1,0 +1,15 @@
+{
+  "avd": "Arrows_API_29",
+  "serial": "emulator-5554",
+  "bootCompleted": true,
+  "abi": "x86_64",
+  "sdk": 29,
+  "resolution": "1080x1920",
+  "density": 420,
+  "screenUnlocked": true,
+  "foreground": "com.google.android.apps.nexuslauncher/.NexusLauncherActivity",
+  "launchedWithoutWipe": true,
+  "bundletoolJar": "C:/Users/Dima2/.gradle/caches/modules-2/files-2.1/com.android.tools.build/bundletool/1.18.3/8d7bee8e57a4158a872ed99190a60a498c2adc8d/bundletool-1.18.3.jar",
+  "bundletoolStandalone": false,
+  "checkedAt": "2026-09-05T17:27:49.4247478+03:00"
+}

@@ -43,4 +43,20 @@ describe('adventure skins', () => {
     expect(meadow.progressGradient).not.toEqual(berry.progressGradient);
     expect(meadow.progressBadge).not.toBe(berry.progressBadge);
   });
+
+  it('changes only the setting when the calendar season advances on an unfinished level', () => {
+    expect(adventureSkinFor(6, { seasonId: 1 }).id).toBe('meadow');
+    expect(adventureSkinFor(6, { seasonId: 2 }).id).toBe('berry');
+  });
+
+  it('keeps the calendar setting while personal level progression advances', () => {
+    const window = { seasonId: 3 };
+    expect(adventureSkinFor(1, window)).toBe(adventureSkinFor(97, window));
+    expect(adventureSkinFor(195, window).id).toBe('cove');
+  });
+
+  it('cycles calendar settings and keeps the existing level-based fallback before sync', () => {
+    expect(adventureSkinFor(17, { seasonId: ADVENTURE_SKINS.length + 1 }).id).toBe('meadow');
+    expect(adventureSkinFor(every + 1, null)).toBe(adventureSkinFor(every + 1));
+  });
 });

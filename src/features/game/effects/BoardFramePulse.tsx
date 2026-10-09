@@ -70,6 +70,7 @@ export function BoardFramePulse({ presentation, color }: BoardFramePulseProps) {
       entering={animationFor(presentation)}
       pointerEvents="none"
       style={{
+        opacity: 0,
         position: 'absolute',
         left: 0,
         top: 0,

@@ -1,0 +1,172 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Аудит рекламы Блок Бластик — Яндекс Директ и AppMetrica",
+    "description": "Срез эффективности, качества трафика, окупаемости и выполненных оптимизаций кампании 710765052.",
+    "generatedAt": "2026-08-09T18:00:00+03:00",
+    "sources": [
+      {
+        "id": "src_direct_31d",
+        "label": "Яндекс Директ — кампания 710765052, 10 июля–9 августа 2026",
+        "href": "https://direct.yandex.ru/dna/grid/campaigns",
+        "path": "reports/blockblast-ads-audit-2026-08-09/source-notes.md",
+        "query": {
+          "engine": "Yandex Direct UI",
+          "language": "ui",
+          "url": "https://direct.yandex.ru/dna/grid/campaigns",
+          "executed_at": "2026-08-09T18:00:00+03:00",
+          "description": "Интерфейсная выгрузка итогов кампании Block Blastik.",
+          "sql": "SELECT * FROM read_csv_auto('reports/blockblast-ads-audit-2026-08-09/direct-campaign.csv')",
+          "tables_used": ["reports/blockblast-ads-audit-2026-08-09/direct-campaign.csv"],
+          "filters": ["campaign_id = 710765052", "date between 2026-07-10 and 2026-08-09"],
+          "metric_definitions": ["CTR = clicks / impressions", "CR = conversions / clicks", "CPA = spend / paid conversions", "Использование бюджета = spend / (5000 ₽ × 31 / 7)"]
+        }
+      },
+      {
+        "id": "src_direct_groups",
+        "label": "Яндекс Директ — группы и площадки, 11 июля–9 августа 2026",
+        "href": "https://direct.yandex.ru/dna/grid/adgroups",
+        "path": "reports/blockblast-ads-audit-2026-08-09/source-notes.md",
+        "query": {
+          "engine": "Yandex Direct UI",
+          "language": "ui",
+          "url": "https://direct.yandex.ru/dna/grid/adgroups",
+          "executed_at": "2026-08-09T18:00:00+03:00",
+          "description": "Статистика двух групп, устройств, поисковых запросов и площадок.",
+          "sql": "SELECT * FROM read_csv_auto('reports/blockblast-ads-audit-2026-08-09/direct-groups-placements.csv')",
+          "tables_used": ["reports/blockblast-ads-audit-2026-08-09/direct-groups-placements.csv"],
+          "filters": ["campaign_id = 710765052", "date between 2026-07-11 and 2026-08-09"],
+          "metric_definitions": ["CR = conversions / clicks", "CPA = spend / conversions"]
+        }
+      },
+      {
+        "id": "src_appmetrica",
+        "label": "AppMetrica 6315187 — обзор и монетизация, месяц",
+        "href": "https://appmetrica.yandex.ru/overview?appId=6315187&period=month",
+        "path": "reports/blockblast-ads-audit-2026-08-09/source-notes.md",
+        "query": {
+          "engine": "AppMetrica UI",
+          "language": "ui",
+          "url": "https://appmetrica.yandex.ru/overview?appId=6315187&period=month",
+          "executed_at": "2026-08-09T18:00:00+03:00",
+          "description": "Месячный обзор привлечения, retention, стабильности и рекламной выручки.",
+          "sql": "SELECT * FROM read_csv_auto('reports/blockblast-ads-audit-2026-08-09/appmetrica-summary.csv')",
+          "tables_used": ["reports/blockblast-ads-audit-2026-08-09/appmetrica-summary.csv"],
+          "filters": ["appId = 6315187", "period = 2026-07-10..2026-08-09"],
+          "metric_definitions": ["Click-to-install = attributed installs / clicks", "ROAS (предварительно) = рекламная выручка AppMetrica / расход Direct", "Retention Dn = доля пользователей, активных на n-й день"]
+        }
+      },
+      {
+        "id": "src_direct_edit",
+        "label": "Яндекс Директ — редактор объявления 1914136935570223976",
+        "href": "https://direct.yandex.ru/dna/banners-edit?campaigns-ids=710765052&groups-ids=5768663541&banners-ids=1914136935570223976",
+        "path": "reports/blockblast-ads-audit-2026-08-09/source-notes.md",
+        "query": {
+          "engine": "Yandex Direct UI",
+          "language": "ui",
+          "url": "https://direct.yandex.ru/dna/banners-edit?campaigns-ids=710765052&groups-ids=5768663541&banners-ids=1914136935570223976",
+          "executed_at": "2026-08-09T18:00:00+03:00",
+          "description": "Проверка состава и сохранение креативов объявления.",
+          "sql": "SELECT * FROM read_csv_auto('reports/blockblast-ads-audit-2026-08-09/saved-changes.csv')",
+          "tables_used": ["reports/blockblast-ads-audit-2026-08-09/saved-changes.csv"],
+          "filters": ["campaign_id = 710765052", "group_id = 5768663541", "banner_id = 1914136935570223976"]
+        }
+      }
+    ],
+    "cards": [
+      {"id": "card_conversions", "dataset": "campaign_summary", "sourceId": "src_direct_31d", "description": "Оплаченные установки за 31 день.", "metrics": [{"label": "Конверсии", "field": "conversions", "format": "number"}, {"label": "CR", "field": "conversion_rate_label"}]},
+      {"id": "card_cpa", "dataset": "campaign_summary", "sourceId": "src_direct_31d", "description": "Фактическая цена установки совпала с неизменённой целью.", "metrics": [{"label": "CPA", "field": "cpa_label"}, {"label": "Цель", "field": "target_cpa_label"}]},
+      {"id": "card_budget_use", "dataset": "campaign_summary", "sourceId": "src_direct_31d", "description": "Расход относительно доступной ёмкости недельного бюджета.", "metrics": [{"label": "Использование бюджета", "field": "budget_utilization_label"}, {"label": "Недельный бюджет", "field": "weekly_budget_label"}]},
+      {"id": "card_roas", "dataset": "economics", "sourceId": "src_appmetrica", "description": "Предварительная валовая окупаемость рекламной выручкой; периоды не являются строгой когортой.", "metrics": [{"label": "ROAS", "field": "roas_label"}, {"label": "Разрыв", "field": "shortfall_label"}]},
+      {"id": "card_retention", "dataset": "app_summary", "sourceId": "src_appmetrica", "description": "Удержание игры после установки.", "metrics": [{"label": "Retention D1", "field": "retention_d1_label"}, {"label": "D7", "field": "retention_d7_label"}]}
+    ],
+    "charts": [
+      {"id": "chart_group_cr", "title": "Конверсия клика в установку по группам", "subtitle": "Сильная офлайн/бренд-группа конвертирует заметно лучше, но получает меньше охвата.", "type": "bar", "dataset": "group_performance", "sourceId": "src_direct_groups", "encodings": {"x": {"field": "group", "type": "nominal", "label": "Группа"}, "y": {"field": "conversion_rate", "type": "quantitative", "format": "percent", "label": "CR"}}, "layout": "full", "maxRows": 10},
+      {"id": "chart_placements", "title": "Конверсии по основным площадкам", "subtitle": "Поиск даёт почти половину конверсий; Edadeal обеспечивает крупнейший сетевой объём.", "type": "bar", "dataset": "placement_performance", "sourceId": "src_direct_groups", "encodings": {"x": {"field": "placement", "type": "nominal", "label": "Площадка"}, "y": {"field": "conversions", "type": "quantitative", "format": "number", "label": "Конверсии"}}, "layout": "full", "maxRows": 12},
+      {"id": "chart_economics", "title": "Расход Direct и рекламная выручка AppMetrica", "subtitle": "Выручка покрывает около 75% расхода; это предварительный, не когортный срез.", "type": "bar", "dataset": "spend_revenue", "sourceId": "src_appmetrica", "encodings": {"x": {"field": "metric", "type": "nominal", "label": "Показатель"}, "y": {"field": "value_rub", "type": "quantitative", "format": "number", "label": "Сумма", "unit": "₽"}}, "layout": "full", "maxRows": 5}
+    ],
+    "tables": [
+      {
+        "id": "table_groups", "title": "Детали двух групп", "subtitle": "Период 11 июля–9 августа 2026.", "dataset": "group_performance", "sourceId": "src_direct_groups", "defaultSort": {"field": "conversions", "direction": "desc"}, "density": "dense", "layout": "full",
+        "columns": [{"field": "group", "label": "Группа", "type": "text"}, {"field": "impressions", "label": "Показы", "format": "number"}, {"field": "clicks", "label": "Клики", "format": "number"}, {"field": "ctr", "label": "CTR", "format": "percent"}, {"field": "conversions", "label": "Конверсии", "format": "number"}, {"field": "conversion_rate", "label": "CR", "format": "percent"}, {"field": "spend", "label": "Расход, ₽", "format": "number"}, {"field": "cpa", "label": "CPA, ₽", "format": "number"}, {"field": "images_after", "label": "Изображения", "format": "number"}, {"field": "video", "label": "Видео", "format": "number"}]
+      },
+      {
+        "id": "table_app", "title": "Состояние продукта и атрибуции", "subtitle": "Месячный обзор AppMetrica.", "dataset": "app_metrics", "sourceId": "src_appmetrica", "defaultSort": {"field": "order", "direction": "asc"}, "density": "dense", "layout": "full",
+        "columns": [{"field": "order", "label": "№", "format": "number"}, {"field": "metric", "label": "Метрика", "type": "text"}, {"field": "value", "label": "Значение", "type": "text"}, {"field": "interpretation", "label": "Интерпретация", "type": "text"}]
+      },
+      {
+        "id": "table_changes", "title": "Сохранённые изменения", "subtitle": "Цена конверсии осталась 5 ₽.", "dataset": "changes", "sourceId": "src_direct_edit", "defaultSort": {"field": "order", "direction": "asc"}, "density": "spacious", "layout": "full",
+        "columns": [{"field": "order", "label": "№", "format": "number"}, {"field": "item", "label": "Элемент", "type": "text"}, {"field": "before", "label": "Было", "type": "text"}, {"field": "after", "label": "Стало", "type": "text"}, {"field": "why", "label": "Зачем", "type": "text"}]
+      }
+    ],
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# Аудит рекламы Блок Бластик — Яндекс Директ и AppMetrica", "layout": "full"},
+      {"id": "executive", "type": "markdown", "body": "## Executive Summary\nКампания 710765052 не «сломана»: стратегия обучена и удерживает CPA ровно 5 ₽. Но за 31 день она потратила только 2 860 ₽ — около 12,9% доступной ёмкости при бюджете 5 000 ₽ в неделю. Главный резерв — расширение доступных форматов и повышение соответствия креатива брендово-установочным запросам. При этом предварительный ROAS по рекламной выручке — 75,4%, а D7 retention — 5,63%; рост объёма без улучшения удержания пока масштабирует и разрыв окупаемости. В сильной группе уже сохранены новые брендовые заголовки, установочный текст и расширение изображений до 5/5, без изменения цены конверсии.", "layout": "full"},
+      {"id": "kpis", "type": "metric-strip", "cardIds": ["card_conversions", "card_cpa", "card_budget_use", "card_roas", "card_retention"], "layout": "full"},
+      {"id": "performance_header", "type": "markdown", "body": "## Эффективность кампании\nЗа 10 июля–9 августа: 155 022 показа, 3 928 кликов, 572 конверсии, CTR 2,53%, CR 14,56% и CPA 5 ₽. Недельный бюджет не является ограничением — кампания недорасходует его при фиксированной цене установки.", "sourceId": "src_direct_31d", "layout": "full"},
+      {"id": "group_chart", "type": "chart", "chartId": "chart_group_cr", "layout": "full"},
+      {"id": "group_table", "type": "table", "tableId": "table_groups", "layout": "full"},
+      {"id": "inventory_header", "type": "markdown", "body": "## Где формируется объём\nПоиск Яндекса даёт 248 конверсий при CR 26,33%, Edadeal — 218 при CR 11,93%. РСЯ расширяет объём, а поиск даёт более плотный установочный интент. Отключать один из каналов при оплате за конверсии нецелесообразно.", "sourceId": "src_direct_groups", "layout": "full"},
+      {"id": "placement_chart", "type": "chart", "chartId": "chart_placements", "layout": "full"},
+      {"id": "economics_header", "type": "markdown", "body": "## Экономика и качество игры\nAppMetrica показывает 2 155,51 ₽ рекламной выручки и ARPU 3,28 ₽. Сопоставление с расходом Direct 2 860 ₽ даёт предварительный ROAS 75,4% и разрыв 704,49 ₽. Это управленческий индикатор, а не строгий когортный LTV: источники используют разные знаменатели и выручка дозревает после конца окна.", "sourceId": "src_appmetrica", "layout": "full"},
+      {"id": "economics_chart", "type": "chart", "chartId": "chart_economics", "layout": "full"},
+      {"id": "app_header", "type": "markdown", "body": "## Продуктовый сигнал\nCrash-free 99,96% — техническая стабильность хорошая. Главная продуктовая проблема — удержание: D1 24,00%, D7 5,63%, D14 2,99%. Без роста повторных сессий монетизация на пользователя остаётся ниже цены установки.", "sourceId": "src_appmetrica", "layout": "full"},
+      {"id": "app_table", "type": "table", "tableId": "table_app", "layout": "full"},
+      {"id": "changes_header", "type": "markdown", "body": "## Что изменено в Direct\nИзменения внесены только в правильную кампанию Block Blastik 710765052 и объявление 1914136935570223976. Исходно открытая кампания 712078810 рекламирует другую игру и оставлена без изменений.", "layout": "full"},
+      {"id": "changes_table", "type": "table", "tableId": "table_changes", "layout": "full"},
+      {"id": "actions", "type": "markdown", "body": "## Рекомендации и контроль\n1. Пополнить баланс до исчерпания текущих средств: Direct показывает запас примерно на 5 дней; платёж не выполнялся.\n2. Дать обновлённому объявлению накопить минимум 7 дней или около 100 конверсий и сравнить долю показов, CR и конверсии с исходной группой.\n3. Следующий креативный шаг — отдельный новый видеоролик для группы 5768663541: существующий ролик из общей библиотеки интерфейс не прикрепил.\n4. Параллельно улучшать D7 retention и число рекламных показов на активного пользователя; только после этого безопасно масштабировать объём при той же CPA.\n\n### Ограничения\nГрупповые отчёты охватывают 30 дней, общий Direct — 31 день; AppMetrica использует собственную атрибуцию. Поэтому небольшие расхождения конверсий ожидаемы. Гарантировать максимум показов при неизменяемой цене нельзя: аукционная доступность ограничена CPA 5 ₽.", "layout": "full"}
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-09T18:00:00+03:00",
+    "status": "ready",
+    "datasets": {
+      "campaign_summary": [{"impressions": 155022, "clicks": 3928, "spend": 2860, "conversions": 572, "ctr": 0.02534, "conversion_rate": 0.14562, "cpa": 5, "target_cpa": 5, "weekly_budget": 5000, "budget_capacity_31d": 22142.86, "budget_utilization": 0.1291, "conversion_rate_label": "14,56%", "cpa_label": "5 ₽", "target_cpa_label": "5 ₽", "budget_utilization_label": "12,9%", "weekly_budget_label": "5 000 ₽"}],
+      "economics": [{"ad_revenue": 2155.51, "spend": 2860, "roas": 0.7537, "shortfall": 704.49, "arpu": 3.28, "ecpm": 43.34, "roas_label": "75,4%", "shortfall_label": "−704,49 ₽"}],
+      "app_summary": [{"retention_d1": 0.24, "retention_d7": 0.0563, "retention_d14": 0.0299, "retention_d1_label": "24,00%", "retention_d7_label": "5,63%"}],
+      "group_performance": [
+        {"group": "Офлайн / бренд", "group_id": "5768663541", "ad_id": "1914136935570223976", "creative_lead": "Блоки без интернета", "spend": 1315, "impressions": 44869, "clicks": 1312, "ctr": 0.0292, "conversions": 263, "conversion_rate": 0.2005, "cpc": 1, "cpa": 5, "phrases": 32, "images_before": 3, "images_after": 5, "video": 0, "period": "2026-07-11..2026-08-09"},
+        {"group": "Рекорд / видео", "group_id": "5760879987", "ad_id": "1912932938127571415", "creative_lead": "Сможешь набрать 10 000?", "spend": 1405, "impressions": 98453, "clicks": 2395, "ctr": 0.0243, "conversions": 281, "conversion_rate": 0.1173, "cpc": 0.59, "cpa": 5, "phrases": 59, "images_before": 5, "images_after": 5, "video": 1, "period": "2026-07-11..2026-08-09"}
+      ],
+      "placement_performance": [
+        {"placement": "Поиск Яндекса", "channel": "Поиск", "spend": 1240, "impressions": 32826, "clicks": 942, "conversions": 248, "conversion_rate": 0.2633, "cpa": 5, "period": "2026-07-11..2026-08-09"},
+        {"placement": "Edadeal", "channel": "РСЯ", "spend": 1090, "impressions": 68727, "clicks": 1828, "conversions": 218, "conversion_rate": 0.1193, "cpa": 5, "period": "2026-07-11..2026-08-09"},
+        {"placement": "Плагин погоды", "channel": "РСЯ", "spend": 190, "impressions": 19175, "clicks": 252, "conversions": 38, "conversion_rate": 0.1508, "cpa": 5, "period": "2026-07-11..2026-08-09"},
+        {"placement": "VK", "channel": "РСЯ", "spend": 45, "impressions": 3550, "clicks": 31, "conversions": 9, "conversion_rate": 0.2903, "cpa": 5, "period": "2026-07-11..2026-08-09"},
+        {"placement": "m.pogoda", "channel": "РСЯ", "spend": 40, "impressions": 3013, "clicks": 58, "conversions": 8, "conversion_rate": 0.1379, "cpa": 5, "period": "2026-07-11..2026-08-09"},
+        {"placement": "Одноклассники", "channel": "РСЯ", "spend": 40, "impressions": 3010, "clicks": 54, "conversions": 8, "conversion_rate": 0.1481, "cpa": 5, "period": "2026-07-11..2026-08-09"},
+        {"placement": "Яндекс Игры", "channel": "РСЯ", "spend": 0, "impressions": 372, "clicks": 47, "conversions": 0, "conversion_rate": 0, "cpa": null, "period": "2026-07-11..2026-08-09"},
+        {"placement": "Дзен", "channel": "РСЯ", "spend": 0, "impressions": 2596, "clicks": 28, "conversions": 0, "conversion_rate": 0, "cpa": null, "period": "2026-07-11..2026-08-09"}
+      ],
+      "spend_revenue": [{"metric": "Расход Direct", "value_rub": 2860, "kind": "Расход", "period": "2026-07-10..2026-08-09", "source_system": "Yandex Direct"}, {"metric": "Рекламная выручка", "value_rub": 2155.51, "kind": "Выручка", "period": "2026-07-10..2026-08-09", "source_system": "AppMetrica"}],
+      "app_metrics": [
+        {"order": 1, "metric": "Клики Direct", "value": "7 550", "interpretation": "AppMetrica; знаменатель атрибуции отличается от Direct"},
+        {"order": 2, "metric": "Установки Direct", "value": "584", "interpretation": "Атрибутированы Yandex.Direct"},
+        {"order": 3, "metric": "Органические установки", "value": "66", "interpretation": "Вне платной кампании"},
+        {"order": 4, "metric": "Click-to-install", "value": "7,74%", "interpretation": "584 / 7 550"},
+        {"order": 5, "metric": "Активные пользователи", "value": "757", "interpretation": "Все источники за месяц"},
+        {"order": 6, "metric": "Retention D1 / D7 / D14", "value": "24,00% / 5,63% / 2,99%", "interpretation": "Удержание быстро снижается"},
+        {"order": 7, "metric": "Crash-free", "value": "99,96%", "interpretation": "3 группы крэшей; стабильность хорошая"},
+        {"order": 8, "metric": "Рекламная выручка", "value": "2 155,51 ₽", "interpretation": "In-app покупок нет"},
+        {"order": 9, "metric": "Ad ARPU", "value": "3,28 ₽", "interpretation": "Ниже CPA 5 ₽ в текущем окне"},
+        {"order": 10, "metric": "Ad eCPM", "value": "43,34 ₽", "interpretation": "Монетизация рекламой"}
+      ],
+      "changes": [
+        {"order": 1, "item": "Заголовок 2", "before": "Побей рекорд в блоках", "after": "Скачать Блок Бластик", "why": "Совпадение с высококонверсионным бренд+download интентом"},
+        {"order": 2, "item": "Заголовок 4", "before": "Комбо из блоков", "after": "Блок Бластик бесплатно", "why": "Явно назвать продукт и снять ценовой барьер"},
+        {"order": 3, "item": "Текст 3", "before": "Найди лучший ход, собери линии и проверь, сколько очков сможешь набрать.", "after": "Скачай Блок Бластик бесплатно. Играй офлайн и побей свой рекорд.", "why": "Установка + офлайн-ценность + игровой мотив"},
+        {"order": 4, "item": "Изображения", "before": "3 из 5", "after": "5 из 5", "why": "Больше комбинаций и доступных мест размещения"},
+        {"order": 5, "item": "Цена конверсии", "before": "5 ₽", "after": "5 ₽", "why": "Оставлена без изменений по условию"}
+      ]
+    }
+  },
+  "sources": [
+    {"id": "src_direct_31d", "label": "Яндекс Директ — кампания 710765052, 10 июля–9 августа 2026", "href": "https://direct.yandex.ru/dna/grid/campaigns", "path": "reports/blockblast-ads-audit-2026-08-09/source-notes.md"},
+    {"id": "src_direct_groups", "label": "Яндекс Директ — группы и площадки, 11 июля–9 августа 2026", "href": "https://direct.yandex.ru/dna/grid/adgroups", "path": "reports/blockblast-ads-audit-2026-08-09/source-notes.md"},
+    {"id": "src_appmetrica", "label": "AppMetrica 6315187 — обзор и монетизация, месяц", "href": "https://appmetrica.yandex.ru/overview?appId=6315187&period=month", "path": "reports/blockblast-ads-audit-2026-08-09/source-notes.md"},
+    {"id": "src_direct_edit", "label": "Яндекс Директ — редактор объявления 1914136935570223976", "href": "https://direct.yandex.ru/dna/banners-edit?campaigns-ids=710765052&groups-ids=5768663541&banners-ids=1914136935570223976", "path": "reports/blockblast-ads-audit-2026-08-09/source-notes.md"}
+  ]
+}

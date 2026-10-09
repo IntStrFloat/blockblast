@@ -1,0 +1,394 @@
+--------- beginning of main
+09-05 15:51:09.204  1965  5391 E memtrack: Couldn't load memtrack module
+09-05 15:51:09.204  1965  5391 W android.os.Debug: failed to get memory consumption info: -1
+09-05 15:51:09.334  2515  7314 E memtrack: Couldn't load memtrack module
+09-05 15:51:09.334  2515  7314 W android.os.Debug: failed to get memory consumption info: -1
+09-05 15:51:10.822  2688  7315 E memtrack: Couldn't load memtrack module
+09-05 15:51:10.822  2688  7315 W android.os.Debug: failed to get memory consumption info: -1
+--------- beginning of system
+09-05 15:51:04.876  2375  3200 E ActivityThread: Failed to find provider info for com.google.android.apps.wellbeing.api
+09-05 15:51:11.750  1965  5391 I ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=blockblast://game?entry=tutorial flg=0x10000000 pkg=com.intstrfloat.blockblast cmp=com.intstrfloat.blockblast/.MainActivity} from uid 2000
+09-05 15:51:11.772  1965  2790 W InputReader: Device has associated, but no associated display id.
+09-05 15:51:11.772  1965  2790 I chatty  : uid=1000(system) Binder:1965_9 identical 8 lines
+09-05 15:51:11.772  1965  2790 W InputReader: Device has associated, but no associated display id.
+09-05 15:51:11.777  7212  7212 W ActivityThread: handleWindowVisibility: no activity for token android.os.BinderProxy@5840b7f
+09-05 15:51:11.787  1737  2547 E SurfaceFlinger: ro.sf.lcd_density must be defined as a build property
+09-05 15:51:11.788  1737  1854 E SurfaceFlinger: ro.sf.lcd_density must be defined as a build property
+09-05 15:51:11.798  7212  7212 D AppCompatDelegate: Checking for metadata for AppLocalesMetadataHolderService : Service not found
+09-05 15:51:11.798  7212  7329 D libEGL  : Emulator has host GPU support, qemu.gles is set to 1.
+09-05 15:51:11.799  7212  7329 W libc    : Unable to set property "qemu.gles" to "1": connection failed; errno=13 (Permission denied)
+09-05 15:51:11.810  1965  1990 E system_server: Invalid ID 0x00000000.
+09-05 15:51:11.788  7212  7212 W RenderThread: type=1400 audit(0.0:63): avc: denied { write } for name="property_service" dev="tmpfs" ino=8412 scontext=u:r:untrusted_app:s0:c147,c256,c512,c768 tcontext=u:object_r:property_socket:s0 tclass=sock_file permissive=0 app=com.intstrfloat.blockblast
+09-05 15:51:11.839  1722  2684 D gralloc_ranchu: gralloc_alloc: Creating ashmem region of size 8298496
+09-05 15:51:11.880  2735  3060 I MicroDetector: Keeping mic open: false
+09-05 15:51:11.889  7212  7329 D libEGL  : loaded /vendor/lib64/egl/libEGL_emulation.so
+09-05 15:51:11.904  2735  7176 I AudioController: internalShutdown
+09-05 15:51:11.904  2735  7177 I MicroRecognitionRunner: Stopping hotword detection.
+09-05 15:51:11.907  7212  7329 D libEGL  : loaded /vendor/lib64/egl/libGLESv1_CM_emulation.so
+09-05 15:51:11.910  2735  7180 I DeviceStateChecker: DeviceStateChecker cancelled
+09-05 15:51:11.932  7212  7329 D libEGL  : loaded /vendor/lib64/egl/libGLESv2_emulation.so
+09-05 15:51:11.951  2735  7176 I MicrophoneInputStream: mic_close  SR : 16000 CC : 16 SO : 1999
+09-05 15:51:11.951  2735  7176 E AudioSource: Stop listening is called on already closed AudioSource
+09-05 15:51:11.954  2735  7183 I MicroRecognitionRunner: Detection finished
+09-05 15:51:11.979  7212  7212 I NitroMmkvOnLoad: Loading NitroMmkv C++ library...
+09-05 15:51:11.985  7212  7212 I NitroMmkvOnLoad: Successfully loaded NitroMmkv C++ library!
+09-05 15:51:12.013  7212  7212 W unknown:BridgelessReact: ReactHost{0}.startSurface(surfaceId = 0): Schedule
+09-05 15:51:12.014  7212  7212 W unknown:BridgelessReact: ReactHost{0}.attachSurface(surfaceId = 0)
+09-05 15:51:12.015  7212  7334 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask()
+09-05 15:51:12.016  7212  7334 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Start
+09-05 15:51:12.016  7212  7334 W unknown:BridgelessReact: ReactHost{0}.getJSBundleLoader()
+09-05 15:51:12.017  7212  7334 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Creating BridgelessReactContext
+09-05 15:51:12.018  7212  7334 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Creating ReactInstance
+09-05 15:51:12.084  7212  7212 W unknown:BridgelessReact: ReactHost{0}.onHostResume(activity)
+09-05 15:51:12.088  7212  7212 W unknown:BridgelessReact: ReactHost{0}.ReactContext.onHostResume()
+09-05 15:51:12.099  7212  7334 D jni_lib_merge: Entering merged library JNI_OnLoad.
+09-05 15:51:12.100  7212  7334 D jni_lib_merge: Preparing 4 pre-merged libs (including stub)
+09-05 15:51:12.100  7212  7334 D jni_lib_merge: Preparing to register libhermes_executor_so.  onload_func: 0x765ed656c990
+09-05 15:51:12.100  7212  7334 D jni_lib_merge: Preparing to register libhermesinstancejni_so.  onload_func: 0x765ed65740f0
+09-05 15:51:12.100  7212  7334 D jni_lib_merge: Preparing to register libjsijniprofiler_so.  onload_func: 0x765ed6574880
+09-05 15:51:12.100  7212  7334 D jni_lib_merge: About to register 3 actual methods.
+09-05 15:51:12.110  2105  2423 D EGL_emulation: eglMakeCurrent: 0x765f2ac4aee0: ver 2 0 (tinfo 0x765edee47960)
+09-05 15:51:12.125  7212  7212 W loat.blockblas: Accessing hidden method Landroid/view/WindowInsets$Type;->ime()I (blacklist, linking, denied)
+09-05 15:51:12.127  2105  2423 D EGL_emulation: eglMakeCurrent: 0x765f2ac4aee0: ver 2 0 (tinfo 0x765edee47960)
+09-05 15:51:12.159  2105  2423 I chatty  : uid=10120(com.android.systemui) RenderThread identical 4 lines
+09-05 15:51:12.172  2105  2423 D EGL_emulation: eglMakeCurrent: 0x765f2ac4aee0: ver 2 0 (tinfo 0x765edee47960)
+09-05 15:51:12.215  7212  7327 D HostConnection: HostConnection::get() New Host Connection established 0x765f2b0561c0, tid 7327
+09-05 15:51:12.221  2105  2423 D EGL_emulation: eglMakeCurrent: 0x765f2ac4aee0: ver 2 0 (tinfo 0x765edee47960)
+09-05 15:51:12.237  2105  2423 D EGL_emulation: eglMakeCurrent: 0x765f2ac4aee0: ver 2 0 (tinfo 0x765edee47960)
+09-05 15:51:12.253  7212  7327 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+09-05 15:51:12.281  2105  2423 D EGL_emulation: eglMakeCurrent: 0x765f2ac4aee0: ver 2 0 (tinfo 0x765edee47960)
+09-05 15:51:12.300  2105  2423 D EGL_emulation: eglMakeCurrent: 0x765f2ac4aee0: ver 2 0 (tinfo 0x765edee47960)
+09-05 15:51:12.345  7212  7327 W OpenGLRenderer: Failed to choose config with EGL_SWAP_BEHAVIOR_PRESERVED, retrying without...
+09-05 15:51:12.369  7212  7334 W ExpoModulesCore: Props class class expo.modules.ui.textfield.InnerTextFieldProps is not introspectable. Falling back to reflection-based props parsing, which may have performance implications. To fix this, annotate the props class with @OptimizedComposeProps.
+09-05 15:51:12.372  7212  7327 D EGL_emulation: eglCreateContext: 0x765f2b0586a0: maj 2 min 0 rcv 2
+09-05 15:51:12.423  7212  7327 D EGL_emulation: eglMakeCurrent: 0x765f2b0586a0: ver 2 0 (tinfo 0x765f2b1f5560)
+09-05 15:51:12.438  2375  2893 D EGL_emulation: eglMakeCurrent: 0x765edf008f00: ver 2 0 (tinfo 0x765f2ab843c0)
+09-05 15:51:12.439  2735  3211 D EGL_emulation: eglMakeCurrent: 0xbe693640: ver 2 0 (tinfo 0xd77d0830)
+09-05 15:51:12.471  1722  2684 D gralloc_ranchu: gralloc_alloc: Creating ashmem region of size 8298496
+09-05 15:51:12.500  1609  1609 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.mapper@3.0::IMapper/default in either framework or device manifest.
+09-05 15:51:12.501  7212  7327 W Gralloc3: mapper 3.x is not supported
+09-05 15:51:12.544  7212  7327 D HostConnection: createUnique: call
+09-05 15:51:12.570  7212  7327 D HostConnection: HostConnection::get() New Host Connection established 0x765f2b0587e0, tid 7327
+09-05 15:51:12.579  7212  7327 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+09-05 15:51:12.582  7212  7327 D eglCodecCommon: allocate: Ask for block of size 0x1000
+09-05 15:51:12.582  7212  7327 D eglCodecCommon: allocate: ioctl allocate returned offset 0x3ffff8000 size 0x2000
+09-05 15:51:12.584  1722  2684 D gralloc_ranchu: gralloc_alloc: Creating ashmem region of size 8298496
+09-05 15:51:12.606  1722  2684 D gralloc_ranchu: gralloc_alloc: Creating ashmem region of size 8298496
+09-05 15:51:12.722  7212  7334 W ExpoModulesCore: Props class class expo.modules.ui.textfield.PlaceholderProps is not introspectable. Falling back to reflection-based props parsing, which may have performance implications. To fix this, annotate the props class with @OptimizedComposeProps.
+09-05 15:51:12.870  7212  7334 I ExpoModulesCore: ✅ AppContext was initialized
+09-05 15:51:12.931  7212  7334 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Loading JS Bundle
+09-05 15:51:12.931  7212  7334 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): DevSupportManager.onNewReactContextCreated()
+09-05 15:51:12.932  7212  7334 W unknown:BridgelessReact: ReactHost{0}.startSurface(surfaceId = 0): Execute
+09-05 15:51:12.949  7212  7212 W unknown:BridgelessReact: ReactHost{0}.ReactContext.onHostResume()
+09-05 15:51:12.949  7212  7212 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Executing ReactInstanceEventListeners
+09-05 15:51:12.956  7212  7335 W BridgelessReactContext: [WARNING] Bridgeless doesn't support CatalystInstance. Accessing an API that's not part of the new architecture is not encouraged usage.
+09-05 15:51:12.966  7212  7335 I ExpoModulesCore: ✅ JSI interop was installed
+09-05 15:51:12.971  7212  7335 I ExpoModulesCore: ✅ Constants were exported
+09-05 15:51:13.093  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class expo.modules.kotlin.views.GroupViewManagerWrapper
+09-05 15:51:13.095  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.uimanager.LayoutShadowNode
+09-05 15:51:13.096  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenContainerViewManager
+09-05 15:51:13.103  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class expo.modules.kotlin.views.SimpleViewManagerWrapper
+09-05 15:51:13.108  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.tabs.host.TabsHostViewManager
+09-05 15:51:13.112  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager
+09-05 15:51:13.121  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderSubviewManager
+09-05 15:51:13.123  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.modals.formsheet.FormSheetHostViewManager
+09-05 15:51:13.125  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.yandexmobileads.banner.YandexBannerViewManager
+09-05 15:51:13.198  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.scrollviewmarker.ScrollViewMarkerViewManager
+09-05 15:51:13.205  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.modals.formsheet.FormSheetContentWrapperViewManager
+09-05 15:51:13.209  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenContentWrapperManager
+09-05 15:51:13.222  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.stack.screen.StackScreenViewManager
+09-05 15:51:13.246  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewManager
+09-05 15:51:13.256  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewShadowNode
+09-05 15:51:13.257  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenViewManager
+09-05 15:51:13.262  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.stack.header.config.StackHeaderConfigViewManager
+09-05 15:51:13.264  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaProviderManager
+09-05 15:51:13.266  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.SearchBarManager
+09-05 15:51:13.272  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.stack.host.StackHostViewManager
+09-05 15:51:13.278  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenFooterManager
+09-05 15:51:13.282  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ModalScreenViewManager
+09-05 15:51:13.282  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.safearea.SafeAreaViewManager
+09-05 15:51:13.284  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackViewManager
+09-05 15:51:13.285  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.stack.header.subview.StackHeaderSubviewViewManager
+09-05 15:51:13.286  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class org.reactnative.maskedview.RNCMaskedViewManager
+09-05 15:51:13.290  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.tabs.screen.TabsScreenViewManager
+09-05 15:51:14.075  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$DefsViewManager
+09-05 15:51:14.077  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.VirtualViewManager$RenderableShadowNode
+09-05 15:51:14.084  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeMergeManager
+09-05 15:51:14.092  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.safeareaview.ReactSafeAreaViewManager
+09-05 15:51:14.098  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LinearGradientManager
+09-05 15:51:14.108  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeGaussianBlurManager
+09-05 15:51:14.117  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.progressbar.ReactProgressBarViewManager
+09-05 15:51:14.127  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollViewManager
+09-05 15:51:14.135  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactTextViewManager
+09-05 15:51:14.145  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeColorMatrixManager
+09-05 15:51:14.155  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollContainerViewManager
+09-05 15:51:14.163  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ClipPathViewManager
+09-05 15:51:14.172  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$SymbolManager
+09-05 15:51:14.182  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PatternManager
+09-05 15:51:14.191  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeBlendManager
+09-05 15:51:14.199  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.view.ReactViewManager
+09-05 15:51:14.206  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.SvgViewManager
+09-05 15:51:14.216  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.switchview.ReactSwitchManager
+09-05 15:51:14.223  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$UseViewManager
+09-05 15:51:14.230  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$CircleViewManager
+09-05 15:51:14.242  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TSpanViewManager
+09-05 15:51:14.254  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FilterManager
+09-05 15:51:14.271  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MarkerManager
+09-05 15:51:14.289  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerButtonViewManager
+09-05 15:51:14.305  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.modal.ReactModalHostManager
+09-05 15:51:14.323  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ForeignObjectManager
+09-05 15:51:14.338  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$EllipseViewManager
+09-05 15:51:14.345  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LineViewManager
+09-05 15:51:14.355  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeFloodManager
+09-05 15:51:14.362  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$GroupViewManager
+09-05 15:51:14.370  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextViewManager
+09-05 15:51:14.378  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ImageViewManager
+09-05 15:51:14.389  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeCompositeManager
+09-05 15:51:14.402  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.image.ReactImageManager
+09-05 15:51:14.411  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RadialGradientManager
+09-05 15:51:14.434  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MaskManager
+09-05 15:51:14.457  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.unimplementedview.ReactUnimplementedViewManager
+09-05 15:51:14.474  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RectViewManager
+09-05 15:51:14.485  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextPathViewManager
+09-05 15:51:14.492  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactScrollViewManager
+09-05 15:51:14.503  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeOffsetManager
+09-05 15:51:14.512  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PathViewManager
+09-05 15:51:14.524  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.drawer.ReactDrawerLayoutManager
+09-05 15:51:14.532  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.swiperefresh.SwipeRefreshLayoutManager
+09-05 15:51:14.543  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.textinput.ReactTextInputManager
+09-05 15:51:14.554  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.SelectableTextViewManager
+09-05 15:51:14.559  7212  7335 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerRootViewManager
+09-05 15:51:14.590  7212  7335 I ReactNativeJS: Running "main"
+09-05 15:51:14.883  7212  7212 I ExpoModulesCore: ✅ JSI interop was installed
+09-05 15:51:15.498  7212  7212 I Choreographer: Skipped 31 frames!  The application may be doing too much work on its main thread.
+09-05 15:51:15.528  7212  7335 W loat.blockblas: Accessing hidden method Landroid/view/Window;->getInsetsController()Landroid/view/WindowInsetsController; (blacklist, linking, denied)
+09-05 15:51:15.535  7212  7335 I NitroModules: Loading NitroModules C++ library...
+09-05 15:51:15.545  7212  7335 I NitroModules: Successfully loaded NitroModules C++ library!
+09-05 15:51:15.660  7212  7336 I RustorePushModule: getInitialNotification
+09-05 15:51:15.660  7212  7336 I RustorePushModule: messageId: null
+09-05 15:51:15.660  7212  7336 I RustorePushModule: message: null
+09-05 15:51:15.746  7212  7336 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+09-05 15:51:15.747  7212  7336 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+09-05 15:51:15.823  7212  7212 I ReactNative: [GESTURE HANDLER] Initialize gesture handler for root view com.facebook.react.runtime.ReactSurfaceView{606aafe V.E...... ......ID 0,0-1080,1920 #1}
+09-05 15:51:15.862  7212  7263 I loat.blockblas: IncrementDisableThreadFlip blocked for 10.890ms
+09-05 15:51:15.862  7212  7254 I loat.blockblas: IncrementDisableThreadFlip blocked for 5.576ms
+09-05 15:51:15.866  7212  7259 I loat.blockblas: IncrementDisableThreadFlip blocked for 9.083ms
+09-05 15:51:15.910  7212  7350 I WebViewFactory: Loading com.google.android.webview version 74.0.3729.185 (code 373018568)
+09-05 15:51:15.954  7212  7350 I loat.blockblas: The ClassLoaderContext is a special shared library.
+09-05 15:51:15.954  7212  7212 I ExoPlayerImpl: Init a1fcc9d [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.001  7212  7350 I loat.blockblas: The ClassLoaderContext is a special shared library.
+09-05 15:51:16.038  7212  7238 I loat.blockblas: NativeAlloc concurrent copying GC freed 62888(3531KB) AllocSpace objects, 3(72KB) LOS objects, 38% free, 9710KB/15MB, paused 9.750ms total 345.777ms
+09-05 15:51:16.090  7212  7212 I MediaSessionImpl: Init 26c1ee0 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.102  1965  6866 D MediaSessionService: Media button session is changed to com.intstrfloat.blockblast/androidx.media3.session.id.ExpoAudioBasicMediaSession_169856157 (userId=0)
+09-05 15:51:16.104  1965  1965 V SettingsProvider: Notifying for 0: content://settings/secure/media_button_receiver
+09-05 15:51:16.164  7212  7212 I ExoPlayerImpl: Init cc8ada4 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.206  7212  7212 I MediaSessionImpl: Init a761709 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.244  1734  5968 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:16.244  1734  5968 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:16.245  1734  5968 D AF::TrackHandle: OpPlayAudio: track:152 usage:1 not muted
+09-05 15:51:16.250  7212  7212 I ExoPlayerImpl: Init caf9472 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.272  7212  7212 I MediaSessionImpl: Init c513d6c [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.280  1734  7165 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:16.280  7212  7350 I cr_LibraryLoader: Time to load native libraries: 3 ms (timestamps 4894-4897)
+09-05 15:51:16.281  1734  7165 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:16.282  1734  7165 D AF::TrackHandle: OpPlayAudio: track:153 usage:1 not muted
+09-05 15:51:16.329  7212  7212 I ExoPlayerImpl: Init 2965fa5 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.340  7212  7259 W loat.blockblas: Long monitor contention with owner OkHttp https://bloxx.193.160.208.95.nip.io/... (7350) at java.lang.Object dalvik.system.DexFile.openDexFileNative(java.lang.String, java.lang.String, int, java.lang.ClassLoader, dalvik.system.DexPathList$Element[])(DexFile.java:-2) waiters=0 in android.content.pm.PackageInfo android.webkit.WebViewFactory.getLoadedPackageInfo() for 394ms
+09-05 15:51:16.345  7212  7254 W loat.blockblas: Long monitor contention with owner OkHttp https://bloxx.193.160.208.95.nip.io/... (7350) at java.lang.Object dalvik.system.DexFile.openDexFileNative(java.lang.String, java.lang.String, int, java.lang.ClassLoader, dalvik.system.DexPathList$Element[])(DexFile.java:-2) waiters=1 in android.content.pm.PackageInfo android.webkit.WebViewFactory.getLoadedPackageInfo() for 399ms
+09-05 15:51:16.356  1734  5968 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:16.357  1734  5968 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:16.360  1734  5968 D AF::TrackHandle: OpPlayAudio: track:154 usage:1 not muted
+09-05 15:51:16.367  7212  7212 I MediaSessionImpl: Init 42ac946 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.383  7212  7350 I chromium: [INFO:library_loader_hooks.cc(50)] Chromium logging enabled: level = 0, default verbosity = 0
+09-05 15:51:16.384  7212  7350 I cr_LibraryLoader: Expected native library version number "74.0.3729.185", actual native library version number "74.0.3729.185"
+09-05 15:51:16.416  7212  7212 I ExoPlayerImpl: Init d369e64 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.422  1734  5968 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:16.422  1734  5968 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:16.423  7212  7212 I MediaSessionImpl: Init 9dc18cd [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.426  1734  5968 D AF::TrackHandle: OpPlayAudio: track:155 usage:1 not muted
+09-05 15:51:16.443  7212  7259 I VideoCapabilities: Unsupported profile 4 for video/mp4v-es
+09-05 15:51:16.451  7212  7212 I ExoPlayerImpl: Init 20862a6 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.472  7212  7212 I MediaSessionImpl: Init 5c80332 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.504  1734  7165 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:16.505  1734  7165 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:16.507  1734  7165 D AF::TrackHandle: OpPlayAudio: track:156 usage:1 not muted
+09-05 15:51:16.550  7212  7212 I ExoPlayerImpl: Init db6330 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.577  1734  7165 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:16.577  1734  7165 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:16.578  1734  7165 D AF::TrackHandle: OpPlayAudio: track:157 usage:1 not muted
+09-05 15:51:16.579  7212  7212 I MediaSessionImpl: Init 53c6848 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.657  7212  7212 I ExoPlayerImpl: Init c30ce45 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.672  7212  7212 I MediaSessionImpl: Init 79509c1 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.681  1734  7165 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:16.682  1734  7165 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:16.684  1734  7165 D AF::TrackHandle: OpPlayAudio: track:158 usage:1 not muted
+09-05 15:51:16.810  7212  7212 I ExoPlayerImpl: Init 1dd2f84 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.827  7212  7212 I MediaSessionImpl: Init abfb033 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.837  1734  2082 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:16.838  1734  2082 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:16.840  1734  2082 D AF::TrackHandle: OpPlayAudio: track:159 usage:1 not muted
+09-05 15:51:16.882  7212  7212 I ExoPlayerImpl: Init c26709e [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.905  1734  2082 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:16.905  1734  2082 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:16.907  1734  2082 D AF::TrackHandle: OpPlayAudio: track:160 usage:1 not muted
+09-05 15:51:16.907  7212  7212 I MediaSessionImpl: Init e84f8aa [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:16.971  7212  7212 I ExoPlayerImpl: Init 526140a [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.011  7212  7212 I MediaSessionImpl: Init 51d1a62 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.018  1734  5968 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:17.020  1734  5968 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:17.023  1734  5968 D AF::TrackHandle: OpPlayAudio: track:161 usage:1 not muted
+09-05 15:51:17.054  7212  7212 I ExoPlayerImpl: Init b44e012 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.069  7212  7238 I loat.blockblas: Background young concurrent copying GC freed 47682(3466KB) AllocSpace objects, 16(432KB) LOS objects, 9% free, 13MB/15MB, paused 5.359ms total 394.613ms
+09-05 15:51:17.071  7212  7212 I MediaSessionImpl: Init 5bb2c0c [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.095  2515  3756 I NetworkScheduler.Stats: Task com.google.android.gms/com.google.android.gms.icing.service.IcingGcmTaskService started execution. cause:4 exec_start_elapsed_seconds: 2735 [CONTEXT service_id=218 ]
+09-05 15:51:17.116  1734  2082 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:17.117  1734  2082 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:17.118  1734  2082 D AF::TrackHandle: OpPlayAudio: track:162 usage:1 not muted
+09-05 15:51:17.127  7212  7212 I ExoPlayerImpl: Init 9e6635 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.148  2515  7235 I NetworkScheduler.Stats: Task com.google.android.gms/com.google.android.gms.icing.service.IcingGcmTaskService finished executing. cause:4 result: 1 elapsed_millis: 281 uptime_millis: 281 exec_start_elapsed_seconds: 2735 [CONTEXT service_id=218 ]
+09-05 15:51:17.167  7212  7212 I MediaSessionImpl: Init a24f922 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.185  1734  6550 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:17.186  1734  6550 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:17.187  1734  6550 D AF::TrackHandle: OpPlayAudio: track:163 usage:1 not muted
+09-05 15:51:17.214  7212  7212 I ExoPlayerImpl: Init bde35ef [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.227  7212  7212 I MediaSessionImpl: Init daffb85 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.235  1734  6550 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:17.235  1734  6550 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:17.237  1734  6550 D AF::TrackHandle: OpPlayAudio: track:164 usage:1 not muted
+09-05 15:51:17.311  7212  7212 I ExoPlayerImpl: Init 7e90b7e [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.320  7212  7212 I MediaSessionImpl: Init fbfcff5 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.350  1734  6550 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:17.351  1734  6550 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:17.353  1734  6550 D AF::TrackHandle: OpPlayAudio: track:165 usage:1 not muted
+09-05 15:51:17.386  7212  7212 I ExoPlayerImpl: Init 520771d [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.395  7212  7212 I MediaSessionImpl: Init 9526819 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.422  1734  2082 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:17.423  1734  2082 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:17.426  1734  2082 D AF::TrackHandle: OpPlayAudio: track:166 usage:1 not muted
+09-05 15:51:17.443  1703  7380 E ResolverController: No valid NAT64 prefix (101, <unspecified>/0)
+09-05 15:51:17.446  7212  7212 I ExoPlayerImpl: Init 52eeb53 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.464  7212  7212 I MediaSessionImpl: Init d887d8e [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.502  1734  6550 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:17.503  1734  6550 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:17.505  1734  6550 D AF::TrackHandle: OpPlayAudio: track:167 usage:1 not muted
+09-05 15:51:17.509  7212  7212 I ExoPlayerImpl: Init e51e6f9 [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.530  7212  7212 I MediaSessionImpl: Init 42051ec [AndroidXMedia3/1.9.0] [generic_x86_64, Android SDK built for x86_64, Google, 29]
+09-05 15:51:17.564  1734  6550 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:17.565  1734  6550 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:17.567  1734  6550 D AF::TrackHandle: OpPlayAudio: track:168 usage:1 not muted
+09-05 15:51:17.604  1965  1978 I system_server: Background young concurrent copying GC freed 123127(5324KB) AllocSpace objects, 22(1344KB) LOS objects, 31% free, 12MB/18MB, paused 1.176ms total 115.086ms
+09-05 15:51:17.634  7212  7238 I loat.blockblas: Background concurrent copying GC freed 46690(3141KB) AllocSpace objects, 12(336KB) LOS objects, 28% free, 14MB/20MB, paused 1.097ms total 467.267ms
+09-05 15:51:17.635  7212  7327 D EGL_emulation: eglMakeCurrent: 0x765f2b0586a0: ver 2 0 (tinfo 0x765f2b1f5560)
+09-05 15:51:17.656  7212  7281 I AppMetrica: AppMetrica [380-IAA-CDE-1] Upgrade AppMetrica anonymous mode to normal with APIKey 1b7f9e00-xxxx-xxxx-xxxx-xxxxxxxx1c84
+09-05 15:51:17.692  1734  2082 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000006)
+09-05 15:51:17.692  1734  2082 D AudioFlinger: Client defaulted notificationFrames to 5512 for frameCount 11025
+09-05 15:51:17.695  1734  2082 D AF::TrackHandle: OpPlayAudio: track:169 usage:1 not muted
+09-05 15:51:17.793  1965  1994 I ActivityTaskManager: Displayed com.intstrfloat.blockblast/.MainActivity: +5s961ms
+09-05 15:51:17.894  2735  7170 I PBSessionCacheImpl: Deleted sessionId[636361524768] from persistence.
+09-05 15:51:17.909  2735  3060 W SearchServiceCore: Abort, client detached.
+09-05 15:51:16.110  1965  1965 V SettingsProvider: Notifying for 0: content://settings/secure/media_button_receiver
+09-05 15:51:18.396  1965  6866 D ConnectivityService: requestNetwork for uid/pid:10147/7212 NetworkRequest [ TRACK_DEFAULT id=40, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED Uid: 10147] ]
+09-05 15:51:18.398  1965  2067 D UntrustedWifiNetworkFactory: got request NetworkRequest [ TRACK_DEFAULT id=40, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED Uid: 10147] ] with score 60 and serial -1
+09-05 15:51:18.399  1965  2067 D WifiNetworkFactory: got request NetworkRequest [ TRACK_DEFAULT id=40, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED Uid: 10147] ] with score 60 and serial -1
+09-05 15:51:18.399  2284  2284 D PhoneSwitcherNetworkRequstListener: got request NetworkRequest [ TRACK_DEFAULT id=40, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED Uid: 10147] ] with score 60 and serial -1
+09-05 15:51:18.674  2515  2532 I .gms.persisten: Background concurrent copying GC freed 128277(5839KB) AllocSpace objects, 6(216KB) LOS objects, 41% free, 8641KB/14MB, paused 331us total 162.671ms
+09-05 15:51:18.785  7212  7238 I loat.blockblas: Background young concurrent copying GC freed 54965(3268KB) AllocSpace objects, 35(2228KB) LOS objects, 0% free, 20MB/20MB, paused 2.119ms total 477.863ms
+09-05 15:51:19.134  7212  7238 I loat.blockblas: Background concurrent copying GC freed 64778(4154KB) AllocSpace objects, 21(1412KB) LOS objects, 24% free, 18MB/24MB, paused 6.960ms total 346.100ms
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Entering merged library JNI_OnLoad.
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x765eda2cca20
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x765eda3b1550
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x765eda3c3a90
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x765eda3fe5a0
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x765eda4f4870
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x765eda500db0
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x765eda503c20
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x765eda52baf0
+09-05 15:51:19.360  7212  7335 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x765eda5d2d70
+09-05 15:51:19.361  7212  7335 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x765eda5d9cd0
+09-05 15:51:19.361  7212  7335 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x765eda5e1350
+09-05 15:51:19.361  7212  7335 D jni_lib_merge: About to register 11 actual methods.
+09-05 15:51:19.539  7212  7327 I OpenGLRenderer: Davey! duration=758ms; Flags=0, IntendedVsync=2737396852364, Vsync=2737396852364, OldestInputEvent=9223372036854775807, NewestInputEvent=0, HandleInputStart=2737398089300, AnimationStart=2737398117500, PerformTraversalsStart=2737754479600, DrawStart=2737754769200, SyncQueued=2738059080700, SyncStart=2738060638200, IssueDrawCommandsStart=2738062853700, SwapBuffers=2738155086400, FrameCompleted=2738156859200, DequeueBufferDuration=323000, QueueBufferDuration=753000, 
+09-05 15:51:20.148  7212  7238 I loat.blockblas: NativeAlloc concurrent copying GC freed 65460(2317KB) AllocSpace objects, 1(28KB) LOS objects, 25% free, 17MB/23MB, paused 556us total 172.709ms
+09-05 15:51:20.582  7212  7212 I Choreographer: Skipped 107 frames!  The application may be doing too much work on its main thread.
+09-05 15:51:20.871  7212  7327 I OpenGLRenderer: Davey! duration=2075ms; Flags=0, IntendedVsync=2737413534518, Vsync=2739196867780, OldestInputEvent=9223372036854775807, NewestInputEvent=0, HandleInputStart=2739200058200, AnimationStart=2739200295300, PerformTraversalsStart=2739333088200, DrawStart=2739333453100, SyncQueued=2739474098300, SyncStart=2739474776200, IssueDrawCommandsStart=2739477679700, SwapBuffers=2739487499000, FrameCompleted=2739489357500, DequeueBufferDuration=241000, QueueBufferDuration=941000, 
+09-05 15:51:21.022  7212  7238 I loat.blockblas: NativeAlloc concurrent copying GC freed 93597(2635KB) AllocSpace objects, 8(476KB) LOS objects, 24% free, 18MB/24MB, paused 1.207ms total 266.831ms
+09-05 15:51:21.058  7212  7254 I YandexAds: [Integration] Ad type rewarded was integrated successfully
+09-05 15:51:21.077  7212  7262 I YandexAds: [Integration] Ad type interstitial was integrated successfully
+09-05 15:51:22.045  1722  2684 D gralloc_ranchu: gralloc_alloc: Creating ashmem region of size 8298496
+09-05 15:51:22.068  1609  1609 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.mapper@3.0::IMapper/default in either framework or device manifest.
+09-05 15:51:22.068  7457  7457 W Gralloc3: mapper 3.x is not supported
+09-05 15:51:22.125  7457  7457 D HostConnection: createUnique: call
+09-05 15:51:22.125  7457  7457 D HostConnection: HostConnection::get() New Host Connection established 0x71dd4ed025a0, tid 7457
+09-05 15:51:22.162  7457  7457 D HostConnection: HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_native_sync_v3 ANDROID_EMU_native_sync_v4 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_hwc_color_transform GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_2 
+09-05 15:51:22.162  7457  7457 D eglCodecCommon: allocate: Ask for block of size 0x1000
+09-05 15:51:22.162  7457  7457 D eglCodecCommon: allocate: ioctl allocate returned offset 0x3ff805000 size 0x2000
+09-05 15:51:22.255  1965  1994 E memtrack: Couldn't load memtrack module
+09-05 15:51:22.255  1965  1994 W android.os.Debug: failed to get memory consumption info: -1
+09-05 15:51:22.286  7457  7457 D eglCodecCommon: allocate: Ask for block of size 0x7ea000
+09-05 15:51:22.287  7457  7457 D eglCodecCommon: allocate: ioctl allocate returned offset 0x3ff01c000 size 0x7eb000
+09-05 15:51:22.478  5559  7466 I MediaProvider: Begin Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///sdcard/combo-before.png flg=0x1400010 cmp=com.android.providers.media/.MediaService }
+09-05 15:51:22.538  5559  7466 W ExifInterface: Invalid image: ExifInterface got an unsupported image format file(ExifInterface supports JPEG and some RAW image formats only) or a corrupted JPEG file to ExifInterface.
+09-05 15:51:22.538  5559  7466 W ExifInterface: java.io.IOException: Invalid byte order: ffff8950
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at android.media.ExifInterface.readByteOrder(ExifInterface.java:3121)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at android.media.ExifInterface.isOrfFormat(ExifInterface.java:2437)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at android.media.ExifInterface.getMimeType(ExifInterface.java:2315)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at android.media.ExifInterface.loadAttributes(ExifInterface.java:1753)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at android.media.ExifInterface.<init>(ExifInterface.java:1447)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.scan.ModernMediaScanner.scanItemImage(ModernMediaScanner.java:729)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.scan.ModernMediaScanner.scanItem(ModernMediaScanner.java:502)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.scan.ModernMediaScanner.access$500(ModernMediaScanner.java:118)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.scan.ModernMediaScanner$Scan.visitFile(ModernMediaScanner.java:406)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.scan.ModernMediaScanner$Scan.visitFile(ModernMediaScanner.java:207)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at java.nio.file.Files.walkFileTree(Files.java:2670)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at java.nio.file.Files.walkFileTree(Files.java:2742)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.scan.ModernMediaScanner$Scan.walkFileTree(ModernMediaScanner.java:267)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.scan.ModernMediaScanner$Scan.run(ModernMediaScanner.java:245)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.scan.ModernMediaScanner.scanFile(ModernMediaScanner.java:174)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.MediaService.onScanFile(MediaService.java:164)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at com.android.providers.media.MediaService.onHandleIntent(MediaService.java:90)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at android.app.IntentService$ServiceHandler.handleMessage(IntentService.java:78)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at android.os.Handler.dispatchMessage(Handler.java:107)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at android.os.Looper.loop(Looper.java:214)
+09-05 15:51:22.538  5559  7466 W ExifInterface: 	at android.os.HandlerThread.run(HandlerThread.java:67)
+09-05 15:51:22.610  5559  7466 I MediaProvider: End Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///sdcard/combo-before.png flg=0x1400010 cmp=com.android.providers.media/.MediaService }
+09-05 15:51:22.979  2515  7412 I NetworkScheduler.Stats: Task com.google.android.gms/com.google.android.gms.ipa.base.IpaGcmTaskService started execution. cause:9 exec_start_elapsed_seconds: 2741 [CONTEXT service_id=218 ]
+09-05 15:51:23.007  2515  3756 I NetworkScheduler.Stats: Task com.google.android.gms/com.google.android.gms.ipa.base.IpaGcmTaskService finished executing. cause:9 result: 1 elapsed_millis: 205 uptime_millis: 205 exec_start_elapsed_seconds: 2741 [CONTEXT service_id=218 ]
+09-05 15:51:23.257  2515  7235 I LogUtils: [Places]: ?: Couldn't find platform key file. [CONTEXT service_id=253 ]
+09-05 15:51:23.261  2515  7412 I LogUtils: [Places]: ?: Couldn't find platform key file. [CONTEXT service_id=253 ]
+09-05 15:51:23.344  2515  7188 I LogUtils: [Places]: ?: PlacesBleScanner stop() [CONTEXT service_id=253 ]
+09-05 15:51:23.355  2515  7188 I PlacesLogger: [PlaceInferenceEngine]: [anon] Changed inference mode: 0 [CONTEXT service_id=253 ]
+09-05 15:51:23.367  2515  2515 I BeaconBle: Scan : No clients left, canceling alarm. [CONTEXT service_id=111 ]
+09-05 15:51:23.369  2515  2515 I BeaconBle: Scan canceled successfully. [CONTEXT service_id=111 ]
+09-05 15:51:23.391  2515  3240 W GCoreFlp: No location to return for getLastLocation()
+09-05 15:51:23.502  2515  7235 I LogUtils: [Places]: ?: Couldn't find platform key file. [CONTEXT service_id=253 ]
+09-05 15:51:23.506  2515  3756 I LogUtils: [Places]: ?: Couldn't find platform key file. [CONTEXT service_id=253 ]
+09-05 15:51:23.793  2515  2515 I GeofencerStateMachine: removeGeofences: removeRequest=RemoveGeofencingRequest[REMOVE_BY_PENDING_INTENT pendingIntent=PendingIntent[creatorPackage=com.google.android.gms], packageName=com.google.android.gms]
+09-05 15:51:27.846  2735  3060 I WorkerManager: dispose()
+09-05 15:51:27.848  2735  3060 W ThreadPoolDumper: Queue length for executor EventBus is now 11. Perhaps some tasks are too long, or the pool is too small.
+09-05 15:51:28.494  2515  2515 I BeaconBle: Scan : No clients left, canceling alarm. [CONTEXT service_id=111 ]
+09-05 15:51:32.616  1965  1994 E memtrack: Couldn't load memtrack module
+09-05 15:51:32.616  1965  1994 W android.os.Debug: failed to get memory consumption info: -1
+09-05 15:51:34.895  2375  3200 E ActivityThread: Failed to find provider info for com.google.android.apps.wellbeing.api
+09-05 15:51:50.797  2515  5764 E GmsTaskScheduler: sendWakeUpEvent called on SchedulerClientBroadcastStrategy
+09-05 15:51:50.799  2515  5764 E WakeLock: GCM_HB_ALARM release without a matched acquire!
+09-05 15:51:52.197  1836  1836 E netmgr  : Failed to open QEMU pipe 'qemud:network': Invalid argument
+09-05 15:51:52.273  1839  1839 E wifi_forwarder: RemoteConnection failed to initialize: RemoteConnection failed to open pipe
+09-05 15:51:53.005  2688  7482 I GmscoreIpa: how are you::
+09-05 15:51:53.025  2735  7183 W GmsLocationProvider: Error removing location updates: 16
+09-05 15:51:56.555  7485  7485 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-05 15:51:56.566  7485  7485 E libc    : Access denied finding property "persist.device_config.runtime_native_boot.enable_apex_image"
+09-05 15:51:56.566  7485  7485 I AndroidRuntime: Using default boot image
+09-05 15:51:56.566  7485  7485 E libc    : Access denied finding property "persist.device_config.runtime_native_boot.disable_lock_profiling"
+09-05 15:51:56.566  7485  7485 I AndroidRuntime: Leaving lock profiling enabled
+09-05 15:51:56.566  7485  7485 E libc    : Access denied finding property "persist.device_config.runtime_native_boot.enable_generational_cc"
+09-05 15:51:56.571  7485  7485 I app_process: Core platform API reporting enabled, enforcing=false
+09-05 15:51:56.558  7485  7485 W app_process: type=1400 audit(0.0:64): avc: denied { read } for name="u:object_r:device_config_runtime_native_boot_prop:s0" dev="tmpfs" ino=8318 scontext=u:r:shell:s0 tcontext=u:object_r:device_config_runtime_native_boot_prop:s0 tclass=file permissive=0
+09-05 15:51:56.558  7485  7485 I chatty  : uid=2000(shell) app_process identical 1 line
+09-05 15:51:56.558  7485  7485 W app_process: type=1400 audit(0.0:66): avc: denied { read } for name="u:object_r:device_config_runtime_native_boot_prop:s0" dev="tmpfs" ino=8318 scontext=u:r:shell:s0 tcontext=u:object_r:device_config_runtime_native_boot_prop:s0 tclass=file permissive=0
+09-05 15:51:56.745  7485  7485 D ICU     : Time zone APEX file found: /apex/com.android.tzdata/etc/icu/icu_tzdata.dat
+09-05 15:51:56.759  7485  7485 W app_process: Unexpected CPU variant for X86 using defaults: x86_64
+09-05 15:51:56.761  7485  7485 I app_process: The ClassLoaderContext is a special shared library.
+09-05 15:51:56.800  7485  7485 W app_process: JNI RegisterNativeMethods: attempt to register 0 native methods for android.media.AudioAttributes
+09-05 15:51:56.809  7485  7485 D AndroidRuntime: Calling main entry com.android.commands.input.Input
+09-05 15:51:56.829  7485  7485 D AndroidRuntime: Shutting down VM

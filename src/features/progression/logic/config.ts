@@ -2,6 +2,7 @@ import type { HelperId, Stage } from './types';
 
 export interface ProgressionConfig {
   levelCost: { base: number; growth: number };
+  introLevelCosts?: readonly number[];
   tierGaps: number[];
   maxAuthoredLevel: number;
   evolutionAtWorld: Partial<Record<number, Stage>>;
@@ -11,13 +12,16 @@ export interface ProgressionConfig {
   >;
 }
 
-// Кривая (retention фаза 2, ×3 по решению пользователя 2026-07-09: 2500 ощущался
-// слишком быстрым — level-up на первом же game over): уровень 1 ≈ 3–4 медианные
-// партии, мир 2 ≈ неделя активной игры. Медианная партия ≈ 1000 очков (DAILY_CONFIG).
+// Кривая retention-патча 2026-08-23: первые три стоимости уровня задаём явно,
+// чтобы первый helper/reward пришёл после ~1–2 обычных новичковых партий, а мир 2
+// открылся примерно на 10–11k total XP. Начиная с первого non-intro уровня
+// возвращается исходная long-tail формула 7500 * 1.12^(L-1), so later balance keeps
+// the old marginal costs with only a fixed early-threshold discount.
 // Старты миров при tierGaps [3,4,5,6,8,10] → [1,4,8,13,19,27,37]; levelRewards
 // НЕ ставить на старты миров — там их шэдоуит world-награда (rewardForLevel).
 export const PROGRESSION_CONFIG: ProgressionConfig = {
   levelCost: { base: 7500, growth: 1.12 },
+  introLevelCosts: [2000, 3500, 5000],
   tierGaps: [3, 4, 5, 6, 8, 10],
   maxAuthoredLevel: 64,
   evolutionAtWorld: { 1: 1, 2: 2, 4: 3, 6: 4 },

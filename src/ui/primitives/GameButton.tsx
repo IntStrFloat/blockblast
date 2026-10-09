@@ -63,6 +63,9 @@ export function GameButton({
     <AnimatedPressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       onPressIn={() => {
         scale.value = withSpring(0.95, { damping: 18, stiffness: 320 });
       }}
@@ -72,6 +75,7 @@ export function GameButton({
       style={[
         {
           borderRadius: radii.button,
+          minHeight: 48,
           paddingVertical: lg ? 20 : 14,
           paddingHorizontal: spacing.l,
           alignItems: 'center',
@@ -91,10 +95,10 @@ export function GameButton({
     >
       <AppText
         preset="button"
-        numberOfLines={1}
+        numberOfLines={2}
         adjustsFontSizeToFit
         minimumFontScale={0.75}
-        style={{ color: variantText[variant], fontSize: lg ? 19 : 15 }}
+        style={{ color: variantText[variant], fontSize: lg ? 19 : 15, textAlign: 'center' }}
       >
         {label}
       </AppText>

@@ -1,0 +1,36 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.gameaudio'
+version = '1.0.0'
+
+def generatedSoundAssets = layout.buildDirectory.dir('generated/gameAudioAssets')
+def syncGameSounds = tasks.register('syncGameSounds', Sync) {
+  from(file('../../../assets/sounds')) {
+    include '*.wav'
+    into 'game-audio'
+  }
+  into generatedSoundAssets
+}
+
+android {
+  namespace 'expo.modules.gameaudio'
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+  buildFeatures {
+    buildConfig true
+  }
+  sourceSets.main.assets.srcDir generatedSoundAssets
+}
+
+tasks.named('preBuild').configure {
+  dependsOn syncGameSounds
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-android'
+}

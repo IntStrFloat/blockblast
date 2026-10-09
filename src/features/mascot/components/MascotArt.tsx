@@ -14,7 +14,7 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
-import { mascotPalette } from '@/ui';
+import { mascotPalette } from '@/ui/theme';
 
 import type { HelperId, Slot, Stage } from '../logic/types';
 

@@ -1,6 +1,7 @@
 import { Pressable, View } from 'react-native';
 
-import { AppText, colors, spacing } from '@/ui';
+import { AppText } from '../AppText';
+import { colors, spacing } from '../theme';
 
 export type BottomNavTab = 'today' | 'path' | 'league' | 'capi';
 

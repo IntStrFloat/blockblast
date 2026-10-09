@@ -32,7 +32,24 @@ export function selectEffectiveWeeklyBest(
 ): number {
   const weekKey = getUtcWeekWindow(now).weekKey;
   const localBest = localWeekly?.weekKey === weekKey ? localWeekly.bestScore : 0;
-  return Math.max(snapshot?.currentPlayer.weeklyBest ?? 0, localBest);
+  const serverBest = snapshot?.weekKey === weekKey ? snapshot.currentPlayer.weeklyBest : 0;
+  return Math.max(serverBest, localBest);
+}
+
+/** Migration/bootstrap input only: a closed-week best may size a new target. */
+export function selectPreviousWeeklyBest(
+  snapshot: WeeklyLeaderboardSnapshot | null,
+  localWeekly: LocalWeeklyResult | null,
+  now: Date = new Date(),
+): number {
+  const weekKey = getUtcWeekWindow(now).weekKey;
+  const serverBest = snapshot && snapshot.weekKey < weekKey
+    ? snapshot.currentPlayer.weeklyBest
+    : 0;
+  const localBest = localWeekly && localWeekly.weekKey < weekKey
+    ? localWeekly.bestScore
+    : 0;
+  return Math.max(serverBest, localBest);
 }
 
 /** Лучшее призовое место текущего игрока среди полученных призов — драйвер рамки. */

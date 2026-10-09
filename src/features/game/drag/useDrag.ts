@@ -1,24 +1,26 @@
 /**
  * useDrag — хук жеста Pan для фигуры в трее.
- * Весь drag на UI-потоке (worklet); runOnJS ровно один раз — на дроп (спека 07).
+ * Весь drag на UI-потоке (worklet); RN runtime вызывается только на границах жеста.
  */
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withSequence,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { TRAY_MOTION } from '../animation/motion';
 import { dropCommitFor } from './dropLifecycle';
 import {
   dragTopLefts,
+  dropValidity,
   EMPTY_MASK,
-  fitsOnBoard,
-  insideBoard,
+  invalidDropMask,
   previewMask,
   topLeftToCell,
 } from './gridMath';
@@ -46,7 +48,7 @@ export interface UseDragOptions {
   ctx: DragCtx;
   /** SharedValue позиции слота в окне (measureInWindow на layout) */
   slotMeasure: SharedValue<SlotMeasure>;
-  /** Актуализирует позиции слота и доски непосредственно перед drag */
+  /** Refreshes infrequent window geometry and the board snapshot at gesture start. */
   measureForDrag: () => void;
   /**
    * Opacity появления фигуры (appearOpacity у TrayPiece). На валидном дропе
@@ -78,19 +80,35 @@ export function useDrag({
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const scale = useSharedValue<number>(restingScale);
-  // Тень при захвате: elevation (Android) и shadowOpacity (iOS)
-  const elevation = useSharedValue(0);
+  const latestRestingScale = useSharedValue(restingScale);
+  const gestureActive = useSharedValue(false);
+  const touchReleased = useSharedValue(false);
+  const releaseHandled = useSharedValue(false);
   const shadowOpacity = useSharedValue(0);
+
+  // A recycled slot or a resized playfield can change the fitted scale without
+  // remounting this hook. Keep idle art fitted; active gestures retain control.
+  useEffect(() => {
+    latestRestingScale.value = restingScale;
+    if (!gestureActive.value) scale.value = restingScale;
+  }, [gestureActive, latestRestingScale, restingScale, scale]);
 
   // Текущая валидная позиция дропа (shared, для onEnd)
   const dropR = useSharedValue(-1);
   const dropC = useSharedValue(-1);
   // 1 — фигура над доской, но позиция занята/не влезает (для Reject-хаптики)
   const dropBlocked = useSharedValue(0);
+  const hoverR = useSharedValue(-99);
+  const hoverC = useSharedValue(-99);
+  const dropCommitted = useSharedValue(0);
   const previewA = useSharedValue<number[]>(new Array(64).fill(0));
   const previewB = useSharedValue<number[]>(new Array(64).fill(0));
   const previewScratch = useSharedValue<number[]>(new Array(64).fill(0));
   const previewFlip = useSharedValue(0);
+  const invalidA = useSharedValue<number[]>(new Array(64).fill(0));
+  const invalidB = useSharedValue<number[]>(new Array(64).fill(0));
+  const invalidFlip = useSharedValue(0);
+  const previousDisabled = useRef(disabled);
 
   // Захваченные значения для worklet
   const cellsCapture = cells as readonly (readonly [number, number])[];
@@ -100,10 +118,15 @@ export function useDrag({
     boardMirror,
     preview,
     previewColor,
+    invalidPreview,
+    invalidReason,
+    clearPrelude,
     dragActive,
     dragOwner,
     onDrop,
     onGrab,
+    onTouch,
+    onReturn,
     onInvalidDrop,
   } = ctx;
 
@@ -114,39 +137,113 @@ export function useDrag({
       // отклонил (позиция занята) — слот остаётся прежним и без отката фигура
       // «пропала бы» из трея. Возвращаем её видимой.
       if (!placed) {
+        preview.value = EMPTY_MASK;
+        previewColor.value = 0;
+        clearPrelude.value = 0;
         committedOpacity.value = withTiming(1, { duration: TRAY_MOTION.appearDurationMs });
-        onInvalidDrop?.();
+        onInvalidDrop?.('occupied');
       }
     },
-    [committedOpacity, onDrop, onInvalidDrop],
+    [clearPrelude, committedOpacity, onDrop, onInvalidDrop, preview, previewColor],
   );
 
+  const onTouchJS = onTouch;
+  const onReturnJS = onReturn;
   const onGrabJS = onGrab;
   const onInvalidDropJS = onInvalidDrop;
+
+  // A fullscreen ad can suspend Android while RNGH is finalizing the losing
+  // gesture. The same tray pieces survive revive, so do not let an interrupted
+  // native handler keep ownership/translation when their availability flips.
+  useEffect(() => {
+    if (previousDisabled.current === disabled) return;
+    previousDisabled.current = disabled;
+
+    translateX.value = 0;
+    translateY.value = 0;
+    scale.value = restingScale;
+    shadowOpacity.value = 0;
+    dropR.value = -1;
+    dropC.value = -1;
+    dropBlocked.value = 0;
+    hoverR.value = -99;
+    hoverC.value = -99;
+    dropCommitted.value = 0;
+    gestureActive.value = false;
+    touchReleased.value = false;
+    releaseHandled.value = false;
+
+    if (dragOwner.value === trayIndex) {
+      dragOwner.value = -1;
+      dragActive.value = 0;
+      preview.value = EMPTY_MASK;
+      previewColor.value = 0;
+      invalidPreview.value = EMPTY_MASK;
+      invalidReason.value = 0;
+      clearPrelude.value = 0;
+    }
+  }, [
+    clearPrelude,
+    disabled,
+    dragActive,
+    dragOwner,
+    dropBlocked,
+    dropC,
+    dropCommitted,
+    dropR,
+    gestureActive,
+    hoverC,
+    hoverR,
+    invalidPreview,
+    invalidReason,
+    preview,
+    previewColor,
+    releaseHandled,
+    restingScale,
+    scale,
+    shadowOpacity,
+    touchReleased,
+    translateX,
+    translateY,
+    trayIndex,
+  ]);
 
   const gesture = Gesture.Pan()
     .enabled(!disabled)
     .onBegin(() => {
       'worklet';
+      gestureActive.value = true;
+      touchReleased.value = false;
+      releaseHandled.value = false;
+      if (onTouchJS) scheduleOnRN(onTouchJS);
       // Перф-сигнал: drag начался — мозг маскота встаёт на паузу (спека 09).
-      // Движение/звук захвата — в onStart (см. ниже); здесь только сигнал паузы.
+      // Visual lift and activated-drag tracking remain in onStart.
       dragActive.value = 1;
+    })
+    .onTouchesUp((event) => {
+      'worklet';
+      touchReleased.value = event.numberOfTouches === 0;
     })
     .onStart(() => {
       'worklet';
-      runOnJS(measureForDrag)();
+      scheduleOnRN(measureForDrag);
       // Подстраховка: чистим возможную «застрявшую» тень от прерванного жеста и
       // забираем владение превью (last-wins — переживает залипшего владельца).
       preview.value = EMPTY_MASK;
       previewColor.value = 0;
+      invalidPreview.value = EMPTY_MASK;
+      invalidReason.value = 0;
+      clearPrelude.value = 0;
+      dropCommitted.value = 0;
       dragOwner.value = trayIndex;
       scale.value = withTiming(TRAY_MOTION.grabScale, { duration: TRAY_MOTION.grabDurationMs });
-      elevation.value = withTiming(8, { duration: TRAY_MOTION.grabDurationMs });
       shadowOpacity.value = withTiming(0.3, { duration: TRAY_MOTION.grabDurationMs });
-      if (onGrabJS) runOnJS(onGrabJS)();
+      if (onGrabJS) scheduleOnRN(onGrabJS);
       dropR.value = -1;
       dropC.value = -1;
       dropBlocked.value = 0;
+      hoverR.value = -99;
+      hoverC.value = -99;
     })
     .onUpdate((event) => {
       'worklet';
@@ -182,11 +279,17 @@ export function useDrag({
         gap: gapPx,
       });
 
-      if (fitsOnBoard(boardMirror.value, cellsCapture, r, c, w, h)) {
-        const positionChanged = dropR.value !== r || dropC.value !== c;
+      const validity = dropValidity(boardMirror.value, cellsCapture, r, c, w, h);
+      const positionChanged = hoverR.value !== r || hoverC.value !== c;
+      hoverR.value = r;
+      hoverC.value = c;
+
+      if (validity === 'valid') {
         dropR.value = r;
         dropC.value = c;
         dropBlocked.value = 0;
+        invalidReason.value = 0;
+        invalidPreview.value = EMPTY_MASK;
         if (positionChanged) {
           previewFlip.value = previewFlip.value === 0 ? 1 : 0;
           const nextPreview = previewFlip.value === 0 ? previewA.value : previewB.value;
@@ -204,28 +307,45 @@ export function useDrag({
         const hadPreview = dropR.value >= 0 || dropC.value >= 0;
         dropR.value = -1;
         dropC.value = -1;
-        // Над доской, но не влезает — «заблокированный» дроп (Reject-хаптика
-        // на отпускании). Вне доски — осознанный возврат в трей, без фидбека.
-        dropBlocked.value = insideBoard(r, c, w, h) ? 1 : 0;
+        dropBlocked.value = validity === 'occupied' ? 1 : 0;
+        invalidReason.value = validity === 'occupied' ? 1 : 2;
+        if (validity === 'occupied' && positionChanged) {
+          invalidFlip.value = invalidFlip.value === 0 ? 1 : 0;
+          const nextInvalid = invalidFlip.value === 0 ? invalidA.value : invalidB.value;
+          invalidPreview.value = invalidDropMask(
+            boardMirror.value,
+            cellsCapture,
+            r,
+            c,
+            nextInvalid,
+          );
+        } else if (validity === 'outside-board') {
+          invalidPreview.value = EMPTY_MASK;
+        }
         if (hadPreview) {
           preview.value = EMPTY_MASK;
           previewColor.value = 0;
         }
       }
     })
-    .onEnd(() => {
+    .onEnd((event, success) => {
       'worklet';
+      releaseHandled.value = true;
+      if (!success) return;
       const isOwner = dragOwner.value === trayIndex;
-      if (isOwner) {
-        preview.value = EMPTY_MASK;
-        previewColor.value = 0;
-      }
-
       const commit = isOwner ? dropCommitFor(trayIndex, dropR.value, dropC.value) : null;
 
       if (commit) {
-        // Валидный дроп — ровно один runOnJS
-        runOnJS(onDropJS)(commit.trayIndex, commit.row, commit.col);
+        // Immediate causal feedback stays on the UI runtime. The already-built
+        // line preview bridges the RN/store/render round-trip until the pooled
+        // destruction layers take over in the accepted-drop commit.
+        dropCommitted.value = 1;
+        clearPrelude.value = 0;
+        clearPrelude.value = withSequence(
+          withTiming(1, { duration: 55 }),
+          withTiming(0, { duration: 110 }),
+        );
+        scheduleOnRN(onDropJS, commit.trayIndex, commit.row, commit.col);
         // Мгновенно прячем фигуру: иначе при сбросе translate в 0 она на 1–2
         // кадра «телепортируется» в слот трея, пока store не обнулит/обновит слот.
         committedOpacity.value = 0;
@@ -233,30 +353,47 @@ export function useDrag({
         // фигура — трей сразу рефилится): новая фигура должна встать по центру.
         translateX.value = 0;
         translateY.value = 0;
-        scale.value = restingScale;
-        elevation.value = 0;
+        scale.value = latestRestingScale.value;
         shadowOpacity.value = 0;
       } else {
-        // Невалидно — короткий timing назад в слот без overshoot
-        if (isOwner && dropBlocked.value === 1 && onInvalidDropJS) {
-          runOnJS(onInvalidDropJS)();
+        if (isOwner) {
+          preview.value = EMPTY_MASK;
+          previewColor.value = 0;
+          clearPrelude.value = 0;
         }
-        translateX.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
-        translateY.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
-        scale.value = withTiming(restingScale, {
+        // Preserve release velocity while settling back into the tray.
+        if (isOwner && onInvalidDropJS) {
+          scheduleOnRN(
+            onInvalidDropJS,
+            dropBlocked.value === 1 ? 'occupied' : 'outside-board',
+          );
+        }
+        if (!isOwner && onReturnJS) scheduleOnRN(onReturnJS);
+        translateX.value = withSpring(0, { duration: 400, dampingRatio: 0.8, velocity: event.velocityX, overshootClamping: true });
+        translateY.value = withSpring(0, { duration: 400, dampingRatio: 0.8, velocity: event.velocityY, overshootClamping: true });
+        scale.value = withTiming(latestRestingScale.value, {
           duration: TRAY_MOTION.returnScaleDurationMs,
         });
-        elevation.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });
         shadowOpacity.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });
       }
     })
     .onFinalize((_event, success) => {
       'worklet';
+      if (touchReleased.value && !releaseHandled.value && onReturnJS) {
+        scheduleOnRN(onReturnJS);
+      }
+      releaseHandled.value = true;
       // Чистим превью и отпускаем владение только если владелец — иначе затрём
       // активную тень другого (ещё перетаскиваемого) пальца.
+      const committed = dropCommitted.value === 1;
       if (dragOwner.value === trayIndex) {
-        preview.value = EMPTY_MASK;
-        previewColor.value = 0;
+        if (!committed) {
+          preview.value = EMPTY_MASK;
+          previewColor.value = 0;
+          invalidPreview.value = EMPTY_MASK;
+          invalidReason.value = 0;
+          clearPrelude.value = 0;
+        }
         dragOwner.value = -1;
         dragActive.value = 0;
       } else if (dragOwner.value < 0) {
@@ -268,19 +405,28 @@ export function useDrag({
         dropR.value = -1;
         dropC.value = -1;
         dropBlocked.value = 0;
-        translateX.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
-        translateY.value = withTiming(0, { duration: TRAY_MOTION.returnDurationMs });
-        scale.value = withTiming(restingScale, {
+        hoverR.value = -99;
+        hoverC.value = -99;
+        invalidPreview.value = EMPTY_MASK;
+        invalidReason.value = 0;
+        translateX.value = withSpring(0, { duration: 400, dampingRatio: 1, overshootClamping: true });
+        translateY.value = withSpring(0, { duration: 400, dampingRatio: 1, overshootClamping: true });
+        scale.value = withTiming(latestRestingScale.value, {
           duration: TRAY_MOTION.returnScaleDurationMs,
         });
-        elevation.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });
         shadowOpacity.value = withTiming(0, { duration: TRAY_MOTION.returnScaleDurationMs });
       } else {
         // onEnd уже отработал — только сбрасываем drop-позицию
         dropR.value = -1;
         dropC.value = -1;
         dropBlocked.value = 0;
+        hoverR.value = -99;
+        hoverC.value = -99;
+        invalidPreview.value = EMPTY_MASK;
+        invalidReason.value = 0;
       }
+      dropCommitted.value = 0;
+      gestureActive.value = false;
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -289,8 +435,6 @@ export function useDrag({
       { translateY: translateY.value },
       { scale: scale.value },
     ],
-    // Android — elevation анимируется
-    elevation: elevation.value,
     // iOS — shadowOpacity анимируется, остальные статичны
     shadowColor: '#000',
     shadowOpacity: shadowOpacity.value,

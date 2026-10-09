@@ -1,4 +1,7 @@
-import type { WeeklyLeaderboardSnapshot } from './types';
+import type {
+  WeeklyClaimReceipt,
+  WeeklyServerOutcome,
+} from './types';
 
 /**
  * Награды за топ-3 недельного рейтинга (спрашивалось: «легко награждать первые 3 места»).
@@ -15,6 +18,7 @@ export interface WeeklyPrize {
 }
 
 export interface WeeklyPrizeRecord {
+  rewardId: string;
   /** Закрытая неделя, за которую начислен приз (weekKey). */
   weekKey: string;
   /** Финальное место игрока на той неделе (1..3). */
@@ -22,6 +26,9 @@ export interface WeeklyPrizeRecord {
   prize: WeeklyPrize;
   claimed: boolean;
   earnedAt: string;
+  receipt: WeeklyClaimReceipt | null;
+  origin: 'server' | 'legacy_local';
+  localAppliedAt: string | null;
 }
 
 export const WEEKLY_PRIZES: Readonly<Record<number, WeeklyPrize>> = {
@@ -39,38 +46,50 @@ export function prizeForRank(rank: number | null | undefined): WeeklyPrize | nul
   return WEEKLY_PRIZES[rank] ?? null;
 }
 
-/**
- * Подвести итоги прошлой недели в призовую запись — как только неделя сменилась.
- * Чистая функция: возвращает новую запись для добавления либо null. Идемпотентна
- * по weekKey (повторный вызов не создаёт дубликат).
- */
-export function settleWeeklyPrize(
-  previousSnapshot: WeeklyLeaderboardSnapshot | null,
-  currentWeekKey: string,
-  existing: readonly WeeklyPrizeRecord[],
-  now: Date,
+export function weeklyPrizeRecordFromOutcome(
+  outcome: WeeklyServerOutcome,
+  previous?: WeeklyPrizeRecord,
 ): WeeklyPrizeRecord | null {
-  if (!previousSnapshot) return null;
-  // Неделя ещё не сменилась — итожить нечего.
-  if (previousSnapshot.weekKey === currentWeekKey) return null;
-  if (existing.some((record) => record.weekKey === previousSnapshot.weekKey)) return null;
-
-  const rank = previousSnapshot.currentPlayer.rank;
-  const prize = prizeForRank(rank);
-  if (!prize || rank == null) return null;
-
+  if (!outcome.reward) return null;
   return {
-    weekKey: previousSnapshot.weekKey,
-    rank,
-    prize,
-    claimed: false,
-    earnedAt: now.toISOString(),
+    rewardId: outcome.reward.rewardId,
+    weekKey: outcome.weekKey,
+    rank: outcome.rank,
+    prize: outcome.reward.prize,
+    claimed: outcome.receipt !== null,
+    earnedAt: outcome.finalizedAt,
+    receipt: outcome.receipt,
+    origin: 'server',
+    localAppliedAt: previous?.localAppliedAt ?? null,
+  };
+}
+
+export function normalizeWeeklyPrizeRecord(
+  value: Partial<WeeklyPrizeRecord>,
+): WeeklyPrizeRecord | null {
+  if (
+    typeof value.weekKey !== 'string' ||
+    typeof value.rank !== 'number' ||
+    !value.prize
+  ) return null;
+  const legacy = typeof value.rewardId !== 'string';
+  return {
+    rewardId: value.rewardId ?? `legacy:${value.weekKey}:rank-${value.rank}`,
+    weekKey: value.weekKey,
+    rank: value.rank,
+    prize: value.prize,
+    claimed: value.claimed === true,
+    earnedAt: value.earnedAt ?? new Date(0).toISOString(),
+    receipt: value.receipt ?? null,
+    origin: value.origin ?? (legacy ? 'legacy_local' : 'server'),
+    // Claimed legacy rewards are preserved but never replayed through G03.
+    localAppliedAt: value.localAppliedAt ?? (value.claimed ? value.earnedAt ?? new Date(0).toISOString() : null),
   };
 }
 
 /** Первый неполученный приз (для баннера «Забрать награду»). */
 export function unclaimedPrize(records: readonly WeeklyPrizeRecord[]): WeeklyPrizeRecord | null {
-  return records.find((record) => !record.claimed) ?? null;
+  return records.find((record) => record.origin === 'server' && !record.claimed) ?? null;
 }
 
 /**

@@ -10,8 +10,15 @@ export const NoopAdsProvider: AdsProvider = {
   async showInterstitial() {
     return 'unavailable';
   },
-  async showRewarded() {
-    return fakeRewarded() ? 'rewarded' : 'unavailable';
+  async showRewarded(_placement, onEarned) {
+    if (!fakeRewarded()) return 'unavailable';
+    try {
+      onEarned?.();
+    } catch {
+      // The consumer retains the earned obligation and can retry delivery.
+      console.warn('[ads] Simulated reward delivery failed');
+    }
+    return 'rewarded';
   },
   isRewardedReady() {
     return fakeRewarded();

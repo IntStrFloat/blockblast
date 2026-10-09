@@ -5,6 +5,9 @@ import type {
   RunMove,
   WeeklyImpact,
   WeeklyLeaderboardSnapshot,
+  WeeklyClaimReceipt,
+  WeeklyOutcomesResponse,
+  WeeklyServerOutcome,
 } from './types';
 
 interface RequestInitExtra extends RequestInit {
@@ -59,6 +62,27 @@ export function createRemoteLeaderboardClient(baseUrl: string) {
       return { ...snapshot, source: 'remote', isCached: false };
     },
 
+    async getWeeklyOutcomes(input: { authToken: string }): Promise<WeeklyOutcomesResponse> {
+      return requestJson<WeeklyOutcomesResponse>(`${normalizedBaseUrl}/api/weekly/outcomes`, {
+        method: 'GET',
+        authToken: input.authToken,
+      });
+    },
+
+    async claimWeeklyReward(input: {
+      authToken: string;
+      rewardId: string;
+    }): Promise<{ outcome: WeeklyServerOutcome; receipt: WeeklyClaimReceipt }> {
+      return requestJson<{ outcome: WeeklyServerOutcome; receipt: WeeklyClaimReceipt }>(
+        `${normalizedBaseUrl}/api/weekly/rewards/claim`,
+        {
+          method: 'POST',
+          authToken: input.authToken,
+          body: JSON.stringify({ rewardId: input.rewardId }),
+        },
+      );
+    },
+
     async getAdventureSeason(input: { authToken: string }): Promise<AdventureSeasonWindow> {
       return requestJson<AdventureSeasonWindow>(`${normalizedBaseUrl}/api/adventure/season`, {
         method: 'GET',
@@ -68,6 +92,7 @@ export function createRemoteLeaderboardClient(baseUrl: string) {
 
     async submitRun(input: {
       authToken: string;
+      proofId: string;
       ticketId: string | null;
       score: number;
       seed: number;
@@ -81,6 +106,7 @@ export function createRemoteLeaderboardClient(baseUrl: string) {
           method: 'POST',
           authToken: input.authToken,
           body: JSON.stringify({
+            proofId: input.proofId,
             ticketId: input.ticketId,
             score: input.score,
             seed: input.seed,

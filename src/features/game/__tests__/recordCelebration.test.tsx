@@ -131,9 +131,9 @@ describe('record celebration source contract', () => {
     expect(celebrationSource).not.toContain('testID="new-record-title"');
   });
 
-  it('keeps praise keyframes from flashing back visible before unmount', () => {
-    expect(praiseSource).toContain('HIDDEN_AFTER_ENTER_OPACITY');
-    expect(praiseSource.match(/opacity: HIDDEN_AFTER_ENTER_OPACITY/g)).toHaveLength(2);
+  it('ends praise keyframes hidden without a competing static opacity style', () => {
+    expect(praiseSource.match(/100:\s*\{\s*opacity:\s*0/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(praiseSource).not.toContain('HIDDEN_AFTER_ENTER_OPACITY');
   });
 });
 
@@ -232,8 +232,7 @@ describe('NewRecordCelebration', () => {
     expect(confettiStyles(renderer)).toEqual(before);
   });
 
-  it('does not replay the same record event and clears its timer on unmount', () => {
-    const clearTimeoutSpy = jest.spyOn(globalThis, 'clearTimeout');
+  it('keeps one mounted episode per record event without JS lifecycle timers', () => {
     const renderer = mountCelebration();
     const celebration = { score: 300, previousBest: 250 };
 
@@ -248,14 +247,9 @@ describe('NewRecordCelebration', () => {
     expect(activeCelebrationCount(renderer)).toBe(1);
 
     act(() => {
-      jest.advanceTimersByTime(1500);
-    });
-    expect(activeCelebrationCount(renderer)).toBe(0);
-
-    act(() => {
       useGameStore.setState({ recordCelebration: celebration, recordCelebrated: true });
     });
-    expect(activeCelebrationCount(renderer)).toBe(0);
+    expect(activeCelebrationCount(renderer)).toBe(1);
 
     act(() => {
       useGameStore.setState((state) => ({
@@ -265,12 +259,11 @@ describe('NewRecordCelebration', () => {
       }));
     });
     expect(activeCelebrationCount(renderer)).toBe(1);
+    expect(jest.getTimerCount()).toBe(0);
 
     act(() => {
       renderer.unmount();
     });
-    expect(clearTimeoutSpy).toHaveBeenCalled();
-    clearTimeoutSpy.mockRestore();
   });
 
   it('exposes a deterministic confetti builder for the record path', () => {

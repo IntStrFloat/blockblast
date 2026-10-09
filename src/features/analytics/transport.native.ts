@@ -75,6 +75,7 @@ export class AppMetricaTransport implements AnalyticsTransport {
     this.enabled = enabled;
     if (this.initialized) this.sdk!.setDataSendingEnabled(enabled);
   }
+
 }
 
 export function createAppMetricaTransport(

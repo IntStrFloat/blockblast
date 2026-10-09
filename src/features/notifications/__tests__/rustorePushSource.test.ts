@@ -11,5 +11,9 @@ describe('RuStore push native source contract', () => {
     expect(src).toContain('resolvePushRoute');
     expect(src).toContain('export const RuStorePushProvider');
     expect(src).toContain('requestPermission');
+    expect(src).toContain('requestAndroidPushPermission');
+    expect(src).toContain('getInitialNotificationTap');
+    expect(src).toContain('tapFromMessage');
+    expect(src).toContain("kind };");
   });
 });

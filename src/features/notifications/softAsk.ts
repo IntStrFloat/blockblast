@@ -8,6 +8,8 @@ interface PushPromptState {
   meaningfulSessions: number;
   handled: boolean;
   lastMeaningfulSessionId?: string;
+  lastMeaningfulMode?: 'classic' | 'adventure';
+  lastObservedPermissionStatus?: PushPermissionStatus;
 }
 
 export interface PushSoftAskContext {
@@ -31,6 +33,7 @@ function load(): PushPromptState {
     gameOvers: Math.max(0, persisted?.gameOvers ?? 0),
     meaningfulSessions: Math.max(0, persisted?.meaningfulSessions ?? 0),
     handled: persisted?.handled ?? false,
+    lastObservedPermissionStatus: persisted?.lastObservedPermissionStatus,
   };
 }
 
@@ -45,13 +48,17 @@ export function recordGameOverForPush(): void {
  * Records one completed value-bearing game/session (for example daily
  * activation or an Adventure win). The id makes retries idempotent.
  */
-export function recordMeaningfulSessionForPush(sessionId: string): void {
+export function recordMeaningfulSessionForPush(
+  sessionId: string,
+  mode: 'classic' | 'adventure' = 'classic',
+): void {
   const state = load();
   if (state.handled || !sessionId || state.lastMeaningfulSessionId === sessionId) return;
   setJSON(KEYS.pushPrompt, {
     ...state,
     meaningfulSessions: state.meaningfulSessions + 1,
     lastMeaningfulSessionId: sessionId,
+    lastMeaningfulMode: mode,
   });
 }
 
@@ -70,4 +77,20 @@ export function shouldShowPushSoftAsk(context: PushSoftAskContext): boolean {
 /** Player chose allow/later: the soft-ask is intentionally single-shot. */
 export function markPushSoftAskHandled(): void {
   setJSON(KEYS.pushPrompt, { ...load(), handled: true });
+}
+
+export function getPushPromptSnapshot(): Readonly<PushPromptState> {
+  return load();
+}
+
+export function recordObservedPushPermissionStatus(
+  status: PushPermissionStatus,
+): { previous: PushPermissionStatus | null; unsubscribed: boolean } {
+  const state = load();
+  const previous = state.lastObservedPermissionStatus ?? null;
+  setJSON(KEYS.pushPrompt, { ...state, lastObservedPermissionStatus: status });
+  return {
+    previous,
+    unsubscribed: previous === 'granted' && status === 'denied',
+  };
 }

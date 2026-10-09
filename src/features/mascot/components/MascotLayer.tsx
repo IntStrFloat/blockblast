@@ -24,9 +24,6 @@ import { useMascotFeedback } from '../hooks/useMascotFeedback';
 import type { EmoteId } from '../logic/types';
 import { useMascot } from '../store';
 import { Emote } from './Emote';
-import { HelperHint } from './HelperHint';
-import { HelperSwap } from './HelperSwap';
-import { LevelUpReveal } from './LevelUpReveal';
 import { Mascot, useMascotMotion } from './Mascot';
 import { MascotChip } from './MascotChip';
 import { MascotIntro } from './MascotIntro';
@@ -41,6 +38,7 @@ const LIFT_RETURN_MS = 180;
 
 interface MascotLayerProps {
   dragActive: SharedValue<number>;
+  active?: boolean;
 }
 
 /**
@@ -48,24 +46,31 @@ interface MascotLayerProps {
  * чип уровня, реакция на тап, эмоции и reduce-motion.
  *
  * Монтируется только при включённой настройке showMascot — иначе ни мозг,
- * ни таймеры не запускаются. Капи можно перетаскивать: бросок вниз за пределы
- * «пола» (за DROP_THRESHOLD) → падение, реплика потери и состояние lost до
- * следующей партии (восстановление — в recover-эффекте по epoch).
+ * ни таймеры не запускаются. Функциональные helper-controls живут отдельно.
+ * Бросок вниз даёт короткое падение и автоматически возвращает Капи в этой же
+ * партии; epoch-recovery остаётся страховкой после прерванного процесса.
  */
-export function MascotLayer({ dragActive }: MascotLayerProps) {
+export function MascotLayer({ dragActive, active = true }: MascotLayerProps) {
   const showMascot = useSettings((s) => s.showMascot);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
   if (!showMascot) return null;
   return (
     <>
-      <MascotLayerInner dragActive={dragActive} onOpenWardrobe={() => setWardrobeOpen(true)} />
-      <LevelUpReveal />
+      <MascotLayerInner
+        dragActive={dragActive}
+        active={active}
+        onOpenWardrobe={() => setWardrobeOpen(true)}
+      />
       <Wardrobe visible={wardrobeOpen} onClose={() => setWardrobeOpen(false)} />
     </>
   );
 }
 
-function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { onOpenWardrobe: () => void }) {
+function MascotLayerInner({
+  dragActive,
+  active = true,
+  onOpenWardrobe,
+}: MascotLayerProps & { onOpenWardrobe: () => void }) {
   const motion = useMascotMotion();
 
   const equipped = useMascot((s) => s.equipped);
@@ -112,7 +117,15 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   const mascotReturning = useSharedValue(0);
   const brainPaused = useSharedValue(0);
   useAnimatedReaction(
-    () => Math.max(dragActive.value, mascotDragging.value, mascotDropping.value, mascotReturning.value),
+    () =>
+      active
+        ? Math.max(
+            dragActive.value,
+            mascotDragging.value,
+            mascotDropping.value,
+            mascotReturning.value,
+          )
+        : 1,
     (v) => {
       brainPaused.value = v;
     },
@@ -150,9 +163,26 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
     setLostText(mascotLost(praiseTone, lang));
     onLost();
     const t1 = setTimeout(() => useMascot.getState().drop(), 450);
+    const t3 = setTimeout(() => {
+      useMascot.getState().recover();
+      mascotDragging.value = 0;
+      mascotDropping.value = 0;
+      mascotReturning.value = 0;
+      dropInFlightRef.current = false;
+      motion.opacity.value = withTiming(1, { duration: 200 });
+      motion.rotate.value = 0;
+      motion.scaleX.value = 1;
+      motion.scaleY.value = 1;
+      motion.bob.value = withSequence(
+        withTiming(-10, { duration: 160 }),
+        withSpring(0),
+      );
+      setLostText(null);
+      showEmote('sparkle');
+    }, 1_400);
     const t2 = setTimeout(() => setLostText(null), 2200);
-    dropTimers.current.push(t1, t2);
-  }, [mascotDropping, mascotReturning, motion, praiseTone, lang, onLost]);
+    dropTimers.current.push(t1, t2, t3);
+  }, [mascotDragging, mascotDropping, mascotReturning, motion, praiseTone, lang, onLost, showEmote]);
 
   // Восстановление маскота при начале новой партии (newGame / loadSaved).
   const epoch = useGameStore((s) => s.epoch);
@@ -195,7 +225,7 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   // в useDrag проходит лишь потому, что живёт в кастомном хуке). Колбэки исполняются
   // на UI-потоке в момент жеста, не во время рендера — доступ безопасен.
   /* eslint-disable react-hooks/refs */
-  const tap = Gesture.Tap().onEnd(() => {
+  const tap = Gesture.Tap().enabled(active).onEnd(() => {
     'worklet';
     motion.bob.value = withSequence(
       withTiming(-10, { duration: 140 }),
@@ -206,6 +236,7 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
   });
 
   const pan = Gesture.Pan()
+    .enabled(active)
     .onBegin(() => {
       'worklet';
       if (mascotDropping.value) return;
@@ -267,15 +298,6 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
           <MascotChip onPress={onOpenWardrobe} />
         </View>
 
-        {/* Мягкие помощники — верхний правый угол. Каждый сам решает, показываться
-            ли (затык / непомещаемая фигура + кулдаун). Недоступны, пока Капи потерян. */}
-        {!lost && (
-          <View style={styles.helpers} pointerEvents="box-none">
-            <HelperHint onEmote={showEmote} reduceMotion={reduceMotion} />
-            <HelperSwap onEmote={showEmote} reduceMotion={reduceMotion} />
-          </View>
-        )}
-
         {/* Маскот в нижнем левом углу; горизонтальный ход — через trackStyle (motion.x),
             чтобы тень и эмоция двигались вместе с Капи. */}
         {!lost && (
@@ -305,7 +327,7 @@ function MascotLayerInner({ dragActive, onOpenWardrobe }: MascotLayerProps & { o
         <View style={styles.floor} pointerEvents="none" />
 
         {/* Интро первого захода: неблокирующее, разовое (self-guards на introDone). */}
-        <MascotIntro onEmote={showEmote} />
+        {active ? <MascotIntro onEmote={showEmote} /> : null}
       </View>
     </View>
   );
@@ -325,14 +347,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     zIndex: 2,
-  },
-  helpers: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    alignItems: 'flex-end',
-    gap: 6,
-    zIndex: 3,
   },
   lostBubble: {
     position: 'absolute',

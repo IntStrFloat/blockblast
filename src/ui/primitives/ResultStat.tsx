@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
-import { AppText, colors, spacing } from '@/ui';
+import { AppText } from '../AppText';
+import { colors, spacing } from '../theme';
 
 export function ResultStat({ label, value }: { label: string; value: string }) {
   return (

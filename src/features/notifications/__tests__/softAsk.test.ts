@@ -2,9 +2,11 @@ import { KEYS, getJSON, removeKey } from '@/core/storage';
 
 import {
   markPushSoftAskHandled,
+  getPushPromptSnapshot,
   recordGameOverForPush,
   recordMeaningfulSessionForPush,
   shouldShowPushSoftAsk,
+  recordObservedPushPermissionStatus,
 } from '../softAsk';
 
 const ELIGIBLE_CONTEXT = {
@@ -24,11 +26,15 @@ describe('push soft-ask gating', () => {
   });
 
   it('becomes eligible after three distinct meaningful sessions', () => {
-    recordMeaningfulSessionForPush('game-1');
-    recordMeaningfulSessionForPush('game-2');
+    recordMeaningfulSessionForPush('game-1', 'adventure');
+    recordMeaningfulSessionForPush('game-2', 'adventure');
     expect(shouldShowPushSoftAsk(ELIGIBLE_CONTEXT)).toBe(false);
-    recordMeaningfulSessionForPush('game-3');
+    recordMeaningfulSessionForPush('game-3', 'adventure');
     expect(shouldShowPushSoftAsk(ELIGIBLE_CONTEXT)).toBe(true);
+    expect(getPushPromptSnapshot()).toMatchObject({
+      meaningfulSessions: 3,
+      lastMeaningfulMode: 'adventure',
+    });
   });
 
   it('deduplicates retries for the same meaningful session', () => {
@@ -57,5 +63,16 @@ describe('push soft-ask gating', () => {
     markPushSoftAskHandled();
     expect(shouldShowPushSoftAsk(ELIGIBLE_CONTEXT)).toBe(false);
     expect(getJSON<{ handled: boolean }>(KEYS.pushPrompt)?.handled).toBe(true);
+  });
+
+  it('detects a later OS unsubscribe without reopening the automatic ask', () => {
+    expect(recordObservedPushPermissionStatus('granted')).toEqual({
+      previous: null,
+      unsubscribed: false,
+    });
+    expect(recordObservedPushPermissionStatus('denied')).toEqual({
+      previous: 'granted',
+      unsubscribed: true,
+    });
   });
 });

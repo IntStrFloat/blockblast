@@ -1,9 +1,11 @@
+import type { AdventureSeasonWindow } from '@/features/leaderboard/types';
+
 import { ADVENTURE_CONFIG } from './config';
 
 /**
- * Скины игровой зоны испытания (спека 17). Каждые
- * ADVENTURE_CONFIG.skinEveryLevels уровней по сквозному номеру поле получает новый
- * дизайн: фон + доска + рамка + цвет блока. Палитры тёплые/уютные в духе испытания;
+ * Скины игровой зоны испытания. Календарный сезон меняет только оформление;
+ * до первой синхронизации используем скин по сквозному номеру уровня.
+ * Дизайн: фон + доска + рамка + цвет блока. Палитры тёплые/уютные в духе испытания;
  * цвет блока всегда насыщённый (не золото/белый), чтобы кристаллы оставались
  * читаемыми поверх него. Список циклится, когда уровни кончаются.
  */
@@ -163,7 +165,13 @@ export function adventureSkinIndex(absoluteLevel: number): number {
   return ((block % ADVENTURE_SKINS.length) + ADVENTURE_SKINS.length) % ADVENTURE_SKINS.length;
 }
 
-/** Скин игровой зоны для уровня по его сквозному номеру. */
-export function adventureSkinFor(absoluteLevel: number): AdventureSkin {
-  return ADVENTURE_SKINS[adventureSkinIndex(absoluteLevel)];
+/** Calendar setting, with the existing level palette as the unsynced fallback. */
+export function adventureSkinFor(
+  absoluteLevel: number,
+  seasonWindow: Pick<AdventureSeasonWindow, 'seasonId'> | null = null,
+): AdventureSkin {
+  const index = seasonWindow
+    ? (Math.max(1, seasonWindow.seasonId) - 1) % ADVENTURE_SKINS.length
+    : adventureSkinIndex(absoluteLevel);
+  return ADVENTURE_SKINS[index];
 }

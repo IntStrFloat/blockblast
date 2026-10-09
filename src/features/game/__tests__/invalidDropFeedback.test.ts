@@ -26,18 +26,25 @@ beforeEach(() => {
 });
 
 describe('playInvalidDropFeedback', () => {
-  it('даёт Reject-хаптику при включённой вибрации', () => {
-    playInvalidDropFeedback({ sound: true, haptics: true });
+  it('sounds an occupied return and gives Reject haptics', () => {
+    playInvalidDropFeedback({ sound: true, haptics: true }, 'occupied');
+    expect(mockPlaySound).toHaveBeenCalledWith('drop');
     expect(mockHaptics).toHaveBeenCalledWith('reject');
   });
 
-  it('молчит при выключенной вибрации', () => {
-    playInvalidDropFeedback({ sound: true, haptics: false });
+  it('sounds an outside-board return without rejection haptics', () => {
+    playInvalidDropFeedback({ sound: true, haptics: true }, 'outside-board');
+    expect(mockPlaySound).toHaveBeenCalledWith('drop');
     expect(mockHaptics).not.toHaveBeenCalled();
   });
 
-  it('не играет звук (для невалидного дропа нет ассета — только хаптика)', () => {
-    playInvalidDropFeedback({ sound: true, haptics: true });
+  it('respects independently disabled sound and haptics', () => {
+    playInvalidDropFeedback({ sound: false, haptics: true });
     expect(mockPlaySound).not.toHaveBeenCalled();
+    expect(mockHaptics).toHaveBeenCalledWith('reject');
+    mockHaptics.mockClear();
+    playInvalidDropFeedback({ sound: true, haptics: false });
+    expect(mockPlaySound).toHaveBeenCalledWith('drop');
+    expect(mockHaptics).not.toHaveBeenCalled();
   });
 });

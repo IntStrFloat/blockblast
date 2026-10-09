@@ -6,9 +6,10 @@
  * один раз (сиблинг доски в BoardView) и живёт всё время игры — раньше слой
  * монтировался на каждый клир внутри GameEffectsLayer и давал mount-рывок.
  */
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef } from 'react';
 import { View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -24,6 +25,7 @@ import { BURST_MOTION } from '../animation/motion';
 const POOL_SIZE = BURST_MOTION.debrisCap * 2;
 
 interface DebrisHandle {
+  stop: () => void;
   play: (debris: ClearDebris) => void;
 }
 
@@ -38,9 +40,22 @@ const DebrisParticle = forwardRef<DebrisHandle>(function DebrisParticle(_props, 
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
+  const stop = useCallback(() => {
+    cancelAnimation(tx);
+    cancelAnimation(ty);
+    cancelAnimation(rotate);
+    cancelAnimation(scale);
+    cancelAnimation(opacity);
+    opacity.value = 0;
+    // Pool shared values are stable for the slot lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useLayoutEffect(() => stop, [stop]);
+
   useImperativeHandle(
     ref,
     () => ({
+      stop,
       play(item) {
         x.value = item.x - item.size / 2;
         y.value = item.y - item.size / 2;
@@ -55,21 +70,18 @@ const DebrisParticle = forwardRef<DebrisHandle>(function DebrisParticle(_props, 
         opacity.value = withDelay(
           item.delay,
           withSequence(
-            withTiming(1, { duration: Math.max(40, item.duration * 0.16) }),
-            withDelay(
-              Math.max(30, item.duration * 0.46),
-              withTiming(0, { duration: Math.max(80, item.duration * 0.38) }),
-            ),
+            withTiming(1, { duration: item.duration * 0.16 }),
+            withTiming(0, { duration: item.duration * 0.84 }),
           ),
         );
         tx.value = withDelay(item.delay, withTiming(item.dx, { duration: item.duration, easing: Easing.out(Easing.quad) }));
-        ty.value = withDelay(item.delay, withTiming(item.dy, { duration: item.duration, easing: Easing.in(Easing.quad) }));
+        ty.value = withDelay(item.delay, withTiming(item.dy, { duration: item.duration, easing: Easing.out(Easing.quad) }));
         rotate.value = withDelay(item.delay, withTiming(item.rotateDeg, { duration: item.duration, easing: Easing.out(Easing.quad) }));
         scale.value = withDelay(
           item.delay,
           withSequence(
-            withTiming(1.04, { duration: Math.max(40, item.duration * 0.16) }),
-            withTiming(0.24, { duration: Math.max(120, item.duration * 0.84) }),
+            withTiming(1, { duration: item.duration * 0.16 }),
+            withTiming(0.24, { duration: item.duration * 0.84 }),
           ),
         );
       },
@@ -107,11 +119,18 @@ interface ClearDebrisLayerProps {
 
 export function ClearDebrisLayer({ presentations }: ClearDebrisLayerProps) {
   const slots = useRef<(DebrisHandle | null)[]>([]);
+  const owners = useRef<(string | null)[]>([]);
   const cursor = useRef(0);
   const fired = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const activeIds = new Set(presentations.map((p) => p.id));
+    owners.current.forEach((owner, index) => {
+      if (owner && !activeIds.has(owner)) {
+        slots.current[index]?.stop();
+        owners.current[index] = null;
+      }
+    });
     fired.current.forEach((id) => {
       if (!activeIds.has(id)) fired.current.delete(id);
     });
@@ -120,8 +139,11 @@ export function ClearDebrisLayer({ presentations }: ClearDebrisLayerProps) {
       if (fired.current.has(id)) continue;
       fired.current.add(id);
       for (const item of presentation.debris) {
-        const slot = slots.current[cursor.current % POOL_SIZE];
+        const index = cursor.current % POOL_SIZE;
+        const slot = slots.current[index];
         cursor.current += 1;
+        slot?.stop();
+        owners.current[index] = id;
         slot?.play(item);
       }
     }

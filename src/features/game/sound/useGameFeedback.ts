@@ -17,7 +17,7 @@ import { initSounds } from './sounds';
  * Maps PlacementEvent to sound + haptics.
  * Returns onGrab and onInvalidDrop for DragCtx.
  */
-export function useGameFeedback(): { onGrab: () => void; onInvalidDrop: () => void } {
+export function useGameFeedback(): { onGrab: () => void; onInvalidDrop: (reason?: 'occupied' | 'outside-board') => void } {
   const recordCelebration = useGameStore((s) => s.recordCelebration);
   const sound = useSettings((s) => s.sound);
   const hapticsOn = useSettings((s) => s.haptics);
@@ -52,15 +52,16 @@ export function useGameFeedback(): { onGrab: () => void; onInvalidDrop: () => vo
     const handlePlacement = (event: PlacementEvent) => {
       if (handledPlacementEventRef.current === event) return;
       handledPlacementEventRef.current = event;
+      const settings = useSettings.getState();
       playPlacementFeedback(event, {
-        sound: soundRef.current,
-        haptics: hapticsRef.current,
+        sound: settings.sound,
+        haptics: settings.haptics,
       });
     };
 
-    // Если экран смонтировался уже после хода — проиграть текущее событие один раз.
-    const initial = useGameStore.getState().lastEvent;
-    if (initial) handlePlacement(initial);
+    // Store actions already dispatch feedback before publishing the move. A
+    // retained/remounted route must not replay the previous board's last move.
+    handledPlacementEventRef.current = useGameStore.getState().lastEvent;
 
     return useGameStore.subscribe((state) => {
       if (state.lastEvent) handlePlacement(state.lastEvent);
@@ -105,12 +106,12 @@ export function useGameFeedback(): { onGrab: () => void; onInvalidDrop: () => vo
     });
   }, []);
 
-  const onInvalidDrop = useCallback(() => {
+  const onInvalidDrop = useCallback((reason: 'occupied' | 'outside-board' = 'occupied') => {
     const settings = useSettings.getState();
     playInvalidDropFeedback({
       sound: settings.sound,
       haptics: settings.haptics,
-    });
+    }, reason);
   }, []);
 
   return { onGrab, onInvalidDrop };

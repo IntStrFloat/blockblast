@@ -1,0 +1,535 @@
+- generic [ref=f1e3]:
+  - navigation [ref=f1e6]:
+    - generic [ref=f1e7]:
+      - generic [ref=f1e8]:
+        - img "App Store" [ref=f1e9]
+        - button "App Store" [ref=f1e12] [cursor=pointer]: for iPhone
+      - generic [ref=f1e17]:
+        - generic: Search
+        - searchbox "Search" [ref=f1e18]
+    - generic [ref=f1e20]:
+      - list [ref=f1e22]:
+        - listitem [ref=f1e23]:
+          - button "Today" [ref=f1e24] [cursor=pointer]
+        - listitem [ref=f1e28]:
+          - button "Games" [ref=f1e29] [cursor=pointer]
+        - listitem [ref=f1e33]:
+          - button "Apps" [ref=f1e34] [cursor=pointer]
+        - listitem [ref=f1e38]:
+          - button "Arcade" [ref=f1e39] [cursor=pointer]
+      - generic [ref=f1e43]:
+        - generic [ref=f1e45]: Categories
+        - list "Categories" [ref=f1e46]:
+          - listitem [ref=f1e47]:
+            - button "Categories" [ref=f1e48] [cursor=pointer]
+          - listitem [ref=f1e53]:
+            - button "Photo & Video" [ref=f1e54] [cursor=pointer]
+          - listitem [ref=f1e59]:
+            - button "Health & Fitness" [ref=f1e60] [cursor=pointer]
+          - listitem [ref=f1e65]:
+            - button "Productivity" [ref=f1e66] [cursor=pointer]
+          - listitem [ref=f1e71]:
+            - button "Entertainment" [ref=f1e72] [cursor=pointer]
+          - listitem [ref=f1e77]:
+            - button "Action" [ref=f1e78] [cursor=pointer]
+          - listitem [ref=f1e83]:
+            - button "Adventure" [ref=f1e84] [cursor=pointer]
+          - listitem [ref=f1e89]:
+            - button "Puzzle" [ref=f1e90] [cursor=pointer]
+          - listitem [ref=f1e95]:
+            - button "Indie" [ref=f1e96] [cursor=pointer]
+      - generic:
+        - list
+  - generic [ref=f1e101]:
+    - main [ref=f1e102]:
+      - generic [ref=f1e103]:
+        - generic [ref=f1e117]:
+          - heading "Block Blast！" [level=1] [ref=f1e118]
+          - paragraph [ref=f1e120]: Daily Puzzle & Block Crush
+          - paragraph [ref=f1e121]: Free · In‑App Purchases
+          - button "Share" [ref=f1e123] [cursor=pointer]
+        - list [ref=f1e129]:
+          - listitem [ref=f1e130]:
+            - link "2.7M Ratings 4.9 Stars" [ref=f1e132] [cursor=pointer]:
+              - /url: "#productRatings"
+              - generic [ref=f1e134]:
+                - term [ref=f1e135]:
+                  - generic [ref=f1e136]: 2.7M Ratings
+                - definition [ref=f1e137]:
+                  - generic [aria-hidden] [ref=f1e138]: "4.9"
+                  - list "4.9 Stars" [ref=f1e139]:
+                    - listitem [ref=f1e140]
+                    - listitem [ref=f1e141]
+                    - listitem [ref=f1e142]
+                    - listitem [ref=f1e143]
+                    - listitem [ref=f1e144]
+          - listitem [ref=f1e146]:
+            - link "Age Rating 13+ Years" [ref=f1e148] [cursor=pointer]:
+              - /url: "#information"
+              - generic [ref=f1e150]:
+                - term [ref=f1e151]:
+                  - generic [ref=f1e152]: Age Rating
+                - definition [ref=f1e153]:
+                  - generic [ref=f1e154]: 13+
+                  - generic [ref=f1e155]: Years
+          - listitem [ref=f1e157]:
+            - 'link "Chart #5 Casual" [ref=f1e159] [cursor=pointer]':
+              - /url: https://apps.apple.com/us/iphone/charts/7003?chart=top-free
+              - generic [ref=f1e161]:
+                - term [ref=f1e162]:
+                  - generic [ref=f1e163]: Chart
+                - definition [ref=f1e164]:
+                  - generic [ref=f1e165]: "#5"
+                  - generic [ref=f1e166]: Casual
+          - listitem [ref=f1e168]:
+            - link "Developer Hungry Studio" [ref=f1e170] [cursor=pointer]:
+              - /url: https://apps.apple.com/us/developer/hungry-studio/id1655290753?platform=iphone
+              - generic [ref=f1e172]:
+                - term [ref=f1e173]:
+                  - generic [ref=f1e174]: Developer
+                - definition [ref=f1e175]:
+                  - generic [ref=f1e177]: Hungry Studio
+          - listitem [ref=f1e179]:
+            - link "Language EN + 48 More" [ref=f1e181] [cursor=pointer]:
+              - /url: "#information"
+              - generic [ref=f1e183]:
+                - term [ref=f1e184]:
+                  - generic [ref=f1e185]: Language
+                - definition [ref=f1e186]:
+                  - generic [ref=f1e187]: EN
+                  - generic [ref=f1e188]: + 48 More
+          - listitem [ref=f1e190]:
+            - link "Size 201.1 MB" [ref=f1e192] [cursor=pointer]:
+              - /url: "#information"
+              - generic [ref=f1e194]:
+                - term [ref=f1e195]:
+                  - generic [ref=f1e196]: Size
+                - definition [ref=f1e197]:
+                  - generic [ref=f1e198]: "201.1"
+                  - generic [ref=f1e199]: MB
+        - region "iPhone App Previews and Screenshots" [ref=f1e201]:
+          - generic [ref=f1e204]:
+            - button "Previous Page" [disabled] [ref=f1e205]
+            - list [ref=f1e206]:
+              - listitem [ref=f1e207]:
+                - generic "Video" [ref=f1e209]:
+                  - generic [ref=f1e215]:
+                    - button "Replay Video" [ref=f1e910] [cursor=pointer]
+                    - generic [ref=f1e216]:
+                      - button "Pause" [active] [ref=f1e912] [cursor=pointer]
+                      - button "Unmute" [ref=f1e219] [cursor=pointer]
+                      - button "Fullscreen" [ref=f1e221] [cursor=pointer]
+              - listitem [ref=f1e223]:
+                - generic "Screenshot" [ref=f1e225]
+              - listitem [ref=f1e229]:
+                - generic "Screenshot" [ref=f1e231]
+              - listitem [ref=f1e235]:
+                - generic "Screenshot" [ref=f1e237]
+              - listitem [aria-hidden] [ref=f1e241]
+              - listitem [aria-hidden] [ref=f1e247]
+            - button "Next Page" [ref=f1e253] [cursor=pointer]
+        - button "iPhone, iPad" [ref=f1e255] [cursor=pointer]
+        - paragraph [ref=f1e264]:
+          - generic [ref=f1e265]: "Enter the world of Block Blast, where every move is a test of your brain and strategy. Dive into the thrill of block crush gameplay—watch vibrant cubes explode in color as you solve each puzzle. With fresh daily puzzle challenges that keep your mind engaged and an endless high score system that rewards your best strategies, Block Blast delivers nonstop excitement for casual players and puzzle masters alike. Why You'll Love Block Blast • Daily Puzzle Variety: Every day brings a new puzzle twist, ensuring there’s always something fresh to solve and new rewards to earn. • Block Puzzle Saga: Match colorful blocks on an 8x8 board and enjoy the satisfying cascade of each block crush. • Endless High Score Hunt: Push yourself further with each game—break your own records, and climb higher every time you play. • Casual Yet Challenging: Easy to pick up, but packed with logic-based challenges that sharpen your mind. • Offline Fun: Play anywhere, anytime—no WiFi required. Perfect for a subway ride or while waiting in the car. Features of Block Blast • Strategic Puzzle Gameplay: Drag, place, and match cube blocks on board to trigger chain reactions. • Adventure Mode: Experience progressive levels with unique jigsaw designs and colorful themes. • Daily Puzzle Rewards: Stay motivated with special challenges that refresh your brain every day. • Score Mastery: Compete against friends, share your results, and prove who dominates the endless high score. • Stunning Block Effects: Feel the rush of every block crush with dynamic visuals and relaxing music effects. How to Play • Drag & Match: Place cube blocks on the 8x8 board with precision. • Crush & Score: Complete rows or columns of tiles and watch the block crush effects cascade. • Chase Combos: Plan your moves to unlock massive points and extend your endless high score run. • Stay Strategic: Keep your board clear to make room for bigger plays. Jump into the Ultimate Block Puzzle Saga! Ready for mind-sharpening fun? Take on fresh daily puzzles, master the art of the block crush, and see how far you can push your endless high score. Download Block Blast today and start your adventure! Privacy policy: https://hungrystudio.com/privacyus.html Terms of Use: https://hungrystudio.com/serviceus.html"
+          - button "more" [ref=f1e267] [cursor=pointer]
+        - region "Events" [ref=f1e268]:
+          - heading "Events" [level=2] [ref=f1e271]
+          - list [ref=f1e275]:
+            - listitem [ref=f1e276]:
+              - generic [ref=f1e278]:
+                - time [ref=f1e280]: NOW AVAILABLE
+                - article [ref=f1e283] [cursor=pointer]:
+                  - link "Summer Hamster Puzzle" [ref=f1e284]:
+                    - /url: https://apps.apple.com/us/app/block-blast/id1617391485?eventid=6804956190
+                    - generic [ref=f1e292]:
+                      - generic [ref=f1e293]: NEW SEASON
+                      - heading "Summer Hamster Puzzle" [level=3] [ref=f1e294]
+                      - paragraph [ref=f1e297]: Clear puzzles, collect pieces, and reveal a surfing hamster in this sunny Block Blast event!
+        - region "Ratings & Reviews" [ref=f1e298]:
+          - link "Ratings & Reviews" [ref=f1e300] [cursor=pointer]:
+            - /url: https://apps.apple.com/us/app/1617391485?see-all=reviews&platform=iphone
+            - heading "Ratings & Reviews" [level=2] [ref=f1e302]
+          - list [ref=f1e304]:
+            - listitem [ref=f1e305]:
+              - generic [ref=f1e307]:
+                - generic [ref=f1e308]:
+                  - generic [ref=f1e309]: "4.9"
+                  - generic [ref=f1e310]: out of 5
+                - generic [ref=f1e311]:
+                  - generic [ref=f1e312]: 2.7M Ratings
+                  - generic [ref=f1e313]:
+                    - generic "**ASE.Shared.Ratings.Review.StarsAria.one.other**" [ref=f1e314]
+                    - generic "**ASE.Shared.Ratings.Review.StarsAria.one.other**" [ref=f1e323]
+                    - generic "**ASE.Shared.Ratings.Review.StarsAria.one.other**" [ref=f1e331]
+                    - generic "**ASE.Shared.Ratings.Review.StarsAria.one.other**" [ref=f1e338]
+                    - generic "**ASE.Shared.Ratings.Review.StarsAria.other.one**" [ref=f1e344]
+        - generic [ref=f1e352]:
+          - button "Previous Page" [disabled] [ref=f1e353]
+          - list [ref=f1e354]:
+            - listitem [ref=f1e355]:
+              - generic [ref=f1e357]:
+                - generic [ref=f1e358]:
+                  - generic [ref=f1e359]:
+                    - heading "I’m not sure" [level=3] [ref=f1e362]
+                    - list "5 Stars" [ref=f1e364]:
+                      - listitem [ref=f1e365]
+                      - listitem [ref=f1e366]
+                      - listitem [ref=f1e367]
+                      - listitem [ref=f1e368]
+                      - listitem [ref=f1e369]
+                  - generic [ref=f1e370]:
+                    - time [ref=f1e371]: 04/23/2024
+                    - generic [ref=f1e372]: The_BEST-game:ever
+                - generic [ref=f1e375]:
+                  - paragraph [ref=f1e376]: Okay, hear me out. This is one of the best games I have found that is not taken as childish. It is a great warm up to my brain right before I leave for school. But, I only downloaded this game thinking it would be just like the ads. Where there is a line moving, and you have to break as many blocks as you can before the line reaches a block. When I started playing, tbh, I was VERY disappointed. Over all, it is a cool game that I like. But I would like there to be more games added in it, like the one where you just move the blocks, but it’s not as fun. So I would like it if it were possible to add more games to the games tab, where we can choose what game mode we want to play, being it the destroy as many blocks you can before the line reaches them. And maybe, just maybe, other people can reach out to you with game ideas to add to it…. By “game ideas” I meant different games MODES.I hope this is possible to do. Because it would be so much more fun. I’ve had experiences with games that are NOTHING like they are in the ads, and I HATE IT SO MUCH! So please, if you want someone to download a game, let it be by developing an ad that shows exactly what how the game is, and don’t make it a big conflict where one is excited to get a game, and then be discouraged because of the big lie the ad was😒 This is NOT hate. But they are just some things I wanted you to know. I love your game and all, but I just think that making a more realistic ad would being in more profit.Thank You!
+                  - button "MORE" [ref=f1e377] [cursor=pointer]
+            - listitem [ref=f1e378]:
+              - generic [ref=f1e380]:
+                - generic [ref=f1e381]:
+                  - generic [ref=f1e382]:
+                    - heading "Love the game but 17+ age restriction is atupid" [level=3] [ref=f1e385]
+                    - list "5 Stars" [ref=f1e387]:
+                      - listitem [ref=f1e388]
+                      - listitem [ref=f1e389]
+                      - listitem [ref=f1e390]
+                      - listitem [ref=f1e391]
+                      - listitem [ref=f1e392]
+                  - generic [ref=f1e393]:
+                    - time [ref=f1e394]: 08/30/2025
+                    - generic [ref=f1e395]: emi likes sharks
+                - generic [ref=f1e398]:
+                  - paragraph [ref=f1e399]: Okay, so I’m a teenager, but I’m not 17 yet. I used to play this game all the time, and it was super fun! I really like the game, and while there are a lot of ads it doesn’t really bother me. But my dad just installed parental controls, and obviously since I’m not 17, I’m not allowed to have 17+ games. So I was on my phone after he installed it, and I noticed a couple of apps were missing from my phone. When I realized that Block Blast was one of them, I was pretty confused. So I went to the app store and saw that Block Blast’s age rating is 17+. Why?? There’s nothing in this game that would make it’s rating that high. The only thing I can think of are the ads, which were sometimes a little inappropriate for younger audiences. I guess it makes sense if that’s it, but I’m pretty disappointed since I won’t be able to play this game anymore because I actually liked it. Even then, most of the ads weren’t even that bad. The rating probably won’t get changed, but I just wanted to say that I think it’s pretty stupid to be so high. There aren’t a lot of games I play consistently, but Block Blast was one of them, and it really helped my anxiety. That’s my only complaint with the game, though, and I recommend it to anyone who’s okay with ads like that and doesn’t have parental controls, and also to people over 17. I’m pretty upset about not getting to play it anymore, but I’m glad I got to at all. It’s a very fun game! Sorry for the long review.
+                  - button "MORE" [ref=f1e400] [cursor=pointer]
+            - listitem [aria-hidden] [ref=f1e401]:
+              - generic [ref=f1e403]:
+                - generic [ref=f1e404]:
+                  - generic [ref=f1e405]:
+                    - heading [level=3] [ref=f1e408]: Please fix this !
+                    - list [ref=f1e410]:
+                      - listitem [ref=f1e411]
+                      - listitem [ref=f1e412]
+                      - listitem [ref=f1e413]
+                      - listitem [ref=f1e414]
+                      - listitem [ref=f1e415]
+                  - generic [ref=f1e416]:
+                    - time [ref=f1e417]: 01/28/2025
+                    - generic [ref=f1e418]: 1h4t3r0bl0x
+                - generic [ref=f1e421]:
+                  - paragraph [ref=f1e422]: So basically, I was playing Block Blast! right and literally not even a minute ago. I was putting the blocks in right and tell me why it didn’t put the blocks I needed. Is it a Block Blast! supposed to help you like isn’t it supposed to? Isn’t it supposed to give you the optionOn the blocks you need because why didn’t it give me the blocks I needed I was at 2000 and I literally did not get the blocks. I needed to beat it like it won’t let me it won’t even give me the blocks I need why won’t you give me the blocks I need I need the blocks I I need the blocks. I need to beat the high score cause then if you guys don’t give me the blocks, I need to beat that high score then how am I gonna be anything at all? I’m not so please give me the blocks I need on Block Blast! I need it. I want it. I crave it. Thank you. Please fix your game cause also also please fix on why other people literally like literally when they get an amazing or wow there’s go away like in rainbow and mine doesn’t mine just says 70 and then goes away. I’m a need you to fix this game because other people literally are at 22,000. Meanwhile I’m stuck at 6699 OK so please fix your game cause I know I don’t have to update anything. It’s already updated and everything. I don’t know if it’s because of phone, but I need to fix the game so I can get a new high score please because this is not how I imagine Block Blast! would be for me thank you goodbye. Fix the game.
+                  - button [disabled] [ref=f1e423]: MORE
+            - listitem [aria-hidden] [ref=f1e424]:
+              - generic [ref=f1e426]:
+                - generic [ref=f1e427]:
+                  - generic [ref=f1e428]:
+                    - heading [level=3] [ref=f1e431]: Block blast
+                    - list [ref=f1e433]:
+                      - listitem [ref=f1e434]
+                      - listitem [ref=f1e435]
+                      - listitem [ref=f1e436]
+                      - listitem [ref=f1e437]
+                      - listitem [ref=f1e438]
+                  - generic [ref=f1e439]:
+                    - time [ref=f1e440]: 10/13/2024
+                    - generic [ref=f1e441]: Annablasts
+                - generic [ref=f1e444]:
+                  - paragraph [ref=f1e445]: i cant play it anymore because for some reason its 17+ but this is my initial review. Block Blast is easily one of my favorite games, and I can’t even begin to describe how much I enjoy playing it. Every time I pick it up, I get completely absorbed in its simple yet addictive gameplay. The mechanics are easy to understand, but there’s an underlying strategy that keeps me coming back for more, trying to outdo my previous scores. I love how the bright colors and fun block designs make it visually appealing, adding to the whole experience without being overly flashy or distracting. There’s something incredibly satisfying about watching the blocks explode as you clear rows and columns, especially when you pull off a huge combo. The way the game constantly challenges you to think ahead and place the blocks strategically adds an element of puzzle-solving that keeps it engaging. I find myself playing it whenever I need a break or just want to relax, but it’s also perfect for those moments when I crave a bit of a challenge. What’s even better is how accessible it is—you can pick it up for a few minutes or get lost in it for hours. I’ve lost track of time more than once because I was so focused on clearing just one more row, one more block, and it feels amazing every time I beat my personal best. Block Blast has this magical way of making time fly by while keeping you in that sweet spot of fun and challenge. Every time I finish a session, I already can’t wait to dive back in and see if I can push myself further.
+                  - button [disabled] [ref=f1e446]: MORE
+            - listitem [aria-hidden] [ref=f1e447]
+            - listitem [aria-hidden] [ref=f1e448]
+            - listitem [aria-hidden] [ref=f1e449]
+            - listitem [aria-hidden] [ref=f1e450]
+          - button "Next Page" [ref=f1e451] [cursor=pointer]
+        - region "What’s New" [ref=f1e452]:
+          - button [ref=f1e454] [cursor=pointer]:
+            - heading "What’s New" [level=2] [ref=f1e457]
+          - generic "What’s New" [ref=f1e459]:
+            - generic [ref=f1e460]:
+              - paragraph [ref=f1e461]:
+                - generic [ref=f1e462]: "We're always improving Block Blast! Turn on auto-updates to get the latest features. Suggestions? Email us: blockblast-support@hungrystudio.com Follow us on TikTok for updates: @blockblastofficial"
+              - generic [ref=f1e463]:
+                - generic [ref=f1e464]: Version 7.4.1
+                - time [ref=f1e465]: 3d ago
+        - region "App Privacy" [ref=f1e466]:
+          - button [ref=f1e468] [cursor=pointer]:
+            - link "App Privacy" [ref=f1e470]:
+              - /url: "#"
+              - heading "App Privacy" [level=2] [ref=f1e472]
+          - paragraph [ref=f1e477]:
+            - text: The developer, Hungry Studio, indicated that the app’s privacy practices may include handling of data as described below. For more information, see the
+            - link "Developer’s Privacy Policy" [ref=f1e478] [cursor=pointer]:
+              - /url: https://hungrystudio.com/privacyus.html
+              - generic [ref=f1e479]: developer’s privacy policy
+            - text: .
+        - list [ref=f1e481]:
+          - listitem [ref=f1e482]:
+            - generic "Data Used to Track You" [ref=f1e483]:
+              - heading "Data Used to Track You" [level=3] [ref=f1e485]
+              - paragraph [ref=f1e486]: "The following data may be used to track you across apps and websites owned by other companies:"
+              - list [ref=f1e487]:
+                - listitem [ref=f1e488]: Identifiers
+                - listitem [ref=f1e490]: Usage Data
+          - listitem [ref=f1e492]:
+            - generic "Data Linked to You" [ref=f1e493]:
+              - heading "Data Linked to You" [level=3] [ref=f1e495]
+              - paragraph [ref=f1e496]: "The following data may be collected and linked to your identity:"
+              - list [ref=f1e497]:
+                - listitem [ref=f1e498]: User Content
+                - listitem [ref=f1e500]: Identifiers
+                - listitem [ref=f1e502]: Usage Data
+                - listitem [ref=f1e504]: Diagnostics
+          - listitem [ref=f1e506]:
+            - generic "Data Not Linked to You" [ref=f1e507]:
+              - heading "Data Not Linked to You" [level=3] [ref=f1e509]
+              - paragraph [ref=f1e510]: "The following data may be collected but it is not linked to your identity:"
+              - list [ref=f1e511]:
+                - listitem [ref=f1e512]: User Content
+        - paragraph [ref=f1e515]:
+          - text: Privacy practices may vary, for example, based on the features you use or your age.
+          - link "Learn More" [ref=f1e516] [cursor=pointer]:
+            - /url: https://apps.apple.com/us/iphone/story/id1538632801
+        - region "Accessibility" [ref=f1e517]:
+          - heading "Accessibility" [level=2] [ref=f1e521]
+          - paragraph [ref=f1e525]:
+            - text: The developer has not yet indicated which accessibility features this app supports.
+            - link "Learn More" [ref=f1e526] [cursor=pointer]:
+              - /url: https://apps.apple.com/story/id1814164299
+        - region "Information" [ref=f1e527]:
+          - heading "Information" [level=2] [ref=f1e530]
+          - generic [ref=f1e531]:
+            - generic [ref=f1e532]:
+              - term [ref=f1e533]: Seller
+              - definition [ref=f1e534]:
+                - list [ref=f1e535]:
+                  - listitem [ref=f1e536]: ARETIS LIMITED
+            - generic [ref=f1e537]:
+              - term [ref=f1e538]: Size
+              - definition [ref=f1e539]:
+                - list [ref=f1e540]:
+                  - listitem [ref=f1e541]: 201.1 MB
+            - generic [ref=f1e542]:
+              - term [ref=f1e543]: Category
+              - definition [ref=f1e544]:
+                - list [ref=f1e545]:
+                  - listitem [ref=f1e546]: Puzzle
+            - generic [ref=f1e547]:
+              - term [ref=f1e548]: Compatibility
+              - definition [ref=f1e549]:
+                - group [ref=f1e550]:
+                  - generic "Requires iOS 13.0 or later." [ref=f1e551] [cursor=pointer]
+            - generic [ref=f1e552]:
+              - term [ref=f1e553]: Languages
+              - definition [ref=f1e554]:
+                - group [ref=f1e555]:
+                  - generic "English and 48 more" [ref=f1e556] [cursor=pointer]
+            - generic [ref=f1e557]:
+              - term [ref=f1e558]: Age Rating
+              - definition [ref=f1e559]:
+                - group [ref=f1e560]:
+                  - generic "13+" [ref=f1e561] [cursor=pointer]
+            - generic [ref=f1e562]:
+              - term [ref=f1e563]: In-App Purchases
+              - definition [ref=f1e564]:
+                - group [ref=f1e565]:
+                  - generic "Yes" [ref=f1e566] [cursor=pointer]
+            - generic [ref=f1e567]:
+              - term [ref=f1e568]: Copyright
+              - definition [ref=f1e569]:
+                - list [ref=f1e570]:
+                  - listitem [ref=f1e571]: © 2022 Hungry Studio
+        - generic [ref=f1e573]:
+          - listitem [ref=f1e574]:
+            - link "Developer Website ↗" [ref=f1e576] [cursor=pointer]:
+              - /url: https://www.hungrystudio.com/
+              - generic [ref=f1e577]: Developer Website
+              - text: ↗
+          - listitem [ref=f1e578]:
+            - link "Privacy Policy ↗" [ref=f1e580] [cursor=pointer]:
+              - /url: https://hungrystudio.com/privacyus.html
+              - generic [ref=f1e581]: Privacy Policy
+              - text: ↗
+        - region "Supports" [ref=f1e582]:
+          - heading "Supports" [level=2] [ref=f1e585]
+          - list [ref=f1e586]:
+            - listitem [ref=f1e587]:
+              - generic [ref=f1e591]:
+                - heading "Game Center" [level=3] [ref=f1e592]
+                - paragraph [ref=f1e593]: Discover new games and play with friends. This game also features achievements.
+        - region "More by Hungry Studio" [ref=f1e594]:
+          - link "More by Hungry Studio" [ref=f1e596] [cursor=pointer]:
+            - /url: https://apps.apple.com/us/developer/hungry-studio/id1655290753
+            - heading "More by Hungry Studio" [level=2] [ref=f1e598]
+          - list [ref=f1e603]:
+            - listitem [ref=f1e604]:
+              - link "View Sudoku Blast! 5-min sudoku, number fun" [ref=f1e608] [cursor=pointer]:
+                - /url: https://apps.apple.com/us/app/sudoku-blast/id1618041797
+                - generic [ref=f1e609]: View
+                - generic [ref=f1e615]:
+                  - generic [ref=f1e616]: Sudoku Blast!
+                  - paragraph [ref=f1e620]: 5-min sudoku, number fun
+            - listitem [ref=f1e621]:
+              - link "View Apple Arcade Block Blast!+ Block Puzzle & Brain Training" [ref=f1e625] [cursor=pointer]:
+                - /url: https://apps.apple.com/us/app/block-blast/id6766824098
+                - generic [ref=f1e626]: View
+                - generic [ref=f1e632]:
+                  - generic [ref=f1e633]: Apple Arcade
+                  - generic [ref=f1e635]: Block Blast!+
+                  - paragraph [ref=f1e639]: Block Puzzle & Brain Training
+            - listitem [ref=f1e640]:
+              - link "View Double Tile! Mahjong solitaire puzzle games" [ref=f1e644] [cursor=pointer]:
+                - /url: https://apps.apple.com/us/app/double-tile/id6754014472
+                - generic [ref=f1e645]: View
+                - generic [ref=f1e651]:
+                  - generic [ref=f1e652]: Double Tile!
+                  - paragraph [ref=f1e656]: Mahjong solitaire puzzle games
+            - listitem [ref=f1e657]:
+              - link "View Solitaire Master！ Classic Solitaire Card Games" [ref=f1e661] [cursor=pointer]:
+                - /url: https://apps.apple.com/us/app/solitaire-master/id6464113198
+                - generic [ref=f1e662]: View
+                - generic [ref=f1e668]:
+                  - generic [ref=f1e669]: Solitaire Master！
+                  - paragraph [ref=f1e673]: Classic Solitaire Card Games
+            - listitem [ref=f1e674]:
+              - link "View Match Out! Triple Tile 3D Puzzle Game" [ref=f1e678] [cursor=pointer]:
+                - /url: https://apps.apple.com/us/app/match-out/id6503449621
+                - generic [ref=f1e679]: View
+                - generic [ref=f1e685]:
+                  - generic [ref=f1e686]: Match Out!
+                  - paragraph [ref=f1e690]: Triple Tile 3D Puzzle Game
+        - region "You Might Also Like" [ref=f1e691]:
+          - link "You Might Also Like" [ref=f1e693] [cursor=pointer]:
+            - /url: https://apps.apple.com/us/app/1617391485?see-all=customers-also-bought-apps&platform=iphone
+            - heading "You Might Also Like" [level=2] [ref=f1e695]
+          - generic [ref=f1e699]:
+            - button "Previous Page" [disabled] [ref=f1e700]
+            - list [ref=f1e701]:
+              - listitem [ref=f1e702]:
+                - link "View Block! Hexa Puzzle™ Drop! Color block puzzle game" [ref=f1e706] [cursor=pointer]:
+                  - /url: https://apps.apple.com/us/app/block-hexa-puzzle/id1095572547
+                  - generic [ref=f1e707]: View
+                  - generic [ref=f1e713]:
+                    - generic [ref=f1e714]: Block! Hexa Puzzle™
+                    - paragraph [ref=f1e718]: Drop! Color block puzzle game
+              - listitem [ref=f1e719]:
+                - link "View Color Blast:Block Puzzle Relax and solve block puzzle" [ref=f1e723] [cursor=pointer]:
+                  - /url: https://apps.apple.com/us/app/color-blast-block-puzzle/id6450409028
+                  - generic [ref=f1e724]: View
+                  - generic [ref=f1e730]:
+                    - generic [ref=f1e731]: Color Blast:Block Puzzle
+                    - paragraph [ref=f1e735]: Relax and solve block puzzle
+              - listitem [ref=f1e736]:
+                - link "View Block Match - Wood Puzzle Block Puzzle & Brain Games" [ref=f1e740] [cursor=pointer]:
+                  - /url: https://apps.apple.com/us/app/block-match-wood-puzzle/id6449707184
+                  - generic [ref=f1e741]: View
+                  - generic [ref=f1e747]:
+                    - generic [ref=f1e748]: Block Match - Wood Puzzle
+                    - paragraph [ref=f1e752]: Block Puzzle & Brain Games
+              - listitem [ref=f1e753]:
+                - 'link "View Block Puzzle: Puzzle Games Fun block puzzle games." [ref=f1e757] [cursor=pointer]':
+                  - /url: https://apps.apple.com/us/app/block-puzzle-puzzle-games/id1191831883
+                  - generic [ref=f1e758]: View
+                  - generic [ref=f1e764]:
+                    - generic [ref=f1e765]: "Block Puzzle: Puzzle Games"
+                    - paragraph [ref=f1e769]: Fun block puzzle games.
+              - listitem [ref=f1e770]:
+                - 'link "View Color Fill 3D: Maze Game Fill each cell with colors" [ref=f1e774] [cursor=pointer]':
+                  - /url: https://apps.apple.com/us/app/color-fill-3d-maze-game/id1473024868
+                  - generic [ref=f1e775]: View
+                  - generic [ref=f1e781]:
+                    - generic [ref=f1e782]: "Color Fill 3D: Maze Game"
+                    - paragraph [ref=f1e786]: Fill each cell with colors
+              - listitem [ref=f1e787]:
+                - link "View Blocks Sort! Relaxing sort puzzle game!" [ref=f1e791] [cursor=pointer]:
+                  - /url: https://apps.apple.com/us/app/blocks-sort/id1640274526
+                  - generic [ref=f1e792]: View
+                  - generic [ref=f1e798]:
+                    - generic [ref=f1e799]: Blocks Sort!
+                    - paragraph [ref=f1e803]: Relaxing sort puzzle game!
+              - listitem [ref=f1e804]:
+                - link "View Blocky Quest - Classic Blocks Logic and relaxing puzzle game" [ref=f1e808] [cursor=pointer]:
+                  - /url: https://apps.apple.com/us/app/blocky-quest-classic-blocks/id6449266176
+                  - generic [ref=f1e809]: View
+                  - generic [ref=f1e815]:
+                    - generic [ref=f1e816]: Blocky Quest - Classic Blocks
+                    - paragraph [ref=f1e820]: Logic and relaxing puzzle game
+              - listitem [ref=f1e821]:
+                - link "View Happy Printer Type fast and run! Fun Race!" [ref=f1e825] [cursor=pointer]:
+                  - /url: https://apps.apple.com/us/app/happy-printer/id1539388451
+                  - generic [ref=f1e826]: View
+                  - generic [ref=f1e832]:
+                    - generic [ref=f1e833]: Happy Printer
+                    - paragraph [ref=f1e837]: Type fast and run! Fun Race!
+              - listitem [ref=f1e838]:
+                - link "View Thorn And Balloons Bounce and pop balloons" [ref=f1e842] [cursor=pointer]:
+                  - /url: https://apps.apple.com/us/app/thorn-and-balloons/id1611756991
+                  - generic [ref=f1e843]: View
+                  - generic [ref=f1e849]:
+                    - generic [ref=f1e850]: Thorn And Balloons
+                    - paragraph [ref=f1e854]: Bounce and pop balloons
+              - listitem [aria-hidden] [ref=f1e855]:
+                - link [ref=f1e859] [cursor=pointer]:
+                  - /url: https://apps.apple.com/us/app/color-block-combo-blast/id6478063606
+                  - generic [ref=f1e860]: View
+                  - generic [ref=f1e866]:
+                    - generic [ref=f1e867]: "Color Block: Combo Blast"
+                    - paragraph [ref=f1e871]: Block Puzzle Brain Games
+            - button "Next Page" [ref=f1e872] [cursor=pointer]
+    - generic [ref=f1e874]:
+      - generic [ref=f1e876]:
+        - button "United States" [ref=f1e877] [cursor=pointer]
+        - list [ref=f1e878]:
+          - listitem [ref=f1e879]:
+            - link "This page is available in Español (México)" [ref=f1e880] [cursor=pointer]:
+              - /url: "?l=es-MX"
+              - text: Español (México)
+          - listitem [ref=f1e881]:
+            - link "This page is available in العربية" [ref=f1e882] [cursor=pointer]:
+              - /url: "?l=ar"
+              - text: العربية
+          - listitem [ref=f1e883]:
+            - link "This page is available in Русский" [ref=f1e884] [cursor=pointer]:
+              - /url: "?l=ru"
+              - text: Русский
+          - listitem [ref=f1e885]:
+            - link "This page is available in 简体中文" [ref=f1e886] [cursor=pointer]:
+              - /url: "?l=zh-Hans-CN"
+              - text: 简体中文
+          - listitem [ref=f1e887]:
+            - link "This page is available in Français (France)" [ref=f1e888] [cursor=pointer]:
+              - /url: "?l=fr-FR"
+              - text: Français (France)
+          - listitem [ref=f1e889]:
+            - link "This page is available in 한국어" [ref=f1e890] [cursor=pointer]:
+              - /url: "?l=ko"
+              - text: 한국어
+          - listitem [ref=f1e891]:
+            - link "This page is available in Português (Brazil)" [ref=f1e892] [cursor=pointer]:
+              - /url: "?l=pt-BR"
+              - text: Português (Brazil)
+          - listitem [ref=f1e893]:
+            - link "This page is available in Tiếng Việt" [ref=f1e894] [cursor=pointer]:
+              - /url: "?l=vi"
+              - text: Tiếng Việt
+          - listitem [ref=f1e895]:
+            - link "This page is available in 繁體中文 (台灣)" [ref=f1e896] [cursor=pointer]:
+              - /url: "?l=zh-Hant-TW"
+              - text: 繁體中文 (台灣)
+      - generic [ref=f1e897]:
+        - paragraph [ref=f1e898]:
+          - generic [ref=f1e899]:
+            - text: Copyright © 2026
+            - link "Apple Inc." [ref=f1e900] [cursor=pointer]:
+              - /url: https://www.apple.com
+          - text: All rights reserved.
+        - list [ref=f1e901]:
+          - listitem [ref=f1e902]:
+            - link "Internet Service Terms" [ref=f1e903] [cursor=pointer]:
+              - /url: https://www.apple.com/legal/internet-services/
+          - listitem [ref=f1e904]:
+            - link "App Store & Privacy" [ref=f1e905] [cursor=pointer]:
+              - /url: https://www.apple.com/legal/privacy/data/en/app-store/
+          - listitem [ref=f1e906]:
+            - link "Cookie Warning" [ref=f1e907] [cursor=pointer]:
+              - /url: https://www.apple.com/privacy/use-of-cookies/
+          - listitem [ref=f1e908]:
+            - link "Support" [ref=f1e909] [cursor=pointer]:
+              - /url: https://support.apple.com/billing

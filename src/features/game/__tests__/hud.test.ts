@@ -81,11 +81,12 @@ jest.mock('../animation/useReducedMotion', () => ({
 describe('score HUD source contract', () => {
   const source = fs.readFileSync(`${__dirname}/../components/Hud.tsx`, 'utf8');
 
-  it('counts the authoritative store score without a native text input fallback', () => {
+  it('renders the authoritative score without per-frame React updates', () => {
     expect(source).toContain('useGameStore((s) => s.game.score)');
-    expect(source).toContain('useAnimatedReaction(');
-    expect(source).toContain('Easing.out(Easing.cubic)');
-    expect(source).toMatch(/<AppText[^>]*preset="score"[^>]*>\s*{displayedScore}\s*<\/AppText>/);
+    expect(source).not.toContain('useAnimatedReaction(');
+    expect(source).not.toContain('runOnJS');
+    expect(source).not.toContain('setDisplayedScore');
+    expect(source).toMatch(/<AppText[^>]*preset="score"[^>]*>\s*{score}\s*<\/AppText>/);
     expect(source).not.toContain('TextInput');
     expect(source).not.toContain('AnimatedTextInput');
     expect(source).not.toContain('defaultValue="0"');
@@ -196,8 +197,7 @@ describe('score HUD behavior', () => {
     });
 
     const pulse = renderer!.root.findByProps({ testID: 'hud-score-pulse-1' });
-    const pulseStyle = StyleSheet.flatten(pulse.props.style);
-    expect(pulseStyle.transform).toEqual(
+    expect(pulse.props.entering.frames[100].transform).toEqual(
       expect.arrayContaining([expect.objectContaining({ scale: 1.18 })]),
     );
 
@@ -258,8 +258,7 @@ describe('score HUD behavior', () => {
     expect(shellAt10000.minWidth).toBe(shellBefore.minWidth);
 
     const pulse = renderer!.root.findByProps({ testID: 'hud-score-pulse-3' });
-    const pulseStyle = StyleSheet.flatten(pulse.props.style);
-    expect(pulseStyle.transform).toEqual(
+    expect(pulse.props.entering.frames[100].transform).toEqual(
       expect.arrayContaining([expect.objectContaining({ scale: 1.25 })]),
     );
 

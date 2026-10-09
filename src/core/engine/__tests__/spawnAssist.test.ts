@@ -30,14 +30,26 @@ function sparseBoard(): Board {
 }
 
 describe('configForExperience (FTUE spawn assist)', () => {
-  it('eases the first games with density-aware rescue and clear assist', () => {
-    for (const gamesPlayed of [0, 1, NOVICE_GAMES - 1]) {
-      const cfg = configForExperience(gamesPlayed);
-      expect(cfg.spawn.preferClearAssist).toBe(true);
-      expect(cfg.spawn.rescueFullness).toBe(0.6);
-      expect(cfg.spawn.rescueDryStreak).toBe(6);
-      expect(cfg.spawn.rescueDryStreakMinFullness).toBe(0.5);
-    }
+  it('ramps the assist down across the novice window instead of dropping it after game 3', () => {
+    expect(NOVICE_GAMES).toBe(6);
+
+    const opening = configForExperience(0);
+    expect(opening.spawn.preferClearAssist).toBe(true);
+    expect(opening.spawn.rescueFullness).toBe(0.58);
+    expect(opening.spawn.rescueDryStreak).toBe(5);
+    expect(opening.spawn.rescueDryStreakMinFullness).toBe(0.5);
+
+    const mid = configForExperience(3);
+    expect(mid.spawn.preferClearAssist).toBe(true);
+    expect(mid.spawn.rescueFullness).toBe(0.64);
+    expect(mid.spawn.rescueDryStreak).toBe(6);
+    expect(mid.spawn.rescueDryStreakMinFullness).toBe(0.5);
+
+    const late = configForExperience(5);
+    expect(late.spawn.preferClearAssist).toBeUndefined();
+    expect(late.spawn.rescueFullness).toBe(0.72);
+    expect(late.spawn.rescueDryStreak).toBe(7);
+    expect(late.spawn.rescueDryStreakMinFullness).toBe(0.5);
   });
 
   it('returns the base config unchanged once the player is experienced', () => {
@@ -54,7 +66,7 @@ describe('configForExperience (FTUE spawn assist)', () => {
   });
 
   it('does not force gap-filling trays on a sparse board after a dry streak', () => {
-    const config = configForExperience(0);
+    const config = configForExperience(5);
     const masses = Array.from({ length: 24 }, (_, index) => {
       const game = createGame(index + 1, config, sparseBoard());
       game.tray = [pieceOf('dot'), null, null];

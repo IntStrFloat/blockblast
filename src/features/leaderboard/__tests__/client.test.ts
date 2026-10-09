@@ -73,6 +73,7 @@ describe('leaderboard client adapters', () => {
     await client.renameProfile({ authToken: 'token-123', nickname: 'PixelHero' });
     await client.submitRun({
       authToken: 'token-123',
+      proofId: 'proof-7',
       ticketId: 'ticket-7',
       score: 1200,
       seed: 500,
@@ -98,12 +99,50 @@ describe('leaderboard client adapters', () => {
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
+          proofId: 'proof-7',
           ticketId: 'ticket-7',
           score: 1200,
           seed: 500,
           moves: [{ trayIndex: 0, row: 0, col: 0 }],
           durationMs: 120000,
         }),
+      }),
+    );
+  });
+
+  it('loads final outcomes and claims by stable rewardId', async () => {
+    process.env.EXPO_PUBLIC_API_URL = 'https://example.com';
+    (globalThis.fetch as unknown as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ outcomes: [], effectScope: 'local_profile' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          outcome: { weekKey: '2026-06-15' },
+          receipt: { rewardId: 'weekly:reward-1' },
+        }),
+      });
+
+    const client = createRemoteLeaderboardClient('https://example.com');
+    await client.getWeeklyOutcomes({ authToken: 'token-123' });
+    await client.claimWeeklyReward({ authToken: 'token-123', rewardId: 'weekly:reward-1' });
+
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(
+      1,
+      'https://example.com/api/weekly/outcomes',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({ Authorization: 'Bearer token-123' }),
+      }),
+    );
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(
+      2,
+      'https://example.com/api/weekly/rewards/claim',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ rewardId: 'weekly:reward-1' }),
       }),
     );
   });

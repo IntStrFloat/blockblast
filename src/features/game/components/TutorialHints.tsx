@@ -10,13 +10,19 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { useAnalyticsStore } from '@/features/analytics';
-import { TutorialPointer, useFtueStore } from '@/features/onboarding';
+import { recordExperimentExposure, useAnalyticsStore } from '@/features/analytics';
+import {
+  FTUE_EXPERIMENT_ID,
+  TutorialPointer,
+  shouldShowFtueAssistance,
+  useFtueStore,
+} from '@/features/onboarding';
 import type { TutorialPoint } from '@/features/onboarding/components/TutorialPointer';
 import { useLang } from '@/features/settings';
 import { AppText, colors, radii, spacing } from '@/ui';
 
 import { useReducedMotion } from '../animation/useReducedMotion';
+import { useGameStore } from '../store';
 
 export interface TutorialTargetCell {
   x: number;
@@ -27,7 +33,6 @@ export interface TutorialTargetCell {
 interface TutorialHintsProps {
   pieceCenter?: TutorialPoint;
   targetCells?: readonly TutorialTargetCell[];
-  showInstruction?: boolean;
 }
 
 function GhostTarget({
@@ -79,42 +84,71 @@ function GhostTarget({
  * Action-driven FTUE presentation. Progress is advanced only by game callbacks in
  * useFtueStore; tapping instructional text cannot advance it.
  */
-export function TutorialHints({ pieceCenter, targetCells = [], showInstruction = true }: TutorialHintsProps = {}) {
+export function TutorialHints({ pieceCenter, targetCells = [] }: TutorialHintsProps = {}) {
   const lang = useLang();
   const reducedMotion = useReducedMotion();
   const { width, height } = useWindowDimensions();
   const status = useFtueStore((state) => state.status);
+  const variant = useFtueStore((state) => state.variant);
+  const assistanceActive = useFtueStore((state) => state.assistanceActive);
+  const practicePromptVisible = useFtueStore((state) => state.practicePromptVisible);
   const invalidDrops = useFtueStore((state) => state.invalidDrops);
   const placements = useFtueStore((state) => state.placements);
   const startedAt = useFtueStore((state) => state.startedAt);
+  const ftueRunId = useFtueStore((state) => state.runId);
+  const classicRunId = useGameStore((state) =>
+    state.classicMeta?.runKind === 'tutorial' ? state.classicMeta.runId : null,
+  );
   const start = useFtueStore((state) => state.start);
-  const completeAfterCelebration = useFtueStore((state) => state.completeAfterCelebration);
+  const finishGuidedCelebration = useFtueStore((state) => state.finishGuidedCelebration);
   const skip = useFtueStore((state) => state.skip);
 
   useEffect(() => {
     if (status === 'not_started') {
       start();
-      useAnalyticsStore.getState().track('tutorial_shown', { step: 'grab_piece' });
     }
   }, [start, status]);
 
   useEffect(() => {
-    if (status !== 'celebrating') return;
+    if (!ftueRunId || ftueRunId !== classicRunId) return;
+    useAnalyticsStore
+      .getState()
+      .trackOnce(`tutorial-shown:${ftueRunId}`, 'tutorial_shown', { step: 'grab_piece' });
+  }, [classicRunId, ftueRunId]);
+
+  useEffect(() => {
+    if (!ftueRunId || ftueRunId !== classicRunId || status === 'not_started') return;
+    recordExperimentExposure(FTUE_EXPERIMENT_ID, variant, 'tutorial_game');
+  }, [classicRunId, ftueRunId, status, variant]);
+
+  useEffect(() => {
+    if (status !== 'guided_success' || !ftueRunId || ftueRunId !== classicRunId) return;
     const timer = setTimeout(() => {
-      useAnalyticsStore.getState().track('tutorial_completed', {
+      const currentFtue = useFtueStore.getState();
+      const currentRunId = useGameStore.getState().classicMeta?.runId;
+      if (currentFtue.runId !== currentRunId || currentFtue.status !== 'guided_success') return;
+      finishGuidedCelebration();
+      useGameStore.getState().syncTutorialCheckpoint();
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [classicRunId, finishGuidedCelebration, ftueRunId, status]);
+
+  useEffect(() => {
+    if (status !== 'complete' || !ftueRunId || ftueRunId !== classicRunId) return;
+    useAnalyticsStore.getState().trackOnce(
+      `tutorial-completed:${ftueRunId}`,
+      'tutorial_completed',
+      {
         elapsed_ms: startedAt ? Date.now() - startedAt : 0,
         placements,
         skipped: false,
-      });
-      completeAfterCelebration();
-    }, 700);
-    return () => clearTimeout(timer);
-  }, [completeAfterCelebration, placements, startedAt, status]);
+      },
+    );
+  }, [classicRunId, ftueRunId, placements, startedAt, status]);
 
   if (
-    placements > 0 ||
     status === 'not_started' ||
-    status === 'celebrating' ||
+    status === 'guided_success' ||
     status === 'complete' ||
     status === 'skipped'
   ) {
@@ -122,6 +156,7 @@ export function TutorialHints({ pieceCenter, targetCells = [], showInstruction =
   }
 
   const emphasized = invalidDrops >= 3;
+  const showAssistance = shouldShowFtueAssistance(useFtueStore.getState());
   const target = targetCells.length > 0
     ? (() => {
         const left = Math.min(...targetCells.map((cell) => cell.x));
@@ -132,22 +167,34 @@ export function TutorialHints({ pieceCenter, targetCells = [], showInstruction =
       })()
     : { x: width * 0.56, y: height * 0.43 };
   const from = pieceCenter ?? { x: width * 0.5, y: height * 0.78 };
-  const instruction = lang === 'ru' ? 'Перетащи фигуру сюда' : 'Drag the piece here';
+  const instruction = practicePromptVisible
+    ? lang === 'ru'
+      ? 'Заполни ряд или столбец'
+      : 'Fill a row or column'
+    : assistanceActive
+      ? lang === 'ru'
+        ? 'Попробуй эту фигуру'
+        : 'Try this piece'
+      : lang === 'ru'
+        ? 'Перетащи фигуру сюда'
+        : 'Drag the piece here';
   const skipLabel = lang === 'ru' ? 'Пропустить' : 'Skip';
 
   return (
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-      {targetCells.length > 0 ? (
+      {showAssistance && targetCells.length > 0 ? (
         <GhostTarget cells={targetCells} emphasized={emphasized} reducedMotion={reducedMotion} />
       ) : null}
-      <TutorialPointer
-        from={from}
-        to={target}
-        reducedMotion={reducedMotion}
-        emphasized={emphasized}
-      />
+      {showAssistance && targetCells.length > 0 ? (
+        <TutorialPointer
+          from={from}
+          to={target}
+          reducedMotion={reducedMotion}
+          emphasized={emphasized}
+        />
+      ) : null}
 
-      {status === 'grab_piece' && showInstruction ? (
+      {practicePromptVisible || (showAssistance && targetCells.length > 0) ? (
         <Animated.View
           entering={reducedMotion ? undefined : FadeIn.duration(180)}
           exiting={reducedMotion ? undefined : FadeOut.duration(120)}
@@ -166,12 +213,17 @@ export function TutorialHints({ pieceCenter, targetCells = [], showInstruction =
         accessibilityRole="button"
         accessibilityLabel={skipLabel}
         onPress={() => {
-          useAnalyticsStore.getState().track('tutorial_completed', {
-            elapsed_ms: startedAt ? Date.now() - startedAt : 0,
-            placements,
-            skipped: true,
-          });
+          useAnalyticsStore.getState().trackOnce(
+            `tutorial-skip:${ftueRunId ?? 'unbound'}`,
+            'tutorial_completed',
+            {
+              elapsed_ms: startedAt ? Date.now() - startedAt : 0,
+              placements,
+              skipped: true,
+            },
+          );
           skip('user');
+          useGameStore.getState().syncTutorialCheckpoint();
         }}
         hitSlop={4}
         style={({ pressed }) => [styles.skip, pressed && styles.skipPressed]}
@@ -187,7 +239,7 @@ export function TutorialHints({ pieceCenter, targetCells = [], showInstruction =
 const styles = StyleSheet.create({
   instruction: {
     position: 'absolute',
-    top: 112,
+    top: 168,
     left: spacing.l,
     right: spacing.l,
     minHeight: 48,
@@ -204,7 +256,7 @@ const styles = StyleSheet.create({
   },
   skip: {
     position: 'absolute',
-    top: 56,
+    top: 112,
     right: spacing.m,
     minWidth: 48,
     minHeight: 48,

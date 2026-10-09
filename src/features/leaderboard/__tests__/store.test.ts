@@ -1,8 +1,8 @@
-import { KEYS, getJSON, removeKey } from '@/core/storage';
+import { KEYS, getJSON, removeKey, setJSON } from '@/core/storage';
+import { useProgression } from '@/features/progression/store';
 
 import { createLeaderboardStore } from '../store';
 import type { LeaderboardClient } from '../client';
-import type { WeeklyLeaderboardSnapshot } from '../types';
 
 const NOW = new Date('2026-06-13T12:00:00.000Z');
 
@@ -14,10 +14,31 @@ beforeEach(() => {
   removeKey(KEYS.leaderboardPending);
   removeKey(KEYS.leaderboardTickets);
   removeKey(KEYS.leaderboardPrizes);
+  removeKey(KEYS.leaderboardWeeklyOutcomes);
   removeKey(KEYS.profileAuth);
 });
 
 describe('leaderboard store', () => {
+  it('refreshes a recent snapshot immediately when Moscow weekKey changed', async () => {
+    const store = createLeaderboardStore({
+      profile: {
+        nickname: 'LimeComet',
+        normalizedNickname: 'limecomet',
+        tag: '00H',
+        seed: 7,
+      },
+    });
+    const stale = await store.getState().refresh(new Date('2026-07-05T20:59:59.000Z'));
+    expect(stale.weekKey).toBe('2026-06-29');
+
+    const refreshed = await store.getState().refreshIfStale(
+      new Date('2026-07-05T21:00:00.000Z'),
+      Number.MAX_SAFE_INTEGER,
+    );
+
+    expect(refreshed.weekKey).toBe('2026-07-06');
+  });
+
   it('shows an honest current-player-only state offline with no cached remote snapshot', async () => {
     const store = createLeaderboardStore({
       profile: {
@@ -308,41 +329,299 @@ describe('leaderboard store', () => {
     expect(getJSON(KEYS.leaderboardSnapshot)).toEqual(store.getState().snapshot);
   });
 
-  it('settles a top-3 prize when the week rolls over, then claims it once', async () => {
-    const lastWeek: WeeklyLeaderboardSnapshot = {
+  it('uses the server receipt and applies its local G03 effect exactly once', async () => {
+    let receipt: {
+      receiptId: string;
+      rewardId: string;
+      weekKey: string;
+      rank: number;
+      prize: { rank: number; points: number; cosmeticId: string };
+      claimedAt: string;
+      effectScope: 'local_profile';
+    } | null = null;
+    const baseOutcome = {
       weekKey: '2026-06-15',
-      weekStartIso: '2026-06-15T00:00:00.000Z',
-      weekEndIso: '2026-06-22T00:00:00.000Z',
-      generatedAt: '2026-06-15T12:00:00.000Z',
-      source: 'remote',
-      isCached: false,
-      currentPlayer: {
-        nickname: 'LimeComet',
-        tag: '00H',
-        rank: 2,
-        weeklyBest: 5000,
-        runsCount: 4,
-        achievedAt: '2026-06-16T00:00:00.000Z',
-        isCurrentPlayer: true,
+      finalizedAt: '2026-06-22T00:00:00.000Z',
+      rank: 2,
+      weeklyBest: 5_000,
+      runsCount: 4,
+      achievedAt: '2026-06-16T00:00:00.000Z',
+      reward: {
+        rewardId: 'weekly:reward-2',
+        prize: { rank: 2, points: 700, cosmeticId: 'face-monocle' },
       },
-      entries: [],
     };
+    const claimWeeklyReward = jest.fn(async () => {
+      receipt ??= {
+        receiptId: 'receipt:weekly:reward-2',
+        rewardId: 'weekly:reward-2',
+        weekKey: '2026-06-15',
+        rank: 2,
+        prize: baseOutcome.reward.prize,
+        claimedAt: '2026-06-22T00:01:00.000Z',
+        effectScope: 'local_profile',
+      };
+      return { outcome: { ...baseOutcome, receipt }, receipt };
+    });
+    const client: LeaderboardClient = {
+      kind: 'remote',
+      bootstrapProfile: async () => null,
+      renameProfile: async ({ nickname }) => ({ nickname, tag: 'SRV' }),
+      issueTickets: async () => [],
+      getWeeklySnapshot: async () => null,
+      getWeeklyOutcomes: async () => ({
+        outcomes: [{ ...baseOutcome, receipt }],
+        effectScope: 'local_profile',
+      }),
+      claimWeeklyReward,
+      submitRun: async () => null,
+    };
+    useProgression.setState({
+      lifetimePoints: 0,
+      level: 1,
+      world: 1,
+      unlockedThemes: ['classic'],
+      activeTheme: 'classic',
+      claimedRewards: [],
+      appliedSettlements: [],
+      rewardReceipts: {},
+    });
+    const store = createLeaderboardStore({ client });
+    await store.getState().syncWeeklyOutcomes('auth-1');
+
+    const [first, second] = await Promise.all([
+      store.getState().claimWeeklyPrize('weekly:reward-2', 'auth-1'),
+      store.getState().claimWeeklyPrize('weekly:reward-2', 'auth-1'),
+    ]);
+
+    expect(claimWeeklyReward).toHaveBeenCalledTimes(1);
+    expect(first?.receipt).toEqual(second?.receipt);
+    expect(first).toMatchObject({ claimed: true, localAppliedAt: expect.any(String) });
+    expect(useProgression.getState().lifetimePoints).toBe(700);
+    store.getState().reconcileWeeklyPrizeEffects();
+    expect(useProgression.getState().lifetimePoints).toBe(700);
+  });
+
+  it('keeps cached final outcomes visible when prize refresh is offline', async () => {
+    const cachedOutcome = {
+      weekKey: '2026-06-15',
+      finalizedAt: '2026-06-22T00:00:00.000Z',
+      rank: 10,
+      weeklyBest: 900,
+      runsCount: 1,
+      achievedAt: '2026-06-16T00:00:00.000Z',
+      reward: null,
+      receipt: null,
+    };
+    setJSON(KEYS.leaderboardWeeklyOutcomes, [cachedOutcome]);
+    const client: LeaderboardClient = {
+      kind: 'remote',
+      bootstrapProfile: async () => null,
+      renameProfile: async ({ nickname }) => ({ nickname, tag: 'SRV' }),
+      issueTickets: async () => [],
+      getWeeklySnapshot: async () => null,
+      getWeeklyOutcomes: async () => { throw new Error('offline'); },
+      submitRun: async () => null,
+    };
+    const store = createLeaderboardStore({ client });
+
+    const outcomes = await store.getState().syncWeeklyOutcomes('auth-1');
+
+    expect(outcomes).toEqual([cachedOutcome]);
+    expect(store.getState()).toMatchObject({
+      weeklyOutcomes: [cachedOutcome],
+      prizeSyncState: 'offline',
+      prizeLastError: 'offline',
+    });
+  });
+
+  it('recovers a server receipt after a lost claim response', async () => {
+    const reward = {
+      rewardId: 'weekly:lost-response',
+      prize: { rank: 1, points: 1_200, cosmeticId: 'hat-block-crown' },
+    };
+    let receipt: {
+      receiptId: string;
+      rewardId: string;
+      weekKey: string;
+      rank: number;
+      prize: typeof reward.prize;
+      claimedAt: string;
+      effectScope: 'local_profile';
+    } | null = null;
+    const outcome = () => ({
+      weekKey: '2026-06-15',
+      finalizedAt: '2026-06-22T00:00:00.000Z',
+      rank: 1,
+      weeklyBest: 5_000,
+      runsCount: 2,
+      achievedAt: '2026-06-16T00:00:00.000Z',
+      reward,
+      receipt,
+    });
+    const claimWeeklyReward = jest.fn(async () => {
+      receipt = {
+        receiptId: 'receipt:weekly:lost-response',
+        rewardId: reward.rewardId,
+        weekKey: '2026-06-15',
+        rank: 1,
+        prize: reward.prize,
+        claimedAt: '2026-06-22T00:01:00.000Z',
+        effectScope: 'local_profile',
+      };
+      if (claimWeeklyReward.mock.calls.length === 1) throw new Error('response_lost');
+      return { outcome: outcome(), receipt };
+    });
+    const client: LeaderboardClient = {
+      kind: 'remote',
+      bootstrapProfile: async () => null,
+      renameProfile: async ({ nickname }) => ({ nickname, tag: 'SRV' }),
+      issueTickets: async () => [],
+      getWeeklySnapshot: async () => null,
+      getWeeklyOutcomes: async () => ({ outcomes: [outcome()], effectScope: 'local_profile' }),
+      claimWeeklyReward,
+      submitRun: async () => null,
+    };
+    useProgression.setState({
+      lifetimePoints: 0,
+      level: 1,
+      world: 1,
+      unlockedThemes: ['classic'],
+      activeTheme: 'classic',
+      claimedRewards: [],
+      appliedSettlements: [],
+      rewardReceipts: {},
+    });
+    const store = createLeaderboardStore({ client });
+    await store.getState().syncWeeklyOutcomes('auth-1');
+
+    expect(await store.getState().claimWeeklyPrize(reward.rewardId, 'auth-1')).toBeNull();
+    const recovered = await store.getState().claimWeeklyPrize(reward.rewardId, 'auth-1');
+
+    expect(recovered?.receipt?.receiptId).toBe('receipt:weekly:lost-response');
+    expect(useProgression.getState().lifetimePoints).toBe(1_200);
+  });
+
+  it('applies a successful claim even when the follow-up outcomes GET is offline', async () => {
+    const reward = {
+      rewardId: 'weekly:post-ok-get-offline',
+      prize: { rank: 3, points: 400, cosmeticId: 'acc-cape' },
+    };
+    const receipt = {
+      receiptId: 'receipt:weekly:post-ok-get-offline',
+      rewardId: reward.rewardId,
+      weekKey: '2026-06-15',
+      rank: 3,
+      prize: reward.prize,
+      claimedAt: '2026-06-22T00:01:00.000Z',
+      effectScope: 'local_profile' as const,
+    };
+    const eligible = {
+      weekKey: '2026-06-15',
+      finalizedAt: '2026-06-22T00:00:00.000Z',
+      rank: 3,
+      weeklyBest: 2_000,
+      runsCount: 2,
+      achievedAt: '2026-06-16T00:00:00.000Z',
+      reward,
+      receipt: null,
+    };
+    const getWeeklyOutcomes = jest
+      .fn()
+      .mockResolvedValueOnce({ outcomes: [eligible], effectScope: 'local_profile' })
+      .mockRejectedValueOnce(new Error('offline'));
+    const client: LeaderboardClient = {
+      kind: 'remote',
+      bootstrapProfile: async () => null,
+      renameProfile: async ({ nickname }) => ({ nickname, tag: 'SRV' }),
+      issueTickets: async () => [],
+      getWeeklySnapshot: async () => null,
+      getWeeklyOutcomes,
+      claimWeeklyReward: async () => ({
+        outcome: { ...eligible, receipt },
+        receipt,
+      }),
+      submitRun: async () => null,
+    };
+    useProgression.setState({
+      lifetimePoints: 0,
+      level: 1,
+      world: 1,
+      unlockedThemes: ['classic'],
+      activeTheme: 'classic',
+      claimedRewards: [],
+      appliedSettlements: [],
+      rewardReceipts: {},
+    });
+    const store = createLeaderboardStore({ client });
+    await store.getState().syncWeeklyOutcomes('auth-1');
+
+    const claimed = await store.getState().claimWeeklyPrize(reward.rewardId, 'auth-1');
+
+    expect(claimed).toMatchObject({
+      claimed: true,
+      localAppliedAt: expect.any(String),
+    });
+    expect(useProgression.getState().lifetimePoints).toBe(400);
+    expect(store.getState().prizeSyncState).toBe('offline');
+  });
+
+  it('preserves claimed legacy rewards without replaying their XP', () => {
+    setJSON(KEYS.leaderboardPrizes, [{
+      weekKey: '2026-06-08',
+      rank: 1,
+      prize: { rank: 1, points: 1_200, cosmeticId: 'hat-block-crown' },
+      claimed: true,
+      earnedAt: '2026-06-15T00:00:00.000Z',
+    }]);
+    useProgression.setState({ lifetimePoints: 0 });
+
     const store = createLeaderboardStore();
-    store.setState({ snapshot: lastWeek });
 
-    // Рефреш на следующей неделе подводит призы прошлой.
-    await store.getState().refresh(new Date('2026-06-23T10:00:00.000Z'));
+    expect(store.getState().weeklyPrizes[0]).toMatchObject({
+      origin: 'legacy_local',
+      claimed: true,
+    });
+    expect(useProgression.getState().lifetimePoints).toBe(0);
+  });
 
-    const prizes = store.getState().weeklyPrizes;
-    expect(prizes).toHaveLength(1);
-    expect(prizes[0]).toMatchObject({ weekKey: '2026-06-15', rank: 2, claimed: false });
+  it('repairs a persisted server receipt locally on cold start while offline', () => {
+    setJSON(KEYS.leaderboardPrizes, [{
+      rewardId: 'weekly:cold-receipt',
+      weekKey: '2026-06-15',
+      rank: 3,
+      prize: { rank: 3, points: 400, cosmeticId: 'acc-cape' },
+      claimed: true,
+      earnedAt: '2026-06-22T00:00:00.000Z',
+      receipt: {
+        receiptId: 'receipt:weekly:cold-receipt',
+        rewardId: 'weekly:cold-receipt',
+        weekKey: '2026-06-15',
+        rank: 3,
+        prize: { rank: 3, points: 400, cosmeticId: 'acc-cape' },
+        claimedAt: '2026-06-22T00:01:00.000Z',
+        effectScope: 'local_profile',
+      },
+      origin: 'server',
+      localAppliedAt: null,
+    }]);
+    useProgression.setState({
+      lifetimePoints: 0,
+      level: 1,
+      world: 1,
+      unlockedThemes: ['classic'],
+      activeTheme: 'classic',
+      claimedRewards: [],
+      appliedSettlements: [],
+      rewardReceipts: {},
+    });
 
-    const claimed = store.getState().claimWeeklyPrize('2026-06-15');
-    expect(claimed?.claimed).toBe(true);
-    expect(store.getState().weeklyPrizes[0].claimed).toBe(true);
+    const store = createLeaderboardStore();
 
-    // Повторный claim не выдаёт награду второй раз.
-    expect(store.getState().claimWeeklyPrize('2026-06-15')).toBeNull();
+    expect(useProgression.getState().lifetimePoints).toBe(400);
+    expect(store.getState().weeklyPrizes[0].localAppliedAt).toEqual(expect.any(String));
+    store.getState().reconcileWeeklyPrizeEffects();
+    expect(useProgression.getState().lifetimePoints).toBe(400);
   });
 
   it('drops permanently rejected pending submissions but keeps transient failures', async () => {

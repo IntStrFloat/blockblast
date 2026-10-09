@@ -1,9 +1,11 @@
 import {
   EMPTY_ADS_META,
+  recordFullscreenCooldown,
   recordAdventureFail,
   recordAdventureLevelWin,
   recordGameOver,
   recordInterstitialShown,
+  interstitialShowsForSession,
   shouldShowInterstitial,
 } from '../frequency';
 import { MONETIZATION } from '../config';
@@ -16,11 +18,11 @@ function opts(over: Partial<Parameters<typeof shouldShowInterstitial>[1]> = {}) 
 }
 
 describe('shouldShowInterstitial', () => {
-  it('production config delays the first ad to the 6th game, then every third loss', () => {
+  it('production config delays the first ad to the 6th game, then every fourth loss', () => {
     expect(MONETIZATION.interstitial).toEqual({
       minGamesBeforeFirst: 6,
-      minIntervalSec: 90,
-      everyNGameovers: 3,
+      minIntervalSec: 180,
+      everyNGameovers: 4,
     });
   });
 
@@ -34,17 +36,17 @@ describe('shouldShowInterstitial', () => {
     expect(shouldShowInterstitial(ready, opts({ cfg }))).toBe(true);
   });
 
-  it('после первой рекламы каденс — каждые 3 проигрыша (не 6)', () => {
+  it('после первой рекламы каденс — каждые 4 проигрыша', () => {
     const cfg = MONETIZATION.interstitial;
     const base = {
       ...EMPTY_ADS_META,
       gamesPlayed: 12,
-      gameOversSinceAd: 2,
+      gameOversSinceAd: 3,
       lastInterstitialAt: NOW - 10 * 60_000,
     };
     expect(shouldShowInterstitial(base, opts({ cfg }))).toBe(false);
     expect(
-      shouldShowInterstitial({ ...base, gameOversSinceAd: 3 }, opts({ cfg })),
+      shouldShowInterstitial({ ...base, gameOversSinceAd: 4 }, opts({ cfg })),
     ).toBe(true);
   });
 
@@ -93,6 +95,18 @@ describe('shouldShowInterstitial', () => {
     expect(shouldShowInterstitial(longAgo, opts({ cfg: intervalCfg }))).toBe(true);
   });
 
+  it('использует rewarded fullscreen cooldown, не подменяя факт межстранички', () => {
+    const intervalCfg = { ...CFG, minGamesBeforeFirst: 0, minIntervalSec: 120 };
+    const meta = {
+      ...EMPTY_ADS_META,
+      gameOversSinceAd: 3,
+      lastInterstitialAt: null,
+      lastFullscreenAt: NOW - 60_000,
+    };
+    expect(shouldShowInterstitial(meta, opts({ cfg: intervalCfg }))).toBe(false);
+    expect(recordFullscreenCooldown(meta, NOW).lastInterstitialAt).toBeNull();
+  });
+
   it('показывает рекламу после каждого третьего проигрыша в Adventure', () => {
     const one = recordAdventureFail(EMPTY_ADS_META);
     const two = recordAdventureFail(one);
@@ -104,6 +118,23 @@ describe('shouldShowInterstitial', () => {
     const afterAd = recordInterstitialShown(three, NOW, 'adventure_fail');
     expect(afterAd.adventureFailsSinceAd).toBe(0);
     expect(shouldShowInterstitial(afterAd, opts(), 'adventure_fail')).toBe(false);
+  });
+
+  it('держит первую Adventure Fail межстраничку за общим global shield до 6 завершений', () => {
+    const cfg = MONETIZATION.interstitial;
+    const early = {
+      ...EMPTY_ADS_META,
+      adventureRunsPlayed: 5,
+      adventureFailsSinceAd: 5,
+    };
+    expect(shouldShowInterstitial(early, opts({ cfg }), 'adventure_fail')).toBe(false);
+
+    const ready = {
+      ...EMPTY_ADS_META,
+      adventureRunsPlayed: 6,
+      adventureFailsSinceAd: 6,
+    };
+    expect(shouldShowInterstitial(ready, opts({ cfg }), 'adventure_fail')).toBe(true);
   });
 
   it('показывает рекламу после каждого третьего пройденного Adventure уровня', () => {
@@ -118,9 +149,61 @@ describe('shouldShowInterstitial', () => {
     expect(afterAd.adventureLevelsSinceAd).toBe(0);
     expect(shouldShowInterstitial(afterAd, opts(), 'adventure_level')).toBe(false);
   });
+
+  it('держит первую Adventure Win межстраничку за общим global shield до 6 завершений', () => {
+    const cfg = MONETIZATION.interstitial;
+    const early = {
+      ...EMPTY_ADS_META,
+      adventureRunsPlayed: 5,
+      adventureLevelsCompleted: 5,
+      adventureLevelsSinceAd: 5,
+    };
+    expect(shouldShowInterstitial(early, opts({ cfg }), 'adventure_level')).toBe(false);
+
+    const ready = {
+      ...EMPTY_ADS_META,
+      adventureRunsPlayed: 6,
+      adventureLevelsCompleted: 6,
+      adventureLevelsSinceAd: 6,
+    };
+    expect(shouldShowInterstitial(ready, opts({ cfg }), 'adventure_level')).toBe(true);
+  });
+
+  it('сохраняет every-N каденс для Adventure после первого показа', () => {
+    const meta = {
+      ...EMPTY_ADS_META,
+      adventureRunsPlayed: 1,
+      adventureFailsSinceAd: 3,
+      lastInterstitialAt: NOW - 10 * 60_000,
+    };
+    expect(shouldShowInterstitial(meta, opts(), 'adventure_fail')).toBe(true);
+  });
 });
 
 describe('счётчики', () => {
+  it.each(['gameover', 'adventure_fail', 'adventure_level'] as const)(
+    'resets all modes after an impression at %s so switching modes cannot spend an old series',
+    (placement) => {
+      const before = { ...EMPTY_ADS_META, gamesPlayed: 20, gameOversSinceAd: 8,
+        adventureFailsSinceAd: 7, adventureLevelsSinceAd: 6 };
+      const shown = recordInterstitialShown(before, NOW, placement);
+      for (const counter of ['gameover', 'adventure_fail', 'adventure_level'] as const) {
+        expect(shouldShowInterstitial(shown, opts({ nowMs: NOW + 600_000,
+          cfg: MONETIZATION.interstitial }), counter)).toBe(false);
+      }
+      expect(shown).toMatchObject({ gamesPlayed: 20, gameOversSinceAd: 0,
+        adventureFailsSinceAd: 0, adventureLevelsSinceAd: 0 });
+    },
+  );
+
+  it('enforces the same three-minute cooldown at the exact boundary after rewarded', () => {
+    const meta = recordFullscreenCooldown({ ...EMPTY_ADS_META, gamesPlayed: 10,
+      gameOversSinceAd: 4 }, NOW);
+    expect(shouldShowInterstitial(meta, opts({ cfg: MONETIZATION.interstitial,
+      nowMs: NOW + 179_999 }))).toBe(false);
+    expect(shouldShowInterstitial(meta, opts({ cfg: MONETIZATION.interstitial,
+      nowMs: NOW + 180_000 }))).toBe(true);
+  });
   it('recordGameOver инкрементит', () => {
     const m = recordGameOver(recordGameOver(EMPTY_ADS_META));
     expect(m.gamesPlayed).toBe(2);
@@ -132,5 +215,15 @@ describe('счётчики', () => {
     expect(m.gameOversSinceAd).toBe(0);
     expect(m.lastInterstitialAt).toBe(NOW);
     expect(m.gamesPlayed).toBe(1);
+  });
+
+  it('counts interstitials per product session without counting rewarded fullscreen anchors', () => {
+    const first = recordInterstitialShown(EMPTY_ADS_META, NOW, 'gameover', 'session-1');
+    const second = recordInterstitialShown(first, NOW + 1, 'gameover', 'session-1');
+    const rewarded = recordFullscreenCooldown(second, NOW + 2);
+    expect(interstitialShowsForSession(rewarded, 'session-1')).toBe(2);
+    expect(interstitialShowsForSession(rewarded, 'session-2')).toBe(0);
+    const coldStart = recordInterstitialShown(rewarded, NOW + 3, 'gameover', 'session-2');
+    expect(interstitialShowsForSession(coldStart, 'session-2')).toBe(1);
   });
 });

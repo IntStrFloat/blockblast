@@ -2,7 +2,8 @@ import { create } from 'zustand';
 
 import { seedFromTime } from '@/core/engine';
 import { KEYS, getJSON, setJSON } from '@/core/storage';
-import { stageForLevel, useProgression } from '@/features/progression';
+import { recordNextGoalCompletion, useAnalyticsStore } from '@/features/analytics';
+import { PROGRESSION_CONFIG, stageForLevel, useProgression } from '@/features/progression';
 import { todayISO } from '@/features/streak';
 
 import { COSMETICS } from './logic/cosmetics';
@@ -77,7 +78,7 @@ interface MascotActions {
   useHelper: (id: HelperId) => boolean;
   drop: () => void;
   recover: () => void;
-  equip: (slot: Slot, id: string) => void;
+  equip: (slot: Slot, id: string, source?: 'wardrobe' | 'map') => void;
   unequip: (slot: Slot) => void;
   markIntroDone: () => void;
   bumpRng: (rngState: number) => void;
@@ -148,7 +149,7 @@ export const useMascot = create<MascotStore>((set, get) => ({
     persist(next);
   },
 
-  equip(slot, id) {
+  equip(slot, id, source = 'wardrobe') {
     const prev = get();
     if (!prev.unlocked.includes(id)) return;
     if (COSMETIC_SLOT[id] !== slot) return;
@@ -157,6 +158,15 @@ export const useMascot = create<MascotStore>((set, get) => ({
     const next: MascotState = { ...prev, equipped };
     set({ equipped });
     persist(next);
+    useAnalyticsStore.getState().track('reward_equipped', {
+      item_id: id,
+      source,
+      first_equip: Object.keys(prev.equipped).length === 0,
+    });
+    const rewardLevel = Object.entries(PROGRESSION_CONFIG.levelRewards).find(
+      ([, reward]) => reward?.kind === 'cosmetic' && reward.id === id,
+    )?.[0];
+    if (rewardLevel) recordNextGoalCompletion('reward', `reward:${rewardLevel}:${id}`);
   },
 
   unequip(slot) {

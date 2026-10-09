@@ -3,10 +3,27 @@ import { KEYS, getJSON } from '@/core/storage';
 import { useScores } from '../store';
 
 beforeEach(() => {
-  useScores.setState({ best: 0, gamesPlayed: 0, totalLinesCleared: 0 });
+  useScores.setState({ best: 0, gamesPlayed: 0, totalLinesCleared: 0, settledRuns: {} });
 });
 
 describe('useScores.submitGame', () => {
+  it('settles a run idempotently across retries', () => {
+    expect(useScores.getState().submitGameOnce('run-1', 250, 7)).toEqual({
+      newRecord: true,
+      delta: 250,
+      applied: true,
+    });
+    expect(useScores.getState().submitGameOnce('run-1', 999, 99)).toEqual({
+      newRecord: true,
+      delta: 250,
+      applied: false,
+    });
+    expect(useScores.getState()).toMatchObject({
+      best: 250,
+      gamesPlayed: 1,
+      totalLinesCleared: 7,
+    });
+  });
   it('returns a new-record delta when score beats best', () => {
     useScores.setState({ best: 100 });
     const r = useScores.getState().submitGame(250, 7);
@@ -31,6 +48,7 @@ describe('useScores.submitGame', () => {
       best: 100,
       gamesPlayed: 2,
       totalLinesCleared: 5,
+      settledRuns: {},
     });
   });
 
@@ -52,11 +70,13 @@ describe('useScores.improveBest', () => {
       best: 160,
       gamesPlayed: 4,
       totalLinesCleared: 25,
+      settledRuns: {},
     });
     expect(getJSON(KEYS.scoresStats)).toEqual({
       best: 160,
       gamesPlayed: 4,
       totalLinesCleared: 25,
+      settledRuns: {},
     });
   });
 

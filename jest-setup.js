@@ -5,6 +5,8 @@ jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock
 jest.mock('expo-audio', () => ({
   createAudioPlayer: jest.fn(() => ({
     play: jest.fn(),
+    pause: jest.fn(),
+    addListener: jest.fn(() => ({ remove: jest.fn() })),
     release: jest.fn(),
     seekTo: jest.fn(),
   })),

@@ -7,11 +7,13 @@ import type { PlacementEvent } from '@/core/engine';
 import { radii } from '@/ui';
 
 import {
+  budgetClearPresentations,
   buildClearPresentation,
   clearPresentationLifetimeMs,
   countAnimatedClearNodes,
   MAX_ACTIVE_CLEAR_PRESENTATIONS,
   type ClearPresentationInstance,
+  type ClearStyle,
 } from '../animation/clearPresentation';
 import {
   budgetPlacementEffects,
@@ -22,19 +24,24 @@ import {
 } from '../animation/gameFeelPresentation';
 import { GAME_FEEL_MOTION } from '../animation/motion';
 import { useReducedMotion } from '../animation/useReducedMotion';
+import { useAnalyticsStore } from '@/features/analytics';
 import { useDragCtx } from '../drag/DragContext';
 import { EMPTY_MASK } from '../drag/gridMath';
 import { ClearBurstLayer } from '../effects/ClearBurstLayer';
+import { ClearChoreographyLayer } from '../effects/ClearChoreographyLayer';
 import { ClearDebrisLayer } from '../effects/ClearDebrisLayer';
 import { ClearSparkLayer } from '../effects/ClearSparkLayer';
 import { BoardFramePulse } from '../effects/BoardFramePulse';
+import { ComboAuraFrame } from '../effects/ComboAuraFrame';
 import { GameEffectsLayer } from '../effects/GameEffectsLayer';
 import { useShake } from '../effects/useShake';
 import { useGameStore } from '../store';
 import { BoardCell } from './BoardCell';
 
 interface BoardViewProps {
+  clearStyle?: ClearStyle;
   style?: ViewStyle;
+  onMeasureBoardReady?: (measureBoard: () => void) => void;
 }
 
 const clearEventInstanceIds = new WeakMap<PlacementEvent, number>();
@@ -60,7 +67,7 @@ function placementEventInstanceKey(event: PlacementEvent) {
   return `placement-${id}`;
 }
 
-export function BoardView({ style }: BoardViewProps) {
+export function BoardView({ style, onMeasureBoardReady, clearStyle = 'dissolve' }: BoardViewProps) {
   const ctx = useDragCtx();
   const { geom } = ctx;
   const cellColorsKey = ctx.cellColors.join('\u0000');
@@ -78,7 +85,9 @@ export function BoardView({ style }: BoardViewProps) {
   const stableCellColors = useMemo(() => [...ctx.cellColors], [cellColorsKey]);
 
   const board = useGameStore((s) => s.game.board);
+  const combo = useGameStore((s) => s.game.combo);
   const lastEvent = useGameStore((s) => s.lastEvent);
+  const analyticsMode = useGameStore((s) => s.adventure ? 'adventure' as const : 'classic' as const);
   const reducedMotion = useReducedMotion();
   const queuedPresentation = useMemo<ClearPresentationInstance | null>(
     () =>
@@ -90,10 +99,11 @@ export function BoardView({ style }: BoardViewProps) {
               boardGeom,
               stableCellColors,
               reducedMotion,
+              clearStyle,
             ),
           }
         : null,
-    [boardGeom, lastEvent, reducedMotion, stableCellColors],
+    [boardGeom, clearStyle, lastEvent, reducedMotion, stableCellColors],
   );
   const queuedComboFrame = useMemo(
     () => (lastEvent ? comboFrameFor(lastEvent, reducedMotion) : null),
@@ -125,26 +135,48 @@ export function BoardView({ style }: BoardViewProps) {
     };
   }, [lastEvent, queuedComboFrame, stableCellColors]);
   const [activePresentations, setActivePresentations] = useState<ClearPresentationInstance[]>([]);
+  const [retiredPresentationIds, setRetiredPresentationIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   // Пул разрушения получает свежий клир сразу, в том же коммите, где доска уже
   // пуста: хоп через setActivePresentations (эффект → setState → новый рендер)
   // добавлял кадр «пустых» ячеек до появления осколков. Дедуп по id внутри
   // ClearBurstLayer не даёт клиру сыграть дважды, когда он позже попадает в
   // activePresentations.
-  const burstPresentations = useMemo(() => {
-    if (!queuedPresentation) return activePresentations;
-    if (activePresentations.some((entry) => entry.id === queuedPresentation.id)) {
-      return activePresentations;
+  const renderedClearPresentations = useMemo(() => {
+    if (!queuedPresentation) return budgetClearPresentations(activePresentations);
+    if (retiredPresentationIds.has(queuedPresentation.id)) {
+      return budgetClearPresentations(activePresentations);
     }
-    return [...activePresentations, queuedPresentation];
-  }, [activePresentations, queuedPresentation]);
+    if (activePresentations.some((entry) => entry.id === queuedPresentation.id)) {
+      return budgetClearPresentations(activePresentations);
+    }
+    return budgetClearPresentations([...activePresentations, queuedPresentation]);
+  }, [activePresentations, queuedPresentation, retiredPresentationIds]);
   const [activePlacementEffects, setActivePlacementEffects] = useState<PlacementEffectInstance[]>([]);
+  const [retiredPlacementIds, setRetiredPlacementIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const renderedPlacementEffects = useMemo(() => {
+    if (!queuedPlacementEffect) return activePlacementEffects;
+    if (retiredPlacementIds.has(queuedPlacementEffect.id)) return activePlacementEffects;
+    if (activePlacementEffects.some((entry) => entry.id === queuedPlacementEffect.id)) {
+      return activePlacementEffects;
+    }
+    return [...activePlacementEffects, queuedPlacementEffect].slice(
+      -GAME_FEEL_MOTION.placementQueueCap,
+    );
+  }, [activePlacementEffects, queuedPlacementEffect, retiredPlacementIds]);
   const budgetedPlacementEffects = useMemo(
     () =>
       budgetPlacementEffects(
-        activePresentations.reduce((sum, { presentation }) => sum + countAnimatedClearNodes(presentation), 0),
-        activePlacementEffects,
+        renderedClearPresentations.reduce(
+          (sum, { presentation }) => sum + countAnimatedClearNodes(presentation),
+          0,
+        ),
+        renderedPlacementEffects,
       ),
-    [activePlacementEffects, activePresentations],
+    [renderedClearPresentations, renderedPlacementEffects],
   );
   const presentationTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const enqueuedPresentationIdsRef = useRef<Set<string>>(new Set());
@@ -156,26 +188,45 @@ export function BoardView({ style }: BoardViewProps) {
     ctx.boardMirror.value = [...board];
     ctx.preview.value = EMPTY_MASK;
     ctx.previewColor.value = 0;
-  }, [board, ctx.boardMirror, ctx.preview, ctx.previewColor]);
+    ctx.invalidPreview.value = EMPTY_MASK;
+    ctx.invalidReason.value = 0;
+    ctx.clearPrelude.value = 0;
+  }, [
+    board,
+    ctx.boardMirror,
+    ctx.clearPrelude,
+    ctx.invalidPreview,
+    ctx.invalidReason,
+    ctx.preview,
+    ctx.previewColor,
+  ]);
 
   // Screen shake при очистке 2+ линий (спека 04)
   const { shakeStyle, triggerShake } = useShake();
+  const lastShakenEventRef = useRef<PlacementEvent | null>(null);
   useEffect(() => {
     if (!lastEvent) return;
+    if (!reducedMotion && lastShakenEventRef.current === lastEvent) return;
+    lastShakenEventRef.current = lastEvent;
     triggerShake({
       clear: queuedPresentation?.presentation.shake ?? null,
       combo: queuedComboFrame,
     });
-  }, [lastEvent, queuedComboFrame, queuedPresentation, triggerShake]);
+  }, [lastEvent, queuedComboFrame, queuedPresentation, reducedMotion, triggerShake]);
 
   useEffect(() => {
     if (!queuedPresentation) return;
+    if (retiredPresentationIds.has(queuedPresentation.id)) return;
     if (enqueuedPresentationIdsRef.current.has(queuedPresentation.id)) return;
     enqueuedPresentationIdsRef.current.add(queuedPresentation.id);
     if (!presentationTimersRef.current.has(queuedPresentation.id)) {
       const timer = setTimeout(() => {
         presentationTimersRef.current.delete(queuedPresentation.id);
         enqueuedPresentationIdsRef.current.delete(queuedPresentation.id);
+        setRetiredPresentationIds((current) => {
+          const recentIds = [...current, queuedPresentation.id].slice(-4);
+          return new Set(recentIds);
+        });
         setActivePresentations((current) =>
           current.filter((item) => item.id !== queuedPresentation.id),
         );
@@ -185,18 +236,24 @@ export function BoardView({ style }: BoardViewProps) {
 
     setActivePresentations((current) => {
       if (current.some((entry) => entry.id === queuedPresentation.id)) return current;
-      return [...current, queuedPresentation].slice(-MAX_ACTIVE_CLEAR_PRESENTATIONS);
+      return budgetClearPresentations(
+        [...current, queuedPresentation].slice(-MAX_ACTIVE_CLEAR_PRESENTATIONS),
+      );
     });
-  }, [queuedPresentation]);
+  }, [queuedPresentation, retiredPresentationIds]);
 
   useEffect(() => {
     if (!queuedPlacementEffect) return;
+    if (retiredPlacementIds.has(queuedPlacementEffect.id)) return;
     if (enqueuedPlacementIdsRef.current.has(queuedPlacementEffect.id)) return;
     enqueuedPlacementIdsRef.current.add(queuedPlacementEffect.id);
     if (!placementTimersRef.current.has(queuedPlacementEffect.id)) {
       const timer = setTimeout(() => {
         placementTimersRef.current.delete(queuedPlacementEffect.id);
         enqueuedPlacementIdsRef.current.delete(queuedPlacementEffect.id);
+        setRetiredPlacementIds((current) =>
+          new Set([...current, queuedPlacementEffect.id].slice(-4)),
+        );
         setActivePlacementEffects((current) =>
           current.filter((item) => item.id !== queuedPlacementEffect.id),
         );
@@ -208,10 +265,13 @@ export function BoardView({ style }: BoardViewProps) {
       if (current.some((entry) => entry.id === queuedPlacementEffect.id)) return current;
       return [...current, queuedPlacementEffect].slice(-GAME_FEEL_MOTION.placementQueueCap);
     });
-  }, [queuedPlacementEffect]);
+  }, [queuedPlacementEffect, retiredPlacementIds]);
 
   useEffect(() => {
     const activeIds = new Set(activePresentations.map((entry) => entry.id));
+    if (queuedPresentation && !retiredPresentationIds.has(queuedPresentation.id)) {
+      activeIds.add(queuedPresentation.id);
+    }
 
     presentationTimersRef.current.forEach((timer, id) => {
       if (activeIds.has(id)) return;
@@ -219,10 +279,13 @@ export function BoardView({ style }: BoardViewProps) {
       presentationTimersRef.current.delete(id);
       enqueuedPresentationIdsRef.current.delete(id);
     });
-  }, [activePresentations]);
+  }, [activePresentations, queuedPresentation, retiredPresentationIds]);
 
   useEffect(() => {
     const activeIds = new Set(activePlacementEffects.map((entry) => entry.id));
+    if (queuedPlacementEffect && !retiredPlacementIds.has(queuedPlacementEffect.id)) {
+      activeIds.add(queuedPlacementEffect.id);
+    }
 
     placementTimersRef.current.forEach((timer, id) => {
       if (activeIds.has(id)) return;
@@ -230,7 +293,7 @@ export function BoardView({ style }: BoardViewProps) {
       placementTimersRef.current.delete(id);
       enqueuedPlacementIdsRef.current.delete(id);
     });
-  }, [activePlacementEffects]);
+  }, [activePlacementEffects, queuedPlacementEffect, retiredPlacementIds]);
 
   useEffect(
     () => () => {
@@ -254,11 +317,8 @@ export function BoardView({ style }: BoardViewProps) {
   }, [ctx.boardOrigin]);
 
   useEffect(() => {
-    ctx.boardMeasureRef.current = measureBoard;
-    return () => {
-      if (ctx.boardMeasureRef.current === measureBoard) ctx.boardMeasureRef.current = null;
-    };
-  }, [ctx.boardMeasureRef, measureBoard]);
+    onMeasureBoardReady?.(measureBoard);
+  }, [measureBoard, onMeasureBoardReady]);
 
   const onLayout = useCallback(
     (_e: LayoutChangeEvent) => {
@@ -271,6 +331,27 @@ export function BoardView({ style }: BoardViewProps) {
   const { boardSize, cell, gap } = geom;
   const cellColors = ctx.cellColors;
   const { boardBg, cellEmpty } = ctx;
+  const placedOrder = new Map(
+    (lastEvent?.clearedCells.length === 0 ? lastEvent.placed : []).map(
+      ([row, col], order) => [row * 8 + col, order],
+    ),
+  );
+  useEffect(() => {
+    if (renderedClearPresentations.length === 0 || budgetedPlacementEffects.length === 0) return;
+    const conflictId = [
+      ...renderedClearPresentations.map((entry) => entry.id),
+      ...budgetedPlacementEffects.map((entry) => entry.id),
+    ].join(':');
+    useAnalyticsStore.getState().trackOnce(
+      `effect-conflict:${conflictId}`,
+      'effect_conflict',
+      {
+        mode: analyticsMode,
+        clear_presentations: renderedClearPresentations.length,
+        placement_presentations: budgetedPlacementEffects.length,
+      },
+    );
+  }, [analyticsMode, budgetedPlacementEffects, renderedClearPresentations]);
 
   return (
     <Animated.View
@@ -312,6 +393,7 @@ export function BoardView({ style }: BoardViewProps) {
               fillColor={fillColor}
               emptyColor={cellEmpty}
               reducedMotion={reducedMotion}
+              placementDelayMs={(placedOrder.get(index) ?? 0) * 18}
             />
           );
         })}
@@ -328,9 +410,17 @@ export function BoardView({ style }: BoardViewProps) {
           (частицы разлетаются за её края). Монтируются один раз и
           переиспользуют вью, поэтому не дают «рывка» от массового mount на
           каждой очистке. */}
-      <ClearDebrisLayer presentations={activePresentations} />
-      <ClearBurstLayer presentations={burstPresentations} />
-      <ClearSparkLayer presentations={burstPresentations} />
+      <ClearDebrisLayer presentations={renderedClearPresentations} />
+      <ClearBurstLayer presentations={renderedClearPresentations} />
+      <ClearSparkLayer presentations={renderedClearPresentations} />
+      <ClearChoreographyLayer presentations={renderedClearPresentations} />
+      <ComboAuraFrame
+        combo={combo}
+        eventId={queuedPresentation?.id ?? null}
+        boardSize={boardSize}
+        color={cellColors[0] ?? '#55DFFF'}
+        reducedMotion={reducedMotion}
+      />
     </Animated.View>
   );
 }

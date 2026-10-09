@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from 'react';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -92,7 +92,7 @@ const PlacementParticle = forwardRef<ParticleHandle>(function PlacementParticle(
     top: y.value,
     width: size.value,
     height: size.value,
-    borderRadius: Math.max(1, size.value / 2),
+    borderRadius: Math.max(1, size.value * 0.16),
     backgroundColor: color.value,
     opacity: opacity.value,
     transform: [
@@ -118,7 +118,7 @@ export function PlacementParticleLayer({
   const flashOpacity = useSharedValue(0);
   const slots = useRef<(ParticleHandle | null)[]>([]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const size = Math.max(18, presentation.scoreScale * 28);
     flashX.value = presentation.anchor.x - size / 2;
     flashY.value = presentation.anchor.y - size / 2;
@@ -150,10 +150,10 @@ export function PlacementParticleLayer({
     top: flashY.value,
     width: flashSize.value,
     height: flashSize.value,
-    borderRadius: 999,
+    borderRadius: Math.max(4, flashSize.value * 0.18),
     backgroundColor: flashColor.value,
     opacity: flashOpacity.value,
-    transform: [{ scale: flashScale.value }],
+    transform: [{ rotate: '45deg' }, { scale: flashScale.value }],
   }));
 
   return (

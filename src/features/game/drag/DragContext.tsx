@@ -1,5 +1,4 @@
 import { createContext, useContext } from 'react';
-import type { MutableRefObject } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 
 export interface BoardGeometry {
@@ -22,13 +21,22 @@ export interface DragCtx {
   /** Позиция доски в координатах окна (measureInWindow) */
   boardOrigin: SharedValue<{ x: number; y: number }>;
   /** Актуализирует позицию доски перед началом drag */
-  boardMeasureRef: MutableRefObject<(() => void) | null>;
+  measureBoard: () => void;
   /** Зеркало доски для worklet-проверок */
   boardMirror: SharedValue<number[]>;
   /** Битовая маска превью: 1 — фигура, 2 — собираемая линия */
   preview: SharedValue<number[]>;
   /** colorId перетаскиваемой фигуры (0 — нет drag) */
   previewColor: SharedValue<number>;
+  /** Optional persistent guidance layer; drag cleanup must never clear it. */
+  assistPreview?: SharedValue<number[]>;
+  assistPreviewColor?: SharedValue<number>;
+  /** Invalid footprint: 1 — affected empty cell, 2 — occupied conflict. */
+  invalidPreview: SharedValue<number[]>;
+  /** 0 — none, 1 — occupied, 2 — outside board. */
+  invalidReason: SharedValue<number>;
+  /** 0→1→0 pulse started synchronously on valid release before the JS commit. */
+  clearPrelude: SharedValue<number>;
   /** 1 пока активен drag-жест, иначе 0 — перф-сигнал для паузы маскота (спека 07/09) */
   dragActive: SharedValue<number>;
   /**
@@ -51,14 +59,16 @@ export interface DragCtx {
    * напр. позиция занята: тогда трей-слот надо вернуть видимым).
    */
   onDrop: (trayIndex: number, r: number, c: number) => boolean;
-  /** Фидбек захвата фигуры (звук+хаптика) — один runOnJS на начало жеста */
+  /** Sound/haptics at touch-down, even before the pan activates. */
+  onTouch?: () => void;
+  /** Activated drag analytics/tutorial callback. */
   onGrab?: () => void;
-  /**
-   * Фидбек невалидного дропа (хаптика Reject): фигуру отпустили над доской на
-   * занятой/не влезающей позиции. Отпускание вне доски — осознанный возврат в
-   * трей, фидбек не даём.
-   */
-  onInvalidDrop?: () => void;
+  /** A tap or a displaced multitouch gesture returned to the tray. */
+  onReturn?: () => void;
+  /** Completed drag returned to the tray instead of placing a piece. */
+  onInvalidDrop?: (reason: 'occupied' | 'outside-board') => void;
+  onUnavailablePiecePress?: (shapeId: string) => void;
+  unavailablePieceLabel?: string;
 }
 
 const Ctx = createContext<DragCtx | null>(null);

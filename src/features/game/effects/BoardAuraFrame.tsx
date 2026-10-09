@@ -50,14 +50,13 @@ export function BoardAuraFrame({ accent, edge }: BoardAuraFrameProps) {
 
   const auraOpacity = useSharedValue(0);
   useEffect(() => {
-    const target = Math.max(
-      ATMOSPHERE.frameOpacityPerPhase[phase] ?? 0,
-      recordIntensity * 0.56,
-    );
+    // Score phases keep their background atmosphere, but a persistent board
+    // outline is reserved for records and the dedicated high-combo frame.
+    const target = recordIntensity * 0.56;
     auraOpacity.value = withTiming(target, {
       duration: reducedMotion ? 250 : ATMOSPHERE.frameFadeMs,
     });
-  }, [auraOpacity, phase, recordIntensity, reducedMotion]);
+  }, [auraOpacity, recordIntensity, reducedMotion]);
 
   const breath = useSharedValue(0);
   const breathing =
@@ -185,6 +184,7 @@ export function BoardAuraFrame({ accent, edge }: BoardAuraFrameProps) {
           entering={sweepAnimation}
           pointerEvents="none"
           style={{
+            opacity: 0,
             position: 'absolute',
             left: -7,
             top: -7,

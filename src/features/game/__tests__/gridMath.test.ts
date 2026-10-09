@@ -1,6 +1,8 @@
 import {
   dragTopLefts,
+  dropValidity,
   fitsOnBoard,
+  invalidDropMask,
   insideBoard,
   previewMask,
   topLeftToCell,
@@ -20,6 +22,31 @@ describe('insideBoard', () => {
     expect(insideBoard(0, -1, 1, 1)).toBe(false);
     expect(insideBoard(7, 7, 2, 1)).toBe(false);
     expect(insideBoard(6, 4, 3, 5)).toBe(false);
+  });
+});
+
+describe('dropValidity', () => {
+  const square = [[0, 0], [0, 1], [1, 0], [1, 1]] as const;
+
+  it('distinguishes valid, occupied, and each outside-board edge', () => {
+    const board = new Array(64).fill(0);
+    expect(dropValidity(board, square, 2, 2, 2, 2)).toBe('valid');
+    board[2 * 8 + 2] = 1;
+    expect(dropValidity(board, square, 2, 2, 2, 2)).toBe('occupied');
+    expect(dropValidity(board, square, -1, 2, 2, 2)).toBe('outside-board');
+    expect(dropValidity(board, square, 2, -1, 2, 2)).toBe('outside-board');
+    expect(dropValidity(board, square, 7, 2, 2, 2)).toBe('outside-board');
+    expect(dropValidity(board, square, 2, 7, 2, 2)).toBe('outside-board');
+  });
+
+  it('marks the footprint and occupied cells without relying on color alone', () => {
+    const board = new Array(64).fill(0);
+    board[3 * 8 + 4] = 1;
+    const mask = invalidDropMask(board, square, 3, 3);
+    expect(mask[3 * 8 + 3]).toBe(1);
+    expect(mask[3 * 8 + 4]).toBe(2);
+    expect(mask[4 * 8 + 3]).toBe(1);
+    expect(mask[4 * 8 + 4]).toBe(1);
   });
 });
 

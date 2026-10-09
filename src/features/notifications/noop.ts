@@ -5,6 +5,9 @@ export const NoopPushProvider: PushProvider = {
   async requestPermission() {
     return 'unavailable';
   },
+  async getInitialNotificationTap() {
+    return null;
+  },
   onNotificationTap() {
     return () => {};
   },

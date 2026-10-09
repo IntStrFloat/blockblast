@@ -1,0 +1,28 @@
+- generic [ref=f2e457]:
+  - generic [ref=f2e458]:
+    - button "Настройки" [ref=f2e459] [cursor=pointer]
+    - 'generic "Рекорд: 0. Стрик: 1." [ref=f2e463]':
+      - generic [ref=f2e464]: "0"
+      - generic [ref=f2e469]: "1"
+    - button "Профиль" [ref=f2e474] [cursor=pointer]
+  - heading "Блок Бластик!" [level=1] [ref=f2e478]:
+    - generic [ref=f2e483]:
+      - generic [ref=f2e484]: Б
+      - generic [ref=f2e485]: Л
+      - generic [ref=f2e486]: О
+      - generic [ref=f2e487]: К
+    - generic [ref=f2e488]: БЛАСТИК!
+    - generic [ref=f2e489]: ПРИКЛЮЧЕНИЯ · РЕКОРДЫ
+  - generic [ref=f2e490]:
+    - button "Приключение" [ref=f2e491] [cursor=pointer]:
+      - generic [ref=f2e492]: Обновляем время
+    - button "Продолжить" [ref=f2e501] [cursor=pointer]
+  - generic [ref=f2e507]:
+    - button "Уровни. Мир 1 · ур. 1" [ref=f2e508] [cursor=pointer]:
+      - generic [ref=f2e513]:
+        - generic [ref=f2e514]: Уровни
+        - generic [ref=f2e515]: Мир 1 · ур. 1
+    - 'button "Недельный рейтинг. Рекорд недели: 0" [ref=f2e517] [cursor=pointer]':
+      - generic [ref=f2e521]:
+        - generic [ref=f2e522]: Недельный рейтинг
+        - generic [ref=f2e523]: "Рекорд недели: 0"

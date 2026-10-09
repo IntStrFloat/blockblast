@@ -5,20 +5,43 @@ import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 're
 import Svg, { Circle, Path } from 'react-native-svg';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { t } from '@/core/i18n';
+import { t, type Lang } from '@/core/i18n';
 import { progressionText } from '@/core/i18n/progression';
-import { useAnalyticsStore } from '@/features/analytics';
-import { SeasonCountdownBadge } from '@/features/adventure';
-import { getSavedGameSummary } from '@/features/game';
-import type { SavedGameSummary } from '@/features/game';
-import { useLeaderboardStore } from '@/features/leaderboard';
+import { KEYS, getString, setString } from '@/core/storage';
+import {
+  SeasonCountdownBadge,
+  useAdventure,
+  useSeasonWindowRefresh,
+} from '@/features/adventure';
+import { adventureSeasonRemainingMs } from '@/features/adventure/logic/seasonWindow';
+import { NextActionCard, selectNextAction } from '@/features/home';
+import { recordNextGoalClick, useAnalyticsStore } from '@/features/analytics';
+import { getSavedAdventureSummary, getSavedGameSummary } from '@/features/game';
+import type { SavedAdventureSummary, SavedGameSummary } from '@/features/game';
+import {
+  currentWeeklyGoal,
+  getUtcWeekWindow,
+  getWeeklyGoal,
+  selectEffectiveWeeklyBest,
+  selectPreviousWeeklyBest,
+  useLeaderboardStore,
+  useWeeklyGoalStore,
+  useWeeklyGoalWeekKey,
+} from '@/features/leaderboard';
+import { useMascot } from '@/features/mascot';
 import { HomePromptHost } from '@/features/notifications';
-import { WelcomeNotificationOverlay, shouldEnterFtue, useFtueStore, useWelcomePromptStore } from '@/features/onboarding';
+import { shouldEnterFtue, useFtueStore, useWelcomePromptStore } from '@/features/onboarding';
 import { ProfileOverlay, useProfileStore } from '@/features/profile';
-import { useProgression } from '@/features/progression';
+import {
+  nextRewardInCurrentWorld,
+  nextRewardMilestone,
+  rewardDisplayName,
+  useProgression,
+} from '@/features/progression';
+import { RewardVisual } from '@/features/progression/components/RewardVisual';
 import { useScores } from '@/features/scores';
 import { useLang } from '@/features/settings';
-import { isStreakAlive, todayISO, useStreak } from '@/features/streak';
+import { getHomeStreakStatus, type HomeStreakStatusKind, todayISO, useStreak } from '@/features/streak';
 import { useActiveWorldTheme } from '@/features/themes';
 import {
   AppText,
@@ -79,9 +102,10 @@ function ReferenceLogo() {
           <AppText
             key={letter}
             preset="speech"
+            maxFontSizeMultiplier={1}
             style={{
               color,
-              fontFamily: 'Fredoka_700Bold',
+              fontFamily: 'Unbounded_700Bold',
               fontSize: mainSize,
               lineHeight: mainSize,
               letterSpacing: -4,
@@ -97,9 +121,10 @@ function ReferenceLogo() {
       </View>
       <AppText
         preset="speech"
+        maxFontSizeMultiplier={1}
         style={{
           color: '#35DDF6',
-          fontFamily: 'Fredoka_700Bold',
+          fontFamily: 'Unbounded_700Bold',
           fontSize: secondSize,
           lineHeight: secondSize,
           fontStyle: 'italic',
@@ -111,7 +136,7 @@ function ReferenceLogo() {
       >
         БЛАСТИК!
       </AppText>
-      <AppText preset="caption" style={styles.logoTagline} numberOfLines={1}>
+      <AppText preset="caption" maxFontSizeMultiplier={1} style={styles.logoTagline} numberOfLines={1}>
         ПРИКЛЮЧЕНИЯ · РЕКОРДЫ
       </AppText>
     </View>
@@ -204,7 +229,13 @@ function ReferenceMenuButton({
         style={styles.menuButtonSurface}
       >
         <View style={styles.menuButtonSymbol}>{symbol}</View>
-        <AppText preset="speech" style={styles.menuButtonLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78}>
+        <AppText
+          preset="button"
+          style={styles.menuButtonLabel}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.82}
+        >
           {label}
         </AppText>
       </LinearGradient>
@@ -231,14 +262,64 @@ function QuickLink({
       style={({ pressed }) => [styles.quickLink, pressed && styles.quickLinkPressed]}
     >
       {icon}
-      <View style={{ gap: 1 }}>
-        <AppText preset="speech" style={styles.quickLinkLabel} numberOfLines={1}>
+      <View style={styles.quickLinkCopy}>
+        <AppText
+          preset="speech"
+          style={styles.quickLinkLabel}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.86}
+        >
           {label}
         </AppText>
         <AppText preset="caption" style={styles.quickLinkDetail} numberOfLines={1}>
           {detail}
         </AppText>
       </View>
+    </Pressable>
+  );
+}
+
+function StreakStatusCard({
+  kind,
+  count,
+  lang,
+  onPress,
+}: {
+  kind: HomeStreakStatusKind;
+  count: number;
+  lang: Lang;
+  onPress: () => void;
+}) {
+  if (kind !== 'at_risk_today' && kind !== 'protector_recoverable') {
+    return null;
+  }
+
+  const title = kind === 'protector_recoverable' ? t('home.streakRecover', lang) : t('home.streakKeep', lang);
+  const detail = `${count} ${t('home.streakDays', lang)}`;
+  const action = t('home.streakAction', lang);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title} ${detail}. ${action}.`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.streakCard, pressed && styles.streakCardPressed]}
+    >
+      <View style={styles.streakBadge}>
+        <FireIcon size={17} color="#FF8B27" innerColor="#FFE061" />
+      </View>
+      <View style={styles.streakCopy}>
+        <AppText preset="speech" style={styles.streakTitle} numberOfLines={2}>
+          {title}
+        </AppText>
+        <AppText preset="caption" style={styles.streakDetail} numberOfLines={1}>
+          {detail}
+        </AppText>
+      </View>
+      <AppText preset="caption" style={styles.streakAction}>
+        {action}
+      </AppText>
     </Pressable>
   );
 }
@@ -252,44 +333,214 @@ export default function HomeScreen() {
   const gamesPlayed = useScores((s) => s.gamesPlayed);
   const ftueStatus = useFtueStore((s) => s.status);
   const welcomePromptResolved = useWelcomePromptStore((s) => s.resolved);
+  const resolveWelcomePrompt = useWelcomePromptStore((s) => s.resolve);
   const ftueComplete = ftueStatus === 'complete' || ftueStatus === 'skipped';
   const analyticsFirstSession = useAnalyticsStore(
     (s) => s.context?.is_first_session ?? gamesPlayed === 0,
   );
   const streakLastDay = useStreak((s) => s.lastDay);
   const streakCount = useStreak((s) => s.count);
+  const streakProtectorLastUsedDay = useStreak((s) => s.protectorLastUsedDay);
   const world = useProgression((s) => s.world);
   const level = useProgression((s) => s.level);
+  const lifetimePoints = useProgression((s) => s.lifetimePoints);
+  const mascotUnlocked = useMascot((s) => s.unlocked);
+  const mascotEquipped = useMascot((s) => s.equipped);
   const worldAccent = useActiveWorldTheme().cellColors[0];
   const localWeekly = useLeaderboardStore((s) => s.localWeeklyResult);
   const weeklySnapshot = useLeaderboardStore((s) => s.snapshot);
-  const [savedGame, setSavedGame] = useState<SavedGameSummary>({
-    kind: 'none',
-    score: null,
-    canContinue: false,
-  });
+  const weeklyGoals = useWeeklyGoalStore((s) => s.goals);
+  const adventureSeasonWindow = useAdventure((s) => s.seasonWindow);
+  const adventureSeasonWindowSyncedAtMs = useAdventure((s) => s.seasonWindowSyncedAtMs);
+  const adventureSeasonRemaining = adventureSeasonRemainingMs(
+    adventureSeasonWindow,
+    adventureSeasonWindowSyncedAtMs,
+  );
+  const reactiveWeekKey = useWeeklyGoalWeekKey();
+  useSeasonWindowRefresh();
+  const [savedGame, setSavedGame] = useState<SavedGameSummary>(() => getSavedGameSummary());
+  const [savedAdventure, setSavedAdventure] = useState<SavedAdventureSummary>(
+    () => getSavedAdventureSummary(),
+  );
   const [profileOpen, setProfileOpen] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<'classic' | 'adventure'>(() =>
+    getString(KEYS.homeSelectedMode) === 'adventure' ? 'adventure' : 'classic',
+  );
   const autoFtueStarted = useRef(false);
-  const streakVisible = isStreakAlive({ lastDay: streakLastDay, count: streakCount }, todayISO())
-    ? streakCount
-    : 0;
-  const weeklyBest = Math.max(localWeekly?.bestScore ?? 0, weeklySnapshot?.currentPlayer.weeklyBest ?? 0);
-  const weeklyRank = weeklySnapshot?.currentPlayer.rank ?? null;
+  const streakStatus = getHomeStreakStatus(
+    {
+      lastDay: streakLastDay,
+      count: streakCount,
+      protectorLastUsedDay: streakProtectorLastUsedDay,
+    },
+    todayISO(),
+  );
+  const streakVisible = streakStatus.visibleCount;
+  const now = new Date();
+  const weeklyBest = selectEffectiveWeeklyBest(weeklySnapshot, localWeekly, now);
+  const previousWeeklyBest = selectPreviousWeeklyBest(weeklySnapshot, localWeekly, now);
+  const currentWeekKey = getUtcWeekWindow(now).weekKey;
+  const weeklyRank = weeklySnapshot?.weekKey === currentWeekKey
+    ? weeklySnapshot.currentPlayer.rank
+    : null;
+  const weeklyRecord = currentWeeklyGoal(
+    weeklyGoals,
+    now,
+    weeklyBest,
+    previousWeeklyBest,
+  );
+  const weeklyGoal = getWeeklyGoal(
+    Math.max(weeklyBest, weeklyRecord.progress),
+    weeklyRecord.target,
+  );
+  const rewardMilestone = nextRewardInCurrentWorld(lifetimePoints);
+  const fallbackReward = nextRewardMilestone(lifetimePoints);
+  const activeClassic = savedGame.kind === 'active' || savedGame.kind === 'terminal_revivable';
+  const activeAdventure = savedAdventure.kind === 'active';
+  const selectedResumeMode =
+    selectedMode === 'adventure' && activeAdventure
+      ? 'adventure'
+      : selectedMode === 'classic' && activeClassic
+        ? 'classic'
+        : activeAdventure
+          ? 'adventure'
+          : activeClassic
+            ? 'classic'
+            : null;
+  const resumeGoal =
+    selectedResumeMode === 'adventure' && savedAdventure.runId
+      ? {
+          available: true,
+          mode: 'adventure' as const,
+          goalId: `resume:${savedAdventure.runId}`,
+          current: savedAdventure.objectiveCurrent ?? savedAdventure.score ?? 0,
+          target: Math.max(
+            savedAdventure.objectiveCurrent ?? 0,
+            savedAdventure.objectiveTarget ?? savedAdventure.objectiveCurrent ?? 0,
+          ),
+          complete: false,
+          level: (savedAdventure.levelIndex ?? 0) + 1,
+          score: savedAdventure.score ?? 0,
+          savedState: 'active' as const,
+        }
+      : selectedResumeMode === 'classic' && savedGame.runId
+        ? {
+            available: true,
+            mode: 'classic' as const,
+            goalId: `resume:${savedGame.runId}`,
+            current: savedGame.score ?? 0,
+            target: Math.max(
+              savedGame.score ?? 0,
+              Math.max(0, (fallbackReward?.threshold ?? lifetimePoints) - lifetimePoints),
+            ),
+            complete: false,
+            score: savedGame.score ?? 0,
+            savedState:
+              savedGame.kind === 'terminal_revivable' ? ('second_chance' as const) : ('active' as const),
+          }
+        : null;
+  const rewardGoal = rewardMilestone
+    ? {
+        available: true,
+        goalId: `reward:${rewardMilestone.level}:${
+          rewardMilestone.reward.kind === 'world'
+            ? rewardMilestone.reward.themeId
+            : rewardMilestone.reward.id
+        }`,
+        current: rewardMilestone.available ? 1 : lifetimePoints,
+        target: rewardMilestone.available ? 1 : rewardMilestone.threshold,
+        complete:
+          rewardMilestone.available && rewardMilestone.reward.kind !== 'cosmetic'
+            ? true
+            : rewardMilestone.reward.kind === 'cosmetic' &&
+              Object.values(mascotEquipped).includes(rewardMilestone.reward.id),
+        rewardId:
+          rewardMilestone.reward.kind === 'world'
+            ? rewardMilestone.reward.themeId
+            : rewardMilestone.reward.id,
+        rewardKind: rewardMilestone.reward.kind,
+        level: rewardMilestone.level,
+        availableNow:
+          rewardMilestone.available ||
+          (rewardMilestone.reward.kind === 'cosmetic' && mascotUnlocked.includes(rewardMilestone.reward.id)),
+      }
+    : null;
+  const nextAction = selectNextAction({
+    gamesPlayed,
+    resume: resumeGoal,
+    reward: rewardGoal,
+    weekly: {
+      available: true,
+      goalId: weeklyRecord.goalId,
+      weekKey: weeklyRecord.weekKey,
+      current: weeklyGoal.current,
+      target: weeklyGoal.target,
+      complete: weeklyGoal.complete,
+    },
+  });
+  useEffect(() => {
+    useWeeklyGoalStore.getState().sync(
+      new Date(),
+      weeklyBest,
+      weeklySnapshot?.isCached ? 'cached' : 'home_card',
+      previousWeeklyBest,
+    );
+  }, [previousWeeklyBest, reactiveWeekKey, weeklyBest, weeklySnapshot?.isCached]);
+
+  useEffect(() => {
+    const sessionId = useAnalyticsStore.getState().context?.session_id ?? 'bootstrap';
+    useAnalyticsStore.getState().trackOnce(
+      `next-goal:${sessionId}:${nextAction.goalId}`,
+      'next_goal_presented',
+      {
+        ...(nextAction.mode ? { mode: nextAction.mode } : {}),
+        goal_type: nextAction.kind,
+        goal_id: nextAction.goalId,
+      },
+    );
+    if (nextAction.kind === 'weekly') {
+      useWeeklyGoalStore.getState().expose(
+        weeklyRecord,
+        weeklySnapshot?.isCached ? 'cached' : 'home_card',
+      );
+    }
+  }, [nextAction.goalId, nextAction.kind, nextAction.mode, weeklyRecord, weeklySnapshot?.isCached]);
+
+  useEffect(() => {
+    if (gamesPlayed > 0 && !welcomePromptResolved) {
+      resolveWelcomePrompt();
+    }
+  }, [gamesPlayed, resolveWelcomePrompt, welcomePromptResolved]);
 
   useEffect(() => {
     if (autoFtueStarted.current) return;
-    if (!welcomePromptResolved) return;
     if (!shouldEnterFtue(useFtueStore.getState(), gamesPlayed)) return;
     autoFtueStarted.current = true;
+    resolveWelcomePrompt();
     const startTs = Date.now();
-    useAnalyticsStore.getState().track('play_tapped', { source: 'home', has_saved_game: false });
-    router.replace({ pathname: '/game', params: { entry: 'tutorial', startTs: String(startTs) } });
-  }, [welcomePromptResolved, gamesPlayed, router]);
+    const tutorialSave = getSavedGameSummary();
+    if (tutorialSave.fallbackReason) {
+      return;
+    }
+    const resumeTutorial =
+      tutorialSave.runKind === 'tutorial' &&
+      (tutorialSave.kind === 'active' || tutorialSave.kind === 'terminal_revivable');
+    useAnalyticsStore.getState().track('play_tapped', {
+      source: 'home',
+      has_saved_game: resumeTutorial,
+    });
+    router.replace({
+      pathname: '/game',
+      params: { entry: resumeTutorial ? 'resume' : 'tutorial', startTs: String(startTs) },
+    });
+  }, [gamesPlayed, resolveWelcomePrompt, router]);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      setSavedGame(getSavedGameSummary());
+      const savedSummary = getSavedGameSummary();
+      setSavedGame(savedSummary);
+      setSavedAdventure(getSavedAdventureSummary());
 
       void (async () => {
         const session = await useProfileStore.getState().bootstrapRemote();
@@ -299,14 +550,14 @@ export default function HomeScreen() {
       })();
 
       useAnalyticsStore.getState().track('home_viewed', {
-        home_state: savedGame.kind === 'active' ? 'continue' : gamesPlayed === 0 ? 'first_clear' : 'return_loop',
-        cards_visible: ['adventure', 'classic', 'quick_links'],
+        home_state: savedSummary.kind !== 'none' ? 'continue' : gamesPlayed === 0 ? 'first_clear' : 'return_loop',
+        cards_visible: ['adventure', 'classic', 'next_action', 'quick_links'],
       });
 
       return () => {
         active = false;
       };
-    }, [gamesPlayed, savedGame.kind]),
+    }, [gamesPlayed]),
   );
 
   const startNew = useCallback(() => {
@@ -320,14 +571,140 @@ export default function HomeScreen() {
   }, [router]);
 
   const play = useCallback(() => {
-    if (savedGame.kind === 'active') {
+    if (savedGame.kind === 'active' || savedGame.kind === 'terminal_revivable') {
       const startTs = Date.now();
       useAnalyticsStore.getState().track('play_tapped', { source: 'home', has_saved_game: true });
       router.push({ pathname: '/game', params: { entry: 'resume', startTs: String(startTs) } });
       return;
     }
+    if (shouldEnterFtue(useFtueStore.getState(), useScores.getState().gamesPlayed)) {
+      const startTs = Date.now();
+      useAnalyticsStore.getState().track('play_tapped', {
+        source: 'home',
+        has_saved_game: false,
+      });
+      router.push({
+        pathname: '/game',
+        params: { entry: 'tutorial', startTs: String(startTs) },
+      });
+      return;
+    }
     startNew();
   }, [router, savedGame.kind, startNew]);
+
+  const classicLabel = nextAction.kind === 'resume' && nextAction.mode === 'classic'
+    ? t('home.classic', lang)
+    :
+    savedGame.kind === 'active'
+      ? `${t('home.continue', lang)} · ${savedGame.score ?? 0}`
+      : savedGame.kind === 'terminal_revivable'
+        ? lang === 'ru'
+          ? `Результат ${savedGame.score ?? 0} · Второй шанс`
+          : `Result ${savedGame.score ?? 0} · Second chance`
+        : savedGame.kind === 'terminal_final'
+          ? lang === 'ru' ? 'Новая игра' : 'New game'
+          : t('home.classic', lang);
+
+  const adventureLabel = nextAction.kind === 'resume' && nextAction.mode === 'adventure'
+    ? t('adventure.title', lang)
+    :
+    savedAdventure.kind === 'active'
+      ? `${t('home.continue', lang)} · ${lang === 'ru' ? 'Ур.' : 'Lv.'} ${(savedAdventure.levelIndex ?? 0) + 1}`
+      : savedAdventure.kind === 'terminal'
+        ? `${lang === 'ru' ? 'Результат' : 'Result'} · ${lang === 'ru' ? 'Ур.' : 'Lv.'} ${(savedAdventure.levelIndex ?? 0) + 1}`
+        : t('adventure.title', lang);
+
+  const nextActionCard =
+    nextAction.kind === 'resume'
+      ? {
+            kind: nextAction.kind,
+            title: nextAction.savedState === 'second_chance'
+              ? lang === 'ru' ? 'Второй шанс' : 'Second chance'
+              : nextAction.mode === 'adventure'
+                ? `${lang === 'ru' ? 'Продолжить · ур.' : 'Continue · lv.'} ${nextAction.level}`
+                : lang === 'ru' ? 'Продолжить' : 'Continue',
+            icon: nextAction.mode === 'adventure'
+              ? <AdventureSymbol color="#FFE46B" />
+              : fallbackReward
+                ? <RewardVisual reward={fallbackReward.reward} size={40} />
+                : <InfinitySymbol color="#A9E16E" />,
+            current: nextAction.mode === 'classic' ? lifetimePoints : nextAction.current,
+            target: nextAction.mode === 'classic' ? fallbackReward?.threshold ?? 0 : nextAction.target,
+            valueLabel: nextAction.mode === 'classic'
+              ? fallbackReward
+                ? `${lifetimePoints}/${fallbackReward.threshold}`
+                : `${nextAction.score ?? nextAction.current}`
+              : `${nextAction.current}/${nextAction.target}`,
+            complete: nextAction.mode === 'classic' && Boolean(fallbackReward?.available),
+            detail:
+              nextAction.mode === 'adventure'
+                ? lang === 'ru'
+                  ? `Приключение · ур. ${nextAction.level} · ${nextAction.current}/${nextAction.target} · осталось ${nextAction.remaining}`
+                  : `Adventure · lv. ${nextAction.level} · ${nextAction.current}/${nextAction.target} · ${nextAction.remaining} left`
+                : lang === 'ru'
+                  ? `Классика · счёт ${nextAction.score ?? nextAction.current} · ${nextAction.savedState === 'second_chance' ? 'сохранён второй шанс' : `до награды ${fallbackReward?.remaining ?? 0} XP`}`
+                  : `Classic · score ${nextAction.score ?? nextAction.current} · ${nextAction.savedState === 'second_chance' ? 'second chance saved' : `${fallbackReward?.remaining ?? 0} XP to reward`}`,
+            accessibilityLabel: `${lang === 'ru' ? 'Продолжить сохранённую игру' : 'Continue saved game'}${nextAction.mode === 'classic' && fallbackReward ? `. ${rewardDisplayName(fallbackReward.reward, lang)}. ${lifetimePoints}/${fallbackReward.threshold} XP` : ''}`,
+            onPress: () => {
+              recordNextGoalClick(nextAction.kind, nextAction.goalId);
+              if (nextAction.mode === 'adventure') {
+                setSelectedMode('adventure');
+                setString(KEYS.homeSelectedMode, 'adventure');
+                router.push('/adventure-level' as Href);
+              } else {
+                setSelectedMode('classic');
+                setString(KEYS.homeSelectedMode, 'classic');
+                play();
+              }
+            },
+          }
+      : nextAction.kind === 'reward' && rewardMilestone
+        ? {
+            kind: nextAction.kind,
+            title: rewardDisplayName(rewardMilestone.reward, lang),
+            icon: <RewardVisual reward={rewardMilestone.reward} size={40} />,
+            current: nextAction.current,
+            target: nextAction.target,
+            valueLabel: `${nextAction.current}/${nextAction.target}`,
+            complete: nextAction.availableNow,
+            detail:
+              nextAction.availableNow
+                ? lang === 'ru' ? 'Доступно сейчас · открыть и надеть' : 'Available now · open and equip'
+                : lang === 'ru'
+                  ? `Ур. ${nextAction.level} · осталось ${nextAction.remaining} XP`
+                  : `Lv. ${nextAction.level} · ${nextAction.remaining} XP left`,
+            accessibilityLabel: rewardDisplayName(rewardMilestone.reward, lang),
+            onPress: () => {
+              recordNextGoalClick(nextAction.kind, nextAction.goalId);
+              router.push('/map');
+            },
+          }
+        : {
+            kind: nextAction.kind,
+            title: weeklyGoal.complete
+              ? lang === 'ru' ? 'Следующая цель' : 'Next goal'
+              : lang === 'ru' ? 'Цель недели' : 'Weekly goal',
+            icon: <CrownIcon size={36} color="#FFE46B" />,
+            current: weeklyGoal.current,
+            target: weeklyGoal.target,
+            valueLabel: `${weeklyGoal.current}/${weeklyGoal.target}`,
+            complete: weeklyGoal.complete,
+            detail: weeklyGoal.complete
+              ? `${weeklyGoal.current}/${weeklyGoal.target} · ${lang === 'ru' ? 'выполнено' : 'complete'}`
+              : `${weeklyGoal.current}/${weeklyGoal.target} · ${lang === 'ru' ? 'осталось' : 'left'} ${weeklyGoal.remaining}`,
+            accessibilityLabel: t('leaderboard.title', lang),
+            onPress: () => {
+              recordNextGoalClick(nextAction.kind, nextAction.goalId);
+              if (weeklyGoal.complete) {
+                useWeeklyGoalStore.getState().advanceCompleted(new Date(), weeklyGoal.current);
+              }
+              useAnalyticsStore.getState().track('mode_selected', {
+                mode: 'classic',
+                source: 'home_next_action',
+              });
+              startNew();
+            },
+          };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -359,30 +736,59 @@ export default function HomeScreen() {
 
           <ReferenceLogo />
 
-          <View style={{ flex: 1 }} />
+          <View style={styles.goalAnchor}>
+            <NextActionCard
+              kind={nextActionCard.kind}
+              title={nextActionCard.title}
+              detail={nextActionCard.detail}
+              icon={nextActionCard.icon}
+              current={nextActionCard.current}
+              target={nextActionCard.target}
+              valueLabel={nextActionCard.valueLabel}
+              complete={nextActionCard.complete}
+              accessibilityLabel={nextActionCard.accessibilityLabel}
+              onPress={nextActionCard.onPress}
+            />
+          </View>
 
           <View style={styles.menuStack}>
+            {savedGame.fallbackReason || savedAdventure.fallbackReason ? (
+              <AppText preset="body" style={{ color: '#FFF4D6', textAlign: 'center' }}>
+                {lang === 'ru'
+                  ? 'Не удалось продолжить. Начни новую игру.'
+                  : 'Unable to continue. Start a new game.'}
+              </AppText>
+            ) : null}
+            <StreakStatusCard kind={streakStatus.kind} count={streakVisible} lang={lang} onPress={play} />
             <ReferenceMenuButton
-              label={t('adventure.title', lang)}
-              symbol={<AdventureSymbol />}
+              label={adventureLabel}
+              symbol={<AdventureSymbol color="#173C4D" />}
               gradient={['#FFB82B', '#EF8B0D']}
               baseColor="#A95A06"
-              accessibilityLabel={t('adventure.title', lang)}
+              accessibilityLabel={adventureLabel}
               testID="home-menu-adventure"
-              ribbon={<SeasonCountdownBadge compact short variant="ribbon" />}
+              ribbon={adventureSeasonRemaining !== null && adventureSeasonRemaining > 0
+                ? <SeasonCountdownBadge compact short variant="ribbon" autoRefresh={false} />
+                : undefined}
               onPress={() => {
+                setSelectedMode('adventure');
+                setString(KEYS.homeSelectedMode, 'adventure');
                 useAnalyticsStore.getState().track('mode_selected', { mode: 'adventure', source: 'home_reference_menu' });
-                router.push('/adventure' as Href);
+                router.push(
+                  (savedAdventure.kind === 'none' ? '/adventure' : '/adventure-level') as Href,
+                );
               }}
             />
             <ReferenceMenuButton
-              label={t('home.classic', lang)}
-              symbol={<InfinitySymbol />}
+              label={classicLabel}
+              symbol={<InfinitySymbol color="#173C4D" />}
               gradient={['#A9E16E', '#82C958']}
               baseColor="#397D2D"
-              accessibilityLabel={savedGame.kind === 'active' ? t('home.continue', lang) : t('home.classic', lang)}
+              accessibilityLabel={classicLabel}
               testID="home-menu-classic"
               onPress={() => {
+                setSelectedMode('classic');
+                setString(KEYS.homeSelectedMode, 'classic');
                 useAnalyticsStore.getState().track('mode_selected', { mode: 'classic', source: 'home_reference_menu' });
                 play();
               }}
@@ -407,18 +813,22 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <ProfileOverlay visible={profileOpen} onClose={() => setProfileOpen(false)} />
+      <ProfileOverlay
+        visible={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        onOpenCollection={() => {
+          setProfileOpen(false);
+          useAnalyticsStore.getState().track('collection_opened', { source: 'profile' });
+          router.push('/capy');
+        }}
+      />
 
-      {welcomePromptResolved && gamesPlayed >= 2 ? (
-        <HomePromptHost
-          ftueComplete={ftueComplete}
-          isFirstSession={analyticsFirstSession}
-          blockingOverlayVisible={profileOpen}
-          userDialogOpen={false}
-        />
-      ) : null}
-
-      <WelcomeNotificationOverlay />
+      <HomePromptHost
+        ftueComplete={ftueComplete}
+        isFirstSession={analyticsFirstSession}
+        blockingOverlayVisible={profileOpen}
+        userDialogOpen={false}
+      />
     </SafeAreaView>
   );
 }
@@ -444,15 +854,15 @@ const styles = StyleSheet.create({
   header: {
     width: '100%',
     maxWidth: 360,
-    minHeight: 44,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   headerControl: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.11)',
@@ -481,7 +891,7 @@ const styles = StyleSheet.create({
   },
   headerStatText: {
     color: '#FFFFFF',
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Unbounded_700Bold',
     fontSize: 17,
   },
   headerStatDivider: {
@@ -507,9 +917,57 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   menuStack: {
-    width: '78%',
-    maxWidth: MENU_WIDTH,
+    width: '100%',
+    maxWidth: 330,
     gap: 15,
+  },
+  streakCard: {
+    width: '100%',
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
+    paddingHorizontal: spacing.m,
+    paddingVertical: spacing.s,
+    borderRadius: 13,
+    backgroundColor: 'rgba(18,33,76,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  streakCardPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.985 }],
+  },
+  streakBadge: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  streakCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  streakTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  streakDetail: {
+    color: 'rgba(232,245,255,0.82)',
+  },
+  streakAction: {
+    color: '#A9E16E',
+  },
+  goalAnchor: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 330,
+    minHeight: 96,
+    justifyContent: 'flex-end',
+    paddingVertical: spacing.m,
   },
   menuButton: {
     width: '100%',
@@ -542,12 +1000,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   menuButtonLabel: {
-    flexShrink: 1,
-    color: '#FFFFFF',
-    fontFamily: 'Fredoka_700Bold',
-    fontSize: 31,
-    lineHeight: 36,
-    fontStyle: 'italic',
+    flex: 1,
+    color: '#173C4D',
+    fontFamily: 'Unbounded_700Bold',
+    fontSize: 22,
+    lineHeight: 28,
+    textAlign: 'center',
     textShadowColor: 'rgba(52,89,99,0.40)',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 1,
@@ -561,7 +1019,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
-    backgroundColor: '#DE3723',
+    backgroundColor: '#9E1F19',
     borderWidth: 1,
     borderColor: 'rgba(255,225,190,0.44)',
     shadowColor: '#7A170F',
@@ -582,7 +1040,7 @@ const styles = StyleSheet.create({
   },
   quickLink: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -591,18 +1049,24 @@ const styles = StyleSheet.create({
   quickLinkPressed: {
     opacity: 0.65,
   },
+  quickLinkCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
   quickLinkDivider: {
     width: 1,
     height: 28,
     backgroundColor: 'rgba(255,255,255,0.28)',
   },
   quickLinkLabel: {
-    color: '#FFFFFF',
-    fontFamily: 'Fredoka_700Bold',
-    fontSize: 14,
+    color: '#062842',
+    fontFamily: 'Unbounded_700Bold',
+    fontSize: 12,
+    lineHeight: 16,
   },
   quickLinkDetail: {
-    color: 'rgba(229,250,255,0.76)',
+    color: '#062842',
     fontSize: 10,
   },
 });

@@ -3,8 +3,9 @@ import { create } from 'zustand';
 import { KEYS, getJSON, getString, removeKey, setJSON } from '@/core/storage';
 import { useAnalyticsStore } from '@/features/analytics';
 // Store-to-store (индекс mascot тянет компоненты, которые импортируют game — цикл).
-import { getShowcaseAvatar } from '@/features/mascot/store';
+import { getShowcaseAvatar, useMascot } from '@/features/mascot/store';
 import { createGeneratedProfile } from '@/features/profile/nickname';
+import { useProgression } from '@/features/progression/store';
 
 import { createLeaderboardClient, type LeaderboardClient } from './client';
 import { detectOvertake, type OvertakeInfo } from './presentation';
@@ -20,9 +21,14 @@ import type {
   RunProof,
   WeeklyImpact,
   WeeklyLeaderboardSnapshot,
+  WeeklyServerOutcome,
 } from './types';
 import { getUtcWeekWindow } from './week';
-import { settleWeeklyPrize, type WeeklyPrizeRecord } from './weeklyPrize';
+import {
+  normalizeWeeklyPrizeRecord,
+  weeklyPrizeRecordFromOutcome,
+  type WeeklyPrizeRecord,
+} from './weeklyPrize';
 
 interface DailyResult {
   dateIso: string;
@@ -41,6 +47,10 @@ interface LeaderboardState {
   pendingSubmissions: PendingSubmission[];
   /** Призы за топ-3 закрытых недель (claim-модель). */
   weeklyPrizes: WeeklyPrizeRecord[];
+  weeklyOutcomes: WeeklyServerOutcome[];
+  prizeSyncState: 'idle' | 'loading' | 'ready' | 'offline' | 'error';
+  prizeLastError: string | null;
+  claimingRewardId: string | null;
   viewState: LeaderboardViewState;
   lastError: 'offline' | 'remote_error' | null;
   /** Транзиентный момент «тебя обогнали» (не персистится); гасится ackOvertaken. */
@@ -59,8 +69,12 @@ interface LeaderboardState {
   flushPending: (authToken?: string | null) => Promise<void>;
   refresh: (now?: Date) => Promise<WeeklyLeaderboardSnapshot>;
   refreshIfStale: (now?: Date, staleMs?: number) => Promise<WeeklyLeaderboardSnapshot>;
-  /** Пометить приз полученным; возвращает запись для выдачи наград вызывающим. */
-  claimWeeklyPrize: (weekKey: string) => WeeklyPrizeRecord | null;
+  syncWeeklyOutcomes: (authToken?: string | null) => Promise<WeeklyServerOutcome[]>;
+  reconcileWeeklyPrizeEffects: () => void;
+  claimWeeklyPrize: (
+    rewardId: string,
+    authToken?: string | null,
+  ) => Promise<WeeklyPrizeRecord | null>;
   resetForTests: (profile?: ProfileIdentity) => void;
 }
 
@@ -69,7 +83,7 @@ interface CreateLeaderboardStoreOptions {
   client?: LeaderboardClient;
 }
 
-function persistState(state: Pick<LeaderboardState, 'activeProof' | 'snapshot' | 'localWeeklyResult' | 'dailyResults' | 'tickets' | 'pendingSubmissions' | 'weeklyPrizes'>) {
+function persistState(state: Pick<LeaderboardState, 'activeProof' | 'snapshot' | 'localWeeklyResult' | 'dailyResults' | 'tickets' | 'pendingSubmissions' | 'weeklyPrizes' | 'weeklyOutcomes'>) {
   setJSON(KEYS.leaderboardActiveProof, state.activeProof);
   setJSON(KEYS.leaderboardSnapshot, state.snapshot);
   setJSON(KEYS.leaderboardRuns, state.localWeeklyResult);
@@ -77,20 +91,7 @@ function persistState(state: Pick<LeaderboardState, 'activeProof' | 'snapshot' |
   setJSON(KEYS.leaderboardTickets, state.tickets);
   setJSON(KEYS.leaderboardPending, state.pendingSubmissions);
   setJSON(KEYS.leaderboardPrizes, state.weeklyPrizes);
-}
-
-/**
- * Подвести призы прошлой недели перед перезаписью снапшота новой неделей.
- * Возвращает обновлённый список призов (с новой записью, если игрок попал в топ-3).
- */
-function settlePrizesFor(
-  previous: WeeklyLeaderboardSnapshot | null,
-  existing: readonly WeeklyPrizeRecord[],
-  now: Date,
-): WeeklyPrizeRecord[] {
-  const currentWeekKey = getUtcWeekWindow(now).weekKey;
-  const settled = settleWeeklyPrize(previous, currentWeekKey, existing, now);
-  return settled ? [...existing, settled] : [...existing];
+  setJSON(KEYS.leaderboardWeeklyOutcomes, state.weeklyOutcomes);
 }
 
 function resolveProfile(fallback?: ProfileIdentity): ProfileIdentity {
@@ -214,7 +215,11 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
   const initialDaily = getJSON<Record<string, DailyResult>>(KEYS.leaderboardDaily) ?? {};
   const initialTickets = getJSON<RankedTicket[]>(KEYS.leaderboardTickets) ?? [];
   const initialPending = getJSON<PendingSubmission[]>(KEYS.leaderboardPending) ?? [];
-  const initialPrizes = getJSON<WeeklyPrizeRecord[]>(KEYS.leaderboardPrizes) ?? [];
+  const initialPrizes = (getJSON<Partial<WeeklyPrizeRecord>[]>(KEYS.leaderboardPrizes) ?? [])
+    .map(normalizeWeeklyPrizeRecord)
+    .filter((record): record is WeeklyPrizeRecord => record !== null);
+  const initialOutcomes = getJSON<WeeklyServerOutcome[]>(KEYS.leaderboardWeeklyOutcomes) ?? [];
+  const claimPromises = new Map<string, Promise<WeeklyPrizeRecord | null>>();
 
   const store = create<LeaderboardState>((set, get) => ({
     snapshot: initialSnapshot,
@@ -226,6 +231,10 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
     consumedTicketIds: [],
     pendingSubmissions: initialPending,
     weeklyPrizes: initialPrizes,
+    weeklyOutcomes: initialOutcomes,
+    prizeSyncState: 'idle',
+    prizeLastError: null,
+    claimingRewardId: null,
     viewState: initialSnapshot ? (initialSnapshot.isCached ? 'cached' : initialSnapshot.entries.length > 0 ? 'ready' : 'empty') : 'idle',
     lastError: null,
     overtaken: null,
@@ -358,6 +367,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
         try {
           const response = await client.submitRun({
             authToken,
+            proofId: finishedProof.id,
             ticketId: finishedProof.ticketId,
             score: finishedProof.frozenScore,
             seed: finishedProof.seed,
@@ -425,6 +435,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
         try {
           const response = await client.submitRun({
             authToken,
+            proofId: submission.proofId,
             ticketId: submission.ticketId,
             score: submission.score,
             seed: submission.seed,
@@ -457,17 +468,10 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       const profile = resolveProfile(options.profile);
       const authToken = getString(KEYS.profileAuth);
 
-      // Подвести призы прошлой недели по последнему известному снапшоту, пока он
-      // ещё отражает закрытую неделю (до перезаписи свежими данными).
-      const settledPrizes = settlePrizesFor(get().snapshot, get().weeklyPrizes, now);
-      if (settledPrizes.length !== get().weeklyPrizes.length) {
-        set({ weeklyPrizes: settledPrizes });
-        persistState({ ...get(), weeklyPrizes: settledPrizes });
-      }
-
       set({ viewState: 'loading' });
 
       if (client.kind === 'remote' && authToken) {
+        void get().syncWeeklyOutcomes(authToken);
         await get().issueTickets(authToken);
         await get().flushPending(authToken);
         try {
@@ -521,26 +525,191 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
 
     refreshIfStale: async (now = new Date(), staleMs = 60_000) => {
       const snapshot = get().snapshot;
-      if (snapshot && now.getTime() - new Date(snapshot.generatedAt).getTime() < staleMs) {
+      const currentWeekKey = getUtcWeekWindow(now).weekKey;
+      if (
+        snapshot?.weekKey === currentWeekKey &&
+        now.getTime() - new Date(snapshot.generatedAt).getTime() < staleMs
+      ) {
         return snapshot;
       }
       return get().refresh(now);
     },
 
-    claimWeeklyPrize: (weekKey) => {
-      const record = get().weeklyPrizes.find((item) => item.weekKey === weekKey);
-      if (!record || record.claimed) return null;
-      const claimed: WeeklyPrizeRecord = { ...record, claimed: true };
-      const weeklyPrizes = get().weeklyPrizes.map((item) =>
-        item.weekKey === weekKey ? claimed : item,
-      );
+    reconcileWeeklyPrizeEffects: () => {
+      let weeklyPrizes = get().weeklyPrizes;
+      for (const record of weeklyPrizes) {
+        if (record.origin !== 'server' || !record.receipt) continue;
+        try {
+          const grant = useProgression.getState().grantReward({
+            runId: record.receipt.receiptId,
+            completionId: record.rewardId,
+            rewardId: 'weekly-points',
+            source: 'weekly',
+            targetAmount: record.prize.points,
+          });
+          useMascot.getState().unlock(record.prize.cosmeticId);
+          const localAppliedAt = record.localAppliedAt ?? new Date().toISOString();
+          weeklyPrizes = weeklyPrizes.map((item) =>
+            item.rewardId === record.rewardId ? { ...item, localAppliedAt } : item,
+          );
+          useAnalyticsStore.getState().trackOnce(
+            `weekly-prize-applied:${record.rewardId}`,
+            'weekly_prize_applied',
+            {
+              reward_id: record.rewardId,
+              week_key: record.weekKey,
+              rank: record.rank,
+              applied_delta: grant.grantedDelta,
+              effect_scope: record.receipt.effectScope,
+            },
+          );
+        } catch {
+          useAnalyticsStore.getState().track('weekly_prize_error', {
+            reward_id: record.rewardId,
+            week_key: record.weekKey,
+            stage: 'apply',
+            code: 'local_persist_failed',
+          });
+        }
+      }
       set({ weeklyPrizes });
       persistState({ ...get(), weeklyPrizes });
-      useAnalyticsStore.getState().track('weekly_prize_claimed', {
-        rank: claimed.rank,
-        weekKey: claimed.weekKey,
-      });
-      return claimed;
+    },
+
+    syncWeeklyOutcomes: async (authToken = getString(KEYS.profileAuth)) => {
+      if (client.kind !== 'remote' || !authToken || !client.getWeeklyOutcomes) {
+        set({ prizeSyncState: 'offline', prizeLastError: 'offline' });
+        return get().weeklyOutcomes;
+      }
+      set({ prizeSyncState: 'loading', prizeLastError: null });
+      try {
+        const response = await client.getWeeklyOutcomes({ authToken });
+        const outcomes = response.outcomes;
+        const previousByRewardId = new Map(
+          get().weeklyPrizes.map((record) => [record.rewardId, record]),
+        );
+        const serverRecords = outcomes
+          .map((outcome) => weeklyPrizeRecordFromOutcome(
+            outcome,
+            outcome.reward ? previousByRewardId.get(outcome.reward.rewardId) : undefined,
+          ))
+          .filter((record): record is WeeklyPrizeRecord => record !== null);
+        // Preserve already-issued legacy rewards; unclaimed cached-rank guesses
+        // are quarantined and never treated as server entitlement.
+        const legacyClaimed = get().weeklyPrizes.filter(
+          (record) => record.origin === 'legacy_local' && record.claimed,
+        );
+        const weeklyPrizes = [...legacyClaimed, ...serverRecords];
+        set({
+          weeklyOutcomes: outcomes,
+          weeklyPrizes,
+          prizeSyncState: 'ready',
+          prizeLastError: null,
+        });
+        persistState({ ...get(), weeklyOutcomes: outcomes, weeklyPrizes });
+
+        for (const record of weeklyPrizes) {
+          if (record.origin !== 'server') continue;
+          useAnalyticsStore.getState().trackOnce(
+            `weekly-prize-eligible:${record.rewardId}`,
+            'weekly_prize_eligible',
+            { reward_id: record.rewardId, week_key: record.weekKey, rank: record.rank },
+          );
+          if (record.receipt) {
+            useAnalyticsStore.getState().trackOnce(
+              `weekly-prize-claimed:${record.rewardId}`,
+              'weekly_prize_claim_result',
+              {
+                reward_id: record.rewardId,
+                week_key: record.weekKey,
+                rank: record.rank,
+                result: 'claimed',
+              },
+            );
+          }
+        }
+        get().reconcileWeeklyPrizeEffects();
+        return outcomes;
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'remote_error';
+        const prizeSyncState = code.startsWith('request_failed:') ? 'error' : 'offline';
+        set({ prizeSyncState, prizeLastError: code });
+        useAnalyticsStore.getState().track('weekly_prize_error', {
+          stage: 'fetch',
+          code,
+        });
+        return get().weeklyOutcomes;
+      }
+    },
+
+    claimWeeklyPrize: (rewardId, authToken = getString(KEYS.profileAuth)) => {
+      const pending = claimPromises.get(rewardId);
+      if (pending) return pending;
+      const task = (async () => {
+        const existing = get().weeklyPrizes.find((item) => item.rewardId === rewardId);
+        if (!existing || existing.origin !== 'server') return null;
+        if (existing.receipt) {
+          await get().syncWeeklyOutcomes(authToken);
+          return get().weeklyPrizes.find((item) => item.rewardId === rewardId) ?? existing;
+        }
+        if (client.kind !== 'remote' || !authToken || !client.claimWeeklyReward) {
+          set({ prizeSyncState: 'offline', prizeLastError: 'offline' });
+          return null;
+        }
+        set({ claimingRewardId: rewardId, prizeLastError: null });
+        useAnalyticsStore.getState().track('weekly_prize_claim_started', {
+          reward_id: rewardId,
+          week_key: existing.weekKey,
+          rank: existing.rank,
+        });
+        try {
+          const response = await client.claimWeeklyReward({ authToken, rewardId });
+          const outcomes = [
+            ...get().weeklyOutcomes.filter((item) => item.weekKey !== response.outcome.weekKey),
+            response.outcome,
+          ].sort((a, b) => b.weekKey.localeCompare(a.weekKey));
+          const claimed = weeklyPrizeRecordFromOutcome(response.outcome, existing);
+          if (!claimed) return null;
+          const weeklyPrizes = get().weeklyPrizes.map((item) =>
+            item.rewardId === rewardId ? claimed : item,
+          );
+          set({ weeklyOutcomes: outcomes, weeklyPrizes });
+          persistState({ ...get(), weeklyOutcomes: outcomes, weeklyPrizes });
+          get().reconcileWeeklyPrizeEffects();
+          useAnalyticsStore.getState().trackOnce(
+            `weekly-prize-claimed:${rewardId}`,
+            'weekly_prize_claim_result',
+            {
+              reward_id: rewardId,
+              week_key: claimed.weekKey,
+              rank: claimed.rank,
+              result: 'claimed',
+            },
+          );
+          await get().syncWeeklyOutcomes(authToken);
+          return get().weeklyPrizes.find((item) => item.rewardId === rewardId) ?? claimed;
+        } catch (error) {
+          const code = error instanceof Error ? error.message : 'remote_error';
+          set({ prizeSyncState: 'error', prizeLastError: code });
+          useAnalyticsStore.getState().track('weekly_prize_claim_result', {
+            reward_id: rewardId,
+            week_key: existing.weekKey,
+            rank: existing.rank,
+            result: 'error',
+          });
+          useAnalyticsStore.getState().track('weekly_prize_error', {
+            reward_id: rewardId,
+            week_key: existing.weekKey,
+            stage: 'claim',
+            code,
+          });
+          return null;
+        } finally {
+          set({ claimingRewardId: null });
+        }
+      })().finally(() => claimPromises.delete(rewardId));
+      claimPromises.set(rewardId, task);
+      return task;
     },
 
     resetForTests: (profile = createGeneratedProfile(7)) => {
@@ -553,6 +722,7 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       removeKey(KEYS.leaderboardPending);
       removeKey(KEYS.leaderboardTickets);
       removeKey(KEYS.leaderboardPrizes);
+      removeKey(KEYS.leaderboardWeeklyOutcomes);
       set({
         snapshot: null,
         activeProof: null,
@@ -563,12 +733,20 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
         consumedTicketIds: [],
         pendingSubmissions: [],
         weeklyPrizes: [],
+        weeklyOutcomes: [],
+        prizeSyncState: 'idle',
+        prizeLastError: null,
+        claimingRewardId: null,
         viewState: 'idle',
         lastError: null,
         overtaken: null,
       });
     },
   }));
+
+  // A persisted server receipt is sufficient to repair the local G03/cosmetic
+  // effect even while offline after a process death.
+  store.getState().reconcileWeeklyPrizeEffects();
 
   return store;
 }
