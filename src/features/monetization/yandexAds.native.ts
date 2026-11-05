@@ -26,6 +26,10 @@ let interstitialAd: InterstitialAd | null = null;
 let interstitialAdLoadId: string | null = null;
 let rewardedAd: RewardedAd | null = null;
 let rewardedAdLoadId: string | null = null;
+// The SDK keeps native loaders in process storage with no public destroy API.
+// Reuse them across requests instead of retaining one native loader per retry.
+let interstitialLoader: InterstitialAdLoader | null = null;
+let rewardedLoader: RewardedAdLoader | null = null;
 let interstitialLoadPromise: Promise<void> | null = null;
 let rewardedLoadPromise: Promise<void> | null = null;
 let sdkInitPromise: Promise<void> | null = null;
@@ -204,8 +208,8 @@ async function preloadInterstitial(): Promise<void> {
         ...loadContext,
       });
       try {
-        const loader = await InterstitialAdLoader.create();
-        interstitialAd = await loader.loadAd({
+        interstitialLoader ??= await InterstitialAdLoader.create();
+        interstitialAd = await interstitialLoader.loadAd({
           adUnitId: MONETIZATION.yandex.interstitialAdUnitId,
         });
         interstitialAdLoadId = loadId;
@@ -242,8 +246,8 @@ async function preloadRewarded(): Promise<void> {
       const loadId = nextLoadId('rewarded');
       useAnalyticsStore.getState().track('ad_load_requested', { format: 'rewarded', load_id: loadId });
       try {
-        const loader = await RewardedAdLoader.create();
-        rewardedAd = await loader.loadAd({
+        rewardedLoader ??= await RewardedAdLoader.create();
+        rewardedAd = await rewardedLoader.loadAd({
           adUnitId: MONETIZATION.yandex.rewardedAdUnitId,
         });
         rewardedAdLoadId = loadId;

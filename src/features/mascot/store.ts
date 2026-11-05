@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import { seedFromTime } from '@/core/engine';
-import { KEYS, getJSON, setJSON } from '@/core/storage';
+import { KEYS, getJSON, setJSON, setJSONOrThrow } from '@/core/storage';
 import { recordNextGoalCompletion, useAnalyticsStore } from '@/features/analytics';
 import { PROGRESSION_CONFIG, stageForLevel, useProgression } from '@/features/progression';
 import { todayISO } from '@/features/streak';
@@ -54,12 +54,14 @@ function buildInitial(): MascotState {
   return merged;
 }
 
-function persist(state: MascotState): void {
-  setJSON(KEYS.mascot, {
+function persist(state: MascotState, critical = false): void {
+  const write = critical ? setJSONOrThrow : setJSON;
+  write(KEYS.mascot, {
     unlocked: state.unlocked,
     equipped: state.equipped,
     helpersUsedDay: state.helpersUsedDay,
     helperCharges: state.helperCharges,
+    rewardedHelperReceipts: state.rewardedHelperReceipts,
     lost: state.lost,
     introDone: state.introDone,
     rngState: state.rngState,
@@ -75,6 +77,7 @@ interface MascotActions {
   unlock: (id: string) => void;
   /** Добавить заряд помощника (дроп дейли), тратится сверх дневного лимита. */
   addHelperCharge: (id: HelperId) => void;
+  grantRewardedHelperCharge: (id: HelperId, sessionId: string, pendingSessionIds?: readonly string[]) => void;
   useHelper: (id: HelperId) => boolean;
   drop: () => void;
   recover: () => void;
@@ -109,6 +112,22 @@ export const useMascot = create<MascotStore>((set, get) => ({
     const next: MascotState = { ...prev, helperCharges };
     set({ helperCharges });
     persist(next);
+  },
+
+  grantRewardedHelperCharge(id, sessionId, pendingSessionIds = []) {
+    const prev = get();
+    if (prev.rewardedHelperReceipts?.[sessionId]) return;
+    const helperCharges = { ...prev.helperCharges, [id]: (prev.helperCharges[id] ?? 0) + 1 };
+    const rewardedHelperReceipts = { ...prev.rewardedHelperReceipts, [sessionId]: true as const };
+    // Native callbacks cannot replay across processes. Keep recent receipts and
+    // every outstanding journal entry, including a torn cleanup after payout.
+    const protectedIds = new Set([...pendingSessionIds, sessionId]);
+    const recentIds = new Set(Object.keys(rewardedHelperReceipts).slice(-256));
+    for (const receiptId of Object.keys(rewardedHelperReceipts)) {
+      if (!protectedIds.has(receiptId) && !recentIds.has(receiptId)) delete rewardedHelperReceipts[receiptId];
+    }
+    persist({ ...prev, helperCharges, rewardedHelperReceipts }, true);
+    set({ helperCharges, rewardedHelperReceipts });
   },
 
   useHelper(id) {

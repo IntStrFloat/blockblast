@@ -3,6 +3,7 @@
  * while its crack, travel and fade may still be delayed by the shared timeline.
  */
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create } from 'react-test-renderer';
 
 import type { PlacementEvent } from '@/core/engine';
@@ -253,7 +254,7 @@ describe('pooled burst particle motion', () => {
       shared.__history.some((entry) => delayedContainsTimingTo(entry, 0.76)),
     )).toBe(true);
     for (const node of renderer.root.findAllByType('animated-view' as never)) {
-      expect(node.props.style.transform.slice(0, 3))
+      expect(StyleSheet.flatten(node.props.style).transform.slice(0, 3))
         .toEqual([{ translateX: 0 }, { translateY: 0 }, { rotate: '0deg' }]);
     }
     act(() => renderer.unmount());

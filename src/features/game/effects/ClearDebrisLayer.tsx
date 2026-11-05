@@ -6,7 +6,7 @@
  * один раз (сиблинг доски в BoardView) и живёт всё время игры — раньше слой
  * монтировался на каждый клир внутри GameEffectsLayer и давал mount-рывок.
  */
-import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
 import { View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -91,7 +91,7 @@ const DebrisParticle = forwardRef<DebrisHandle>(function DebrisParticle(_props, 
     [],
   );
 
-  const style = useAnimatedStyle(() => ({
+  const geometryStyle = useAnimatedStyle(() => ({
     position: 'absolute',
     left: x.value,
     top: y.value,
@@ -101,6 +101,8 @@ const DebrisParticle = forwardRef<DebrisHandle>(function DebrisParticle(_props, 
     borderWidth: Math.max(0.5, size.value * 0.08),
     borderColor: 'rgba(255,255,255,0.72)',
     backgroundColor: color.value,
+  }));
+  const motionStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [
       { translateX: tx.value },
@@ -110,7 +112,7 @@ const DebrisParticle = forwardRef<DebrisHandle>(function DebrisParticle(_props, 
     ],
   }));
 
-  return <Animated.View pointerEvents="none" style={style} />;
+  return <Animated.View pointerEvents="none" style={[geometryStyle, motionStyle]} />;
 });
 
 interface ClearDebrisLayerProps {
@@ -122,6 +124,9 @@ export function ClearDebrisLayer({ presentations }: ClearDebrisLayerProps) {
   const owners = useRef<(string | null)[]>([]);
   const cursor = useRef(0);
   const fired = useRef<Set<string>>(new Set());
+  const particles = useMemo(() => Array.from({ length: POOL_SIZE }, (_, index) => (
+    <DebrisParticle key={index} ref={(handle) => { slots.current[index] = handle; }} />
+  )), []);
 
   useLayoutEffect(() => {
     const activeIds = new Set(presentations.map((p) => p.id));
@@ -154,14 +159,7 @@ export function ClearDebrisLayer({ presentations }: ClearDebrisLayerProps) {
       pointerEvents="none"
       style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', overflow: 'visible' }}
     >
-      {Array.from({ length: POOL_SIZE }, (_, index) => (
-        <DebrisParticle
-          key={index}
-          ref={(handle) => {
-            slots.current[index] = handle;
-          }}
-        />
-      ))}
+      {particles}
     </View>
   );
 }

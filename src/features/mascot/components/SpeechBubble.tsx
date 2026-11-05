@@ -27,7 +27,7 @@ export function SpeechBubble({ text, tail = 'left' }: SpeechBubbleProps) {
       style={styles.root}
     >
       <View style={styles.bubble}>
-        <AppText preset="speech" style={styles.text}>
+        <AppText preset="speech" numberOfLines={3} maxFontSizeMultiplier={1.2} accessibilityLabel={text} style={styles.text}>
           {text}
         </AppText>
       </View>
@@ -39,9 +39,11 @@ export function SpeechBubble({ text, tail = 'left' }: SpeechBubbleProps) {
 const styles = StyleSheet.create({
   root: {
     alignItems: 'center',
+    maxWidth: '100%',
   },
   bubble: {
-    maxWidth: 220,
+    width: 220,
+    maxWidth: '100%',
     paddingHorizontal: spacing.m,
     paddingVertical: spacing.s,
     borderRadius: radii.card,
@@ -58,7 +60,8 @@ const styles = StyleSheet.create({
   text: {
     color: mascotPalette.speechInk,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: undefined,
+    includeFontPadding: false,
   },
   tail: {
     width: 13,

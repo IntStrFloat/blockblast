@@ -3,6 +3,7 @@
  * Весь drag на UI-потоке (worklet); RN runtime вызывается только на границах жеста.
  */
 import { useCallback, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import {
   useAnimatedStyle,
@@ -27,6 +28,7 @@ import {
 import type { DragCtx } from './DragContext';
 
 const PIECE_LIFT_PX = 60;
+const IOS_SHADOW = Platform.OS === 'ios';
 
 /** Позиция слота в координатах окна — снимается на measureInWindow */
 export interface SlotMeasure {
@@ -341,10 +343,14 @@ export function useDrag({
         // destruction layers take over in the accepted-drop commit.
         dropCommitted.value = 1;
         clearPrelude.value = 0;
-        clearPrelude.value = withSequence(
-          withTiming(1, { duration: 55 }),
-          withTiming(0, { duration: 110 }),
-        );
+        // Only a completed line needs the board-wide pulse. A normal placement
+        // already has its cell settle; waking all preview mappers adds no feedback.
+        if (preview.value.some((mask) => (mask & 2) !== 0)) {
+          clearPrelude.value = withSequence(
+            withTiming(1, { duration: 55 }),
+            withTiming(0, { duration: 110 }),
+          );
+        }
         scheduleOnRN(onDropJS, commit.trayIndex, commit.row, commit.col);
         // Мгновенно прячем фигуру: иначе при сбросе translate в 0 она на 1–2
         // кадра «телепортируется» в слот трея, пока store не обнулит/обновит слот.
@@ -435,11 +441,14 @@ export function useDrag({
       { translateY: translateY.value },
       { scale: scale.value },
     ],
-    // iOS — shadowOpacity анимируется, остальные статичны
-    shadowColor: '#000',
-    shadowOpacity: shadowOpacity.value,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
+    // Android must receive only supported native-prop updates during a drag.
+    // iOS shadow fields would force the entire transform update through Fabric.
+    ...(IOS_SHADOW ? {
+      shadowColor: '#000',
+      shadowOpacity: shadowOpacity.value,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 6 },
+    } : {}),
   }));
 
   return { gesture, animatedStyle };

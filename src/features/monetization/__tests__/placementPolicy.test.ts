@@ -5,12 +5,6 @@ describe('contextual ad breaks', () => {
     expect(placementSuppression('adventure_fail', { activePlayMs: 900_000 }))
       .toBe('suppressed_adventure_retry');
   });
-  it.each(['gameover', 'adventure_level'] as const)(
-    'protects a declined or completed rewarded offer at %s', (placement) => {
-      expect(placementSuppression(placement, { activePlayMs: 900_000, rewardedOfferPresented: true }))
-        .toBe('suppressed_rewarded_offer');
-    },
-  );
   it.each([undefined, NaN, Infinity, -1, 0, 119_999])('protects short or unmeasured Classic attempts (%s)', (activePlayMs) => {
     expect(placementSuppression('gameover', { activePlayMs })).toBe('suppressed_short_run');
   });

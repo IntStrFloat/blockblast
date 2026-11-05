@@ -1,4 +1,4 @@
-import { Pressable } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import type { StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,

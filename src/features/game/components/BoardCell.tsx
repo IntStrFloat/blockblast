@@ -10,8 +10,22 @@ import Animated, {
 
 import { radii } from '@/ui';
 import { shouldPulseOnFill } from '../animation/motion';
-import { useDragCtx } from '../drag/DragContext';
+import type { DragCtx } from '../drag/DragContext';
 import { Block } from './Block';
+
+/** Cell art does not subscribe to drop callbacks or the screen's playing phase. */
+export type BoardCellVisuals = Pick<
+  DragCtx,
+  | 'cellColors'
+  | 'cellLine'
+  | 'cellRadius'
+  | 'preview'
+  | 'previewColor'
+  | 'assistPreview'
+  | 'assistPreviewColor'
+  | 'clearPrelude'
+  | 'invalidPreview'
+>;
 
 interface BoardCellProps {
   index: number;
@@ -22,6 +36,7 @@ interface BoardCellProps {
   emptyColor: string;
   reducedMotion: boolean;
   placementDelayMs?: number;
+  visuals: BoardCellVisuals;
 }
 
 export const BoardCell = memo(function BoardCell({
@@ -33,8 +48,8 @@ export const BoardCell = memo(function BoardCell({
   emptyColor,
   reducedMotion,
   placementDelayMs = 0,
+  visuals: ctx,
 }: BoardCellProps) {
-  const ctx = useDragCtx();
   const r = (index / 8) | 0;
   const c = index % 8;
   const step = size + gap;

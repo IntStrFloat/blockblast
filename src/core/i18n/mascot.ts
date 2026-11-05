@@ -14,13 +14,13 @@ const MASCOT_LOST: Record<Lang, Record<PraiseTone, string[]>> = {
 const MASCOT_INTRO: Record<Lang, Record<PraiseTone, [string, string, string, string]>> = {
   ru: {
     classic: [
-      'Привет! Я Капи 🫧',
+      'Привет! Я Капи 🐾',
       'Живу тут — наверху 👋',
       'Ты играешь — я расту 📈',
       'Заходи каждый день — стану легендой',
     ],
     meme: [
-      'йо. я Капи 🫧',
+      'йо. я Капи 🐾',
       'обитаю тут, сверху 👋',
       'ты фармишь — я левелюсь 📈',
       'залетай каждый день — стану легендой',
@@ -28,13 +28,13 @@ const MASCOT_INTRO: Record<Lang, Record<PraiseTone, [string, string, string, str
   },
   en: {
     classic: [
-      "Hi! I'm Capi 🫧",
+      "Hi! I'm Capi 🐾",
       'I live up here 👋',
       'You play — I grow 📈',
       'Come back daily — I will become a legend',
     ],
     meme: [
-      "yo. I'm Capi 🫧",
+      "yo. I'm Capi 🐾",
       'i vibe up here 👋',
       'you grind — i level 📈',
       'pull up daily — legend arc',

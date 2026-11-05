@@ -3,21 +3,18 @@ import type { InterstitialCounter } from './frequency';
 
 export interface ResultAdContext {
   activePlayMs?: number;
-  rewardedOfferPresented?: boolean;
   resultContextId?: string;
 }
 
 export type PlacementSuppression =
   | 'suppressed_adventure_retry'
-  | 'suppressed_short_run'
-  | 'suppressed_rewarded_offer';
+  | 'suppressed_short_run';
 
-/** Protect the decision to retry or decline a voluntary reward. */
+/** Keep automatic ads at established game breaks. Rewarded cooldown is checked separately. */
 export function placementSuppression(
   counter: InterstitialCounter,
   context: ResultAdContext,
 ): PlacementSuppression | null {
-  if (context.rewardedOfferPresented) return 'suppressed_rewarded_offer';
   if (counter === 'adventure_fail') return 'suppressed_adventure_retry';
   if (counter === 'gameover' && (
     !Number.isFinite(context.activePlayMs) ||

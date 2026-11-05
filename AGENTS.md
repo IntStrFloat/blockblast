@@ -1,3 +1,7 @@
+<!-- ANDROID-AVD-POLICY:START -->
+Local Android tests follow `C:/Users/Dima2/.codex/android-avd-policy/README.md` and `registry.json`: one stored working AVD per game/app; reuse or safely remove before replacement. Resolve registered name/serial before historical QA helpers.
+<!-- ANDROID-AVD-POLICY:END -->
+
 # Expo HAS CHANGED
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v56.0.0/ before writing any code.

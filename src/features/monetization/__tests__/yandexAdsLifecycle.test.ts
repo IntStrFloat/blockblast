@@ -18,6 +18,8 @@ beforeEach(() => {
   mockInterstitialLoad.mockReset();
   mockRewardedLoad.mockReset();
   mockInitialize.mockReset().mockResolvedValue(undefined);
+  mockInterstitialLoaderCreate.mockReset().mockResolvedValue({ loadAd: mockInterstitialLoad });
+  mockRewardedLoaderCreate.mockReset().mockResolvedValue({ loadAd: mockRewardedLoad });
 });
 
 jest.mock('@/features/analytics', () => ({
@@ -228,6 +230,38 @@ describe('contextual loading and readiness', () => {
     expect(mockInitialize).toHaveBeenCalledTimes(1);
     expect(mockInterstitialLoad).not.toHaveBeenCalled();
     expect(mockRewardedLoad).not.toHaveBeenCalled();
+  });
+
+  it.each(['interstitial', 'rewarded'] as const)('reuses its native %s loader after load failure', async (format) => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const load = format === 'interstitial' ? mockInterstitialLoad : mockRewardedLoad;
+    const create = format === 'interstitial' ? mockInterstitialLoaderCreate : mockRewardedLoaderCreate;
+    const ads = provider();
+    const prepare = format === 'interstitial' ? ads.prepareInterstitial! : ads.prepareRewarded!;
+    load.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ show: jest.fn(async () => {}) });
+    await prepare();
+    await prepare();
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('reuses its rewarded loader after consuming inventory and retries failed loader creation', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    mockRewardedLoaderCreate.mockRejectedValueOnce(new Error('Activity missing'));
+    const ad: FakeAd = { show: jest.fn(async () => {}) };
+    mockRewardedLoad.mockResolvedValue(ad);
+    const ads = provider();
+    await ads.prepareRewarded!();
+    expect(mockRewardedLoad).not.toHaveBeenCalled();
+    await ads.prepareRewarded!();
+    const pending = ads.showRewarded('revive');
+    callback(ad, 'onAdDismissed');
+    await pending;
+    await ads.prepareRewarded!();
+    expect(mockRewardedLoad).toHaveBeenCalledTimes(2);
+    expect(mockRewardedLoaderCreate).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
   });
 
   it('prepares rewarded independently of interstitial and records actual load provenance', async () => {

@@ -570,11 +570,14 @@ describe('Game Over and Continue accounting', () => {
     setNearGameOver(999);
     useGameStore.getState().placePiece(0, 0, 0);
     const checkpoint = getString(KEYS.classicRunEnvelope)!;
+    const proof = useLeaderboardStore.getState().activeProof;
     expect(useProgression.getState().lifetimePoints).toBe(1_000);
     const persistedProgression = getJSON<ReturnType<typeof useProgression.getState>>(KEYS.progression)!;
 
     useGameStore.getState().newGame({ seed: 77 });
     setString(KEYS.classicRunEnvelope, checkpoint);
+    // A process restart restores the proof belonging to this checkpoint too.
+    useLeaderboardStore.setState({ activeProof: proof });
     useProgression.setState({ ...persistedProgression, reveal: null, revealQueue: [] });
     useGameStore.setState({ classicMeta: null, finalResult: null });
     expect(useGameStore.getState().loadSaved()).toBe('terminal');

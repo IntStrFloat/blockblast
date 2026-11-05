@@ -1,5 +1,4 @@
 import { ScrollView, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
@@ -20,9 +19,10 @@ interface Props {
   disabled?: boolean;
   earnedXp?: number;
   lifetimePoints?: number;
+  presentationReady?: boolean;
 }
 
-export function SeasonCelebration({ seasonId, onContinue, disabled = false, earnedXp = 0, lifetimePoints = 0 }: Props) {
+export function SeasonCelebration({ seasonId, onContinue, disabled = false, earnedXp = 0, lifetimePoints = 0, presentationReady = true }: Props) {
   const reduced = useReducedMotion();
   const lang = useLang();
   const { width, height } = useWindowDimensions();
@@ -31,7 +31,7 @@ export function SeasonCelebration({ seasonId, onContinue, disabled = false, earn
   const reward = cosmeticId ? { kind: 'cosmetic' as const, id: cosmeticId } : null;
 
   return (
-    <Animated.View entering={FadeIn.duration(260)} style={{ position: 'absolute', inset: 0, backgroundColor: '#061A2A', zIndex: 50 }}>
+    <View style={{ flex: 1, backgroundColor: '#061A2A' }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}>
         <TrophyIcon size={58} color="#FFE06B" />
         <AppText preset="title" style={{ fontSize: 24, textAlign: 'center' }}>{t('adventure.seasonComplete', lang)}</AppText>
@@ -45,7 +45,7 @@ export function SeasonCelebration({ seasonId, onContinue, disabled = false, earn
         <RewardProgressSummary earnedXp={earnedXp} lifetimePoints={lifetimePoints} light />
         <GameButton label={t('adventure.nextLevel', lang)} onPress={onContinue} disabled={disabled} style={{ width: '100%', maxWidth: 320 }} />
       </ScrollView>
-      {reduced ? null : <Confetti />}
-    </Animated.View>
+      {presentationReady && !reduced ? <Confetti count={18} /> : null}
+    </View>
   );
 }

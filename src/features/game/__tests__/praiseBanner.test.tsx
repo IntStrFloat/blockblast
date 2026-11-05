@@ -360,4 +360,53 @@ describe('PraiseBanner', () => {
     expect(feedbackStyle(renderer).opacity).toBe(0);
     act(() => renderer.unmount());
   });
+
+  it('consumes a clear suppressed at mount and shows the next real event without replay', () => {
+    mockStoreState.lastEvent = event({ combo: 3 });
+    let renderer!: ReturnType<typeof create>;
+    act(() => { renderer = create(<PraiseBanner suppressed />); });
+    expect(renderer.toJSON()).toBeNull();
+    act(() => { jest.advanceTimersByTime(2000); renderer.update(<PraiseBanner />); });
+    expect(renderer.toJSON()).toBeNull();
+
+    mockStoreState.lastEvent = event({ combo: 4, score: 1240 });
+    act(() => { renderer.update(<PraiseBanner />); });
+    expect(textContent(renderer)).toContain('4');
+    expect(feedbackStyle(renderer).opacity).toBe(0);
+    act(() => jest.advanceTimersByTime(400));
+    expect(feedbackStyle(renderer).opacity).toBe(1);
+    act(() => renderer.unmount());
+  });
+
+  it('retires an interrupted visible clear and consumes follow-up clears while suppressed', () => {
+    mockStoreState.lastEvent = event({ combo: 3 });
+    let renderer!: ReturnType<typeof create>;
+    act(() => { renderer = create(<PraiseBanner />); });
+    act(() => jest.advanceTimersByTime(400));
+    expect(feedbackStyle(renderer).opacity).toBe(1);
+
+    act(() => renderer.update(<PraiseBanner suppressed />));
+    expect(renderer.toJSON()).toBeNull();
+    mockStoreState.lastEvent = event({ combo: 4 });
+    act(() => renderer.update(<PraiseBanner suppressed />));
+    mockStoreState.lastEvent = event({ combo: 5 });
+    act(() => renderer.update(<PraiseBanner suppressed />));
+    act(() => renderer.update(<PraiseBanner />));
+    expect(renderer.toJSON()).toBeNull();
+
+    // An equivalent-looking new placement still owns a fresh presentation.
+    mockStoreState.lastEvent = event({ combo: 5 });
+    act(() => renderer.update(<PraiseBanner />));
+    expect(textContent(renderer)).toContain('5');
+    act(() => renderer.unmount());
+  });
+
+  it('clips celebration and floating score overflow to the board rather than the header', () => {
+    mockStoreState.lastEvent = event({ combo: 10, clearedCells: [[0, 3]] });
+    let renderer!: ReturnType<typeof create>;
+    act(() => { renderer = create(<PraiseBanner />); });
+    expect(renderer.root.findByProps({ testID: 'board-praise-bounds' }).props.style)
+      .toMatchObject({ top: 0, width: 320, height: 320, overflow: 'hidden' });
+    act(() => renderer.unmount());
+  });
 });

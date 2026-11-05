@@ -1,6 +1,7 @@
 import { type Href, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { AppText, ChevronIcon, TrophyIcon, colors, radii, spacing } from '@/ui';

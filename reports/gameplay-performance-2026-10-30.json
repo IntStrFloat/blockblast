@@ -1,0 +1,319 @@
+{
+  "dateMoscow": "2026-10-30T21:37:06.227720+03:00",
+  "status": "verified",
+  "objective": "Производительность перетаскивания, постановки и комбинаций; плавное завершение уровня путешествия.",
+  "changes": [
+    "Android Reanimated native-prop path enabled. Drag emits transform-only updates on Android; particle geometry is separate from per-frame opacity/transform.",
+    "Stable visual cell props and fixed effect-pool JSX remove callback-driven whole-board rerenders and144 pool-slot React rerenders.",
+    "Leaderboard recordMove persists1 changed MMKV key instead of8 keys, preserving the existing recovery/error behavior.",
+    "Adventure result entrance starts after native layout and signals readiness on UI-animation completion. Confetti, reveals and ad preparation wait for readiness.",
+    "Mosaic keeps authored colors/progress without96 per-tile shadows. Reduced motion removes entrance translation/scale and confetti.",
+    "Three crystal renderer stops/disposes on map blur or app background, rejects late contexts, restarts on focus, and renders one static reduced-motion frame.",
+    "Gesture Handler pressables preserve button actions inside animated transforms."
+  ],
+  "verification": {
+    "jest": {
+      "suitesPassed": 191,
+      "testsPassed": 1285,
+      "failures": 0,
+      "log": "C:\\Users\\Dima2\\Documents\\blockblast\\.omx\\performance-tests-verified.log"
+    },
+    "typecheck": {
+      "exitCode": 0
+    },
+    "lint": {
+      "exitCode": 0,
+      "errors": 0,
+      "existingWarnings": 1,
+      "warningFile": "src/features/adventure/logic/seasons.ts:35"
+    },
+    "diffCheck": {
+      "exitCode": 0
+    },
+    "nativeBuild": {
+      "task": ":app:assembleRelease",
+      "abi": "x86_64",
+      "configuration": "release, isolated QA application ID, debug signing",
+      "result": "BUILD SUCCESSFUL",
+      "flag": "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS=true",
+      "log": "C:\\Users\\Dima2\\Documents\\blockblast\\.omx\\performance-native-fast-build.log"
+    },
+    "nativeSmoke": [
+      "Score-objective victory and native result entrance",
+      "Last jewel collection, counter arrival, result, Next to level9",
+      "Next to level2 and settings/pause button with native synchronous updates",
+      "Final map GL render and map-to-level navigation",
+      "Real drag from each of3 tray slots, each clearing1 line, followed by usable refilled tray",
+      "System reduced motion: visible result without confetti; original3 animation settings restored",
+      "No Java/JS crash lines in final native smoke log",
+      "Final binary repeated jewel-level8 win and Next to level9 after the complete source freeze"
+    ],
+    "visual": {
+      "skill": "visual-verdict",
+      "score": 98,
+      "verdict": "pass",
+      "trayDotBoundsPx": [
+        [
+          76,
+          76
+        ],
+        [
+          76,
+          76
+        ],
+        [
+          76,
+          76
+        ]
+      ]
+    },
+    "evidence": {
+      "finalJewelResult": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\performance-2026-10-30\\final\\jewels-result.png",
+      "finalNextLevel": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\performance-2026-10-30\\final\\jewels-next.png",
+      "finalTrayRefill": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\performance-2026-10-30\\final\\tray-refill.png",
+      "reducedMotion": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\performance-2026-10-30\\final\\reduced-motion-confirmed.png",
+      "nativeCrashLog": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\performance-2026-10-30\\final\\smoke-logcat.txt",
+      "video": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\performance-2026-10-30\\final-result.mp4"
+    }
+  },
+  "benchmark": {
+    "environment": {
+      "kind": "local Android emulator",
+      "avd": "Blockblast_Audio_Check",
+      "api": 29,
+      "cores": 2,
+      "ramMiB": 1536,
+      "effectiveJavaHeapGrowthLimitMiB": 256,
+      "gpu": "AVD software/default renderer",
+      "releaseMode": true
+    },
+    "method": "Two fresh-process single-Classic-screen runs per version;12 deterministic3-line clears per run;696 native views,1 root and1 activity. Same installed SDKs and Hermes compiler -O/output-source-map settings. No real advertising surfaces.",
+    "runs": [
+      {
+        "id": "baseline-run1",
+        "commits": 12,
+        "allThreeLineClears": true,
+        "commitMedianMs": 40.92,
+        "frames": 401,
+        "p50Ms": 30,
+        "p95Ms": 77,
+        "p99Ms": 97,
+        "views": 696
+      },
+      {
+        "id": "baseline-run2",
+        "commits": 12,
+        "allThreeLineClears": true,
+        "commitMedianMs": 45.42,
+        "frames": 387,
+        "p50Ms": 32,
+        "p95Ms": 89,
+        "p99Ms": 150,
+        "views": 696
+      },
+      {
+        "id": "after-fast-run1",
+        "commits": 12,
+        "allThreeLineClears": true,
+        "commitMedianMs": 47.54,
+        "frames": 472,
+        "p50Ms": 22,
+        "p95Ms": 61,
+        "p99Ms": 85,
+        "views": 696
+      },
+      {
+        "id": "after-fast-run2",
+        "commits": 12,
+        "allThreeLineClears": true,
+        "commitMedianMs": 35.33,
+        "frames": 472,
+        "p50Ms": 24,
+        "p95Ms": 61,
+        "p99Ms": 85,
+        "views": 696
+      }
+    ],
+    "p95BeforeMs": [
+      77,
+      89
+    ],
+    "p95AfterMs": [
+      61,
+      61
+    ],
+    "p50BeforeMs": [
+      30,
+      32
+    ],
+    "p50AfterMs": [
+      22,
+      24
+    ],
+    "medianP95ReductionPercent": 26.5,
+    "interpretation": "Measured improvement on this emulator. JS commit timings are noisy; these samples do not establish physical-phone FPS."
+  },
+  "limits": [
+    "A physical mid-range phone was not connected; device-specific frame rate still requires a release-build check on that hardware.",
+    "Native feature-flag optimization requires a new Android binary; JS-only replacement does not enable it.",
+    "Store release version/signing identity were not changed by this task; QA APKs are isolated x86_64 test artifacts."
+  ],
+  "safety": {
+    "productionPackage": "com.intstrfloat.blockblast",
+    "qaPackage": "com.intstrfloat.blockblast.performance",
+    "productionVersionCode": 50,
+    "productionVersionName": "1.1.45",
+    "productionLastUpdateDeviceReported": "2026-10-21 07:27:53",
+    "temporaryAGCConfigRemoved": true,
+    "qaPackageRemoved": true,
+    "ownedAvdStopped": true,
+    "testingOwnerReleased": true,
+    "guestDataPreserved": true,
+    "systemAnimationSettingsRestored": true
+  },
+  "changedFiles": [
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\package.json",
+      "sha256": "0dafd8bdbe0df63d9e1dec0693a137c1e9c1823368869b46526d1cab9ea2f5cc"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\app\\adventure-level.tsx",
+      "sha256": "0775ea5b7f8600654cb83ad0faec99494b9de590de67ea25e2ceafd7ef6dd043"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\app\\__tests__\\adventureCompletion.test.tsx",
+      "sha256": "23bfb79980ec62b058abb1e16ac54029b8ed886ffe9d4e584905f3a75e0aedd0"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\app\\__tests__\\adventureMonetization.test.tsx",
+      "sha256": "ba28ee394f486b4c448c162d2d6494ca6496dd5806873ddbaffd2cb11ffbef76"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\adventure\\components\\LevelResultTransition.tsx",
+      "sha256": "6c91e17cd334147349e1f408267861518a15b453e2150e843e62d4dfb3eb9a01"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\adventure\\components\\LevelResultView.tsx",
+      "sha256": "c01a0688ba16a9f0409725fc0b85bbcc2c73642b800f1df4c8e166c9ca79b1a3"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\adventure\\components\\MosaicView.tsx",
+      "sha256": "81e3044bd4a160afe181b7ba24e5e054b004cc9482a057e14c394de33b71c981"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\adventure\\components\\SeasonCelebration.tsx",
+      "sha256": "08160c363aa4ddeca1a570df3b9c63c94cd018424708808d282b1c1f6395ae81"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\adventure\\components\\CurrentLevelCrystal.tsx",
+      "sha256": "751ef0f2d0877db50a5c17c8e6b12a14e7d8f8c246bc87e74393bd0008abad2c"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\adventure\\components\\AdventureEntryCard.tsx",
+      "sha256": "236ef820e08166e40cedb4e5f76298502865283a0e77689d0381ad1dc36cdebd"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\adventure\\__tests__\\levelResultTransition.test.tsx",
+      "sha256": "749d3ddcc3d43a7aece49d39ddd671bb743b4c7f746c227f9d5dc6c4cbd248aa"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\adventure\\__tests__\\levelResultView.test.tsx",
+      "sha256": "473c30f9554e925eefe6b3c13bd1fd8ff0a0baf365b1802f16e5df60d366541d"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\adventure\\__tests__\\currentLevelCrystal.test.tsx",
+      "sha256": "527eefd9ee2c06c50d36fef50a60ee0f0578b191f986d0931ccb6937d5a5310e"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\components\\BoardCell.tsx",
+      "sha256": "94fa8e3d20175a1f930cfd85966ec3f010f23cf3aa9b0f5b936e46e3668309aa"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\components\\BoardView.tsx",
+      "sha256": "c5e6a64ca8b1f845215d3413b93dc10a4ce978f044f287d22bbc1bb9d51f439b"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\components\\InvalidDropNotice.tsx",
+      "sha256": "a1282ba22c7af528ec83e8564cee028647b2e70b32511f7b4a7166398836663a"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\components\\PauseOverlay.tsx",
+      "sha256": "b30d700b19b42ffd52d37780eab77e95ea9e40cd9602c9df19d78f81c25be250"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\drag\\useDrag.ts",
+      "sha256": "e73601cb8fb21419437cef3e35fde98a93805e37b97142d36e647f2a967f53f7"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\effects\\ClearBurstLayer.tsx",
+      "sha256": "89736de27bbff94be3d788e29810458bca349a57c7926e41eb285650532100f3"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\effects\\ClearDebrisLayer.tsx",
+      "sha256": "15bd2b676e28d17e9b537156833a1a0cf1c4ccd41b6b97afffea7ed09680f04d"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\effects\\ClearSparkLayer.tsx",
+      "sha256": "a261f5c94fa8651a91fd206eaf4e9377bdfac37def18a9321c448c36c299621f"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\effects\\ClearChoreographyLayer.tsx",
+      "sha256": "15baddee7cacd6d485f80787ff71789bf33cd580ca328105f3cc94c84d1ad7f6"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\boardCellRendering.test.tsx",
+      "sha256": "d3ed8ffc2167f9a8776713ada94397e55d0289354163365492bd69155e8a7ab4"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\clearBurstSeamless.test.tsx",
+      "sha256": "014cc09b27f45e806e01f3256e83a4bed4e8110e1aafa0a4996a048e265fea4f"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\clearPoolLifecycle.test.tsx",
+      "sha256": "924c97d00f5666e251a9673f28d9e80685784552f133a68e2920b971be0830b2"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\invalidDropNoticeStability.test.tsx",
+      "sha256": "0b4665fae8e8bc27b1aead7fa8534430ecc640f9de1a30e152d0bacd760f7857"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\useDragScale.test.tsx",
+      "sha256": "37ffabfa1ed3e08a5c3451d7a49d28b12abee3f2d4b7bc3e1aa686986960de36"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\leaderboard\\store.ts",
+      "sha256": "6bc5cfcbb3e70677e074a642ef19e094e384a856048da7e59a80bff24ab8fcd2"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\leaderboard\\__tests__\\store.test.ts",
+      "sha256": "b2d5d600bb5b48012978e27564f2e880750654f6cd48c540330870ba5c411a78"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\components\\LevelUpReveal.tsx",
+      "sha256": "5ad977c27826846acbad7cc65eea9ced3d5a8a69dd497351f2ff841bd3729a8e"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\progression\\components\\RewardProgressSummary.tsx",
+      "sha256": "2aef7ac2a3fa8b83f3e717167e7382eee35c56619ccbf6ca14e81be27c832835"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\ui\\primitives\\GameButton.tsx",
+      "sha256": "e73948376ef34a253cc70dbb20e6ec13b429806addcf782fd01d3ac99f101792"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\ui\\primitives\\IconButton.tsx",
+      "sha256": "bd0d405df5245914f9f911a388a010b1f5dafb144c2bc02bae5de4c8ff171b3d"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\ui\\__tests__\\gestureButtons.test.tsx",
+      "sha256": "df63ee511ccdfbc3925a4238e4f22afe7ecb5fb36c3efb44c1b2720b612c06bc"
+    }
+  ],
+  "evidenceDirectory": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\performance-2026-10-30",
+  "references": [
+    "https://docs.expo.dev/versions/v56.0.0/sdk/reanimated/",
+    "https://docs.swmansion.com/react-native-reanimated/docs/guides/performance/",
+    "https://docs.swmansion.com/react-native-reanimated/docs/guides/feature-flags/"
+  ],
+  "completedAtMoscow": "2026-10-30T21:40:09.541283+03:00"
+}

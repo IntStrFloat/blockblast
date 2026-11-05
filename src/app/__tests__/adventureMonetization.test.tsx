@@ -1,4 +1,5 @@
 import React from 'react';
+import { AppState } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { emptyBoard, SHAPES_BY_ID } from '@/core/engine';
@@ -19,6 +20,7 @@ const mockResultMount = jest.fn();
 const mockLevelUpMount = jest.fn();
 const mockReplace = jest.fn();
 const mockShowInterstitial = jest.fn();
+const mockPrepareInterstitial = jest.fn(async () => {});
 
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -43,7 +45,7 @@ jest.mock('@/features/monetization', () => {
     ...jest.requireActual('@/features/monetization/config'),
     ...jest.requireActual('@/features/monetization/interstitialExperiment'),
     GameBannerDock: () => null,
-    getAds: () => ({ showInterstitial: mockShowInterstitial }),
+    getAds: () => ({ showInterstitial: mockShowInterstitial, prepareInterstitial: mockPrepareInterstitial }),
     loadAdsMeta: () => storage.getJSON(storage.KEYS.adsMeta) ?? frequency.EMPTY_ADS_META,
     saveAdsMeta: (meta: unknown) => storage.setJSONOrThrow(storage.KEYS.adsMeta, meta),
     useEntitlements: (selector: (value: { removeAds: boolean }) => unknown) => selector({ removeAds: false }),
@@ -163,6 +165,7 @@ describe('adventure contextual monetization integration', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
+    AppState.currentState = 'active';
     tree = null;
     for (const key of [KEYS.adventureRun, KEYS.progression, KEYS.adsMeta, KEYS.adsPresentation, KEYS.analyticsExperiments]) removeKey(key);
     useAdPresentation.setState({ fullscreenActive: false, automaticAdsSuppressedUntil: 0 });
@@ -216,14 +219,17 @@ describe('adventure contextual monetization integration', () => {
     expect(useGameStore.getState().adventure).toMatchObject({ status: 'playing', attempt: 1 });
   });
 
-  it('a visible XP bonus protects Next from a forced ad and starts one next run', async () => {
+  it('declining a visible XP bonus allows an eligible ad on Next without adding a cooldown', async () => {
     const props = resultProps();
+    expect(mockPrepareInterstitial).not.toHaveBeenCalled();
+    act(() => { props.onPresentationReady(); });
+    expect(mockPrepareInterstitial).toHaveBeenCalledTimes(1);
     act(() => { props.onBonusOfferAvailable(); });
     await act(async () => { props.onNext(); });
-    expect(mockShowInterstitial).not.toHaveBeenCalled();
+    expect(mockShowInterstitial).toHaveBeenCalledTimes(1);
     expect(mockNewAdventureGame).toHaveBeenCalledTimes(1);
-    expect(useAdPresentation.getState().automaticAdsSuppressedUntil).toBeGreaterThan(Date.now());
-    expect(getJSON<AdsMeta>(KEYS.adsMeta)?.rewardedOfferContextId).toBe(props.completionId);
+    expect(useAdPresentation.getState().automaticAdsSuppressedUntil).toBe(0);
+    expect(getJSON<AdsMeta>(KEYS.adsMeta)?.rewardedOfferContextId).toBeNull();
   });
 
   it('blocks stale Next and Exit during a bonus claim, then allows one transition when released', async () => {
@@ -267,7 +273,7 @@ describe('adventure contextual monetization integration', () => {
     expect(mockShowInterstitial).toHaveBeenCalledTimes(1);
     expect(mockShowInterstitial).toHaveBeenCalledWith(
       'adventure_level',
-      expect.objectContaining({ policy_version: 'contextual-breaks-v2-four-rounds', result_context_id: props.completionId }),
+      expect.objectContaining({ policy_version: 'contextual-breaks-v3-decline-without-cooldown', result_context_id: props.completionId }),
       expect.any(Function),
     );
     const meta = getJSON<AdsMeta>(KEYS.adsMeta)!;

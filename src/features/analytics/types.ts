@@ -232,7 +232,7 @@ export interface AnalyticsEventMap {
     variant: 'control' | 'first_session_capped';
     placement: string;
     mode: AnalyticsGameMode;
-    decision: 'request' | 'suppressed_first_session' | 'suppressed_session_cap' | 'suppressed_adventure_retry' | 'suppressed_short_run' | 'suppressed_rewarded_offer';
+    decision: 'request' | 'suppressed_first_session' | 'suppressed_session_cap' | 'suppressed_adventure_retry' | 'suppressed_short_run' | 'suppressed_rewarded_offer' | 'suppressed_fullscreen_cooldown';
     policy_version?: string;
     result_context_id?: string;
     active_play_ms: number;

@@ -1,4 +1,4 @@
-import { KEYS, getJSON, removeKey, setJSON } from '@/core/storage';
+import { KEYS, getJSON, getString, removeKey, setJSON, storage } from '@/core/storage';
 import { useProgression } from '@/features/progression/store';
 
 import { createLeaderboardStore } from '../store';
@@ -19,6 +19,59 @@ beforeEach(() => {
 });
 
 describe('leaderboard store', () => {
+  it('persists each recorded move without rewriting unrelated leaderboard fields', () => {
+    const store = createLeaderboardStore();
+    store.getState().startRun({ startedAt: NOW.toISOString(), mode: 'weekly', seed: 501 });
+    const unrelatedKeys = [
+      KEYS.leaderboardSnapshot,
+      KEYS.leaderboardRuns,
+      KEYS.leaderboardDaily,
+      KEYS.leaderboardTickets,
+      KEYS.leaderboardPending,
+      KEYS.leaderboardPrizes,
+      KEYS.leaderboardWeeklyOutcomes,
+    ];
+    const previousValues = unrelatedKeys.map((key) => getString(key));
+    const write = jest.spyOn(storage, 'set');
+    const moves = [
+      { trayIndex: 0, row: 0, col: 0 },
+      { trayIndex: 1, row: 2, col: 3 },
+    ];
+
+    try {
+      moves.forEach((move) => store.getState().recordMove(move));
+
+      expect(getJSON(KEYS.leaderboardActiveProof)).toEqual(store.getState().activeProof);
+      expect(store.getState().activeProof?.moves).toEqual(moves);
+      expect(unrelatedKeys.map((key) => getString(key))).toEqual(previousValues);
+      expect(write.mock.calls.map(([key]) => key)).toEqual([
+        KEYS.leaderboardActiveProof,
+        KEYS.leaderboardActiveProof,
+      ]);
+    } finally {
+      write.mockRestore();
+    }
+  });
+
+  it('keeps recording in memory when the best-effort proof write fails', () => {
+    const store = createLeaderboardStore();
+    const previousProof = store.getState().startRun({
+      startedAt: NOW.toISOString(), mode: 'weekly', seed: 501,
+    });
+    const write = jest.spyOn(storage, 'set').mockImplementationOnce(() => {
+      throw new Error('storage unavailable');
+    });
+    const move = { trayIndex: 0, row: 0, col: 0 };
+
+    try {
+      expect(() => store.getState().recordMove(move)).not.toThrow();
+      expect(store.getState().activeProof?.moves).toEqual([move]);
+      expect(getJSON(KEYS.leaderboardActiveProof)).toEqual(previousProof);
+    } finally {
+      write.mockRestore();
+    }
+  });
+
   it('refreshes a recent snapshot immediately when Moscow weekKey changed', async () => {
     const store = createLeaderboardStore({
       profile: {

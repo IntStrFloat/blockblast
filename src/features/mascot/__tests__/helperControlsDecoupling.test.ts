@@ -14,7 +14,7 @@ describe('G13 helper controls decoupling', () => {
   const swap = read('../components/HelperSwap.tsx');
 
   it('mounts functional helpers in the stable Classic control layer only', () => {
-    expect(game).toContain('<HelperControls active={!ftueActive} />');
+    expect(game.match(/<HelperControls[\s\S]*?\/>/)?.[0]).toContain('active={!ftueActive}');
     expect(adventure).not.toContain('HelperControls');
     expect(controls).toContain('<HelperHint');
     expect(controls).toContain('<HelperSwap');
@@ -46,11 +46,19 @@ describe('G13 helper controls decoupling', () => {
     expect(controls).toContain('minHeight: 44');
   });
 
-  it('fits one horizontal 44dp helper row above the Classic board at 360x640', () => {
-    const helperBottomRelativeToBoard =
-      PLAYFIELD_LAYOUT.classicMascotFlowHeight -
-      PLAYFIELD_LAYOUT.classicMascotVisualHeight +
-      44;
-    expect(helperBottomRelativeToBoard).toBeLessThanOrEqual(0);
+  it('reserves a full control rail rather than borrowing the bottom of the HUD', () => {
+    expect(PLAYFIELD_LAYOUT.classicCompactMascotHeight).toBeGreaterThanOrEqual(44);
+    expect(PLAYFIELD_LAYOUT.classicMascotVisualHeight).toBeGreaterThanOrEqual(44);
+    expect(game).not.toContain('classicMascotFlowHeight');
+    expect(controls).not.toContain("position: 'absolute'");
+  });
+
+  it('owns a separate companion rail and gives each helper its own bounded touch slot', () => {
+    expect(game).toContain('testID="game-companion-rail"');
+    expect(controls).toContain('testID="helper-hint-slot"');
+    expect(controls).toContain('testID="helper-swap-slot"');
+    expect(hint).toContain('testID="helper-hint"');
+    expect(swap).toContain('testID="helper-swap"');
+    expect(swap).toContain('testID="helper-swap-undo"');
   });
 });

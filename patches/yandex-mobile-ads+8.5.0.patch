@@ -1,0 +1,47 @@
+diff --git a/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/banner/YandexBannerView.kt b/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/banner/YandexBannerView.kt
+index b545a46..b2608ee 100644
+--- a/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/banner/YandexBannerView.kt
++++ b/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/banner/YandexBannerView.kt
+@@ -116,9 +116,9 @@ class YandexBannerView(
+         }
+ 
+         override fun onAdLoaded() {
+-            removeAllViews()
+             val size = bannerAdSize ?: return
+             val view = adView ?: return
++            removeAllViews()
+             val widthMeasureSpec = MeasureSpec.makeMeasureSpec(
+                 size.getWidthInPixels(context),
+                 MeasureSpec.AT_MOST
+@@ -144,7 +144,8 @@ class YandexBannerView(
+                 Constants.EventName.ON_AD_FAILED_TO_LOAD,
+                 mapOf(Constants.Key.ERROR to adRequestErrorMapper.map(error))
+             )
+-            adView = null
++            // Keep the SDK-owned view for automatic retries and eventual destroy().
++            // Dropping it here makes a subsequent onAdLoaded unable to attach it.
+         }
+     }
+ 
+diff --git a/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/interstitial/YandexInterstitialAdModule.kt b/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/interstitial/YandexInterstitialAdModule.kt
+--- a/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/interstitial/YandexInterstitialAdModule.kt
++++ b/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/interstitial/YandexInterstitialAdModule.kt
+@@ -158,6 +158,7 @@ internal class YandexInterstitialAdModule(
+             val eventData: MutableMap<String, Any> = mutableMapOf(Constants.Key.AD_ID to adId)
+             eventData[Constants.Key.ERROR] = adErrorMapper.map(adError)
+             eventEmitter.emit(eventName, eventData)
++            deleteAd(adId)
+         }
+ 
+         override fun onAdDismissed() {
+diff --git a/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/rewarded/YandexRewardedAdModule.kt b/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/rewarded/YandexRewardedAdModule.kt
+--- a/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/rewarded/YandexRewardedAdModule.kt
++++ b/node_modules/yandex-mobile-ads/android/src/main/java/com/yandexmobileads/rewarded/YandexRewardedAdModule.kt
+@@ -161,6 +161,7 @@ internal class YandexRewardedAdModule(
+             val eventData: MutableMap<String, Any> = mutableMapOf(Constants.Key.AD_ID to adId)
+             eventData[Constants.Key.ERROR] = adErrorMapper.map(adError)
+             eventEmitter.emit(eventName, eventData)
++            deleteAd(adId)
+         }
+ 
+         override fun onAdDismissed() {

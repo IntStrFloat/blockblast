@@ -1,7 +1,7 @@
 import { MONETIZATION } from './config';
 
 export interface AdsMeta {
-  /** A visible voluntary offer protects this result even after a cold reopen. */
+  /** Last offered result; informational only, never an impression or cooldown. */
   rewardedOfferContextId?: string | null;
   gamesPlayed: number;
   adventureRunsPlayed?: number;

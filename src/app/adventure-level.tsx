@@ -9,7 +9,7 @@ import {
   type LayoutChangeEvent,
   type LayoutRectangle,
 } from 'react-native';
-import Animated, { FadeIn, useSharedValue } from 'react-native-reanimated';
+import { useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { AdventureHelpPolicy } from '@/core/engine';
@@ -70,6 +70,7 @@ import {
 } from '@/features/monetization';
 import type { InterstitialCounter } from '@/features/monetization';
 import { rememberRewardedOffer, leaveRewardedOffer } from '@/features/monetization/rewardedOfferPolicy';
+import { useInterstitialPreparation } from '@/features/monetization/useInterstitialPreparation';
 import { useFtueStore } from '@/features/onboarding';
 import { useScores } from '@/features/scores';
 import { useLang } from '@/features/settings';
@@ -120,6 +121,7 @@ export default function AdventureLevelScreen() {
   const [paused, setPaused] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
   const [adBusy, setAdBusy] = useState(false);
+  const [resultReadyRunId, setResultReadyRunId] = useState<string | null>(null);
   const adBusyRef = useRef(false);
   const resultContextId = adventureCompletionIdentity(spec.seasonId, spec.levelIndex).completionId;
   const onBonusBusyChange = useCallback((value: boolean) => {
@@ -341,11 +343,13 @@ export default function AdventureLevelScreen() {
     }
   }, [runStatus]);
 
-  useEffect(() => {
-    if (phase !== 'result' || winCommittedAtRef.current === null) return;
-    const runId = useGameStore.getState().adventure?.runId ?? 'missing';
+  const handleResultPresentationReady = useCallback(() => {
+    const run = useGameStore.getState().adventure;
+    if (!run || run.status !== 'won' || run.level.id !== spec.id) return;
+    setResultReadyRunId(run.runId);
+    if (winCommittedAtRef.current === null) return;
     useAnalyticsStore.getState().trackOnce(
-      `adventure-result-ready:${runId}`,
+      `adventure-result-ready:${run.runId}`,
       'adventure_result_ready',
       {
         elapsed_ms: Math.max(0, Date.now() - winCommittedAtRef.current),
@@ -354,7 +358,7 @@ export default function AdventureLevelScreen() {
         accelerated: resultAcceleratedRef.current,
       },
     );
-  }, [phase, reducedMotion, spec.objective.type]);
+  }, [reducedMotion, spec.id, spec.objective.type]);
 
   useEffect(() => {
     if (phase !== 'settling') return;
@@ -559,6 +563,7 @@ export default function AdventureLevelScreen() {
       handledOutcome.current = false;
       winCommittedAtRef.current = null;
       resultAcceleratedRef.current = false;
+      setResultReadyRunId(null);
       setObjectiveArrival(null);
       setSpec(nextSpec);
       setAttempt(nextAttempt);
@@ -609,6 +614,11 @@ export default function AdventureLevelScreen() {
     startCurrentLevel(attempt + 1);
   }, [attempt, startCurrentLevel]);
 
+  useInterstitialPreparation({
+    active: phase === 'result' && runStatus === 'won' && resultReadyRunId === activeAdventureRunId && !adBusy,
+    counter: 'adventure_level', mode: 'adventure', removeAds, resultContextId,
+  });
+
   const runAfterInterstitial = useCallback(
     async (counter: InterstitialCounter, after: () => void) => {
       if (adBusyRef.current) return;
@@ -616,7 +626,7 @@ export default function AdventureLevelScreen() {
       if (!currentRun || currentRun.level.id !== spec.id ||
           currentRun.status !== (counter === 'adventure_fail' ? 'failed' : 'won')) return;
       adBusyRef.current = true;
-      const rewardedOfferPresented = leaveRewardedOffer(resultContextId);
+      leaveRewardedOffer(resultContextId);
       setAdBusy(true);
       try {
         const meta = loadAdsMeta();
@@ -629,7 +639,7 @@ export default function AdventureLevelScreen() {
           },
           counter,
           'adventure',
-          { rewardedOfferPresented, resultContextId },
+          { resultContextId },
         );
         if (!opportunity.baseEligible) {
           useAnalyticsStore.getState().track('ad_eligible', {
@@ -904,8 +914,9 @@ export default function AdventureLevelScreen() {
         ) : null}
 
         {phase === 'result' ? (
-          <Animated.View entering={FadeIn.duration(240)} style={{ position: 'absolute', inset: 0, zIndex: 40 }}>
+          <View style={{ position: 'absolute', inset: 0, zIndex: 40 }}>
             <LevelResultView
+              key={activeAdventureRunId}
               completedLevel={absoluteLevelNumber(spec.seasonId, spec.levelIndex)}
               runId={useGameStore.getState().adventure?.runId ?? null}
               completionId={adventureCompletionIdentity(
@@ -920,10 +931,11 @@ export default function AdventureLevelScreen() {
               disabled={adBusy}
               onBonusOfferAvailable={() => rememberRewardedOffer(resultContextId)}
               onBonusBusyChange={onBonusBusyChange}
+              onPresentationReady={handleResultPresentationReady}
               onNext={() => void runAfterInterstitial('adventure_level', () => startCurrentLevel(0))}
               onExit={exitToHub}
             />
-          </Animated.View>
+          </View>
         ) : null}
         {phase === 'failed' ? (
           <FailOverlay

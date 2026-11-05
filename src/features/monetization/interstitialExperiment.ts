@@ -21,6 +21,7 @@ export type InterstitialPolicyDecision =
   | PlacementSuppression
   | 'frequency_policy'
   | 'request'
+  | 'suppressed_fullscreen_cooldown'
   | 'suppressed_first_session'
   | 'suppressed_session_cap';
 
@@ -84,6 +85,7 @@ export function evaluateInterstitialOpportunity(
   counter: InterstitialCounter,
   mode: AnalyticsGameMode,
   resultContext: ResultAdContext = {},
+  options: { recordExposure?: boolean } = {},
 ): InterstitialOpportunity {
   const baseEligible = shouldShowInterstitial(meta, opts, counter);
   const variant = currentInterstitialExperimentVariant();
@@ -102,12 +104,9 @@ export function evaluateInterstitialOpportunity(
   const productSessionId = context?.product_session_id ?? 'bootstrap';
   const sessionShows = interstitialShowsForSession(meta, productSessionId);
   const treatment = variant === 'first_session_capped';
-  const suppression = placementSuppression(counter, {
-    ...resultContext,
-    rewardedOfferPresented: resultContext.rewardedOfferPresented ||
-      (!!resultContext.resultContextId && meta.rewardedOfferContextId === resultContext.resultContextId) ||
-      areAutomaticAdsSuppressed(opts.nowMs),
-  });
+  const suppression = areAutomaticAdsSuppressed(opts.nowMs)
+    ? 'suppressed_fullscreen_cooldown'
+    : placementSuppression(counter, resultContext);
   const decision: Exclude<InterstitialPolicyDecision, 'frequency_policy'> =
     suppression ?? (treatment && context?.is_first_session
       ? 'suppressed_first_session'
@@ -128,16 +127,18 @@ export function evaluateInterstitialOpportunity(
     result_context_id: resultContext.resultContextId,
   };
 
-  recordExperimentExposure(
-    MONETIZATION.interstitialExperiment.id,
-    variant,
-    'interstitial_eligibility',
-  );
-  analytics.track('interstitial_policy_eligible', {
-    ...telemetry,
-    placement: counter,
-    decision,
-  });
+  if (options.recordExposure !== false) {
+    recordExperimentExposure(
+      MONETIZATION.interstitialExperiment.id,
+      variant,
+      'interstitial_eligibility',
+    );
+    analytics.track('interstitial_policy_eligible', {
+      ...telemetry,
+      placement: counter,
+      decision,
+    });
+  }
   return {
     variant,
     baseEligible: true,

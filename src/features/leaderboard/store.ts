@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { KEYS, getJSON, getString, removeKey, setJSON } from '@/core/storage';
+import { KEYS, getJSON, getString, removeKey, setJSON, setJSONOrThrow } from '@/core/storage';
 import { useAnalyticsStore } from '@/features/analytics';
 // Store-to-store (индекс mascot тянет компоненты, которые импортируют game — цикл).
 import { getShowcaseAvatar, useMascot } from '@/features/mascot/store';
@@ -63,7 +63,7 @@ interface LeaderboardState {
     challengeDate?: string | null;
   }) => RunProof;
   recordMove: (move: RunMove) => void;
-  reopenActiveRun: () => void;
+  reopenActiveRun: (expectedProofId?: string) => boolean;
   finishActiveRun: (score: number, now?: Date) => Promise<WeeklyImpact | null>;
   issueTickets: (authToken?: string | null) => Promise<RankedTicket[]>;
   flushPending: (authToken?: string | null) => Promise<void>;
@@ -279,15 +279,17 @@ export function createLeaderboardStore(options: CreateLeaderboardStoreOptions = 
       if (!activeProof) return;
       const nextProof = appendRunMove(activeProof, move);
       set({ activeProof: nextProof });
-      persistState({ ...get(), activeProof: nextProof });
+      setJSON(KEYS.leaderboardActiveProof, nextProof);
     },
 
-    reopenActiveRun: () => {
+    reopenActiveRun: (expectedProofId) => {
       const activeProof = get().activeProof;
-      if (!activeProof || activeProof.frozenScore === null) return;
+      if (!activeProof || (expectedProofId && activeProof.id !== expectedProofId)) return false;
       const reopened = reopenRunProof(activeProof);
+      // Do not clear an earned journal based on a memory-only proof update.
+      setJSONOrThrow(KEYS.leaderboardActiveProof, reopened);
       set({ activeProof: reopened });
-      persistState({ ...get(), activeProof: reopened });
+      return true;
     },
 
     finishActiveRun: async (score, now = new Date()) => {

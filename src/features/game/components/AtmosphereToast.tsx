@@ -14,7 +14,7 @@ import { useGameStore } from '../store';
  * «пошла жара»). Показывается только на росте фазы после маунта — резюм партии
  * с высоким счётом тост не даёт. Низкочастотный React-путь, вне drag.
  */
-export function AtmosphereToast() {
+export function AtmosphereToast({ hidden = false, onVisibleChange }: { hidden?: boolean; onVisibleChange?: (visible: boolean) => void }) {
   const score = useGameStore((s) => s.game.score);
   const lastEvent = useGameStore((s) => s.lastEvent);
   const recordCelebration = useGameStore((s) => s.recordCelebration);
@@ -66,7 +66,12 @@ export function AtmosphereToast() {
     }
   }, [lang, lastEvent, phase, recordCelebration, score, tone]);
 
-  if (!toast) return null;
+  useEffect(() => {
+    onVisibleChange?.(toast !== null && !hidden);
+    return () => onVisibleChange?.(false);
+  }, [hidden, onVisibleChange, toast]);
+
+  if (!toast || hidden) return null;
 
   return (
     <Animated.View
@@ -77,7 +82,8 @@ export function AtmosphereToast() {
       pointerEvents="none"
       style={{
         position: 'absolute',
-        top: '13%',
+        top: 0,
+        maxWidth: '100%',
         alignSelf: 'center',
         backgroundColor: 'rgba(16,22,46,0.9)',
         borderWidth: 1,
@@ -88,7 +94,7 @@ export function AtmosphereToast() {
         zIndex: 55,
       }}
     >
-      <AppText preset="button">{toast.text}</AppText>
+      <AppText preset="button" numberOfLines={2} maxFontSizeMultiplier={1.2} style={{ fontSize: 12, lineHeight: 16, includeFontPadding: false, textAlign: 'center' }}>{toast.text}</AppText>
     </Animated.View>
   );
 }

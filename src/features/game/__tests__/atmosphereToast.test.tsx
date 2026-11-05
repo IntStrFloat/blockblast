@@ -115,4 +115,53 @@ describe('AtmosphereToast', () => {
     act(() => jest.advanceTimersByTime(1));
     expect(toastCount()).toBeGreaterThan(0);
   });
+
+  it('keeps hidden phase toasts off screen while their original expiry deadline continues', () => {
+    const visible = jest.fn();
+    act(() => renderer!.update(<AtmosphereToast hidden onVisibleChange={visible} />));
+    act(() => {
+      useGameStore.setState((state) => ({ game: { ...state.game, score: 500 } }));
+    });
+    expect(toastCount()).toBe(0);
+    expect(visible).not.toHaveBeenCalledWith(true);
+
+    act(() => jest.advanceTimersByTime(ATMOSPHERE.toastDurationMs + 1));
+    act(() => renderer!.update(<AtmosphereToast onVisibleChange={visible} />));
+    expect(toastCount()).toBe(0);
+    expect(visible.mock.lastCall?.[0]).toBe(false);
+  });
+
+  it('reports actual mounted visibility and resumes a hidden toast only for its remaining lifetime', () => {
+    const visible = jest.fn();
+    act(() => renderer!.update(<AtmosphereToast onVisibleChange={visible} />));
+    expect(visible.mock.lastCall?.[0]).toBe(false);
+    act(() => useGameStore.setState((state) => ({ game: { ...state.game, score: 500 } })));
+    expect(visible.mock.lastCall?.[0]).toBe(true);
+    const toast = renderer!.root.findByProps({ testID: 'atmosphere-toast' });
+    expect(toast.props.style).toMatchObject({ top: 0, maxWidth: '100%' });
+
+    act(() => renderer!.update(<AtmosphereToast hidden onVisibleChange={visible} />));
+    expect(toastCount()).toBe(0);
+    expect(visible.mock.lastCall?.[0]).toBe(false);
+    act(() => jest.advanceTimersByTime(500));
+    act(() => renderer!.update(<AtmosphereToast onVisibleChange={visible} />));
+    expect(toastCount()).toBeGreaterThan(0);
+    expect(visible.mock.lastCall?.[0]).toBe(true);
+    act(() => jest.advanceTimersByTime(ATMOSPHERE.toastDurationMs - 501));
+    expect(toastCount()).toBeGreaterThan(0);
+    act(() => jest.advanceTimersByTime(1));
+    expect(toastCount()).toBe(0);
+    expect(visible.mock.lastCall?.[0]).toBe(false);
+  });
+
+  it('clears pending timers and reports hidden when its notification slot unmounts', () => {
+    const visible = jest.fn();
+    act(() => renderer!.update(<AtmosphereToast onVisibleChange={visible} />));
+    act(() => useGameStore.setState((state) => ({ game: { ...state.game, score: 500 } })));
+    expect(visible.mock.lastCall?.[0]).toBe(true);
+    act(() => renderer!.unmount());
+    renderer = null;
+    expect(visible.mock.lastCall?.[0]).toBe(false);
+    expect(jest.getTimerCount()).toBe(0);
+  });
 });

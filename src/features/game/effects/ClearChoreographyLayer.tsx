@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
 import { View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -69,7 +69,7 @@ const BeamSlot = forwardRef<BeamHandle>(function BeamSlot(_props, ref) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []);
 
-  const style = useAnimatedStyle(() => ({
+  const geometryStyle = useAnimatedStyle(() => ({
     position: 'absolute',
     left: x.value,
     top: y.value,
@@ -80,10 +80,12 @@ const BeamSlot = forwardRef<BeamHandle>(function BeamSlot(_props, ref) {
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 6,
+  }));
+  const motionStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
   }));
 
-  return <Animated.View pointerEvents="none" style={style} />;
+  return <Animated.View pointerEvents="none" style={[geometryStyle, motionStyle]} />;
 });
 
 interface MoteHandle {
@@ -135,18 +137,20 @@ const MoteSlot = forwardRef<MoteHandle>(function MoteSlot(_props, ref) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []);
 
-  const style = useAnimatedStyle(() => ({
+  const geometryStyle = useAnimatedStyle(() => ({
     position: 'absolute',
     left: x.value,
     top: y.value,
     width: size.value,
     height: size.value,
     backgroundColor: color.value,
+  }));
+  const motionStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateX: tx.value }, { translateY: ty.value }],
   }));
 
-  return <Animated.View pointerEvents="none" style={style} />;
+  return <Animated.View pointerEvents="none" style={[geometryStyle, motionStyle]} />;
 });
 
 export function ClearChoreographyLayer({ presentations }: ClearChoreographyLayerProps) {
@@ -157,6 +161,16 @@ export function ClearChoreographyLayer({ presentations }: ClearChoreographyLayer
   const beamCursor = useRef(0);
   const moteCursor = useRef(0);
   const fired = useRef<Set<string>>(new Set());
+  const particles = useMemo(() => (
+    <>
+      {Array.from({ length: POOL_SIZE.beams }, (_, index) => (
+        <BeamSlot key={`beam-${index}`} ref={(handle) => { beamSlots.current[index] = handle; }} />
+      ))}
+      {Array.from({ length: POOL_SIZE.motes }, (_, index) => (
+        <MoteSlot key={`mote-${index}`} ref={(handle) => { moteSlots.current[index] = handle; }} />
+      ))}
+    </>
+  ), []);
 
   useLayoutEffect(() => {
     const activeIds = new Set(presentations.map(({ id }) => id));
@@ -203,12 +217,7 @@ export function ClearChoreographyLayer({ presentations }: ClearChoreographyLayer
       pointerEvents="none"
       style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, overflow: 'visible' }}
     >
-      {Array.from({ length: POOL_SIZE.beams }, (_, index) => (
-        <BeamSlot key={`beam-${index}`} ref={(handle) => { beamSlots.current[index] = handle; }} />
-      ))}
-      {Array.from({ length: POOL_SIZE.motes }, (_, index) => (
-        <MoteSlot key={`mote-${index}`} ref={(handle) => { moteSlots.current[index] = handle; }} />
-      ))}
+      {particles}
     </View>
   );
 }

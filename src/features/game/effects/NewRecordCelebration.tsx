@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 250,
-    zIndex: 70,
+    zIndex: 0,
     overflow: 'hidden',
   },
   bloom: {

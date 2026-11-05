@@ -1,0 +1,362 @@
+{
+  "dateMoscow": "2026-10-31T00:02:16.068054+03:00",
+  "status": "verified",
+  "subject": "Classic HUD, mascot and helper layout on small and medium devices",
+  "changes": [
+    "Removed the negative55dp utility-row overlap; real48/70dp row budgets with separate mascot, level and helper bounds.",
+    "Bounded score/best/status columns including1.25 score pulse and badge overshoot. Stable numeric native view avoids blank remount frames.",
+    "Long best scores use readable compact locale notation; raw score and exact best remain accessible.",
+    "Fixed-size helper/video/result/Undo labels remain readable; full ad disclosure and accessibility text preserved.",
+    "Level caption and progress bar are stacked; wardrobe opens in a full-screen native modal with its gesture root.",
+    "Mascot speech, atmosphere and level-up messages use a board notification region with priority; praise stays clipped to the board and does not replay after suppression.",
+    "Record decorations paint behind HUD numbers; record-title lifetime is derived from current celebration and resets with a new run.",
+    "Greeting decorative emoji uses a paw already supported by the minimum Android test environment."
+  ],
+  "verification": {
+    "nativeEnvironment": "Registered Blockblast_Audio_Check API29, same retained AVD; isolated.performance release QA package/debug signer.",
+    "profilesDp": [
+      [
+        320,
+        568
+      ],
+      [
+        360,
+        640
+      ],
+      [
+        393,
+        852
+      ],
+      [
+        412,
+        915
+      ]
+    ],
+    "fontScales": [
+      1,
+      1.3,
+      1.6
+    ],
+    "bannerReserveDp": 108,
+    "bannerMethod": "Plain native test sibling reserves108dp. No real ads/backend calls.",
+    "geometryPassedCases": 28,
+    "geometryErrors": 0,
+    "cases": [
+      {
+        "name": "320x568-d160-f1-helpers",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\320x568-d160-f1-helpers.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\320x568-d160-f1-helpers.png",
+        "errors": []
+      },
+      {
+        "name": "320x568-d160-f1-video-offer",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\320x568-d160-f1-video-offer.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\320x568-d160-f1-video-offer.png",
+        "errors": []
+      },
+      {
+        "name": "320x568-d160-f1p6-helpers",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\320x568-d160-f1p6-helpers.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\320x568-d160-f1p6-helpers.png",
+        "errors": []
+      },
+      {
+        "name": "320x568-d160-f1p6-video-offer",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\320x568-d160-f1p6-video-offer.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\320x568-d160-f1p6-video-offer.png",
+        "errors": []
+      },
+      {
+        "name": "360x640-d160-f1-helpers",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\360x640-d160-f1-helpers.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\360x640-d160-f1-helpers.png",
+        "errors": []
+      },
+      {
+        "name": "360x640-d160-f1-video-offer",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\360x640-d160-f1-video-offer.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\360x640-d160-f1-video-offer.png",
+        "errors": []
+      },
+      {
+        "name": "360x640-d160-f1p6-helpers",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\360x640-d160-f1p6-helpers.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\360x640-d160-f1p6-helpers.png",
+        "errors": []
+      },
+      {
+        "name": "360x640-d160-f1p6-video-offer",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\360x640-d160-f1p6-video-offer.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\360x640-d160-f1p6-video-offer.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-d160-f1-helpers",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\393x852-d160-f1-helpers.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\393x852-d160-f1-helpers.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-d160-f1-video-offer",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\393x852-d160-f1-video-offer.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\393x852-d160-f1-video-offer.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-d160-f1p6-helpers",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\393x852-d160-f1p6-helpers.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\393x852-d160-f1p6-helpers.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-d160-f1p6-video-offer",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\393x852-d160-f1p6-video-offer.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\393x852-d160-f1p6-video-offer.png",
+        "errors": []
+      },
+      {
+        "name": "412x915-d160-f1-helpers",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\412x915-d160-f1-helpers.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\412x915-d160-f1-helpers.png",
+        "errors": []
+      },
+      {
+        "name": "412x915-d160-f1-video-offer",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\412x915-d160-f1-video-offer.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\412x915-d160-f1-video-offer.png",
+        "errors": []
+      },
+      {
+        "name": "412x915-d160-f1p6-helpers",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\412x915-d160-f1p6-helpers.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\412x915-d160-f1p6-helpers.png",
+        "errors": []
+      },
+      {
+        "name": "412x915-d160-f1p6-video-offer",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\412x915-d160-f1p6-video-offer.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-matrix\\412x915-d160-f1p6-video-offer.png",
+        "errors": []
+      },
+      {
+        "name": "320x568-d160-f1p3-combo",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-combo.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-combo.png",
+        "errors": []
+      },
+      {
+        "name": "320x568-d160-f1p3-intro",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-intro.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-intro.png",
+        "errors": []
+      },
+      {
+        "name": "320x568-d160-f1p3-level-up",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-level-up.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-level-up.png",
+        "errors": []
+      },
+      {
+        "name": "320x568-d160-f1p3-long-scores",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-long-scores.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-long-scores.png",
+        "errors": []
+      },
+      {
+        "name": "320x568-d160-f1p3-mascot-hidden",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-mascot-hidden.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-mascot-hidden.png",
+        "errors": []
+      },
+      {
+        "name": "320x568-d160-f1p3-record",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-record.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-states\\320x568-d160-f1p3-record.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-f1p6-combo",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-combo.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-combo.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-f1p6-intro",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-intro.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-intro.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-f1p6-level-up",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-level-up.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-level-up.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-f1p6-long-scores",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-long-scores.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-long-scores.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-f1p6-mascot-hidden",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-mascot-hidden.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-mascot-hidden.png",
+        "errors": []
+      },
+      {
+        "name": "393x852-f1p6-record",
+        "report": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-record.json",
+        "screenshot": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-special\\393x852-f1p6-record.png",
+        "errors": []
+      }
+    ],
+    "visual": "Independent review passes full helper/video matrix and targeted long-score/combo/record/intro/reveal/hidden-mascot states.",
+    "tests": {
+      "suites": 196,
+      "passed": 1331,
+      "failed": 0,
+      "log": "C:\\Users\\Dima2\\Documents\\blockblast\\.omx\\header-tests-final-verified.log"
+    },
+    "additionalLocaleTests": {
+      "passed": 18,
+      "scope": "Greeting compatibility string update and mascot contract"
+    },
+    "typecheckExitCode": 0,
+    "lintErrors": 0,
+    "preexistingLintWarnings": 1,
+    "nativeActions": [
+      "Real Hint and readable charge receipt",
+      "Real Swap and visible Undo card",
+      "Undo restored original tray with no used-day charge",
+      "Level chip opened full-screen wardrobe; AndroidBack closed it",
+      "Supported paw emoji rendered correctly in the greeting at320x568/fontScale1.6"
+    ],
+    "nativeActionEvidence": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\verified-actions",
+    "qaTimingNote": "Only the QA harness widens1100/1800ms transient observation windows to5000ms for capture, and holds record title5000ms. Production timers unchanged; production lifecycles covered by unit tests.",
+    "visualVerdict": {
+      "score": 98,
+      "verdict": "pass",
+      "remainingLayoutFailures": 0
+    },
+    "greetingCompatibilityEvidence": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30\\greeting-compatible\\320x568-d160-f1p6-intro.png",
+    "nativeGeometryMethod": "Direct Android UiAutomation hierarchy without idle waiting; validated view IDs/bounds plus independent PNG review."
+  },
+  "simplifications": [
+    "One actual layout budget replaces negative flow offsets and independent width guesses.",
+    "Score Text/View identities stay stable; pulse uses UI shared values without per-increase React state.",
+    "Record title uses one retired-record state and local timer instead of boolean+two refs."
+  ],
+  "limits": [
+    "Native measurements are from the Android emulator, not physical hardware.",
+    "Numeric gauges and narrow utility labels use bounded font sizing so large system text cannot displace controls.",
+    "QA APK is an isolated x86_64 test artifact, not a store release."
+  ],
+  "sourceFiles": [
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\app\\game.tsx",
+      "sha256": "a66393ef7f2db9291402fc32efc6363bad93236dec5af7a51e0f1f158d1d4437"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\core\\i18n\\mascot.ts",
+      "sha256": "c3bf03758b16c0a57f28d384647b3a9d85788c613e714a1849a54dd7160f04b2"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\playfield-layout.ts",
+      "sha256": "689a27943777ab500fad2738a1a6fe09e7e7621f134499041278154e98590ea2"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\components\\Hud.tsx",
+      "sha256": "ee26181d6e434b65bed1765de5227f1ca85e0b02e253e3368774de0c3c866cac"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\components\\RecordStatusBadge.tsx",
+      "sha256": "e57d0c0869d6a418e6bf8aafb445f348e991ca183f37ced12edca766f70514a9"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\components\\AtmosphereToast.tsx",
+      "sha256": "6e85fe328ed20e32d32ec0439f688c30cc0b4158901f60182bcd137ec4b28498"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\effects\\ComboBadge.tsx",
+      "sha256": "bc0ba096c61550f97b0fb9122f18c73da6d11dffb6189fb7b06215e28f5630aa"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\effects\\NewRecordCelebration.tsx",
+      "sha256": "fe656c39cb37802bc65475fdca139c2025f002925b5a8445eca72488a1c13ce8"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\effects\\PraiseBanner.tsx",
+      "sha256": "b02eb998e2a05f6b01b66d22d12d96fc6bca1df0aa3a4f45210c06230f69b308"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\components\\MascotLayer.tsx",
+      "sha256": "a58041f123d98c46e90b09c22bfb34553e37e11dcc3ea70cb42295982260136b"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\components\\MascotChip.tsx",
+      "sha256": "7a38b9c92a7f7b05c076d17d0e1121e1b87f778266a037816680d690610a2ba1"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\components\\MascotIntro.tsx",
+      "sha256": "774ff621e36d59d00067fad2c4f410a09438f6ca53f3a2adc133ee53a661c2d2"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\components\\SpeechBubble.tsx",
+      "sha256": "711a1e6486ced56ffbbca62fa6e1f35d78a3d04f61ff638d86519555c4e12ddb"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\components\\HelperControls.tsx",
+      "sha256": "603b2d328828b83c92576e43537683f4d95bdbe6334338f8c6026dc5c4253983"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\components\\HelperHint.tsx",
+      "sha256": "efd08d9ff187d501032ab9406f8ef9cd563853d5ad7ec93189a1e7eca78faa4c"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\components\\HelperSwap.tsx",
+      "sha256": "8e964f0f59a745bab5ab6992f6845b61efc99b1155fb0dbc4a5394e8d2fe91e3"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\components\\LevelUpReveal.tsx",
+      "sha256": "2d1be0ebbca8a9754f59424782966e859fcf0fccaec16676930a5e7e73d8b551"
+    },
+    {
+      "path": "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\index.ts",
+      "sha256": "76116cedf4d65ebafbd9e0d2555ac8ec1db021a6f4b8e8cf1cfb7c1ac16e2d98"
+    }
+  ],
+  "testFiles": [
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\app\\__tests__\\gameEntry.test.ts",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\headerLayout.test.ts",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\hud.test.ts",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\playfield-layout.test.ts",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\recordCelebration.test.tsx",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\praiseBanner.test.tsx",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\game\\__tests__\\atmosphereToast.test.tsx",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\__tests__\\helperControlsDecoupling.test.ts",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\__tests__\\helperRewardedSource.test.ts",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\__tests__\\mascotLayerContract.test.ts",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\__tests__\\helperRailStates.test.tsx",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\__tests__\\railGeometry.test.tsx",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\__tests__\\levelUpRevealPlacement.test.tsx",
+    "C:\\Users\\Dima2\\Documents\\blockblast\\src\\features\\mascot\\__tests__\\speechBubbleBounds.test.tsx"
+  ],
+  "safety": {
+    "productionPackage": "com.intstrfloat.blockblast",
+    "qaPackage": "com.intstrfloat.blockblast.performance",
+    "releaseVersionsAndKeysChanged": false,
+    "displayRestorationPendingCheck": false,
+    "originalDisplayRestored": true,
+    "originalSize": "1080x1920",
+    "originalDensity": 420,
+    "originalFontScale": 1.0,
+    "qaPackageRemoved": true,
+    "testHelperRemoved": true,
+    "ownedAvdStopped": true,
+    "testingOwnerReleased": true,
+    "originalGuestDataPreserved": true
+  },
+  "evidenceDirectory": "C:\\Users\\Dima2\\Documents\\blockblast\\output\\header-layout-2026-10-30",
+  "completedAtMoscow": "2026-10-31T00:02:48.919714+03:00"
+}

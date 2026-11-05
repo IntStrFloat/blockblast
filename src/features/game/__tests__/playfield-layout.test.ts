@@ -93,13 +93,13 @@ describe('shared playfield layout', () => {
       screenWidth: 360,
       screenHeight: 720,
       insets: { top: 24, bottom: 24 },
-      expectedTrayHeight: 147,
+      expectedTrayHeight: 82,
     },
     {
       screenWidth: 360,
       screenHeight: 800,
       insets: { top: 24, bottom: 24 },
-      expectedTrayHeight: 150,
+      expectedTrayHeight: 112,
     },
     {
       screenWidth: 412,
@@ -113,7 +113,6 @@ describe('shared playfield layout', () => {
     insets,
     expectedTrayHeight,
   }) => {
-    const metrics = getPlayfieldBoardMetrics(screenWidth, screenHeight, insets);
     const verticalGap = Math.max(
       PLAYFIELD_LAYOUT.minVerticalGap,
       Math.min(
@@ -121,6 +120,7 @@ describe('shared playfield layout', () => {
         Math.round(screenHeight * PLAYFIELD_LAYOUT.verticalGapRatio),
       ),
     );
+    const metrics = getClassicPlayfieldMetrics(screenWidth, screenHeight, insets, verticalGap, true);
     const trayHeight = getClassicTrayHeight({
       usableHeight: metrics.usableHeight,
       boardSize: metrics.boardSize,
@@ -128,8 +128,8 @@ describe('shared playfield layout', () => {
     });
     const contentHeight =
       PLAYFIELD_LAYOUT.contentTopPadding +
-      PLAYFIELD_LAYOUT.classicHudHeight +
-      PLAYFIELD_LAYOUT.classicMascotFlowHeight +
+      metrics.hudHeight +
+      metrics.mascotHeight +
       metrics.boardSize +
       trayHeight +
       verticalGap * 3;
@@ -146,23 +146,23 @@ describe('shared playfield layout', () => {
       screenHeight: 720,
       insets: { top: 24, bottom: 24 },
       expectedBoardSize: 328,
-      expectedTrayHeight: 150,
+      expectedTrayHeight: 140,
     },
     {
       name: 'API 29 emulator',
       screenWidth: 411,
       screenHeight: 621,
       insets: { top: 0, bottom: 0 },
-      expectedBoardSize: 360,
-      expectedTrayHeight: 112,
+      expectedBoardSize: 379,
+      expectedTrayHeight: 88,
     },
     {
       name: 'API 29 emulator with a 50 dp banner dock',
       screenWidth: 411,
       screenHeight: 571,
       insets: { top: 0, bottom: 0 },
-      expectedBoardSize: 310,
-      expectedTrayHeight: 112,
+      expectedBoardSize: 337,
+      expectedTrayHeight: 80,
     },
   ])('uses the measured Classic height on $name', ({
     screenWidth,
@@ -204,14 +204,14 @@ describe('shared playfield layout', () => {
     );
     const contentHeight =
       PLAYFIELD_LAYOUT.contentTopPadding +
-      PLAYFIELD_LAYOUT.classicHudHeight +
-      PLAYFIELD_LAYOUT.classicMascotFlowHeight +
+      metrics.hudHeight +
+      metrics.mascotHeight +
       metrics.boardSize +
       metrics.trayHeight +
       verticalGap * 3;
 
-    expect(metrics.boardSize).toBe(360);
-    expect(metrics.trayHeight).toBe(112);
+    expect(metrics.boardSize).toBe(379);
+    expect(metrics.trayHeight).toBe(88);
     expect(contentHeight).toBeLessThanOrEqual(metrics.usableHeight);
   });
 

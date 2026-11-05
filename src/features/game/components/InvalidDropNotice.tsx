@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
@@ -58,7 +58,7 @@ export function useInvalidDropNotice(mode: AnalyticsGameMode) {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
   }, []);
 
-  return { message, report, recordValidDrop };
+  return useMemo(() => ({ message, report, recordValidDrop }), [message, report, recordValidDrop]);
 }
 
 export function InvalidDropNotice({ message }: { message: string | null }) {

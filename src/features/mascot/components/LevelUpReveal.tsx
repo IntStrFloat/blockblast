@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,7 +13,7 @@ import { AppText, CheckIcon, StarIcon } from '@/ui';
 import { useMascotFeedback } from '../hooks/useMascotFeedback';
 
 /** A reward toast cannot intercept the next-game button beneath it. */
-export function LevelUpReveal() {
+export function LevelUpReveal({ hidden = false, top, width }: { hidden?: boolean; top?: number; width?: number }) {
   const reveal = useProgression((s) => s.reveal);
   const clearReveal = useProgression((s) => s.clearReveal);
   const lang = useLang();
@@ -20,21 +21,21 @@ export function LevelUpReveal() {
   const { onLevelUp } = useMascotFeedback();
 
   useEffect(() => {
-    if (reveal === null) return;
+    if (reveal === null || hidden) return;
     onLevelUp();
     const timer = setTimeout(clearReveal, 1300);
     return () => clearTimeout(timer);
-  }, [reveal, clearReveal, onLevelUp]);
+  }, [reveal, clearReveal, hidden, onLevelUp]);
 
-  if (reveal === null) return null;
+  if (reveal === null || hidden) return null;
   const label = `${lang === 'ru' ? 'Уровень' : 'Level'} ${reveal.level}. ${reveal.rewards.map((reward) => rewardDisplayName(reward, lang)).join(', ')}`;
 
   return (
-    <View pointerEvents="box-none" style={[styles.host, { top: insets.top + 12 }]}>
-      <Animated.View entering={FadeIn.duration(160)}>
+    <View testID="level-up-reveal" pointerEvents="box-none" style={[styles.host, { top: top ?? insets.top + 12 }, width === undefined ? undefined : { width, left: undefined, right: undefined, alignSelf: 'center' }]}>
+      <Animated.View entering={FadeIn.duration(160)} style={{ maxWidth: '100%' }}>
         <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint={lang === 'ru' ? 'Скрыть' : 'Dismiss'} accessibilityLiveRegion="polite" onPress={clearReveal} style={styles.toast}>
           <StarIcon size={20} color="#FFE06B" />
-          <AppText preset="button" style={styles.level}>{reveal.level}</AppText>
+          <AppText preset="button" numberOfLines={1} maxFontSizeMultiplier={1.3} style={styles.level}>{reveal.level}</AppText>
           {reveal.rewards.slice(0, 3).map((reward, index) => <RewardVisual key={index} reward={reward} size={36} />)}
           {reveal.rewards.length > 3 ? <AppText preset="caption" style={styles.level}>+{reveal.rewards.length - 3}</AppText> : null}
           <CheckIcon size={22} color="#8EEAA0" />
@@ -46,6 +47,6 @@ export function LevelUpReveal() {
 
 const styles = StyleSheet.create({
   host: { position: 'absolute', left: 16, right: 16, alignItems: 'center', zIndex: 200 },
-  toast: { minHeight: 56, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 20, backgroundColor: '#123B62', borderWidth: 1, borderColor: 'rgba(255,224,107,0.7)' },
+  toast: { minHeight: 56, maxWidth: '100%', paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 8, borderRadius: 20, backgroundColor: '#123B62', borderWidth: 1, borderColor: 'rgba(255,224,107,0.7)' },
   level: { color: '#FFFFFF', fontVariant: ['tabular-nums'] },
 });

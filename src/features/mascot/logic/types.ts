@@ -1,6 +1,6 @@
+import type { Stage } from '@/features/progression';
 /** Стадии эволюции маскота — выводятся из Уровня Игры (источник истины — progression, спека 15). */
 export type { Stage } from '@/features/progression';
-import type { Stage } from '@/features/progression';
 
 /** Слоты косметики */
 export type Slot = 'hat' | 'face' | 'accessory' | 'skin' | 'aura';
@@ -88,6 +88,8 @@ export interface MascotState {
   helpersUsedDay: Partial<Record<HelperId, string>>;
   /** Доп. заряды помощников (из дроп-дейли), тратятся сверх дневного лимита. */
   helperCharges: Partial<Record<HelperId, number>>;
+  /** Applied ad sessions, committed atomically with their charge. */
+  rewardedHelperReceipts?: Record<string, true>;
   lost: boolean;
   introDone: boolean;
   rngState: number;

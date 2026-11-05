@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
@@ -15,6 +16,7 @@ import { isHelperUnlocked, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
 import { todayISO } from '@/features/streak';
 import { useRewardedReady } from '@/features/monetization/useRewardedReady';
+import { claimRewardedBenefit } from '@/features/monetization/rewardedBenefits';
 import { AppText, colors, mascotPalette, radii } from '@/ui';
 
 import { MASCOT_CONFIG } from '../logic/config';
@@ -26,6 +28,7 @@ import { useMascot } from '../store';
 interface HelperHintProps {
   onEmote: (id: EmoteId) => void;
   reduceMotion: boolean;
+  compact?: boolean;
 }
 
 const THRESHOLD = MASCOT_CONFIG.helpers.hint.stuckThreshold;
@@ -36,7 +39,7 @@ const THRESHOLD = MASCOT_CONFIG.helpers.hint.stuckThreshold;
  * подсвечивает реальную валидную позицию ghost-блоками (переиспользует preview
  * drag-системы) — ход за игрока НЕ делается. После показа — кулдаун до завтра.
  */
-export function HelperHint({ onEmote, reduceMotion }: HelperHintProps) {
+export function HelperHint({ onEmote, reduceMotion, compact = false }: HelperHintProps) {
   const ctx = useDragCtx();
 
   const board = useGameStore((s) => s.game.board);
@@ -149,13 +152,13 @@ export function HelperHint({ onEmote, reduceMotion }: HelperHintProps) {
 
     rewardInFlightRef.current = true;
     setRewardBusy(true);
+    const offeredEpoch = useGameStore.getState().epoch;
     try {
-      const result = await getAds().showRewarded('helper_charge');
-      if (result !== 'unavailable') {
+      const result = await claimRewardedBenefit({ kind: 'helper', helperId: 'hint' }, getAds());
+      if (result === 'applied' || result === 'pending' || result === 'dismissed') {
         saveAdsMeta(recordFullscreenCooldown(loadAdsMeta(), Date.now()));
       }
-      if (result === 'rewarded') {
-        useMascot.getState().addHelperCharge('hint');
+      if (result === 'applied' && useGameStore.getState().epoch === offeredEpoch) {
         showHint();
       }
     } finally {
@@ -166,8 +169,8 @@ export function HelperHint({ onEmote, reduceMotion }: HelperHintProps) {
 
   if (resultText) {
     return (
-      <Animated.View entering={reduceMotion ? undefined : FadeIn} exiting={reduceMotion ? undefined : FadeOut} style={styles.result}>
-        <AppText preset="caption" style={styles.resultText}>{resultText}</AppText>
+      <Animated.View testID="helper-hint-result" entering={reduceMotion ? undefined : FadeIn} exiting={reduceMotion ? undefined : FadeOut} style={styles.result}>
+        <AppText preset="caption" numberOfLines={2} allowFontScaling={false} maxFontSizeMultiplier={1.2} style={[styles.resultText, { fontSize: compact ? 10 : 11 }]}>{resultText}</AppText>
       </Animated.View>
     );
   }
@@ -176,8 +179,10 @@ export function HelperHint({ onEmote, reduceMotion }: HelperHintProps) {
     <Animated.View
       entering={reduceMotion ? undefined : FadeIn}
       exiting={reduceMotion ? undefined : FadeOut}
+      style={styles.frame}
     >
       <Pressable
+        testID="helper-hint"
         onPress={() => {
           void handlePress();
         }}
@@ -191,10 +196,10 @@ export function HelperHint({ onEmote, reduceMotion }: HelperHintProps) {
         }
       >
         <View style={styles.pill}>
-          <AppText preset="speech" style={styles.label}>
+          <AppText preset="speech" numberOfLines={2} allowFontScaling={false} maxFontSizeMultiplier={1.2} style={[styles.label, { fontSize: compact ? 10 : 11 }]}>
             {rewardOffer
-              ? `🎬 ${t('mascot.hint', lang)} · ${t('mascot.adCharge', lang)}`
-              : `🐾 ${t('mascot.hint', lang)}${charges > 0 ? ` · ${charges}` : ''}`}
+              ? `${t('mascot.hint', lang)}\n${t('mascot.adCharge', lang)}`
+              : `${compact ? '' : '🐾 '}${t('mascot.hint', lang)}${charges > 0 ? ` · ${charges}` : ''}`}
           </AppText>
         </View>
       </Pressable>
@@ -203,17 +208,21 @@ export function HelperHint({ onEmote, reduceMotion }: HelperHintProps) {
 }
 
 const styles = StyleSheet.create({
+  frame: { width: '100%', minWidth: 0 },
   hit: {
-    minWidth: 44,
+    width: '100%',
+    minWidth: 0,
     minHeight: 44,
-    alignItems: 'flex-end',
+    alignItems: 'stretch',
     justifyContent: 'center',
   },
   pill: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    width: '100%',
+    height: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: radii.button,
     // Акцент Капи (блок-жёлтый) — чип читается как «Капи помогает», не безличный бейдж.
     backgroundColor: mascotPalette.block,
@@ -225,20 +234,30 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: 'Unbounded_700Bold',
-    fontSize: 13,
+    lineHeight: 14,
+    flexShrink: 1,
+    minWidth: 0,
+    textAlign: 'center',
+    includeFontPadding: false,
     // Тёмные чернила на жёлтом — высокий контраст и читаемость (≥4.5:1).
     color: mascotPalette.ink,
   },
   result: {
-    minHeight: 44,
+    height: 44,
+    width: '100%',
+    minWidth: 0,
     justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: radii.button,
     backgroundColor: colors.surface,
   },
   resultText: {
     color: colors.textPrimary,
     fontWeight: '700',
+    lineHeight: 14,
+    textAlign: 'center',
+    flexShrink: 1,
+    includeFontPadding: false,
   },
 });

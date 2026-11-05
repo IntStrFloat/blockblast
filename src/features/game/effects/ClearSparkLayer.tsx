@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
 import { AppState, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -140,7 +140,7 @@ const SparkParticle = forwardRef<SparkHandle>(function SparkParticle(_props, ref
     [stop],
   );
 
-  const coreStyle = useAnimatedStyle(() => ({
+  const geometryStyle = useAnimatedStyle(() => ({
     position: 'absolute',
     left: x.value - size.value / 2,
     top: y.value - size.value / 2,
@@ -150,9 +150,11 @@ const SparkParticle = forwardRef<SparkHandle>(function SparkParticle(_props, ref
     backgroundColor: color.value,
     borderWidth: Math.max(0.6, size.value * 0.09),
     borderColor: 'rgba(255,255,255,0.88)',
-    opacity: opacity.value,
     overflow: 'hidden',
     zIndex: 2,
+  }));
+  const motionStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
     transform: [
       { translateX: tx.value },
       { translateY: ty.value },
@@ -161,7 +163,7 @@ const SparkParticle = forwardRef<SparkHandle>(function SparkParticle(_props, ref
     ],
   }));
 
-  return <Animated.View pointerEvents="none" style={coreStyle} />;
+  return <Animated.View pointerEvents="none" style={[geometryStyle, motionStyle]} />;
 
 });
 
@@ -174,6 +176,9 @@ export function ClearSparkLayer({ presentations }: ClearSparkLayerProps) {
   const owners = useRef<(string | null)[]>([]);
   const cursor = useRef(0);
   const fired = useRef<Set<string>>(new Set());
+  const particles = useMemo(() => Array.from({ length: POOL_SIZE }, (_, index) => (
+    <SparkParticle key={index} ref={(handle) => { slots.current[index] = handle; }} />
+  )), []);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
@@ -217,14 +222,7 @@ export function ClearSparkLayer({ presentations }: ClearSparkLayerProps) {
       pointerEvents="none"
       style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', overflow: 'visible' }}
     >
-      {Array.from({ length: POOL_SIZE }, (_, index) => (
-        <SparkParticle
-          key={index}
-          ref={(handle) => {
-            slots.current[index] = handle;
-          }}
-        />
-      ))}
+      {particles}
     </View>
   );
 }

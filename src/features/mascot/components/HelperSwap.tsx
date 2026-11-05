@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
@@ -16,7 +17,8 @@ import { isHelperUnlocked, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
 import { todayISO } from '@/features/streak';
 import { useRewardedReady } from '@/features/monetization/useRewardedReady';
-import { AppText, colors, radii, spacing } from '@/ui';
+import { claimRewardedBenefit } from '@/features/monetization/rewardedBenefits';
+import { AppText, colors, radii } from '@/ui';
 
 import { findSwapTarget } from '../logic/helpers';
 import type { EmoteId } from '../logic/types';
@@ -26,6 +28,7 @@ import { useMascot } from '../store';
 interface HelperSwapProps {
   onEmote: (id: EmoteId) => void;
   reduceMotion: boolean;
+  compact?: boolean;
 }
 
 /** Окно отмены свопа (мс): после него ход «застывает» и списывается кулдаун. */
@@ -49,7 +52,7 @@ export function swapUndoOutcome(
  * пока он виден, кулдаун НЕ списан — отмена бесплатна. По истечении окна своп
  * «застывает» и списывается кулдаун до завтра.
  */
-export function HelperSwap({ onEmote, reduceMotion }: HelperSwapProps) {
+export function HelperSwap({ onEmote, reduceMotion, compact = false }: HelperSwapProps) {
   const board = useGameStore((s) => s.game.board);
   const tray = useGameStore((s) => s.game.tray);
   const level = useProgression((s) => s.level);
@@ -185,13 +188,13 @@ export function HelperSwap({ onEmote, reduceMotion }: HelperSwapProps) {
 
     rewardInFlightRef.current = true;
     setRewardBusy(true);
+    const offeredEpoch = useGameStore.getState().epoch;
     try {
-      const result = await getAds().showRewarded('helper_charge');
-      if (result !== 'unavailable') {
+      const result = await claimRewardedBenefit({ kind: 'helper', helperId: 'swap' }, getAds());
+      if (result === 'applied' || result === 'pending' || result === 'dismissed') {
         saveAdsMeta(recordFullscreenCooldown(loadAdsMeta(), Date.now()));
       }
-      if (result === 'rewarded') {
-        useMascot.getState().addHelperCharge('swap');
+      if (result === 'applied' && useGameStore.getState().epoch === offeredEpoch) {
         doSwap();
       }
     } finally {
@@ -203,12 +206,12 @@ export function HelperSwap({ onEmote, reduceMotion }: HelperSwapProps) {
   // Окно отмены: тост «фигуру заменили · вернуть».
   if (undoSnapshot) {
     return (
-      <Animated.View entering={entering} exiting={exiting} style={styles.toast}>
-        <AppText preset="caption" style={styles.toastText}>
-          {t('mascot.swapped', lang)}
-        </AppText>
-        <Pressable onPress={doUndo} style={styles.undoHit} accessibilityRole="button">
-          <AppText preset="button" style={styles.undoText}>
+      <Animated.View testID="helper-swap-undo" entering={entering} exiting={exiting} style={styles.toast}>
+        <Pressable onPress={doUndo} style={styles.undoHit} accessibilityRole="button" accessibilityLabel={`${t('mascot.swapped', lang)}. ${t('mascot.undo', lang)}`}>
+          <AppText preset="caption" numberOfLines={1} allowFontScaling={false} maxFontSizeMultiplier={1.2} style={[styles.toastText, { fontSize: compact ? 9 : 10 }]}>
+            {t('mascot.swapped', lang)}
+          </AppText>
+          <AppText preset="button" numberOfLines={1} allowFontScaling={false} maxFontSizeMultiplier={1.2} style={styles.undoText}>
             {t('mascot.undo', lang)}
           </AppText>
         </Pressable>
@@ -218,8 +221,8 @@ export function HelperSwap({ onEmote, reduceMotion }: HelperSwapProps) {
 
   if (resultText) {
     return (
-      <Animated.View entering={entering} exiting={exiting} style={styles.result}>
-        <AppText preset="caption" style={styles.resultText}>{resultText}</AppText>
+      <Animated.View testID="helper-swap-result" entering={entering} exiting={exiting} style={styles.result}>
+        <AppText preset="caption" numberOfLines={2} allowFontScaling={false} maxFontSizeMultiplier={1.2} style={[styles.resultText, { fontSize: compact ? 10 : 11 }]}>{resultText}</AppText>
       </Animated.View>
     );
   }
@@ -227,8 +230,9 @@ export function HelperSwap({ onEmote, reduceMotion }: HelperSwapProps) {
   if (!available) return null;
 
   return (
-    <Animated.View entering={entering} exiting={exiting}>
+    <Animated.View entering={entering} exiting={exiting} style={styles.frame}>
       <Pressable
+        testID="helper-swap"
         onPress={() => {
           void handlePress();
         }}
@@ -242,10 +246,10 @@ export function HelperSwap({ onEmote, reduceMotion }: HelperSwapProps) {
         }
       >
         <View style={styles.pill}>
-          <AppText preset="button" style={styles.label}>
+          <AppText preset="button" numberOfLines={2} allowFontScaling={false} maxFontSizeMultiplier={1.2} style={[styles.label, { fontSize: compact ? 10 : 11 }]}>
             {rewardOffer
-              ? `🎬 ${t('mascot.swap', lang)} · ${t('mascot.adCharge', lang)}`
-              : '🔄 ' + t('mascot.swap', lang) + (charges > 0 ? ' · ' + charges : '')}
+              ? `${t('mascot.swap', lang)}\n${t('mascot.adCharge', lang)}`
+              : (compact ? '' : '🔄 ') + t('mascot.swap', lang) + (charges > 0 ? ' · ' + charges : '')}
           </AppText>
         </View>
       </Pressable>
@@ -254,53 +258,76 @@ export function HelperSwap({ onEmote, reduceMotion }: HelperSwapProps) {
 }
 
 const styles = StyleSheet.create({
+  frame: { width: '100%', minWidth: 0 },
   hit: {
-    minWidth: 44,
+    width: '100%',
+    minWidth: 0,
     minHeight: 44,
-    alignItems: 'flex-end',
+    alignItems: 'stretch',
     justifyContent: 'center',
   },
   pill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    width: '100%',
+    height: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: radii.button,
     backgroundColor: colors.surface,
   },
   label: {
-    fontSize: 11,
+    lineHeight: 14,
+    textAlign: 'center',
+    flexShrink: 1,
+    minWidth: 0,
+    includeFontPadding: false,
   },
   toast: {
-    flexDirection: 'row',
+    width: '100%',
+    minWidth: 0,
+    height: 44,
     alignItems: 'center',
-    gap: spacing.s,
-    paddingLeft: spacing.m,
-    paddingRight: spacing.s,
-    paddingVertical: 6,
     borderRadius: radii.card,
     backgroundColor: colors.cardGlass,
   },
   toastText: {
     color: colors.textPrimary,
+    lineHeight: 13,
+    textAlign: 'center',
+    flexShrink: 1,
+    includeFontPadding: false,
   },
   result: {
-    minHeight: 44,
+    width: '100%',
+    minWidth: 0,
+    height: 44,
     justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: radii.button,
     backgroundColor: colors.surface,
   },
   resultText: {
     color: colors.textPrimary,
     fontWeight: '700',
+    lineHeight: 14,
+    textAlign: 'center',
+    flexShrink: 1,
+    includeFontPadding: false,
   },
   undoHit: {
-    minHeight: 36,
-    paddingHorizontal: spacing.s,
+    width: '100%',
+    minHeight: 44,
+    height: 44,
+    paddingHorizontal: 4,
     justifyContent: 'center',
   },
   undoText: {
     color: colors.accent,
     fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+    flexShrink: 1,
+    includeFontPadding: false,
   },
 });

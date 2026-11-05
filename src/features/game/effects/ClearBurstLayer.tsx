@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
 import { View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -126,7 +126,9 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
     [],
   );
 
-  const style = useAnimatedStyle(() => ({
+  // Geometry stays on the layout path; flight/fade can use Android's
+  // synchronous UI-prop path when its native feature flag is enabled.
+  const geometryStyle = useAnimatedStyle(() => ({
     position: 'absolute',
     left: x.value,
     top: y.value,
@@ -136,6 +138,8 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
     borderWidth: Math.max(0.5, Math.min(width.value, height.value) * 0.045),
     borderColor: 'rgba(255,255,255,0.38)',
     backgroundColor: color.value,
+  }));
+  const motionStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [
       { translateX: tx.value },
@@ -145,7 +149,7 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
     ],
   }));
 
-  return <Animated.View pointerEvents="none" style={style} />;
+  return <Animated.View pointerEvents="none" style={[geometryStyle, motionStyle]} />;
 });
 
 export function ClearBurstLayer({ presentations }: ClearBurstLayerProps) {
@@ -153,6 +157,9 @@ export function ClearBurstLayer({ presentations }: ClearBurstLayerProps) {
   const owners = useRef<(string | null)[]>([]);
   const cursor = useRef(0);
   const fired = useRef<Set<string>>(new Set());
+  const particles = useMemo(() => Array.from({ length: POOL_SIZE }, (_, index) => (
+    <BurstParticle key={index} ref={(handle) => { slots.current[index] = handle; }} />
+  )), []);
 
   useLayoutEffect(() => {
     const activeIds = new Set(presentations.map(({ id }) => id));
@@ -192,14 +199,7 @@ export function ClearBurstLayer({ presentations }: ClearBurstLayerProps) {
         overflow: 'visible',
       }}
     >
-      {Array.from({ length: POOL_SIZE }, (_, index) => (
-        <BurstParticle
-          key={index}
-          ref={(handle) => {
-            slots.current[index] = handle;
-          }}
-        />
-      ))}
+      {particles}
     </View>
   );
 }

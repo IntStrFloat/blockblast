@@ -6,16 +6,26 @@ import { trayRestingScale } from '../animation/motion';
 import type { DragCtx } from '../drag/DragContext';
 import { useDrag } from '../drag/useDrag';
 
+const mockSequence = jest.fn((...values: number[]) => values.at(-1));
+
+jest.mock('react-native', () => {
+  const actual = jest.requireActual('react-native');
+  return Object.defineProperty(Object.create(actual), 'Platform', {
+    value: { ...actual.Platform, OS: 'android' },
+  });
+});
+
 jest.mock('react-native-reanimated', () => {
   const ReactModule = jest.requireActual<typeof React>('react');
   return {
     useSharedValue: <T,>(initial: T) => ReactModule.useRef({ value: initial }).current,
     useAnimatedStyle: (read: () => { transform: unknown }) => ({
       get transform() { return read().transform; },
+      get nativeStyle() { return read(); },
     }),
     withTiming: (value: number) => value,
     withSpring: (value: number) => value,
-    withSequence: (...values: number[]) => values.at(-1),
+    withSequence: (...values: number[]) => mockSequence(...values),
   };
 });
 
@@ -107,7 +117,31 @@ describe('mounted drag resting scale', () => {
     }).handlers;
   }
 
-  beforeEach(() => { ctx = context(); });
+  beforeEach(() => { ctx = context(); mockSequence.mockClear(); });
+
+  it('keeps Android drag updates eligible for the native transform path', () => {
+    let tree!: ReturnType<typeof create>;
+    act(() => { tree = create(<Piece />); });
+    const style = result.animatedStyle as unknown as { nativeStyle: object };
+    expect(Object.keys(style.nativeStyle)).toEqual(['transform']);
+    act(() => { tree.unmount(); });
+  });
+
+  it.each([false, true])('pulses the line preview only for a clearing placement: %s', (clearsLine) => {
+    if (clearsLine) for (let col = 1; col < 8; col++) ctx.boardMirror.value[col] = 1;
+    let tree!: ReturnType<typeof create>;
+    act(() => { tree = create(<Piece height={1} />); });
+    const gesture = handlers();
+    act(() => {
+      gesture.begin();
+      gesture.start();
+      gesture.update({ translationX: -41, translationY: -374.5 });
+      gesture.end({ velocityX: 0, velocityY: 0 }, true);
+    });
+    expect(ctx.onDrop).toHaveBeenCalledWith(2, 0, 0);
+    expect(mockSequence).toHaveBeenCalledTimes(clearsLine ? 1 : 0);
+    act(() => { tree.unmount(); });
+  });
 
   it('fits a new tall piece and a smaller tray without requiring a drag', () => {
     let tree!: ReturnType<typeof create>;

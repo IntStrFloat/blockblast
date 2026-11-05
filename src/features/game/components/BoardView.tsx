@@ -36,7 +36,7 @@ import { ComboAuraFrame } from '../effects/ComboAuraFrame';
 import { GameEffectsLayer } from '../effects/GameEffectsLayer';
 import { useShake } from '../effects/useShake';
 import { useGameStore } from '../store';
-import { BoardCell } from './BoardCell';
+import { BoardCell, type BoardCellVisuals } from './BoardCell';
 
 interface BoardViewProps {
   clearStyle?: ClearStyle;
@@ -83,6 +83,27 @@ export function BoardView({ style, onMeasureBoardReady, clearStyle = 'dissolve' 
   // churn when the drag context object identity changes without changing the colors.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableCellColors = useMemo(() => [...ctx.cellColors], [cellColorsKey]);
+  const cellVisuals = useMemo<BoardCellVisuals>(() => ({
+    cellColors: stableCellColors,
+    cellLine: ctx.cellLine,
+    cellRadius: ctx.cellRadius,
+    preview: ctx.preview,
+    previewColor: ctx.previewColor,
+    assistPreview: ctx.assistPreview,
+    assistPreviewColor: ctx.assistPreviewColor,
+    clearPrelude: ctx.clearPrelude,
+    invalidPreview: ctx.invalidPreview,
+  }), [
+    stableCellColors,
+    ctx.cellLine,
+    ctx.cellRadius,
+    ctx.preview,
+    ctx.previewColor,
+    ctx.assistPreview,
+    ctx.assistPreviewColor,
+    ctx.clearPrelude,
+    ctx.invalidPreview,
+  ]);
 
   const board = useGameStore((s) => s.game.board);
   const combo = useGameStore((s) => s.game.combo);
@@ -394,6 +415,7 @@ export function BoardView({ style, onMeasureBoardReady, clearStyle = 'dissolve' 
               emptyColor={cellEmpty}
               reducedMotion={reducedMotion}
               placementDelayMs={(placedOrder.get(index) ?? 0) * 18}
+              visuals={cellVisuals}
             />
           );
         })}

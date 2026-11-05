@@ -1,6 +1,7 @@
 import { GLView, type ExpoWebGLRenderingContext } from 'expo-gl';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as THREE from 'three';
 
@@ -31,6 +32,10 @@ export function CurrentLevelCrystal({ size }: { size: number }) {
   const frameRef = useRef<number | null>(null);
   const disposeRef = useRef<(() => void) | null>(null);
   const mountedRef = useRef(true);
+  const focusedRef = useRef(false);
+  const appActiveRef = useRef(AppState.currentState === 'active');
+  const contextGenerationRef = useRef(0);
+  const [renderSession, setRenderSession] = useState({ active: false, id: 0, reducedMotion });
 
   const stopRenderer = useCallback(() => {
     if (frameRef.current !== null) {
@@ -48,6 +53,7 @@ export function CurrentLevelCrystal({ size }: { size: number }) {
   }, []);
 
   const markRendererFailed = useCallback(() => {
+    contextGenerationRef.current += 1;
     stopRenderer();
     if (mountedRef.current) {
       setRendererFailed(true);
@@ -58,11 +64,47 @@ export function CurrentLevelCrystal({ size }: { size: number }) {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      contextGenerationRef.current += 1;
       stopRenderer();
     };
   }, [stopRenderer]);
 
+  const refreshRenderSession = useCallback(() => {
+    const id = ++contextGenerationRef.current;
+    stopRenderer();
+    if (mountedRef.current) {
+      setRenderSession({
+        active: focusedRef.current && appActiveRef.current,
+        id,
+        reducedMotion,
+      });
+    }
+  }, [reducedMotion, stopRenderer]);
+
+  useFocusEffect(useCallback(() => {
+    focusedRef.current = true;
+    refreshRenderSession();
+    return () => {
+      focusedRef.current = false;
+      refreshRenderSession();
+    };
+  }, [refreshRenderSession]));
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      const active = state === 'active';
+      if (appActiveRef.current === active) return;
+      appActiveRef.current = active;
+      refreshRenderSession();
+    });
+    return () => subscription.remove();
+  }, [refreshRenderSession]);
+
   const onContextCreate = useCallback((gl: ExpoWebGLRenderingContext) => {
+    // Native context creation may finish after blur, backgrounding or a newer
+    // GLView mount. A stale callback must not dispose or restart the current one.
+    if (!mountedRef.current || !focusedRef.current || !appActiveRef.current ||
+        !renderSession.active || renderSession.id !== contextGenerationRef.current) return;
     stopRenderer();
 
     let active = true;
@@ -165,14 +207,14 @@ export function CurrentLevelCrystal({ size }: { size: number }) {
 
         try {
           const elapsed = (Date.now() - startedAt) / 1000;
-          if (!reducedMotion) {
+          if (!renderSession.reducedMotion) {
             crystal.position.y = Math.sin(elapsed * 2.15) * 0.09;
             crystal.rotation.y = 0.36 + Math.sin(elapsed * 1.05) * 0.22;
             crystal.rotation.z = 0.14 + Math.sin(elapsed * 1.62) * 0.055;
           }
           renderer?.render(scene, camera);
           gl.endFrameEXP();
-          if (active) {
+          if (active && !renderSession.reducedMotion) {
             frameRef.current = requestAnimationFrame(render);
           }
         } catch {
@@ -184,7 +226,7 @@ export function CurrentLevelCrystal({ size }: { size: number }) {
     } catch {
       markRendererFailed();
     }
-  }, [markRendererFailed, reducedMotion, stopRenderer]);
+  }, [markRendererFailed, renderSession, stopRenderer]);
 
   return (
     <View
@@ -192,10 +234,10 @@ export function CurrentLevelCrystal({ size }: { size: number }) {
       style={[styles.currentMarker, { width: size, height: size * 1.05 }]}
       accessibilityLabel="Текущий уровень"
     >
-      {rendererFailed ? (
+      {rendererFailed || !renderSession.active ? (
         <CurrentLevelCrystalFallback size={size} />
       ) : (
-        <GLView style={styles.currentMarkerCanvas} onContextCreate={onContextCreate} />
+        <GLView key={renderSession.id} style={styles.currentMarkerCanvas} onContextCreate={onContextCreate} />
       )}
     </View>
   );

@@ -1,0 +1,5 @@
+# Preserve the seller list exactly as supplied, including line endings.
+backend/deploy/app-ads.txt -text
+
+# Unified-diff context lines intentionally contain a leading space.
+patches/*.patch -whitespace

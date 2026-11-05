@@ -1,0 +1,16 @@
+Backend weekly rewards deployment — 2026-10-14
+Host: bloxx.193.160.208.95.nip.io (Timeweb server 8350225)
+Changed production file: /opt/bloxx/backend/server.cjs
+Source: 134cc7dd49ccf737c05ce7a983e04a9e83d75f2a/backend/server.cjs
+SHA256 (LF): c33ea54ab8446bfd0e1ba9d0ef249380dac46aaf849d0a741f00a4b2ac0e3e99
+Rollback directory: /var/lib/bloxx/rollback-weekly-20261014T131408Z
+Backup contents: original server.cjs, original store.json, preflight.json
+Deployment preserved 2547 existing users and 72892 runs; seeded 18 finalized weeks from the verified copy after asserting all closed-week runs still matched. Synthetic preflight profile was not copied to production.
+Local server tests: 13/13 passed.
+Preflight: all original profiles and runs unchanged; leaderboard 200; outcomes 200.
+Live HTTPS through nginx on loopback with hostname and certificate validation: leaderboard 200 (2328ms), outcomes 200 (764ms), adventure season 200 (274ms).
+Claim endpoint: authenticated nonexistent reward rejected with reward_not_found; no real reward claimed.
+A diagnostic profile DeployCheck1014 was created for the HTTPS smoke test, without submitting any score.
+Service active. No warning/error journal entries since restart.
+Client-to-server public network from this workstation still not verified due earlier connectivity timeout; HTTPS verification ran on the host through its nginx virtual host. No phone interaction performed.
+No source code changes were needed; previously committed server implementation was deployed. AGENTS.md already had user changes and was left intact.

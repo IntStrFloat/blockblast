@@ -11,15 +11,13 @@ describe('rewarded helper charge source contract', () => {
     const ruSource = fs.readFileSync(`${__dirname}/../../../core/i18n/ru.ts`, 'utf8');
     const enSource = fs.readFileSync(`${__dirname}/../../../core/i18n/en.ts`, 'utf8');
 
-    expect(hintSource).toContain("showRewarded('helper_charge')");
-    expect(hintSource).toContain("addHelperCharge('hint')");
+    expect(hintSource).toContain("claimRewardedBenefit({ kind: 'helper', helperId: 'hint' }, getAds())");
     expect(hintSource).toContain('useRewardedReady(canOfferRewarded && !rewardBusy)');
     expect(hintSource).not.toContain('setRewardedReady');
     expect(hintSource).toContain('recordFullscreenCooldown(loadAdsMeta(), Date.now())');
     expect(hintSource).toContain('rewardInFlightRef.current');
     expect(hintSource).toContain("usedDay === today && charges === 0");
-    expect(swapSource).toContain("showRewarded('helper_charge')");
-    expect(swapSource).toContain("addHelperCharge('swap')");
+    expect(swapSource).toContain("claimRewardedBenefit({ kind: 'helper', helperId: 'swap' }, getAds())");
     expect(swapSource).toContain('useRewardedReady(canOfferRewarded && !rewardBusy)');
     expect(swapSource).not.toContain('setRewardedReady');
     expect(swapSource).toContain('recordFullscreenCooldown(loadAdsMeta(), Date.now())');

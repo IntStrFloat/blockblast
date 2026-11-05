@@ -101,7 +101,7 @@ jest.mock('@/features/adventure', () => {
     useSeasonWindowRefresh: () => {},
     seasonRewardCosmetic: () => null,
     JewelBoardLayer: () => null,
-    JewelCollectionFlightLayer: () => null,
+    JewelCollectionFlightLayer: (props: object) => ReactModule.createElement('AdventureFlight', props),
     JewelIcon: () => null,
     ObjectivePanel: () => null,
     FailOverlay: (props: object) => ReactModule.createElement('AdventureFailure', { ...props, testID: 'adventure-failure' }),
@@ -306,6 +306,32 @@ describe('adventure level completion presentation', () => {
     act(() => { jest.advanceTimersByTime(3_000); });
     expect(mockResultMount).not.toHaveBeenCalled();
     expect(mockLevelUpMount).not.toHaveBeenCalled();
+  });
+
+  it('keeps a jewel victory on the board until the final jewel arrives at its objective', () => {
+    const spec = Array.from({ length: 12 }, (_, index) => levelFor(1, index))
+      .find((level) => level.objective.type === 'jewels')!;
+    useAdventure.setState({ levelIndex: spec.levelIndex });
+    newAdventureGame(spec, 0);
+    setUpWinningClear();
+    const rendered = renderLevel();
+    winLevel();
+    act(() => { jest.advanceTimersByTime(minimumSettlementMs); });
+    expect(rendered.root.findAllByProps({ testID: 'adventure-result' })).toHaveLength(0);
+    const run = useGameStore.getState().adventure!;
+    act(() => {
+      rendered.root.findByType('AdventureFlight' as React.ElementType).props.onArrive({
+        presentationId: useGameStore.getState().lastAdventureEvent!.presentationId,
+        delta: 1,
+        total: run.level.objective.target,
+      });
+    });
+    act(() => { jest.advanceTimersByTime(EFFECT_SEQUENCE_TIMING.adventureResultSettleMs - 1); });
+    expect(rendered.root.findAllByProps({ testID: 'adventure-result' })).toHaveLength(0);
+    act(() => { jest.advanceTimersByTime(1); });
+    expect(mockResultMount).toHaveBeenCalledTimes(1);
+    expect(mockRecordWin).toHaveBeenCalledTimes(1);
+    expect(mockBoardUnmount).not.toHaveBeenCalled();
   });
 
   it('retries a failed run on the same level with one new attempt', async () => {

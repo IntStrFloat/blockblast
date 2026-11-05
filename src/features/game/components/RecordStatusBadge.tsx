@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Animated, { Keyframe } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
@@ -29,31 +29,21 @@ function badgeAnimation(reducedMotion: boolean) {
   ).duration(reducedMotion ? 100 : RECORD_PROGRESS.goalChipEnterMs);
 }
 
-export function RecordStatusBadge() {
+export function RecordStatusBadge({ compact = false }: { compact?: boolean }) {
   const score = useGameStore((s) => s.game.score);
   const combo = useGameStore((s) => s.game.combo);
   const runBestAtStart = useGameStore((s) => s.runBestAtStart);
   const recordCelebration = useGameStore((s) => s.recordCelebration);
   const lang = useLang();
   const reducedMotion = useReducedMotion();
-  const handledRef = useRef<typeof recordCelebration>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [showRecordTitle, setShowRecordTitle] = useState(false);
+  const [retiredRecord, setRetiredRecord] = useState<typeof recordCelebration>(null);
+  const showRecordTitle = recordCelebration !== null && retiredRecord !== recordCelebration;
 
   useEffect(() => {
-    if (!recordCelebration || handledRef.current === recordCelebration) return;
-    handledRef.current = recordCelebration;
-    setShowRecordTitle(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      setShowRecordTitle(false);
-    }, reducedMotion ? 420 : RECORD_PROGRESS.celebrationMs);
-    return () => {
-      if (!timerRef.current) return;
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    };
+    if (!recordCelebration) return;
+    const timer = setTimeout(() => setRetiredRecord(recordCelebration),
+      reducedMotion ? 420 : RECORD_PROGRESS.celebrationMs);
+    return () => clearTimeout(timer);
   }, [recordCelebration, reducedMotion]);
 
   if (combo >= 2 && !showRecordTitle) return <ComboBadge />;
@@ -78,6 +68,9 @@ export function RecordStatusBadge() {
 
   const emphasized = stage === 'near' || stage === 'record_broken';
   const accessibilityLabel = value ? `${label} ${value}` : label;
+  const visibleText = compact && value
+    ? `${t('game.best', lang)}\n${stage === 'post_record' ? value : `−${value}`}`
+    : accessibilityLabel;
 
   return (
     <Animated.View
@@ -87,7 +80,7 @@ export function RecordStatusBadge() {
       accessibilityRole="text"
       accessibilityLabel={accessibilityLabel}
       style={{
-        maxWidth: 164,
+        maxWidth: '100%',
         height: 24,
         paddingHorizontal: 10,
         borderRadius: 12,
@@ -101,20 +94,20 @@ export function RecordStatusBadge() {
       <AppText
         testID="hud-record-status-text"
         preset="speech"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.72}
+        numberOfLines={2}
+        allowFontScaling={false}
         style={{
-          maxWidth: 144,
+          maxWidth: '100%',
           color: emphasized ? '#FFF2B0' : '#DCEAFF',
           fontFamily: 'Unbounded_700Bold',
-          fontSize: 14,
-          lineHeight: 17,
+          fontSize: 11,
+          lineHeight: 12,
+          includeFontPadding: false,
           fontVariant: ['tabular-nums'],
           textAlign: 'center',
         }}
       >
-        {label}{value ? ` ${value}` : ''}
+        {visibleText}
       </AppText>
     </Animated.View>
   );

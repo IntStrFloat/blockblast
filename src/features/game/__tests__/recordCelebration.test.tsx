@@ -95,11 +95,11 @@ describe('record celebration source contract', () => {
   const praiseSource = fs.readFileSync(`${__dirname}/../effects/PraiseBanner.tsx`, 'utf8');
   const celebrationPath = `${__dirname}/../effects/NewRecordCelebration.tsx`;
 
-  it('mounts a dedicated celebration layer above praise and below modal overlays', () => {
+  it('mounts record decoration behind the HUD numbers and below modal overlays', () => {
     expect(fs.existsSync(celebrationPath)).toBe(true);
-    expect(gameSource.indexOf('<PraiseBanner />')).toBeGreaterThan(-1);
-    expect(gameSource.indexOf('<NewRecordCelebration />')).toBeGreaterThan(
-      gameSource.indexOf('<PraiseBanner />'),
+    expect(gameSource.indexOf('<PraiseBanner suppressed=')).toBeGreaterThan(-1);
+    expect(gameSource.indexOf('<NewRecordCelebration />')).toBeLessThan(
+      gameSource.indexOf('<Hud compact='),
     );
     expect(gameSource.indexOf('<NewRecordCelebration />')).toBeLessThan(
       gameSource.indexOf('<PauseOverlay'),

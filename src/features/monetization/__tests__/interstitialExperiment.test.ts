@@ -127,7 +127,7 @@ describe('stable new-install assignment', () => {
 });
 
 describe('first-session/cap treatment', () => {
-  it('blocks retries, short Classic runs and previously offered rewards in both arms', () => {
+  it('blocks retries and short runs, but allows results with an unaccepted reward offer in both arms', () => {
     for (const variant of ['control', 'first_session_capped'] as const) {
       forceVariant(variant);
       initializeContext(context({ is_first_session: false, session_index: 2 }));
@@ -139,16 +139,27 @@ describe('first-session/cap treatment', () => {
         .toBe('suppressed_short_run');
       expect(evaluateInterstitialOpportunity({ ...meta, rewardedOfferContextId: 'win-1' }, opts,
         'adventure_level', 'adventure', { resultContextId: 'win-1' }).decision)
-        .toBe('suppressed_rewarded_offer');
+        .toBe('request');
       expect(evaluateInterstitialOpportunity(meta, opts, 'adventure_level', 'adventure',
         { resultContextId: 'other-win' }).shouldRequest).toBe(true);
     }
   });
-  it('protects a recent rewarded decline regardless of the next result identity', () => {
+  it('protects a real fullscreen cooldown regardless of the next result identity', () => {
     forceVariant('control');
     initializeContext(context({ is_first_session: false }));
     useAdPresentation.setState({ automaticAdsSuppressedUntil: NOW + 90_000 });
-    expect(opportunity().decision).toBe('suppressed_rewarded_offer');
+    expect(opportunity().decision).toBe('suppressed_fullscreen_cooldown');
+  });
+  it('can evaluate preloading without recording a second policy exposure', () => {
+    forceVariant('control');
+    initializeContext(context({ is_first_session: false }));
+    const track = jest.spyOn(useAnalyticsStore.getState(), 'track');
+    const result = evaluateInterstitialOpportunity(eligibleAdventureMeta(),
+      { enabled: true, removeAds: false, nowMs: NOW }, 'adventure_level', 'adventure',
+      { resultContextId: 'preload-result' }, { recordExposure: false });
+    expect(result.shouldRequest).toBe(true);
+    expect(track).not.toHaveBeenCalled();
+    track.mockRestore();
   });
   it('suppresses the sixth short Adventure win in session one but exposes both variants at base eligibility', () => {
     forceVariant('first_session_capped');

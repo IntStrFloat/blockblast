@@ -1,7 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import Animated, {
-  Keyframe,
+  cancelAnimation,
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
@@ -14,80 +19,55 @@ import { GAME_FEEL_MOTION } from '../animation/motion';
 import { recordProgressFor, type RecordProgressStage } from '../animation/recordProgression';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useGameStore } from '../store';
+import { formatHudBestScore, getClassicHudMetrics, hudNumberFontSize } from '../playfield-layout';
 import { ComboScoreBloom } from './ComboScoreBloom';
 import { RecordStatusBadge } from './RecordStatusBadge';
 
-const SCORE_SHELL_HEIGHT = 64;
-const SCORE_SHELL_BASE_WIDTH = 128;
-const COMBO_BADGE_RESERVED_HEIGHT = 28;
-const HUD_RESERVED_HEIGHT =
-  Math.ceil(SCORE_SHELL_HEIGHT * GAME_FEEL_MOTION.scoreScaleMax) + COMBO_BADGE_RESERVED_HEIGHT;
 const SHIMMER_THRESHOLD = 120;
 
-function cappedScoreScale(scale: number) {
-  return Math.min(scale, GAME_FEEL_MOTION.scoreScaleMax);
-}
-
-function scorePulseAnimation(
-  reducedMotion: boolean,
-  scoreScale: number,
-  shimmer: boolean,
-  recordStage: RecordProgressStage,
-) {
-  const boost =
-    recordStage === 'record_broken'
+function scorePulseBoost(recordStage: RecordProgressStage) {
+  return recordStage === 'record_broken'
       ? 0.15
       : recordStage === 'near'
         ? 0.06
         : recordStage === 'pursuit'
           ? 0.05
           : 0.04;
-  return new Keyframe(
-    reducedMotion
-      ? {
-          0: { opacity: 0, transform: [{ scale: cappedScoreScale(scoreScale * 0.96) }] },
-          34: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * 1.01) }] },
-          100: { opacity: 1, transform: [{ scale: scoreScale }] },
-        }
-      : shimmer
-        ? {
-            0: { opacity: 0.92, transform: [{ scale: cappedScoreScale(scoreScale * 0.94) }] },
-            20: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * (1 + boost)) }] },
-            52: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * 1.01) }] },
-            76: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * (1 + boost * 0.55)) }] },
-            100: { opacity: 1, transform: [{ scale: scoreScale }] },
-          }
-        : {
-            0: { opacity: 0.96, transform: [{ scale: cappedScoreScale(scoreScale * 0.96) }] },
-            34: { opacity: 1, transform: [{ scale: cappedScoreScale(scoreScale * (1 + boost)) }] },
-            100: { opacity: 1, transform: [{ scale: scoreScale }] },
-          },
-  ).duration(reducedMotion ? 160 : shimmer ? 320 : 220);
 }
 
-function ScoreCounter() {
+function ScoreCounter({ layout }: { layout: ReturnType<typeof getClassicHudMetrics> }) {
   const score = useGameStore((s) => s.game.score);
   const runBestAtStart = useGameStore((s) => s.runBestAtStart);
   const lastEvent = useGameStore((s) => s.lastEvent);
   const reducedMotion = useReducedMotion();
   const previousScoreRef = useRef(score);
-  const [pulseKey, setPulseKey] = useState(0);
-  const [lastJump, setLastJump] = useState(0);
+  const restingScale = useSharedValue(scoreScaleFor(score));
+  const pulseProgress = useSharedValue(1);
+  const pulseBoost = useSharedValue(0.04);
 
   useEffect(() => {
-    const nextScore = score;
-    if (nextScore <= previousScoreRef.current) {
-      previousScoreRef.current = nextScore;
-      return;
+    const previousScore = previousScoreRef.current;
+    previousScoreRef.current = score;
+    cancelAnimation(pulseProgress);
+    restingScale.set(scoreScaleFor(score));
+    pulseProgress.set(1);
+    if (score > previousScore && !reducedMotion) {
+      pulseBoost.set(scorePulseBoost(recordProgressFor(score, runBestAtStart, previousScore).stage));
+      pulseProgress.set(0);
+      pulseProgress.set(withTiming(1, {
+        duration: score - previousScore >= SHIMMER_THRESHOLD ? 320 : 220,
+        easing: Easing.linear,
+      }));
     }
+    return () => cancelAnimation(pulseProgress);
+  }, [pulseBoost, pulseProgress, reducedMotion, restingScale, runBestAtStart, score]);
 
-    setLastJump(nextScore - previousScoreRef.current);
-    setPulseKey((value) => value + 1);
-    previousScoreRef.current = nextScore;
-  }, [score]);
-
-  const scoreScale = scoreScaleFor(score);
-  const shimmer = lastJump >= SHIMMER_THRESHOLD;
+  const pulseStyle = useAnimatedStyle(() => {
+    const boost = pulseBoost.get();
+    const multiplier = interpolate(pulseProgress.get(), [0, 0.2, 0.52, 0.76, 1], [0.96, 1 + boost, 1.01, 1 + boost * 0.55, 1]);
+    return { transform: [{ scale: Math.min(GAME_FEEL_MOTION.scoreScaleMax, restingScale.get() * multiplier) }] };
+  });
+  const fontSize = hudNumberFontSize(score, layout.scoreWidth, layout.fontSize);
   const previousScore = lastEvent?.score === score ? score - lastEvent.scoreDelta : score;
   const recordProgress = recordProgressFor(score, runBestAtStart, previousScore);
   const isLiveRecord = runBestAtStart > 0 && score > runBestAtStart;
@@ -101,8 +81,9 @@ function ScoreCounter() {
     <View
       testID="hud-score-shell"
       style={{
-        minHeight: Math.ceil(SCORE_SHELL_HEIGHT * GAME_FEEL_MOTION.scoreScaleMax),
-        minWidth: Math.ceil(SCORE_SHELL_BASE_WIDTH * GAME_FEEL_MOTION.scoreScaleMax),
+        height: layout.scoreShellHeight,
+        width: layout.centerWidth,
+        minWidth: layout.centerWidth,
         justifyContent: 'center',
         alignItems: 'center',
         overflow: 'visible',
@@ -110,14 +91,23 @@ function ScoreCounter() {
     >
       <ComboScoreBloom />
       <Animated.View
-        key={pulseKey}
-        testID={`hud-score-pulse-${pulseKey}`}
-        entering={scorePulseAnimation(reducedMotion, scoreScale, shimmer, recordProgress.stage)}
+        testID="hud-score-pulse-0"
+        style={[{ width: layout.scoreWidth, height: layout.scoreHeight, justifyContent: 'center', opacity: 1 }, pulseStyle]}
       >
         <AppText
           testID="hud-score-text"
           preset="score"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.35}
+          allowFontScaling={false}
           style={{
+            width: '100%',
+            fontSize,
+            lineHeight: Math.ceil(fontSize * 1.2),
+            includeFontPadding: false,
+            textAlign: 'center',
+            textAlignVertical: 'center',
             color: scoreColor,
             textShadowColor: isLiveRecord ? 'rgba(255, 214, 64, 0.45)' : 'transparent',
             textShadowOffset: { width: 0, height: 0 },
@@ -133,33 +123,38 @@ function ScoreCounter() {
 
 interface HudProps {
   onPause: () => void;
+  compact?: boolean;
 }
 
-export function Hud({ onPause }: HudProps) {
+export function Hud({ onPause, compact = false }: HudProps) {
+  const { width } = useWindowDimensions();
+  const layout = getClassicHudMetrics(width, compact);
   const best = useScores((s) => s.best);
   const score = useGameStore((s) => s.game.score);
   const runBestAtStart = useGameStore((s) => s.runBestAtStart);
   const lang = useLang();
   const liveBest = runBestAtStart > 0 ? Math.max(best, score) : best;
+  const visibleBest = formatHudBestScore(liveBest, lang);
+  const bestFontSize = Math.max(12, hudNumberFontSize(visibleBest, layout.sideWidth, 14));
 
   return (
     <View
+      testID="game-hud"
       style={{
         width: '100%',
-        height: HUD_RESERVED_HEIGHT,
-        paddingHorizontal: 16,
+        height: layout.height,
+        paddingHorizontal: layout.padding,
         justifyContent: 'center',
         overflow: 'visible',
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: layout.gap }}>
         <View
           testID="hud-best"
           style={{
-            flexDirection: 'row',
             alignItems: 'center',
-            gap: 4,
-            flex: 1,
+            gap: 2,
+            width: layout.sideWidth,
             minWidth: 0,
           }}
         >
@@ -167,39 +162,44 @@ export function Hud({ onPause }: HudProps) {
           <AppText
             testID="hud-best-value"
             preset="button"
+            accessibilityLabel={`${t('home.best', lang)} ${liveBest}`}
             numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.62}
+            allowFontScaling={false}
             style={{
               color: colors.accent,
-              fontSize: 22,
+              fontSize: bestFontSize,
+              width: '100%',
+              lineHeight: Math.ceil(bestFontSize * 1.25),
+              textAlign: 'center',
+              includeFontPadding: false,
               fontVariant: ['tabular-nums'],
               flexShrink: 1,
             }}
           >
-            {liveBest}
+            {visibleBest}
           </AppText>
         </View>
 
         <View
           testID="hud-score-column"
           style={{
-            height: HUD_RESERVED_HEIGHT,
-            width: 152,
+            height: layout.height,
+            width: layout.centerWidth,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <ScoreCounter />
+          <ScoreCounter layout={layout} />
           <View
             testID="hud-combo-slot"
             style={{
-              height: COMBO_BADGE_RESERVED_HEIGHT,
+              height: layout.statusHeight,
+              width: layout.statusWidth,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <RecordStatusBadge />
+            <RecordStatusBadge compact={compact} />
           </View>
         </View>
 
@@ -210,7 +210,7 @@ export function Hud({ onPause }: HudProps) {
           onPress={onPause}
           hitSlop={8}
           style={({ pressed }) => [{
-            flex: 1,
+            width: layout.sideWidth,
             minWidth: 0,
             height: 48,
             alignItems: 'flex-end',

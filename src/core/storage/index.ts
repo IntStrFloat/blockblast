@@ -34,6 +34,7 @@ export const KEYS = {
   adsMeta: 'ads.meta',
   adsPresentation: 'ads.presentation.v1',
   adventureXpBonus: 'ads.adventure-xp-bonus.v1',
+  rewardedBenefits: 'ads.rewarded-benefits.v1',
   tutorialDone: 'tutorial.done',
   mascot: 'mascot.state',
   progression: 'progression.state',

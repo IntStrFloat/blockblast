@@ -1,4 +1,4 @@
-import { Pressable } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import type { ReactNode } from 'react';
 
 import { colors, radii } from '../theme';

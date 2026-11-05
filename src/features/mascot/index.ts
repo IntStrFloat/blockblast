@@ -1,4 +1,4 @@
-export { MascotLayer } from './components/MascotLayer';
+export { MascotLayer, MascotMessages } from './components/MascotLayer';
 export { HelperControls } from './components/HelperControls';
 export { MascotFigure } from './components/MascotArt';
 export { MascotBadge } from './components/MascotBadge';

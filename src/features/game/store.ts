@@ -56,6 +56,7 @@ import {
   recordAdventureLevelWin,
   saveAdsMeta,
 } from '@/features/monetization';
+import { useAdPresentation } from '@/features/monetization/adPresentation';
 import { recordMeaningfulSessionForPush } from '@/features/notifications/softAsk';
 import {
   FTUE_EXPERIMENT_ID,
@@ -90,6 +91,12 @@ export type SavedGameKind =
   | 'terminal_final';
 
 export type ClassicRunMeta = ClassicCheckpointMeta;
+
+/** Repair the split board/proof commit only for the proof belonging to this run. */
+export function reconcileRevivedLeaderboardProof(game: GameState, meta: ClassicRunMeta): boolean {
+  if (!game.reviveUsed || game.status !== 'playing' || !meta.leaderboardProofId) return true;
+  return useLeaderboardStore.getState().reopenActiveRun(meta.leaderboardProofId);
+}
 
 export interface SavedGameSummary {
   mode: 'classic';
@@ -180,7 +187,7 @@ interface GameStore {
   placePiece: (trayIndex: number, r: number, c: number) => PlacementEvent | null;
   replaceTrayPiece: (trayIndex: number) => void;
   restoreGame: (snapshot: GameState) => void;
-  continueGame: () => boolean;
+  continueGame: (expectedRunId?: string) => boolean;
   settleClassicRun: (
     reason: 'home' | 'replay' | 'restart' | 'final_game_over',
   ) => SubmitResult | null;
@@ -264,7 +271,7 @@ interface LegacyClassicRunEnvelope {
   meta: LegacyClassicRunMeta;
 }
 
-function persistClassicSnapshot(game: GameState, meta: ClassicRunMeta): void {
+function persistClassicSnapshot(game: GameState, meta: ClassicRunMeta, critical = false): void {
   const ftueCheckpoint =
     meta.runKind === 'tutorial' ? ftueCheckpointForRun(meta.runId) : null;
   const checkpointMeta: ClassicRunMeta = {
@@ -274,7 +281,8 @@ function persistClassicSnapshot(game: GameState, meta: ClassicRunMeta): void {
   const raw = serialize(game);
   // Authoritative checkpoint: game, generator rules, counters and settlement
   // intent are committed by one synchronous MMKV write.
-  setString(KEYS.classicRunEnvelope, serializeClassicCheckpoint(game, checkpointMeta));
+  const write = critical ? setStringOrThrow : setString;
+  write(KEYS.classicRunEnvelope, serializeClassicCheckpoint(game, checkpointMeta));
   // Read-only compatibility mirrors for builds that predate checkpoint v2.
   setString(KEYS.gameCurrent, raw);
   setJSON(KEYS.classicRunMeta, checkpointMeta);
@@ -663,6 +671,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     const meta: ClassicRunMeta = {
       checkpointVersion: 2,
       runId: createPersistedRunId('classic'),
+      leaderboardProofId: proof.id,
       runKind: options?.initialGame ? 'tutorial' : 'classic',
       lifecycle: 'active',
       configId,
@@ -1360,19 +1369,24 @@ export const useGameStore = create<GameStore>((set, get) => {
       else setString(KEYS.gameCurrent, serialize(snapshot));
     },
 
-    continueGame: () => {
+    continueGame: (expectedRunId) => {
       const meta = get().classicMeta ?? migrateClassicMeta(get().game);
+      if (expectedRunId && (get().adventure || meta.runId !== expectedRunId)) return false;
       if (meta.lifecycle !== 'terminal_revivable') return false;
       const next = revive(get().game);
       if (!next) return false;
       // Переоткрываем ран лидерборда, чтобы продолженная партия дописывала ходы
       // и финализировалась заново — иначе счёт после ревайва не попадал в результат.
-      useLeaderboardStore.getState().reopenActiveRun();
       const resumedMeta: ClassicRunMeta = {
         ...meta,
+        leaderboardProofId: meta.leaderboardProofId ?? useLeaderboardStore.getState().activeProof?.id,
         lifecycle: 'active',
-        activeSinceAt: Date.now(),
+        activeSinceAt: useAdPresentation.getState().fullscreenActive ? null : Date.now(),
       };
+      // The revived board and reviveUsed marker are one durable decision.
+      // Keep the earned journal pending when the write fails.
+      persistClassicSnapshot(next, resumedMeta, true);
+      if (!reconcileRevivedLeaderboardProof(next, resumedMeta)) return false;
       set({
         game: next,
         classicMeta: resumedMeta,
@@ -1380,7 +1394,6 @@ export const useGameStore = create<GameStore>((set, get) => {
         lastEvent: null,
         linesCleared: meta.linesCleared,
       });
-      persistClassicSnapshot(next, resumedMeta);
       useAnalyticsStore.getState().track('revive_used', { result: 'continued' });
       useAnalyticsStore.getState().resumeRun('classic', 'revive', meta.runId, {
         placements: meta.placements,
@@ -1402,6 +1415,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         ...meta,
         activeSinceAt: game.status === 'playing' ? Date.now() : null,
       };
+      // The board can have committed immediately before process death while
+      // the separate proof still contains the first game-over's frozen score.
+      if (!reconcileRevivedLeaderboardProof(game, loadedMeta)) return null;
       if (loadedMeta.runKind === 'tutorial') {
         useFtueStore
           .getState()

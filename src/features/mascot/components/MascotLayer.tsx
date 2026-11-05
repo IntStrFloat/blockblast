@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { AccessibilityInfo, Modal, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
   runOnJS,
@@ -13,7 +13,6 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { getBoardMetrics } from '@/ui';
 import { mascotLost } from '@/core/i18n';
 import { stageForLevel, useProgression } from '@/features/progression';
 import { useLang, useSettings } from '@/features/settings';
@@ -39,6 +38,27 @@ const LIFT_RETURN_MS = 180;
 interface MascotLayerProps {
   dragActive: SharedValue<number>;
   active?: boolean;
+  width?: number;
+  compact?: boolean;
+  height?: number;
+  onEmoteReady?: (emit: ((id: EmoteId) => void) | null) => void;
+  onLostTextChange?: (text: string | null) => void;
+}
+
+/** Speech belongs to the board's notification slot, outside the utility rail. */
+export function MascotMessages({ active = true, lostText = null, onEmote }: {
+  active?: boolean;
+  lostText?: string | null;
+  onEmote?: (id: EmoteId) => void;
+}) {
+  const showMascot = useSettings((s) => s.showMascot);
+  const relayEmote = useCallback((id: EmoteId) => onEmote?.(id), [onEmote]);
+  if (!active || !showMascot) return null;
+  return lostText ? (
+    <View testID="mascot-lost-message" pointerEvents="none" style={{ alignItems: 'center', width: '100%' }}>
+      <SpeechBubble text={lostText} tail="center" />
+    </View>
+  ) : <MascotIntro onEmote={relayEmote} />;
 }
 
 /**
@@ -50,7 +70,7 @@ interface MascotLayerProps {
  * Бросок вниз даёт короткое падение и автоматически возвращает Капи в этой же
  * партии; epoch-recovery остаётся страховкой после прерванного процесса.
  */
-export function MascotLayer({ dragActive, active = true }: MascotLayerProps) {
+export function MascotLayer({ dragActive, active = true, width, compact = false, height, onEmoteReady, onLostTextChange }: MascotLayerProps) {
   const showMascot = useSettings((s) => s.showMascot);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
   if (!showMascot) return null;
@@ -59,9 +79,18 @@ export function MascotLayer({ dragActive, active = true }: MascotLayerProps) {
       <MascotLayerInner
         dragActive={dragActive}
         active={active}
+        width={width}
+        compact={compact}
+        height={height}
+        onEmoteReady={onEmoteReady}
+        onLostTextChange={onLostTextChange}
         onOpenWardrobe={() => setWardrobeOpen(true)}
       />
-      <Wardrobe visible={wardrobeOpen} onClose={() => setWardrobeOpen(false)} />
+      <Modal visible={wardrobeOpen} transparent animationType="fade" onRequestClose={() => setWardrobeOpen(false)}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <Wardrobe visible={wardrobeOpen} onClose={() => setWardrobeOpen(false)} />
+        </GestureHandlerRootView>
+      </Modal>
     </>
   );
 }
@@ -69,6 +98,11 @@ export function MascotLayer({ dragActive, active = true }: MascotLayerProps) {
 function MascotLayerInner({
   dragActive,
   active = true,
+  compact = false,
+  width = compact ? 104 : 144,
+  height = compact ? 48 : LAYER_HEIGHT,
+  onEmoteReady,
+  onLostTextChange,
   onOpenWardrobe,
 }: MascotLayerProps & { onOpenWardrobe: () => void }) {
   const motion = useMascotMotion();
@@ -89,9 +123,12 @@ function MascotLayerInner({
     return () => sub.remove();
   }, []);
 
-  const { width } = useWindowDimensions();
-  const { boardSize } = getBoardMetrics(width);
-  const areaWidth = Math.max(0, boardSize - MASCOT_SIZE);
+  const mascotSize = compact ? 40 : MASCOT_SIZE;
+  const artWidth = compact ? 44 : MASCOT_SIZE;
+  const hitHeight = Math.max(44, mascotSize);
+  const chipLeft = artWidth + (compact ? 4 : 8);
+  const chipWidth = Math.max(0, width - chipLeft);
+  const areaWidth = Math.max(0, artWidth - Math.max(44, mascotSize));
 
   // Текст реплики, язык и тон похвал — для реплики потери.
   const lang = useLang();
@@ -106,6 +143,12 @@ function MascotLayerInner({
     if (emoteTimer.current) clearTimeout(emoteTimer.current);
     emoteTimer.current = setTimeout(() => setEmote('none'), 1200);
   }, []);
+  useEffect(() => {
+    onEmoteReady?.(showEmote);
+    return () => onEmoteReady?.(null);
+  }, [onEmoteReady, showEmote]);
+  useEffect(() => { onLostTextChange?.(lostText); }, [lostText, onLostTextChange]);
+  useEffect(() => () => onLostTextChange?.(null), [onLostTextChange]);
   useEffect(() => () => {
     if (emoteTimer.current) clearTimeout(emoteTimer.current);
   }, []);
@@ -291,43 +334,27 @@ function MascotLayerInner({
   /* eslint-enable react-hooks/refs */
 
   return (
-    <View style={styles.layer} pointerEvents="box-none">
-      <View style={[styles.area, { width: boardSize }]} pointerEvents="box-none">
-        {/* Чип уровня — верхний левый угол полосы доски. */}
-        <View style={styles.chip} pointerEvents="box-none">
-          <MascotChip onPress={onOpenWardrobe} />
+    <View style={[styles.layer, { width, height }]} pointerEvents="box-none">
+      <View style={styles.area} pointerEvents="box-none">
+        <View testID="mascot-chip-slot" style={[styles.chip, { left: chipLeft, width: chipWidth, height }]} pointerEvents="box-none">
+          <MascotChip onPress={onOpenWardrobe} compact={compact} width={chipWidth} />
         </View>
 
-        {/* Маскот в нижнем левом углу; горизонтальный ход — через trackStyle (motion.x),
-            чтобы тень и эмоция двигались вместе с Капи. */}
+        <View testID="mascot-art-slot" style={[styles.artSlot, { left: 0, width: artWidth, height }]} pointerEvents="box-none">
         {!lost && (
-          <Animated.View style={[styles.mascotSlot, trackStyle]} pointerEvents="box-none">
-            {/* Мягкая «тень»-овал под маскотом. */}
-            <View style={styles.shadow} pointerEvents="none" />
+          <Animated.View style={[styles.mascotSlot, { top: (height - hitHeight) / 2, width: artWidth, height: hitHeight }, trackStyle]} pointerEvents="box-none">
+            <View style={[styles.shadow, { left: (artWidth - mascotSize) / 2 + mascotSize * 0.12, width: mascotSize * 0.76 }]} pointerEvents="none" />
             <GestureDetector gesture={gesture}>
-              <View style={styles.mascotHit}>
-                <Mascot motion={motion} stage={stage} equipped={equipped} size={MASCOT_SIZE} />
-                {/* Пузырь-эмоция над маскотом (none → null). */}
-                <View style={styles.emote} pointerEvents="none">
-                  <Emote id={emote} />
-                </View>
+              <View style={{ width: artWidth, height: hitHeight, alignItems: 'center', justifyContent: 'center' }}>
+                <Mascot motion={motion} stage={stage} equipped={equipped} size={mascotSize} />
               </View>
             </GestureDetector>
+            <View style={[styles.emote, { top: -(height - hitHeight) / 2 }]} pointerEvents="none">
+              <Emote id={emote} size={14} />
+            </View>
           </Animated.View>
         )}
-
-        {/* Реплика «потери»: над центром полосы — видна и после падения/анмаунта. */}
-        {lostText ? (
-          <View style={styles.lostBubble} pointerEvents="none">
-            <SpeechBubble text={lostText} tail="center" />
-          </View>
-        ) : null}
-
-        {/* Тонкая линия «пола». */}
-        <View style={styles.floor} pointerEvents="none" />
-
-        {/* Интро первого захода: неблокирующее, разовое (self-guards на introDone). */}
-        {active ? <MascotIntro onEmote={showEmote} /> : null}
+        </View>
       </View>
     </View>
   );
@@ -335,56 +362,34 @@ function MascotLayerInner({
 
 const styles = StyleSheet.create({
   layer: {
-    width: '100%',
-    height: LAYER_HEIGHT,
+    position: 'relative',
   },
   area: {
     flex: 1,
-    alignSelf: 'center',
   },
   chip: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    zIndex: 2,
+    justifyContent: 'center',
   },
-  lostBubble: {
+  artSlot: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 4,
-  },
-  floor: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
   },
   mascotSlot: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
-  },
-  mascotHit: {
-    width: MASCOT_SIZE,
-    height: MASCOT_SIZE,
   },
   shadow: {
     position: 'absolute',
     bottom: -2,
-    left: MASCOT_SIZE * 0.12,
-    width: MASCOT_SIZE * 0.76,
     height: 8,
     borderRadius: 4,
     backgroundColor: 'rgba(8,14,28,0.35)',
   },
   emote: {
     position: 'absolute',
-    top: -22,
-    right: -8,
+    right: 0,
   },
 });

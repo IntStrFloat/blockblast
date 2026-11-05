@@ -5,10 +5,12 @@ import { BannerAdSize, BannerView } from 'yandex-mobile-ads';
 import { useAnalyticsStore } from '@/features/analytics';
 
 import { useAdPresentation } from './adPresentation';
+import { bannerLoadErrorMessage } from './bannerLoadError';
 import { MONETIZATION } from './config';
 import { useEntitlements } from './entitlements';
 import { shouldShowGameBanner, shouldShowHomeBanner } from './policy';
 import { acceptBannerRevenue, bannerImpressionRawData, parseImpressionRevenue } from './revenue';
+import { useBannerRecovery } from './useBannerRecovery';
 
 export type AdBannerProps = {
   adUnitId?: string;
@@ -27,6 +29,7 @@ export function AdBanner({
   const removeAds = useEntitlements((state) => state.removeAds);
   const [size, setSize] = useState<BannerAdSize | null>(null);
   const attemptIdRef = useRef<string | null>(null);
+  const requestedScopeRef = useRef<string | null>(null);
   const seenImpressions = useRef(new Set<string>());
   const impressionSequence = useRef(0);
   const fullscreenActive = useAdPresentation((state) => state.fullscreenActive);
@@ -42,10 +45,16 @@ export function AdBanner({
     placement === 'home'
       ? shouldShowHomeBanner()
       : shouldShowGameBanner({ ftueComplete, gamesPlayed });
+  const bannerActive = MONETIZATION.bannerEnabled && !removeAds && policyEligible && !presentationSuppressed;
+  // An inactive placement must obtain a fresh size before mounting again.
+  // In particular, expiration of suppression in background cannot reuse stale size to mount.
+  if (!bannerActive && size) setSize(null);
+  const recovery = useBannerRecovery(bannerActive);
 
   useEffect(() => {
     let active = true;
     if (!MONETIZATION.bannerEnabled || removeAds || !policyEligible || presentationSuppressed) {
+      requestedScopeRef.current = null;
       useAnalyticsStore.getState().track('ad_eligible', {
         format: 'banner',
         placement,
@@ -53,15 +62,17 @@ export function AdBanner({
       });
       return;
     }
-    const nextAttemptId = `banner:${placement}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
-    useAnalyticsStore.getState().track('ad_eligible', { format: 'banner', placement, attempt_id: nextAttemptId });
-    useAnalyticsStore
-      .getState()
-      .track('ad_requested', { format: 'banner', placement, attempt_id: nextAttemptId });
-    attemptIdRef.current = nextAttemptId;
+    if (!recovery.foreground) return;
+    const requestScope = `${placement}:${adUnitId}:${width}:${recovery.generation}`;
+    if (requestedScopeRef.current === requestScope && size) return;
     BannerAdSize.stickySize(width)
       .then((nextSize) => {
         if (active) {
+          const nextAttemptId = `banner:${placement}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+          requestedScopeRef.current = requestScope;
+          attemptIdRef.current = nextAttemptId;
+          useAnalyticsStore.getState().track('ad_eligible', { format: 'banner', placement, attempt_id: nextAttemptId });
+          useAnalyticsStore.getState().track('ad_requested', { format: 'banner', placement, attempt_id: nextAttemptId });
           setSize(nextSize);
         }
       })
@@ -71,16 +82,18 @@ export function AdBanner({
     return () => {
       active = false;
     };
-  }, [placement, policyEligible, presentationSuppressed, removeAds, width]);
+  }, [placement, adUnitId, policyEligible, presentationSuppressed, removeAds, width, size, recovery.generation, recovery.foreground]);
 
   if (!MONETIZATION.bannerEnabled || removeAds || !policyEligible || presentationSuppressed || !size) return null;
 
   return (
     <View style={{ width: '100%', height: size.height, alignItems: 'center' }}>
       <BannerView
+        key={recovery.generation}
         size={size}
         adRequest={{ adUnitId }}
         onAdLoaded={() => {
+          recovery.onLoaded();
           useAnalyticsStore
             .getState()
             .track('ad_loaded', {
@@ -116,13 +129,14 @@ export function AdBanner({
             });
         }}
         onAdFailedToLoad={(event) => {
+          recovery.onFailed();
           console.warn('[ads] Yandex banner failed to load', event.nativeEvent);
           useAnalyticsStore.getState().track('ad_failed', {
             format: 'banner',
             placement,
             attempt_id: attemptIdRef.current ?? undefined,
             stage: 'load',
-            message: event.nativeEvent?.description,
+            message: bannerLoadErrorMessage(event.nativeEvent),
           });
           useAnalyticsStore.getState().track('ad_result', { format: 'banner', placement, attempt_id: attemptIdRef.current ?? undefined, result: 'failed' });
         }}

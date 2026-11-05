@@ -41,6 +41,7 @@ export function ComboBadge() {
         alignItems: 'center',
         justifyContent: 'center',
         height: 24,
+        maxWidth: '100%',
         gap: 5,
       }}
     >
@@ -48,11 +49,18 @@ export function ComboBadge() {
       <AppText
         preset="button"
         numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+        allowFontScaling={false}
+        testID="hud-combo-text"
         style={{
           fontFamily: 'Unbounded_700Bold',
+          flexShrink: 1,
+          minWidth: 0,
           color: '#FFE9A8',
           fontSize: 14,
           lineHeight: 18,
+          includeFontPadding: false,
           letterSpacing: 0.2,
           textShadowColor: 'rgba(255,159,28,0.6)',
           textShadowOffset: { width: 0, height: 1 },

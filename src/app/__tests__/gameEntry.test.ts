@@ -109,7 +109,7 @@ describe('explicit game entry intents', () => {
   });
 
   it('keeps praise mounted during FTUE so clear lettering cannot replay late', () => {
-    expect(gameSource).toContain('<PraiseBanner />');
+    expect(gameSource).toContain('<PraiseBanner suppressed=');
     expect(gameSource).not.toContain('{!ftueActive ? <PraiseBanner /> : null}');
   });
 

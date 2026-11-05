@@ -21,7 +21,9 @@ import {
 } from '@/features/monetization';
 import { recordGameOverForPush } from '@/features/notifications';
 import { rememberRewardedOffer, leaveRewardedOffer } from '@/features/monetization/rewardedOfferPolicy';
+import { useInterstitialPreparation } from '@/features/monetization/useInterstitialPreparation';
 import { useRewardedReady } from '@/features/monetization/useRewardedReady';
+import { claimRewardedBenefit, recoverRewardedBenefits } from '@/features/monetization/rewardedBenefits';
 import { useScores } from '@/features/scores';
 import { RewardProgressSummary, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
@@ -73,7 +75,6 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
   const game = useGameStore((s) => s.game);
   const lastEvent = useGameStore((s) => s.lastEvent);
   const finalResult = useGameStore((s) => s.finalResult);
-  const continueGame = useGameStore((s) => s.continueGame);
   const epoch = useGameStore((s) => s.epoch);
   const runBestAtStart = useGameStore((s) => s.runBestAtStart);
   const classicMeta = useGameStore((s) => s.classicMeta);
@@ -107,6 +108,7 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
     : 0;
 
   const resultContextId = classicMeta?.runId ?? `classic-result:${epoch}`;
+  useEffect(() => { recoverRewardedBenefits(); }, [resultContextId]);
   useEffect(() => {
     if (isOver && (!presentation.fresh || visible) && revivePolicy.visible) {
       rememberRewardedOffer(resultContextId);
@@ -161,12 +163,18 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
     }
   }, [classicMeta?.runId, game.score, isOver, newRecord, presentation.fresh, runBestAtStart, visible]);
 
+  useInterstitialPreparation({
+    active: isOver && (!presentation.fresh || visible) && !busy,
+    counter: 'gameover', mode: 'classic', removeAds, resultContextId,
+    activePlayMs: classicMeta?.activeDurationMs,
+  });
+
   if (!isOver || (presentation.fresh && !visible)) return null;
 
   const closeWithInterstitial = async (action: 'replay', after: () => void) => {
     if (busyRef.current) return;
     busyRef.current = true;
-    const rewardedOfferPresented = leaveRewardedOffer(resultContextId) || revivePolicy.visible;
+    leaveRewardedOffer(resultContextId);
     useAnalyticsStore.getState().track('game_over_action', { action });
     setBusy(true);
     try {
@@ -180,7 +188,7 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
         },
         'gameover',
         'classic',
-        { activePlayMs: classicMeta?.activeDurationMs, rewardedOfferPresented, resultContextId },
+        { activePlayMs: classicMeta?.activeDurationMs, resultContextId },
       );
       if (!opportunity.baseEligible) {
         useAnalyticsStore.getState().track('ad_eligible', {
@@ -225,16 +233,13 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
     useAnalyticsStore.getState().track('game_over_action', { action: 'revive' });
     setBusy(true);
     try {
-      const result = await getAds().showRewarded('revive');
-      if (result !== 'unavailable') {
+      const result = classicMeta?.runId
+        ? await claimRewardedBenefit({ kind: 'revive', runId: classicMeta.runId }, getAds())
+        : 'unavailable';
+      if (result === 'applied' || result === 'pending' || result === 'dismissed') {
         saveAdsMeta(recordFullscreenCooldown(loadAdsMeta(), Date.now()));
       }
-      if (result === 'rewarded') {
-        const continued = continueGame();
-        if (!continued) {
-          useAnalyticsStore.getState().track('revive_used', { result: 'rewarded' });
-        }
-      } else {
+      if (result === 'dismissed' || result === 'unavailable') {
         useAnalyticsStore.getState().track('revive_used', { result });
       }
     } finally {

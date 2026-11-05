@@ -40,11 +40,6 @@ export const MosaicView = memo(function MosaicView({
           backgroundColor: filled ? tile.color : 'rgba(38, 53, 97, 0.92)',
           borderWidth: tile.milestone ? 2 : 1,
           borderColor: tile.milestone ? '#D84F6A' : 'rgba(20, 32, 66, 0.72)',
-          shadowColor: tile.milestone ? '#FF6F82' : '#142044',
-          shadowOpacity: tile.milestone ? 0.58 : 0.2,
-          shadowRadius: tile.milestone ? 5 : 2,
-          shadowOffset: { width: 0, height: 1 },
-          elevation: tile.milestone ? 3 : 1,
         };
         if (tile.index === justFilled) {
           return <Animated.View key={tile.index} entering={FadeIn.duration(260)} style={style} />;

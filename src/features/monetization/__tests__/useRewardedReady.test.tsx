@@ -4,6 +4,22 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { useRewardedReady } from '../useRewardedReady';
 
 let mockReady = false;
+let mockFullscreen = false;
+let mockAppState = 'active';
+let mockAppListener: ((state: string) => void) | undefined;
+const mockRemoveAppListener = jest.fn();
+jest.mock('react-native/Libraries/AppState/AppState', () => ({
+  default: {
+    get currentState() { return mockAppState; },
+    addEventListener: (_event: string, listener: (state: string) => void) => {
+      mockAppListener = listener;
+      return { remove: mockRemoveAppListener };
+    },
+  },
+}));
+jest.mock('../adPresentation', () => ({
+  useAdPresentation: { getState: () => ({ fullscreenActive: mockFullscreen }) },
+}));
 let mockListener: (() => void) | undefined;
 const mockUnsubscribe = jest.fn();
 const mockPrepareRewarded = jest.fn(async () => {});
@@ -28,11 +44,17 @@ function Offer({ active = true }: { active?: boolean }) {
 
 describe('visible rewarded inventory', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
     mockReady = false;
+    mockFullscreen = false;
+    mockAppState = 'active';
+    mockAppListener = undefined;
     mockListener = undefined;
     mockPrepareRewarded.mockReset().mockResolvedValue(undefined);
   });
+
+  afterEach(() => { jest.useRealTimers(); });
 
   it('prepares only active offers and unsubscribes when hidden', async () => {
     let tree!: ReactTestRenderer;
@@ -58,9 +80,92 @@ describe('visible rewarded inventory', () => {
     expect(observedReady).toBe(false);
     expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
     await act(async () => { mockListener?.(); });
-    expect(mockPrepareRewarded).toHaveBeenCalledTimes(3);
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
     await act(async () => { mockReady = true; mockListener?.(); });
     expect(observedReady).toBe(true);
+    await act(async () => { tree.unmount(); });
+  });
+
+  it('recovers a failed preparation after 30 seconds and stops after two retries', async () => {
+    mockPrepareRewarded.mockRejectedValue(new Error('network unavailable'));
+    let tree!: ReactTestRenderer;
+    await act(async () => { tree = create(<Offer />); });
+    await act(async () => { jest.advanceTimersByTime(29_999); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
+    await act(async () => { jest.advanceTimersByTime(59_999); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(3);
+    await act(async () => { jest.advanceTimersByTime(600_000); mockListener?.(); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(3);
+    await act(async () => { tree.unmount(); });
+  });
+
+  it('cancels retries when hidden or unmounted', async () => {
+    let tree!: ReactTestRenderer;
+    await act(async () => { tree = create(<Offer />); });
+    await act(async () => { tree.update(<Offer active={false} />); });
+    await act(async () => { jest.advanceTimersByTime(600_000); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(1);
+    await act(async () => { tree.update(<Offer />); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
+    await act(async () => { tree.unmount(); });
+    await act(async () => { jest.advanceTimersByTime(600_000); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
+    expect(mockRemoveAppListener).toHaveBeenCalledTimes(2);
+  });
+
+  it('pauses background requests and resumes on foreground without rapid retry loops', async () => {
+    let tree!: ReactTestRenderer;
+    mockAppState = 'background';
+    await act(async () => { tree = create(<Offer />); });
+    expect(mockPrepareRewarded).not.toHaveBeenCalled();
+    await act(async () => { mockAppListener?.('active'); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(1);
+    await act(async () => { mockAppListener?.('background'); });
+    await act(async () => { jest.advanceTimersByTime(600_000); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(1);
+    await act(async () => { mockAppListener?.('active'); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
+    for (let index = 0; index < 5; index += 1) {
+      await act(async () => { mockAppListener?.('background'); mockAppListener?.('active'); });
+    }
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
+    await act(async () => { jest.advanceTimersByTime(30_000); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(3);
+    await act(async () => { tree.unmount(); });
+  });
+
+  it('does not overlap a pending request or refill during a fullscreen ad', async () => {
+    let complete!: () => void;
+    mockPrepareRewarded.mockImplementationOnce(() => new Promise<void>((resolve) => { complete = resolve; }));
+    let tree!: ReactTestRenderer;
+    await act(async () => { tree = create(<Offer />); });
+    await act(async () => { mockAppListener?.('background'); mockAppListener?.('active'); mockListener?.(); });
+    await act(async () => { jest.advanceTimersByTime(600_000); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(1);
+    await act(async () => { mockReady = true; complete(); mockListener?.(); });
+    await act(async () => { mockReady = false; mockFullscreen = true; mockListener?.(); });
+    await act(async () => { jest.advanceTimersByTime(600_000); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(1);
+    await act(async () => { mockFullscreen = false; mockListener?.(); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
+    await act(async () => { tree.unmount(); });
+  });
+
+  it('keeps recovery scheduled when returning to an unresolved request', async () => {
+    let complete!: () => void;
+    mockPrepareRewarded.mockImplementationOnce(() => new Promise<void>((resolve) => { complete = resolve; }));
+    let tree!: ReactTestRenderer;
+    await act(async () => { tree = create(<Offer />); });
+    await act(async () => { mockAppListener?.('background'); mockAppListener?.('active'); });
+    await act(async () => { jest.advanceTimersByTime(30_000); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(1);
+    await act(async () => { complete(); });
+    await act(async () => { jest.advanceTimersByTime(30_000); });
+    expect(mockPrepareRewarded).toHaveBeenCalledTimes(2);
     await act(async () => { tree.unmount(); });
   });
 

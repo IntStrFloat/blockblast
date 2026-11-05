@@ -27,7 +27,8 @@ describe('MascotLayer drag/drop contract', () => {
     expect(layerSource).toContain('active?: boolean');
     expect(layerSource).toContain('active = true');
     expect(layerSource).toContain('.enabled(active)');
-    expect(layerSource).toContain('{active ? <MascotIntro');
+    expect(layerSource).toContain('export function MascotMessages');
+    expect(layerSource).toContain('if (!active || !showMascot) return null');
   });
 
   it('returns lifted mascot to the floor without a bouncy spring loop', () => {

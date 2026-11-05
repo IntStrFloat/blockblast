@@ -1,6 +1,7 @@
 import React from 'react';
+import { AppState } from 'react-native';
 import { act, create } from 'react-test-renderer';
-import { KEYS, removeKey } from '@/core/storage';
+import { KEYS, removeKey, storage } from '@/core/storage';
 
 import { GameOverOverlay } from '../components/GameOverOverlay';
 
@@ -56,6 +57,7 @@ const mockLoadAdsMeta = jest.fn(() => currentAdsMeta);
 const mockShouldShowInterstitial = jest.fn((_meta: MockAdsMeta, _opts: unknown) => false);
 let mockReadyListener: (() => void) | undefined;
 const mockPrepareRewarded = jest.fn(async () => {});
+const mockPrepareInterstitial = jest.fn(async () => {});
 
 const mockAdsProvider = {
   init: jest.fn(() => Promise.resolve()),
@@ -69,9 +71,13 @@ const mockAdsProvider = {
       return Promise.resolve<'shown' | 'skipped' | 'unavailable'>('shown');
     },
   ),
-  showRewarded: jest.fn(() => Promise.resolve<'rewarded' | 'dismissed' | 'unavailable'>('rewarded')),
+  showRewarded: jest.fn((_placement: string, onEarned?: () => void) => {
+    onEarned?.();
+    return Promise.resolve<'rewarded' | 'dismissed' | 'unavailable'>('rewarded');
+  }),
   isRewardedReady: jest.fn(() => true),
   prepareRewarded: mockPrepareRewarded,
+  prepareInterstitial: mockPrepareInterstitial,
   subscribeRewardedReady: jest.fn((listener: () => void) => {
     mockReadyListener = listener;
     return () => { mockReadyListener = undefined; };
@@ -102,7 +108,7 @@ jest.mock('@/features/analytics', () => ({
 }));
 
 jest.mock('@/features/monetization', () => ({
-  MONETIZATION: { adsEnabled: true },
+  MONETIZATION: jest.requireActual('@/features/monetization/config').MONETIZATION,
   evaluateInterstitialOpportunity: (meta: MockAdsMeta, opts: unknown, _counter: string, _mode: string,
     context?: { rewardedOfferPresented?: boolean }) => {
     const eligible = mockShouldShowInterstitial(meta, opts);
@@ -169,7 +175,11 @@ jest.mock('@/ui', () => {
 });
 
 jest.mock('../store', () => ({
-  useGameStore: (selector: (state: MockGameStoreState) => unknown) => selector(mockGameStoreState),
+  reconcileRevivedLeaderboardProof: () => true,
+  useGameStore: Object.assign(
+    (selector: (state: MockGameStoreState) => unknown) => selector(mockGameStoreState),
+    { getState: () => mockGameStoreState },
+  ),
 }));
 
 jest.mock('../effects/Confetti', () => ({
@@ -197,6 +207,7 @@ jest.mock('../components/ReviveButton', () => {
   };
 });
 
+let runSequence = 0;
 function makeGameState(overrides: Partial<MockGameStoreState> = {}): MockGameStoreState {
   return {
     game: { status: 'over', score: 321, reviveUsed: false },
@@ -205,7 +216,7 @@ function makeGameState(overrides: Partial<MockGameStoreState> = {}): MockGameSto
     continueGame: jest.fn(() => true),
     epoch: 7,
     runBestAtStart: 100,
-    classicMeta: { runId: 'run-1', lifecycle: 'terminal_revivable' },
+    classicMeta: { runId: `run-${++runSequence}`, lifecycle: 'terminal_revivable' },
     ...overrides,
   };
 }
@@ -224,9 +235,12 @@ describe('GameOverOverlay', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
+    AppState.currentState = 'active';
+    mockShouldShowInterstitial.mockReset().mockReturnValue(false);
     mockAdsProvider.isRewardedReady.mockReturnValue(true);
     mockReadyListener = undefined;
     removeKey(KEYS.adsMeta);
+    removeKey(KEYS.rewardedBenefits);
     mockGameStoreState = makeGameState();
     mockScoresState = { best: 250, gamesPlayed: 12 };
     currentAdsMeta = {
@@ -278,7 +292,11 @@ describe('GameOverOverlay', () => {
 
   it('does not prepare an unused replacement while a successful continuation closes the result', async () => {
     let dismiss!: (result: 'rewarded') => void;
-    mockAdsProvider.showRewarded.mockImplementationOnce(() => new Promise(resolve => { dismiss = resolve; }));
+    let earn!: () => void;
+    mockAdsProvider.showRewarded.mockImplementationOnce((_placement, onEarned) => {
+      earn = onEarned!;
+      return new Promise(resolve => { dismiss = resolve; });
+    });
     mockGameStoreState.continueGame.mockImplementationOnce(() => {
       mockGameStoreState.game.status = 'playing';
       return true;
@@ -290,6 +308,7 @@ describe('GameOverOverlay', () => {
     expect(mockReadyListener).toBeUndefined();
     await act(async () => {
       mockAdsProvider.isRewardedReady.mockReturnValue(false);
+      earn();
       dismiss('rewarded');
     });
     expect(mockGameStoreState.continueGame).toHaveBeenCalledTimes(1);
@@ -381,7 +400,7 @@ describe('GameOverOverlay', () => {
   it('persists frequency at impression before dismiss/process interruption', async () => {
     mockGameStoreState.classicMeta = { runId: 'final-run', lifecycle: 'terminal_final' };
     const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(345_678);
-    mockShouldShowInterstitial.mockReturnValueOnce(true);
+    mockShouldShowInterstitial.mockReturnValue(true);
     mockAdsProvider.showInterstitial.mockImplementationOnce(
       (
         _placement: string,
@@ -480,7 +499,7 @@ describe('GameOverOverlay', () => {
     expect(mockTrack).toHaveBeenCalledWith('revive_used', { result: 'unavailable' });
   });
 
-  it('falls back to the rewarded outcome when the ad pays out but continueGame rejects', async () => {
+  it('retains earned proof when the continuation cannot yet be applied', async () => {
     mockGameStoreState = makeGameState({
       continueGame: jest.fn(() => false),
     });
@@ -497,18 +516,21 @@ describe('GameOverOverlay', () => {
     });
 
     expect(mockGameStoreState.continueGame).toHaveBeenCalledTimes(1);
-    expect(mockTrack).toHaveBeenCalledWith('revive_used', { result: 'rewarded' });
+    expect(mockTrack).not.toHaveBeenCalledWith('revive_used', { result: 'rewarded' });
+    expect(Object.values(JSON.parse(storage.getString(KEYS.rewardedBenefits)!)))
+      .toEqual([expect.objectContaining({ state: 'earned_pending' })]);
   });
 
-  it('treats ordinary replay as a decline of a visible revive and never chains an interstitial', async () => {
-    mockShouldShowInterstitial.mockReturnValueOnce(true);
+  it('allows a frequency-eligible interstitial on replay after declining a visible revive', async () => {
+    mockShouldShowInterstitial.mockReturnValue(true);
     const renderer = mount();
     await flushMicrotasks();
     act(() => { jest.advanceTimersByTime(1_000); });
     expect(renderer.root.findByProps({ testID: 'revive-button' })).toBeDefined();
+    expect(mockPrepareInterstitial).toHaveBeenCalledTimes(1);
     const replay = renderer.root.find(node => node.props.accessibilityLabel === 'gameOver.playAgain');
     await act(async () => { await replay.props.onPress(); });
-    expect(mockAdsProvider.showInterstitial).not.toHaveBeenCalled();
+    expect(mockAdsProvider.showInterstitial).toHaveBeenCalledTimes(1);
     expect(mockAdsProvider.showRewarded).not.toHaveBeenCalled();
     expect(onPlayAgain).toHaveBeenCalledTimes(1);
   });

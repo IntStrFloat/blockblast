@@ -18,7 +18,7 @@ describe('SDK impression revenue', () => {
     expect(event).toEqual({
       ...context, ad_unit_id: 'provider-unit', revenue: 0.0123, currency: 'RUB',
       revenue_usd: 0.00014, precision: 'estimated', network: 'Yandex', network_ad_unit_id: 'network-unit',
-      policy_version: 'contextual-breaks-v2-four-rounds', impression_id: undefined,
+      policy_version: 'contextual-breaks-v3-decline-without-cooldown', impression_id: undefined,
     });
   });
 

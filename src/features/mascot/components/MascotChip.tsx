@@ -1,6 +1,8 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 
 import { progressFor, useProgression } from '@/features/progression';
+import { useLang } from '@/features/settings';
 import { AppText, colors, mascotPalette, radii } from '@/ui';
 
 import { MascotMark } from './MascotArt';
@@ -12,19 +14,29 @@ import { MascotMark } from './MascotArt';
  * никаких анимаций ширины.
  * Если передан onPress — оборачивается в Pressable (≥44pt) для открытия гардероба.
  */
-export function MascotChip({ onPress }: { onPress?: () => void }) {
+export function MascotChip({ onPress, compact = false, width = compact ? 56 : 80 }: {
+  onPress?: () => void;
+  compact?: boolean;
+  width?: number;
+}) {
   const lifetimePoints = useProgression((s) => s.lifetimePoints);
+  const lang = useLang();
   const p = progressFor(lifetimePoints);
 
   const total = p.pointsInLevel + p.pointsToNext;
   const fillPct = total > 0 ? (p.pointsInLevel / total) * 100 : 100;
+  const accessibilityLabel = lang === 'ru'
+    ? `Уровень ${p.level}. Прогресс: ${p.pointsInLevel} из ${total} очков.`
+    : `Level ${p.level}. Progress: ${p.pointsInLevel} of ${total} points.`;
 
   const inner = (
-    <View style={styles.pill}>
-      <MascotMark size={18} />
-      <AppText preset="button" style={styles.label}>
+    <View style={[styles.pill, { width }]}>
+      <View style={styles.caption}>
+        {!compact ? <MascotMark size={14} /> : null}
+        <AppText preset="button" numberOfLines={1} allowFontScaling={false} style={styles.label}>
         {`ур.${p.level}`}
-      </AppText>
+        </AppText>
+      </View>
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${fillPct}%` }]} />
       </View>
@@ -33,7 +45,7 @@ export function MascotChip({ onPress }: { onPress?: () => void }) {
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={styles.hitArea}>
+      <Pressable testID="mascot-chip" onPress={onPress} accessibilityRole="button" accessibilityLabel={accessibilityLabel} style={[styles.hitArea, { width }]}>
         {inner}
       </Pressable>
     );
@@ -50,19 +62,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pill: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
     borderRadius: radii.button,
     backgroundColor: colors.surface,
   },
   label: {
     fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  caption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    width: '100%',
   },
   track: {
     width: 40,
+    maxWidth: '100%',
     height: 4,
     borderRadius: 2,
     backgroundColor: colors.cellEmpty,

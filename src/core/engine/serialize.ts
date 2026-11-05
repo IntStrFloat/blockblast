@@ -35,6 +35,8 @@ export interface ClassicCheckpointSettlement {
 export interface ClassicCheckpointMeta {
   checkpointVersion: typeof CLASSIC_CHECKPOINT_VERSION;
   runId: string;
+  /** Identity of the separate ranked proof, used for crash-safe revive reconciliation. */
+  leaderboardProofId?: string;
   runKind: 'classic' | 'tutorial';
   lifecycle: 'active' | 'terminal_revivable' | 'terminal_final';
   configId: string;
@@ -226,6 +228,8 @@ export function deserializeClassicCheckpoint(
     meta.checkpointVersion !== CLASSIC_CHECKPOINT_VERSION ||
     typeof meta.runId !== 'string' ||
     meta.runId.length === 0 ||
+    (meta.leaderboardProofId !== undefined &&
+      (typeof meta.leaderboardProofId !== 'string' || meta.leaderboardProofId.length === 0)) ||
     (meta.runKind !== 'classic' && meta.runKind !== 'tutorial') ||
     !['active', 'terminal_revivable', 'terminal_final'].includes(meta.lifecycle ?? '') ||
     typeof meta.configId !== 'string' ||

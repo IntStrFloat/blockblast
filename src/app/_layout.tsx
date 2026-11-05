@@ -30,6 +30,7 @@ import {
 } from '@/features/game';
 import { getAds, initializeInterstitialExperiment } from '@/features/monetization';
 import { recoverAdventureXpBonuses } from '@/features/monetization/adventureXpBonus';
+import { recoverRewardedBenefits } from '@/features/monetization/rewardedBenefits';
 import {
   getManagedLocalNotificationResponse,
   getInitialSessionIntent,
@@ -100,6 +101,7 @@ export default function RootLayout() {
     }
     analytics.initialize(resolution.context);
     recoverAdventureXpBonuses();
+    recoverRewardedBenefits();
     initializeInterstitialExperiment(resolution.context);
     if (resolution.kind === 'resumed') {
       if (analytics.activeRun && !analytics.activeRun.terminal_reported) {

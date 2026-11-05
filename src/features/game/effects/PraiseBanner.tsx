@@ -1,4 +1,4 @@
-import { useLayoutEffect, type ReactNode } from 'react';
+import { useLayoutEffect, useState, type ReactNode } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View, type ViewStyle } from 'react-native';
 import Animated, {
@@ -542,14 +542,18 @@ function CelebrationSweep({
   );
 }
 
-export function PraiseBanner() {
+export function PraiseBanner({ suppressed = false }: { suppressed?: boolean }) {
   const ctx = useDragCtx();
   const lastEvent = useGameStore((state) => state.lastEvent);
   const tone = useSettings((state) => state.praiseTone);
   const lang = useLang();
   const reducedMotion = useReducedMotion();
+  const [suppressedEvent, setSuppressedEvent] = useState<PlacementEvent | null>(null);
+  // Remember a skipped event before committing children, so dismissing another
+  // notification cannot replay old praise. Ordinary clears add no state update.
+  if (suppressed && lastEvent && suppressedEvent !== lastEvent) setSuppressedEvent(lastEvent);
 
-  if (!lastEvent || lastEvent.clearedCells.length === 0) return null;
+  if (!lastEvent || lastEvent.clearedCells.length === 0 || suppressed || suppressedEvent === lastEvent) return null;
   const banner: Banner = {
     id: praiseEventId(lastEvent),
     text:
@@ -590,6 +594,7 @@ export function PraiseBanner() {
 
   return (
     <View
+      testID="board-praise-bounds"
       pointerEvents="none"
       style={{
         position: 'absolute',
@@ -597,6 +602,7 @@ export function PraiseBanner() {
         left: 0,
         width: boardSize,
         height: boardSize,
+        overflow: 'hidden',
       }}
     >
         <FeedbackMotion

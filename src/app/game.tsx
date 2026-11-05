@@ -42,10 +42,12 @@ import { TutorialHints } from '@/features/game/components/TutorialHints';
 import { AtmosphereLayer } from '@/features/game/effects/AtmosphereLayer';
 import { BoardAuraFrame } from '@/features/game/effects/BoardAuraFrame';
 import { NewRecordCelebration } from '@/features/game/effects/NewRecordCelebration';
-import { HelperControls, LevelUpReveal, MascotLayer } from '@/features/mascot';
+import { HelperControls, LevelUpReveal, MascotLayer, MascotMessages, useMascot } from '@/features/mascot';
+import type { EmoteId } from '@/features/mascot/logic/types';
 import { GameBannerDock } from '@/features/monetization';
 import { useAdPresentation } from '@/features/monetization/adPresentation';
 import { leaveRewardedOffer } from '@/features/monetization/rewardedOfferPolicy';
+import { useGameBannerEligibility } from '@/features/monetization/useGameBannerEligibility';
 import {
   createTutorialGame,
   findTutorialRecommendation,
@@ -53,9 +55,10 @@ import {
   useFtueStore,
 } from '@/features/onboarding';
 import { useProgressionSync } from '@/features/progression/hooks/useProgressionSync';
+import { useProgression } from '@/features/progression';
 import { useProfileStore } from '@/features/profile';
 import { useScores } from '@/features/scores';
-import { useLang } from '@/features/settings';
+import { useLang, useSettings } from '@/features/settings';
 import { useActiveWorldTheme } from '@/features/themes';
 import { AppText, ConfirmDialog, radii } from '@/ui';
 
@@ -127,10 +130,8 @@ export default function GameScreen() {
   const insets = useSafeAreaInsets();
   const theme = useActiveWorldTheme();
   const [playfieldHeight, setPlayfieldHeight] = useState<number | null>(null);
-  const [entryGamesPlayed] = useState(() => useScores.getState().gamesPlayed);
-  const [ftueCompleteAtEntry] = useState(() =>
-    ['complete', 'skipped'].includes(useFtueStore.getState().status),
-  );
+  const gamesPlayed = useScores((state) => state.gamesPlayed);
+  const runId = useGameStore((state) => state.classicMeta?.runId ?? null);
   const verticalGap = Math.max(
     PLAYFIELD_LAYOUT.minVerticalGap,
     Math.min(
@@ -138,7 +139,7 @@ export default function GameScreen() {
       Math.round(screenHeight * PLAYFIELD_LAYOUT.verticalGapRatio),
     ),
   );
-  const { boardSize, cellSize, cellGap, trayHeight } = getClassicPlayfieldMetrics(
+  const { boardSize, cellSize, cellGap, trayHeight, hudHeight, mascotHeight, compactHeader } = getClassicPlayfieldMetrics(
     screenWidth,
     playfieldHeight ?? screenHeight,
     playfieldHeight == null ? insets : { top: 0, bottom: 0 },
@@ -154,6 +155,21 @@ export default function GameScreen() {
   const ftueStatus = useFtueStore((state) => state.status);
   const ftueShouldShowAssistance = useFtueStore(shouldShowFtueAssistance);
   const ftueActive = !['complete', 'skipped'].includes(ftueStatus);
+  const showMascot = useSettings((s) => s.showMascot);
+  const introDone = useMascot((s) => s.introDone);
+  const reveal = useProgression((s) => s.reveal);
+  const [mascotLostText, setMascotLostText] = useState<string | null>(null);
+  const [atmosphereVisible, setAtmosphereVisible] = useState(false);
+  const mascotEmoteRef = useRef<((id: EmoteId) => void) | null>(null);
+  const handleMascotEmoteReady = useCallback((handler: ((id: EmoteId) => void) | null) => {
+    mascotEmoteRef.current = handler;
+  }, []);
+  const relayMascotEmote = useCallback((id: EmoteId) => mascotEmoteRef.current?.(id), []);
+  const mascotMessageVisible = !ftueActive && showMascot && (!introDone || mascotLostText !== null);
+  const notificationBusy = mascotMessageVisible || reveal !== null;
+  const railWidth = Math.max(0, screenWidth - 24);
+  const mascotWidth = compactHeader ? 104 : 144;
+  const bannerEligibility = useGameBannerEligibility(runId, gamesPlayed, !ftueActive);
   // Сеттинг всей игровой области (фон/атмосфера) следует активной теме мира (спека 12 §3).
   const bgPalette = useMemo(
     () => ({
@@ -541,40 +557,44 @@ export default function GameScreen() {
             accent={theme.praiseAccent}
             active={!ftueActive}
           />
-          <View style={{ width: '100%', zIndex: 30 }}>
-            <Hud onPause={() => setPaused(true)} />
+          <View style={{ width: '100%', height: hudHeight, overflow: 'hidden', zIndex: 30 }}>
+            <NewRecordCelebration />
+            <View style={{ zIndex: 1 }}><Hud compact={compactHeader} onPause={() => setPaused(true)} /></View>
           </View>
 
-          {/* Pre-mount the mascot art/brain before the clear. display:none keeps
-              tutorial geometry unchanged; activation no longer constructs the
-              complete native subtree in the celebration tail. */}
+          {/* Every interactive control stays inside its own native row bounds. */}
           <View
+            testID="game-companion-rail"
             pointerEvents={ftueActive ? 'none' : 'box-none'}
             style={
               ftueActive
                 ? { display: 'none' }
                 : {
-                    width: '100%',
-                    height: PLAYFIELD_LAYOUT.classicMascotFlowHeight,
-                    top:
-                      PLAYFIELD_LAYOUT.classicMascotFlowHeight -
-                      PLAYFIELD_LAYOUT.classicMascotVisualHeight,
-                    overflow: 'visible',
-                    zIndex: 20,
+                    width: railWidth,
+                    height: mascotHeight,
+                    flexDirection: 'row',
+                    gap: 8,
+                    zIndex: 35,
                   }
             }
           >
-            <MascotLayer dragActive={dragActive} active={!ftueActive} />
-            <HelperControls active={!ftueActive} />
+            <View style={{ width: mascotWidth, height: mascotHeight }}>
+              <MascotLayer width={mascotWidth} height={mascotHeight} compact={compactHeader} dragActive={dragActive} active={!ftueActive} onEmoteReady={handleMascotEmoteReady} onLostTextChange={setMascotLostText} />
+            </View>
+            <HelperControls width={Math.max(0, railWidth - mascotWidth - 8)} height={mascotHeight} compact={compactHeader} active={!ftueActive} />
           </View>
 
-          <View onLayout={handleBoardLayout}>
+          <View testID="game-board-frame" onLayout={handleBoardLayout}>
             <BoardAuraFrame accent={theme.praiseAccent} edge={theme.juiceColors[0]} />
             <BoardView onMeasureBoardReady={handleMeasureBoardReady} />
             {/* Keep the event consumer mounted throughout FTUE. Mounting it only
                 after the 700 ms tutorial celebration replayed the already-finished
                 clear event late, so “КОСМОС!” appeared after the board animation. */}
-            <PraiseBanner />
+            <PraiseBanner suppressed={notificationBusy || atmosphereVisible} />
+            <View testID="board-notification-slot" pointerEvents="box-none" style={{ position: 'absolute', top: 8, left: 8, right: 8, height: Math.max(0, boardSize - 16), zIndex: 50 }}>
+              <MascotMessages active={!ftueActive && showMascot} lostText={mascotLostText} onEmote={relayMascotEmote} />
+              <AtmosphereToast hidden={notificationBusy} onVisibleChange={setAtmosphereVisible} />
+            </View>
           </View>
 
           <View
@@ -619,20 +639,17 @@ export default function GameScreen() {
 
         <GameBannerDock
           hidden={game.status !== 'playing' || paused || restartOpen}
-          ftueComplete={ftueCompleteAtEntry}
-          gamesPlayed={entryGamesPlayed}
+          {...bannerEligibility}
         />
 
-        <AtmosphereToast />
         <EggToast />
-        <NewRecordCelebration />
         <InvalidDropNotice message={invalidDropNotice.message} />
 
         <GameOverOverlay
           onPlayAgain={() => startFresh('replay')}
           onOpenSettings={() => setPaused(true)}
         />
-        <LevelUpReveal />
+        <LevelUpReveal hidden={game.status === 'playing' && mascotMessageVisible} top={game.status === 'playing' && boardLayout ? insets.top + boardLayout.y + 8 : undefined} width={game.status === 'playing' ? Math.max(0, boardSize - 16) : undefined} />
 
         {paused ? (
           <PauseOverlay

@@ -21,6 +21,7 @@ const mockFrames: {
   active: boolean;
 }[] = [];
 const mockCancel = jest.fn((value: MockValue) => { value.animation = false; });
+const mockStyleRenders = jest.fn();
 let mockDeferScheduledWork = false;
 const mockScheduledWork: (() => void)[] = [];
 
@@ -61,6 +62,7 @@ jest.mock('react-native-reanimated', () => {
       return ref.current;
     },
     useAnimatedStyle: (factory: () => { opacity?: unknown }) => {
+      mockStyleRenders();
       const registered = React.useRef(false);
       if (!registered.current) { mockStyles.push(factory); registered.current = true; }
       return factory();
@@ -215,7 +217,39 @@ it('stops Adventure flight transforms when their presentation is removed', () =>
 describe.each(layers)('%p pool lifecycle', (Layer) => {
   beforeEach(() => {
     mockValues.length = 0; mockStyles.length = 0; mockFrames.length = 0; mockCancel.mockClear();
+    mockStyleRenders.mockClear();
     mockDeferScheduledWork = false; mockScheduledWork.length = 0;
+  });
+
+  it('updates a clear through its existing handles without rendering every pool slot again', () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => { renderer = create(<Layer presentations={[]} />); });
+    const initialStyleRenders = mockStyleRenders.mock.calls.length;
+    expect(initialStyleRenders).toBeGreaterThan(0);
+
+    const next = presentation('next');
+    act(() => renderer.update(<Layer presentations={[next]} />));
+    tick();
+    expect(activeWork()).toBeGreaterThan(0);
+    expect(mockStyleRenders).toHaveBeenCalledTimes(initialStyleRenders);
+
+    act(() => renderer.update(<Layer presentations={[]} />));
+    expect(activeWork()).toBe(0);
+    expect(mockStyleRenders).toHaveBeenCalledTimes(initialStyleRenders);
+    act(() => renderer.unmount());
+  });
+
+  it('keeps per-frame motion updates eligible for the synchronous UI-prop path', () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => { renderer = create(<Layer presentations={[presentation('motion')]} />); });
+    const motionStyles = mockStyles.filter((read) => 'opacity' in read());
+    expect(motionStyles.length).toBeGreaterThan(0);
+    for (const read of motionStyles) {
+      // The native fast path rejects an entire update if any property requires
+      // layout. Keep these records limited to opacity and transform.
+      expect(Object.keys(read()).every((key) => key === 'opacity' || key === 'transform')).toBe(true);
+    }
+    act(() => renderer.unmount());
   });
 
   it('stops and hides an evicted clear before its animation finishes', () => {
