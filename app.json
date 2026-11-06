@@ -8,13 +8,6 @@
     "scheme": "blockblast",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0F1B33",
-    "ios": {
-      "icon": "./assets/images/icon.png",
-      "bundleIdentifier": "com.intstrfloat.blockblast",
-      "infoPlist": {
-        "CADisableMinimumFrameDurationOnPhone": true
-      }
-    },
     "android": {
       "package": "com.intstrfloat.blockblast",
       "versionCode": 51,
@@ -23,10 +16,6 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -51,6 +40,9 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "platforms": [
+      "android"
+    ]
   }
 }

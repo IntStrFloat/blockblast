@@ -1,5 +1,0 @@
-[   15144ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8081/.expo%5Cstatic-tmp%5C_error.bundle?platform=web&dev=true&hot=false&transform.engine=hermes&transform.routerRoot=src%2Fapp&unstable_transformProfile=hermes-stable:23034
-[   15149ms] [LOG] Running application "main" with appParams:
- {rootTag: #shadow-root} 
-Development-level warnings: ON.
-Performance optimizations: OFF. @ http://localhost:8081/.expo%5Cstatic-tmp%5C_error.bundle?platform=web&dev=true&hot=false&transform.engine=hermes&transform.routerRoot=src%2Fapp&unstable_transformProfile=hermes-stable:27446

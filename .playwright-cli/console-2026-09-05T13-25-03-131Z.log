@@ -1,9 +1,0 @@
-[    1049ms] [INFO] Version:  release-woodpecker-355-0-0-32341a05 @ https://static.rtbcdn.ru/woodpecker/assets/release-woodpecker-355-0-0-32341a05/web/wdp.js:1
-[    1275ms] [INFO] New session_id generated. sessionId: '42306337321788614704_1788614704405' @ https://static.rtbcdn.ru/woodpecker/assets/release-woodpecker-355-0-0-32341a05/web/1251.js:10
-[    3425ms] [INFO] Version: 2.120.3-wdp @ https://static.rtbcdn.ru/woodpecker/assets/release-woodpecker-355-0-0-32341a05/web/1251.js:10
-[    3425ms] [INFO] Version: 2.120.3-channel @ https://static.rtbcdn.ru/woodpecker/assets/release-woodpecker-355-0-0-32341a05/web/1251.js:10
-[    3503ms] [WARNING] Unsatisfied version 2.1.1 from woodpecker of shared singleton module @rutube/federated-host (required =1.23.0) @ https://static.rtbcdn.ru/woodpecker/assets/release-woodpecker-355-0-0-32341a05/web/1251.js:10
-[   33531ms] [ERROR] Failed to load resource: net::ERR_TIMED_OUT @ https://api.vigo.tech/html5/Vigo.min.js:0
-[   33532ms] [WARNING] Event @ https://static.rtbcdn.ru/woodpecker/assets/release-woodpecker-355-0-0-32341a05/web/1251.js:10
-[   34193ms] [ERROR] Failed to load resource: net::ERR_TIMED_OUT @ https://sync.upravel.com/image?source=rutube&id=42306337321788614704:0
-[  145875ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://strm-m9-2.strm.yandex.net/vh-canvas-converted/vod-content/1442352813644065191/7742979b-46b7-4ed9-a21c-21c6507121b3/webm/VP9_256_144_200.webm?vsid=918fabf733fe7d0e544c7deef23d55f1ad72b52e2c8bxVASx6514x1788614703&noredir=1&lid=3:0

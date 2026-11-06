@@ -1,4 +1,0 @@
-[    1085ms] [ERROR] Failed to load resource: the server responded with a status of 412 () @ https://www.bilibili.com/video/BV11u4y1v7Tk/:0
-[   31123ms] [ERROR] Failed to load resource: net::ERR_TIMED_OUT @ https://s1.hdslb.com/bfs/static/jinkela/long/js/jquery/jquery1.7.2.min.js:0
-[   31917ms] Uncaught ReferenceError: $ is not defined
-    at window.<computed> (https://security.bilibili.com/static/js/412.js:0:3232)

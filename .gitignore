@@ -67,3 +67,17 @@ agconnect-services.json
 
 # Local cloud-console QA screenshot.
 /reports/backend-weekly-deploy-2026-10-14.jpg
+
+# Generated builds and local QA captures belong outside version control.
+*.apk
+*.aab
+*.apks
+*.log
+/.cxx/
+/build/
+/.playwright-cli/
+/.*.png
+/bb-home.png
+/clicks.json
+/clicks-analysis.json
+/reports/*-manifest.xml

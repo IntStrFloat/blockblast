@@ -1,51 +1,86 @@
-# Bloxx — Block Blast clone (Expo React Native)
+# Блок Бластик! / Block Blastic
 
-Клон Block Blast: доска 8×8, drag-n-drop фигур без вращения, очистка строк и столбцов,
-комбо и серии. Полностью оффлайн, без регистрации. Android (RuStore) + iOS.
+Android-головоломка на Expo SDK 56 / React Native: поле 8×8, перетаскивание фигур,
+очистка линий, комбо и режим «Путешествие».
 
-## Документация
+Поддерживаемые артефакты приложения — **APK и Android App Bundle (AAB)**.
 
-Вся архитектура и решения — в спеках: см. индекс в [CLAUDE.md](CLAUDE.md)
-(анализ оригинала, экраны, архитектура, движок, дизайн-система, монетизация,
-ЦА Gen Z/Alpha, производительность, сборка/релиз — `docs/specs/00..08`).
-Тексты для RuStore и политика: [store/](store/).
+## Подготовка
 
-## Быстрый старт
+- Node.js 22.13+ (или совместимая версия из engines React Native) и JDK 21 (`JAVA_HOME`).
+- Android SDK (`ANDROID_HOME`): platform-tools, platforms;android-36,
+  build-tools;35.0.0 и build-tools;36.0.0, ndk;27.1.12297006, cmake;3.22.1.
+- `npm ci` устанавливает закреплённые зависимости и применяет локальные патчи.
+
+## Сборка APK
 
 ```bash
-npm install
-npm test              # 100 тестов (движок, сторы, логика)
-npx tsc --noEmit
-npx expo start        # dev-сервер (нужен dev-client: в проекте mmkv/nitro, Expo Go не подойдёт)
+npm ci
+npm run build:apk
 ```
 
-## Сборка release AAB (Windows, локально)
+Результат: `dist/blockblast-<version>-vc<versionCode>-local.apk`.
+Это автономный release-вариант с локальной debug-подписью и ARM64 ABI: Metro
+не нужен, APK можно установить в эмулятор или на ARM64 Android-устройство.
+Он не предназначен для обновления опубликованного приложения с release-подписью.
 
-```powershell
-node scripts/gen-assets.js                  # иконки/сплеш (если менялись)
-npx expo prebuild --platform android
-node scripts/patch-signing.js               # подпись из credentials/keystore.properties
-'sdk.dir=C:\\Users\\<user>\\AppData\\Local\\Android\\Sdk' | Set-Content android\local.properties -Encoding ascii
-cd android
-$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'   # JDK 21
-.\gradlew bundleRelease
-# → android/app/build/outputs/bundle/release/app-release.aab
+При необходимости другого набора Android ABI:
+
+```bash
+npm run build:apk -- --architectures=armeabi-v7a,arm64-v8a
 ```
 
-Keystore: `credentials/release.jks` + `credentials/keystore.properties` — не в git,
-**обязательно сделать бэкап** (без него не обновить приложение в сторе).
-PEPK и проверка подписи: `docs/runbooks/android-app-signing.md`.
+## Сборка AAB
 
-## Структура
-
-```
-src/core/engine        — чистый TS-движок (правила, скоринг, RNG, сериализация)
-src/core/{storage,i18n}— MMKV-обёртка, словари ru/en (2 тона похвал)
-src/features/game      — доска/трей/drag (worklets), эффекты, звук, стор партии
-src/features/*         — settings, scores, streak, share, monetization (за флагами)
-src/ui                 — токены, темы блоков, AppText, примитивы
-src/app                — expo-router: Home / Game / Settings
+```bash
+npm run build:aab
 ```
 
-Монетизация (Yandex Ads + RuStore Billing) спроектирована и выключена флагами —
-включение без правки кода экранов: `docs/specs/05-monetization.md`.
+Результат: `dist/blockblast-<version>-vc<versionCode>-release.aab`.
+Команда требует прежние `credentials/release.jks`, `credentials/keystore.properties`,
+настоящий `agconnect-services.json` и `APPMETRICA_API_KEY` в `.env.local`.
+Она проверяет сертификат опубликованной игры. Ключи и настройки сервисов в Git
+не хранятся; новый release-ключ создавать нельзя.
+
+Если нужен неподписанный AAB для локальной проверки:
+
+```bash
+npm run build:aab -- --unsigned
+```
+
+Результат: `dist/blockblast-<version>-vc<versionCode>-unsigned.aab`.
+У AAB сохранён прежний набор ABI: armeabi-v7a, arm64-v8a, x86, x86_64.
+Он не является готовым подписанным релизом для магазина.
+
+Обе команды выполняют только Android prebuild и нужную Gradle-задачу, затем
+сохраняют артефакт в `dist/`. CMake/C++ задачи React Native, Reanimated, MMKV
+и Nitro — внутренние зависимости Android-сборки, отдельного C++-приложения нет.
+При отсутствии локальных настроек сервисов APK и явно неподписанный AAB
+собираются без активации AppMetrica и конфигурации Huawei; такие сборки подходят
+для проверки игры, но не подтверждают работу этих интеграций.
+
+## Проверки
+
+```bash
+npm run lint
+npm run typecheck
+npm test -- --runInBand
+npm run backend:test
+```
+
+`backend:test` компилирует TypeScript-движок для тестов backend; отдельный клиент
+или дополнительный формат сборки приложения при этом не создаётся.
+
+## Эмулятор и документация
+
+Один постоянный эмулятор на игру переиспользуется между фичами, ветками и чатами.
+Привязка Block Blastic и команды установки APK: [Android emulator](docs/runbooks/android-emulator.md).
+
+- [Сборка APK/AAB](docs/specs/08-build-release.md)
+- [Подпись AAB и однократный PEPK](docs/runbooks/android-app-signing.md)
+- [Архитектура и игровые спеки](CLAUDE.md)
+- [Материалы для RuStore](store/)
+
+`android/`, `dist/`, `output/`, логи и локальные QA-снимки генерируются локально
+и не коммитятся. Исходники игры, её assets, backend и материалы магазина остаются
+в репозитории.

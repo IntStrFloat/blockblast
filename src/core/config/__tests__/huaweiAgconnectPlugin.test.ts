@@ -63,4 +63,12 @@ dependencies {
       ),
     ).toThrow('package mismatch');
   });
+
+  it('removes the config plugin in local builds while retaining the native SDK', () => {
+    const source = `dependencies {\n}\napply plugin: "com.huawei.agconnect"\n`;
+    const local = patchAppBuildGradle(source, false);
+    expect(local).not.toContain('apply plugin: "com.huawei.agconnect"');
+    expect(local).toContain('com.huawei.agconnect:agconnect-core:1.9.6.300');
+    expect(patchAppBuildGradle(local)).toContain('apply plugin: "com.huawei.agconnect"');
+  });
 });
