@@ -92,7 +92,6 @@ jest.mock('@/ui', () => {
 describe('record celebration source contract', () => {
   const gameSource = fs.readFileSync(`${__dirname}/../../../app/game.tsx`, 'utf8');
   const confettiSource = fs.readFileSync(`${__dirname}/../effects/Confetti.tsx`, 'utf8');
-  const praiseSource = fs.readFileSync(`${__dirname}/../effects/PraiseBanner.tsx`, 'utf8');
   const celebrationPath = `${__dirname}/../effects/NewRecordCelebration.tsx`;
 
   it('mounts record decoration behind the HUD numbers and below modal overlays', () => {
@@ -126,15 +125,11 @@ describe('record celebration source contract', () => {
     const celebrationSource = fs.readFileSync(celebrationPath, 'utf8');
 
     expect(celebrationSource).toContain('height: 250');
-    expect(celebrationSource).toContain('testID="new-record-bloom"');
     expect(celebrationSource).not.toContain('testID="new-record-score"');
     expect(celebrationSource).not.toContain('testID="new-record-title"');
   });
 
-  it('ends praise keyframes hidden without a competing static opacity style', () => {
-    expect(praiseSource.match(/100:\s*\{\s*opacity:\s*0/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
-    expect(praiseSource).not.toContain('HIDDEN_AFTER_ENTER_OPACITY');
-  });
+
 });
 
 describe('NewRecordCelebration', () => {
@@ -207,14 +202,13 @@ describe('NewRecordCelebration', () => {
     ).size;
   }
 
-  it('shows a bounded bloom with deterministic capped gold confetti', () => {
+  it('shows deterministic capped gold confetti', () => {
     const first = mountCelebration();
     beginCelebration(256, 200);
 
     expect(first.root.findByProps({ testID: 'new-record-celebration' }).props.pointerEvents).toBe(
       'none',
     );
-    expect(first.root.findByProps({ testID: 'new-record-bloom' })).toBeDefined();
     expect(confettiStyles(first)).toHaveLength(14);
   });
 

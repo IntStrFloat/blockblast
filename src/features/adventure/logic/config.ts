@@ -1,15 +1,15 @@
 export const ADVENTURE_CONFIG = {
   // Цель дня: 5 уровней ≈ 10–15 минут — досягаемо казуалом (retention фаза 1;
   // выполнение выдаёт ступень 2 дейли-бонуса — гарантированный дроп).
-  milestoneEvery: 6,
+  milestoneEvery: 10,
   seasonTileCount: 96,
   scoreBaseTarget: 128,
   scoreStep: 28,
   scoreMilestoneMultiplier: 1.35,
-  jewelStartLevel: 7,
-  jewelBaseTarget: 2,
-  jewelEveryLevels: 2,
-  prefillBaseCells: 0,
+  jewelStartLevel: 0,
+  jewelBaseTarget: 9,
+  jewelEveryLevels: 1,
+  prefillBaseCells: 8,
   prefillStepEvery: 5,
   prefillMaxCells: 22,
   seedBase: 73001,

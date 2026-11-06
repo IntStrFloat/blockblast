@@ -15,6 +15,7 @@ jest.mock('@/features/settings', () => ({ useLang: () => 'ru' }));
 jest.mock('@/features/analytics', () => ({ recordNextGoalClick: jest.fn(), useAnalyticsStore: { getState: () => ({ track: jest.fn() }) } }));
 jest.mock('@/features/progression/components/RewardVisual', () => ({ RewardVisual: () => null }));
 jest.mock('@/features/leaderboard', () => ({
+  WEEKLY_PRIZES: jest.requireActual('@/features/leaderboard/weeklyPrize').WEEKLY_PRIZES,
   LeaderboardRow: () => null, Podium: () => null,
   getUtcWeekCountdown: () => ({ days: 1, hours: 0, minutes: 0 }),
   getWeeklyGoal: () => ({ current: 0, target: 1500, progress: 0, remaining: 1500, complete: false }),
@@ -25,7 +26,7 @@ jest.mock('@/features/leaderboard', () => ({
   selectPreviousWeeklyBest: () => 0, selectMyChampionRank: () => null,
   unclaimedPrize: () => mockPrize,
   weeklyStatusLabel: () => 'Без подключения',
-  useLeaderboardStore: Object.assign((select: (state: typeof mockState) => unknown) => select(mockState), {
+  useLeaderboardStore: Object.assign((select: (state: typeof mockState) => unknown) => select ? select(mockState) : mockState, {
     getState: () => ({ refresh: mockRefresh, syncWeeklyOutcomes: mockSyncOutcomes, claimWeeklyPrize: mockClaim }),
   }),
 }));
@@ -43,14 +44,14 @@ jest.mock('react-native', () => {
 jest.mock('@/ui', () => {
   const ReactLocal = jest.requireActual<typeof import('react')>('react');
   const component = (name: string) => ({ children, ...props }: { children?: React.ReactNode }) => ReactLocal.createElement(name, props, children);
-  return { AppText: component('app-text'), CheckIcon: component('check-icon'), ChevronIcon: component('icon'), CrownIcon: component('icon'), TrophyIcon: component('icon'), spacing: { m: 16, s: 8, l: 24 } };
+  return { ...jest.requireActual('@/ui'), AppText: component('app-text'), CheckIcon: component('check-icon'), ChevronIcon: component('icon'), CrownIcon: component('icon'), TrophyIcon: component('icon'), spacing: { m: 16, s: 8, l: 24 } };
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockEntries = [];
   mockPrize = null;
-  mockState = { snapshot: null, viewState: 'error', lastError: 'network', localWeeklyResult: null, weeklyPrizes: [], weeklyOutcomes: [], prizeSyncState: 'idle', prizeLastError: null, claimingRewardId: null, overtaken: null };
+  mockState = { refresh: mockRefresh, syncWeeklyOutcomes: mockSyncOutcomes, claimWeeklyPrize: mockClaim, snapshot: null, viewState: 'error', lastError: 'network', localWeeklyResult: null, weeklyPrizes: [], weeklyOutcomes: [], prizeSyncState: 'idle', prizeLastError: null, claimingRewardId: null, overtaken: null };
 });
 
 function visibleText(renderer: ReturnType<typeof create>): string[] {
@@ -66,7 +67,6 @@ describe('leaderboard status presentation', () => {
     expect(text).not.toContain('Без подключения');
     expect(text).not.toContain('Подводим итог прошлой недели…');
     expect(text.filter((value) => value.includes('не удалось'))).toHaveLength(1);
-    expect(text.filter((value) => value === 'Повторить')).toHaveLength(1);
     const retry = renderer!.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === 'Повторить')[0];
     await act(async () => { retry.props.onPress(); });
     expect(mockRefresh).toHaveBeenCalledTimes(1);

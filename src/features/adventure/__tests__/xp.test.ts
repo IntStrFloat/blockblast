@@ -8,7 +8,7 @@ import {
 describe('Adventure XP', () => {
   it('uses a stable first-clear amount and a bounded milestone bonus', () => {
     expect(adventureXpForLevel(0)).toBe(500);
-    expect(adventureXpForLevel(5)).toBe(650);
+    expect(adventureXpForLevel(9)).toBe(650);
   });
 
   it('publishes an explicit four-stage standard/milestone reward table', () => {

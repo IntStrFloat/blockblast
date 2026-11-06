@@ -1,7 +1,11 @@
 import { AppState } from 'react-native';
 
 import { getJSON, KEYS, setJSONOrThrow } from '@/core/storage';
-import { reconcileRevivedLeaderboardProof, useGameStore } from '@/features/game/store';
+import {
+  canOfferBoardRecovery,
+  reconcileRevivedLeaderboardProof,
+  useGameStore,
+} from '@/features/game/store';
 import type { HelperId } from '@/features/mascot/logic/types';
 import { useMascot } from '@/features/mascot/store';
 
@@ -24,6 +28,12 @@ const pendingMemory = new Map<string, BenefitSession>();
 let showing = false;
 let activeSessionId: string | null = null;
 const journal = () => getJSON<Record<string, BenefitSession>>(KEYS.rewardedBenefits) ?? {};
+const earnedSessions = () => Object.values({ ...journal(), ...Object.fromEntries(pendingMemory) })
+  .filter((session) => session.state === 'earned_pending');
+
+export function hasEarnedBoardRecovery(runId: string): boolean {
+  return earnedSessions().some(({ offer }) => offer.kind === 'revive' && offer.runId === runId);
+}
 const save = (session: BenefitSession) => setJSONOrThrow(KEYS.rewardedBenefits, {
   ...journal(), [session.sessionId]: session,
 });
@@ -57,12 +67,14 @@ function apply(session: BenefitSession): boolean {
       Object.keys({ ...journal(), ...Object.fromEntries(pendingMemory) }));
   } else {
     const game = useGameStore.getState();
-    // A confirmed continuation can only change the run that was offered.
-    // Retain its obligation until that run is loaded again.
-    if (game.adventure || game.classicMeta?.runId !== session.offer.runId) return false;
+    const runId = game.adventure?.runId ?? game.classicMeta?.runId;
+    // Persist the earned proof immediately. Reveal the wipe after the ad closes,
+    // and only on the run that was offered.
+    if (runId !== session.offer.runId || useAdPresentation.getState().fullscreenActive) return false;
     if (!game.game.reviveUsed) {
-      if (!game.continueGame(session.offer.runId)) return false;
-    } else if (!reconcileRevivedLeaderboardProof(game.game, game.classicMeta)) return false;
+      if (!game.continueGame(runId)) return false;
+    } else if (!game.adventure && game.classicMeta &&
+      !reconcileRevivedLeaderboardProof(game.game, game.classicMeta)) return false;
   }
   remove(session.sessionId);
   resumeRevivedRun(session);
@@ -80,8 +92,7 @@ function resumeRevivedRun(session: BenefitSession): void {
 /** Recover only earned proof; a crash while showing cannot establish a reward. */
 export function recoverRewardedBenefits(): void {
   try { pruneUnconfirmedSessions(); } catch { /* Recovery can retry a failed cleanup later. */ }
-  for (const session of Object.values({ ...journal(), ...Object.fromEntries(pendingMemory) })) {
-    if (session.state !== 'earned_pending') continue;
+  for (const session of earnedSessions()) {
     try { apply(session); } catch { pendingMemory.set(session.sessionId, session); }
   }
 }
@@ -91,8 +102,7 @@ export async function claimRewardedBenefit(
   ads: Pick<AdsProvider, 'showRewarded'>,
 ): Promise<'applied' | 'pending' | 'dismissed' | 'unavailable' | 'failed'> {
   if (showing) return 'unavailable';
-  const confirmed = Object.values({ ...journal(), ...Object.fromEntries(pendingMemory) })
-    .filter((session) => session.state === 'earned_pending');
+  const confirmed = earnedSessions();
   const pending = confirmed.find((session) => sameOffer(session.offer, offer));
   if (pending) {
     try { return apply(pending) ? 'applied' : 'pending'; } catch { return 'pending'; }
@@ -100,10 +110,8 @@ export async function claimRewardedBenefit(
   // Do not sell a second continuation while the previous run's earned right is
   // outstanding. Keep that proof without allowing an unbounded journal of runs.
   if (offer.kind === 'revive' && confirmed.some((session) => session.offer.kind === 'revive')) return 'unavailable';
-  if (offer.kind === 'revive') {
-    const game = useGameStore.getState();
-    if (game.adventure || game.classicMeta?.runId !== offer.runId ||
-      game.classicMeta.lifecycle !== 'terminal_revivable' || game.game.reviveUsed) return 'unavailable';
+  if (offer.kind === 'revive' && !canOfferBoardRecovery(useGameStore.getState(), offer.runId)) {
+    return 'unavailable';
   }
   const session: BenefitSession = {
     sessionId: `benefit:${Date.now()}:${Math.random().toString(36).slice(2)}`,
@@ -112,8 +120,16 @@ export async function claimRewardedBenefit(
     environment: MONETIZATION.yandex.rewardedAdUnitId.startsWith('demo-') ? 'test' : 'production',
     state: 'showing',
   };
-  let earned = false;
+  let earned: BenefitSession | undefined;
   let applied = false;
+
+  function settleEarned(): 'applied' | 'pending' {
+    if (earned && !applied && offer.kind === 'revive') {
+      try { applied = apply(earned); } catch { /* Keep the earned proof for retry. */ }
+    }
+    return applied ? 'applied' : 'pending';
+  }
+
   showing = true;
   activeSessionId = session.sessionId;
   try {
@@ -121,17 +137,16 @@ export async function claimRewardedBenefit(
     save(session);
     const result = await ads.showRewarded(offer.kind === 'revive' ? 'revive' : 'helper_charge', () => {
       if (earned) return;
-      earned = true;
-      const confirmed: BenefitSession = { ...session, state: 'earned_pending' };
-      pendingMemory.set(session.sessionId, confirmed);
+      earned = { ...session, state: 'earned_pending' };
+      pendingMemory.set(session.sessionId, earned);
       // Persist earned proof before changing the board or charge balance.
-      try { applied = apply(confirmed); } catch { /* Retry payout, never another view. */ }
+      try { applied = apply(earned); } catch { /* Keep the earned proof for retry. */ }
     });
-    if (earned) return applied ? 'applied' : 'pending';
+    if (earned) return settleEarned();
     remove(session.sessionId);
     return result === 'dismissed' ? 'dismissed' : 'unavailable';
   } catch {
-    return earned ? applied ? 'applied' : 'pending' : 'failed';
+    return earned ? settleEarned() : 'failed';
   } finally {
     if (earned) resumeRevivedRun(session);
     showing = false;

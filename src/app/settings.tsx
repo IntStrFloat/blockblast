@@ -1,17 +1,15 @@
 import Constants from 'expo-constants';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState, type ReactNode } from 'react';
-import { Linking, Pressable, ScrollView, Switch, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { t } from '@/core/i18n';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { LangSetting } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
-import { MONETIZATION } from '@/features/monetization';
 import {
+  getLocalNotificationPermissionStatus,
   requestNotificationPermissions,
 } from '@/features/notifications';
+import { applyLocalNotificationPlan } from '@/features/notifications/local/scheduler';
 import { PROGRESSION_CONFIG } from '@/features/progression';
 import { useScores } from '@/features/scores';
 import { useLang, useSettings } from '@/features/settings';
@@ -23,602 +21,402 @@ import {
 } from '@/features/themes';
 import {
   AppText,
-  CheckIcon,
-  ChevronIcon,
+  CandyBackground,
+  CandyIcon,
   ConfirmDialog,
   GameButton,
-  LockIcon,
-  radii,
-  spacing,
+  Overlay,
+  nightCandy as n,
 } from '@/ui';
+import type { CandyIconName } from '@/ui/icons/CandyIcon';
+import { CandyRoundButton, CandyToggle } from '@/ui/primitives/CandyControls';
+import { Block } from '@/features/game/components/Block';
 
-const HOME_BLUE = ['#2548B8', '#1998DC'] as const;
 const PRIVACY_URL = 'https://bloxx.193.160.208.95.nip.io/privacy.html';
-
-type SettingsTab = 'game' | 'appearance' | 'data';
-
-/** Мир, на котором открывается тема (для подсказки закрытых). */
-const THEME_WORLD: Record<string, number> = Object.fromEntries(
-  Object.entries(PROGRESSION_CONFIG.worldThemeId).map(([world, id]) => [id, Number(world)]),
-);
-
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <View style={{ gap: spacing.s }}>
-      <AppText preset="caption" style={styles.sectionTitle}>
-        {title.toUpperCase()}
-      </AppText>
-      <View style={styles.sectionCard}>{children}</View>
+    <View style={styles.section}>
+      <AppText style={styles.sectionTitle}>{title}</AppText>
+      {children}
     </View>
   );
 }
-
 function Row({
+  icon,
   label,
+  detail,
   children,
-  first = false,
 }: {
+  icon: CandyIconName;
   label: string;
+  detail?: string;
   children: ReactNode;
-  first?: boolean;
 }) {
   return (
-    <View style={[styles.row, !first && styles.rowWithDivider]}>
-      <AppText preset="body" style={styles.rowLabel}>
-        {label}
-      </AppText>
-      <View style={styles.rowControl}>{children}</View>
+    <View style={styles.row}>
+      <CandyIcon name={icon} size={22} color={n.lavender} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <AppText style={styles.rowLabel}>{label}</AppText>
+        {detail && <AppText style={styles.detail}>{detail}</AppText>}
+      </View>
+      {children}
     </View>
   );
 }
-
-function Chip({
-  label,
-  active,
-  onPress,
+function Segments<T extends string>({
+  options,
+  value,
+  onChange,
 }: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.pressed]}
-    >
-      {active ? <CheckIcon size={14} color="#1A56C7" /> : null}
-      <AppText preset="caption" style={[styles.chipText, active && styles.chipTextActive]}>
-        {label}
-      </AppText>
-    </Pressable>
-  );
-}
-
-function ThemeTile({
-  swatches,
-  label,
-  active,
-  unlocked,
-  onPress,
-}: {
-  swatches: string[];
-  label: string;
-  active: boolean;
-  unlocked: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      disabled={!unlocked}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active, disabled: !unlocked }}
-      style={({ pressed }) => [
-        styles.themeTile,
-        active && styles.themeTileActive,
-        !unlocked && styles.themeTileLocked,
-        pressed && unlocked && styles.pressed,
-      ]}
-    >
-      <View style={styles.swatches}>
-        {swatches.slice(0, 6).map((color, index) => (
-          <View
-            key={`${color}-${index}`}
-            style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: color }}
-          />
-        ))}
-      </View>
-      <View style={styles.themeTileLabel}>
-        {!unlocked ? <LockIcon size={13} color="rgba(230,244,255,0.72)" /> : null}
-        {active ? <CheckIcon size={13} color="#FFF7D6" /> : null}
-        <AppText preset="caption" numberOfLines={2} style={styles.themeTileText}>
-          {label}
-        </AppText>
-      </View>
-    </Pressable>
-  );
-}
-
-function SettingsTabButton({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.pressed]}
-    >
-      <AppText preset="caption" numberOfLines={1} style={[styles.tabText, active && styles.tabTextActive]}>
-        {label}
-      </AppText>
-    </Pressable>
+    <View style={styles.segmentRail}>
+      {options.map((option) => (
+        <Pressable
+          key={option.value}
+          accessibilityRole="button"
+          accessibilityState={{ selected: option.value === value }}
+          onPress={() => onChange(option.value)}
+          style={[styles.segment, option.value === value && { backgroundColor: n.white }]}
+        >
+          <AppText
+            style={{
+              fontFamily: 'Nunito_800ExtraBold',
+              fontSize: 14,
+              lineHeight: 20,
+              color: option.value === value ? n.night900 : n.lavender,
+            }}
+          >
+            {option.label}
+          </AppText>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const lang = useLang();
+  const ru = lang === 'ru';
   const settings = useSettings();
-  const analyticsOptOut = useAnalyticsStore((state) => state.optOut);
-  const setAnalyticsOptOut = useAnalyticsStore((state) => state.setOptOut);
-  const resetBest = useScores((state) => state.resetBest);
-  const activeThemeId = useActiveWorldTheme().id;
-  const unlockedThemeIds = new Set(useUnlockedWorldThemes().map((theme) => theme.id));
-  const [activeTab, setActiveTab] = useState<SettingsTab>('game');
+  const analyticsOptOut = useAnalyticsStore((s) => s.optOut);
+  const setAnalyticsOptOut = useAnalyticsStore((s) => s.setOptOut);
+  const resetBest = useScores((s) => s.resetBest);
+  const activeTheme = useActiveWorldTheme().id;
+  const unlocked = new Set(useUnlockedWorldThemes().map((theme) => theme.id));
   const [resetOpen, setResetOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [permission, setPermission] = useState(false);
   const [notificationBusy, setNotificationBusy] = useState(false);
-
-  const configureNotifications = async () => {
+  useEffect(() => {
+    let active = true;
+    void getLocalNotificationPermissionStatus().then((status) => {
+      if (active) setPermission(status === 'granted');
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const configureNotifications = async (enabled: boolean) => {
     if (notificationBusy) return;
+    if (!enabled) {
+      settings.update({ reminders: false });
+      await applyLocalNotificationPlan([], lang);
+      return;
+    }
     setNotificationBusy(true);
     try {
       const decision = await requestNotificationPermissions('settings');
-      if (decision.outcome !== 'granted') {
-        await Linking.openSettings();
-      }
+      setPermission(decision.outcome === 'granted');
+      if (decision.outcome === 'granted') settings.update({ reminders: true });
+      else await Linking.openSettings();
     } finally {
       setNotificationBusy(false);
     }
   };
-
-  const langOptions: { value: LangSetting; label: string }[] = [
-    { value: 'system', label: t('settings.langSystem', lang) },
-    { value: 'ru', label: 'RU' },
-    { value: 'en', label: 'EN' },
-  ];
-  const tabs: { id: SettingsTab; label: string }[] = [
-    { id: 'game', label: t('settings.tabGame', lang) },
-    { id: 'appearance', label: t('settings.tabAppearance', lang) },
-    { id: 'data', label: t('settings.tabData', lang) },
-  ];
-  const switchTrack = { true: '#A9E16E', false: 'rgba(8, 48, 137, 0.62)' };
-
+  const themeLabel = (id: string) =>
+    ({
+      classic: ru ? 'Карамель' : 'Candy',
+      sunset: ru ? 'Закат' : 'Sunset',
+      aqua: ru ? 'Мята' : 'Mint',
+      neon: ru ? 'Неон' : 'Neon',
+      mono: ru ? 'Моно' : 'Mono',
+      galaxy: ru ? 'Космос' : 'Galaxy',
+      gold: ru ? 'Золото' : 'Gold',
+    })[id] ?? id;
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <LinearGradient colors={HOME_BLUE} style={styles.background} />
-
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('leaderboard.back', lang)}
-          hitSlop={8}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <ChevronIcon direction="left" size={24} color="#F4FAFF" />
-        </Pressable>
-        <AppText preset="speech" style={styles.title}>
-          {t('settings.title', lang)}
+    <View style={styles.screen}>
+      <CandyBackground />
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <CandyRoundButton
+          icon="back"
+          label={ru ? 'Назад' : 'Back'}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        />
+        <AppText preset="title" style={{ flex: 1, textAlign: 'center' }}>
+          {ru ? 'Настройки' : 'Settings'}
         </AppText>
-        <View style={styles.headerSpacer} />
+        <View style={{ width: 48 }} />
       </View>
-
-      <View accessibilityRole="tablist" style={styles.tabRail}>
-        {tabs.map((tab) => (
-          <SettingsTabButton
-            key={tab.id}
-            label={tab.label}
-            active={activeTab === tab.id}
-            onPress={() => setActiveTab(tab.id)}
-          />
-        ))}
-      </View>
-
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
       >
-        {activeTab === 'game' ? (
-          <>
-            <Section title={t('settings.secAudio', lang)}>
-              <Row label={t('settings.sound', lang)} first>
-                <Switch
-                  value={settings.sound}
-                  onValueChange={(value) => settings.update({ sound: value })}
-                  accessibilityRole="switch"
-                  accessibilityLabel={t('settings.sound', lang)}
-                  accessibilityState={{ checked: settings.sound }}
-                  trackColor={switchTrack}
-                  thumbColor="#FFFFFF"
-                />
-              </Row>
-              <Row label={t('settings.haptics', lang)}>
-                <Switch
-                  value={settings.haptics}
-                  onValueChange={(value) => settings.update({ haptics: value })}
-                  accessibilityRole="switch"
-                  accessibilityLabel={t('settings.haptics', lang)}
-                  accessibilityState={{ checked: settings.haptics }}
-                  trackColor={switchTrack}
-                  thumbColor="#FFFFFF"
-                />
-              </Row>
-            </Section>
-
-            <Section title={t('settings.secFeel', lang)}>
-              <Row label={t('settings.showMascot', lang)} first>
-                <Switch
-                  value={settings.showMascot}
-                  onValueChange={(value) => settings.update({ showMascot: value })}
-                  accessibilityRole="switch"
-                  accessibilityLabel={t('settings.showMascot', lang)}
-                  accessibilityState={{ checked: settings.showMascot }}
-                  trackColor={switchTrack}
-                  thumbColor="#FFFFFF"
-                />
-              </Row>
-            </Section>
-          </>
-        ) : null}
-
-        {activeTab === 'appearance' ? (
-          <>
-            <Section title={t('settings.secFeel', lang)}>
-              <Row label={t('settings.praiseTone', lang)} first>
-                <View style={styles.chipGroup}>
-                  <Chip
-                    label={t('settings.toneClassic', lang)}
-                    active={settings.praiseTone === 'classic'}
-                    onPress={() => settings.update({ praiseTone: 'classic' })}
-                  />
-                  <Chip
-                    label={t('settings.toneMeme', lang)}
-                    active={settings.praiseTone === 'meme'}
-                    onPress={() => settings.update({ praiseTone: 'meme' })}
-                  />
-                </View>
-              </Row>
-            </Section>
-
-            <Section title={t('settings.worldTheme', lang)}>
-              <View style={styles.themeGrid}>
-                {WORLD_THEMES.map((theme) => {
-                  const unlocked = unlockedThemeIds.has(theme.id);
-                  const active = theme.id === activeThemeId;
-                  const label = unlocked
-                    ? t(theme.nameKey, lang)
-                    : `${t('settings.themeLocked', lang)} ${THEME_WORLD[theme.id] ?? ''}`.trim();
-                  return (
-                    <ThemeTile
-                      key={theme.id}
-                      swatches={theme.cellColors}
-                      label={label}
-                      active={active}
-                      unlocked={unlocked}
-                      onPress={() => setActiveWorldTheme(theme.id)}
-                    />
-                  );
-                })}
-              </View>
-            </Section>
-          </>
-        ) : null}
-
-        {activeTab === 'data' ? (
-          <>
-            <Section title={t('settings.secLangData', lang)}>
-              <Row label={t('settings.language', lang)} first>
-                <View style={styles.chipGroup}>
-                  {langOptions.map((option) => (
-                    <Chip
-                      key={option.value}
-                      label={option.label}
-                      active={settings.lang === option.value}
-                      onPress={() => settings.update({ lang: option.value })}
-                    />
-                  ))}
-                </View>
-              </Row>
-              <Row label={t('settings.analytics', lang)}>
-                <Switch
-                  value={!analyticsOptOut}
-                  onValueChange={(value) => setAnalyticsOptOut(!value)}
-                  accessibilityRole="switch"
-                  accessibilityLabel={t('settings.analytics', lang)}
-                  accessibilityState={{ checked: !analyticsOptOut }}
-                  trackColor={switchTrack}
-                  thumbColor="#FFFFFF"
-                />
-              </Row>
-              <Row label={t('settings.notifications', lang)}>
-                <GameButton
-                  label={t('settings.notificationsManage', lang)}
-                  disabled={notificationBusy}
-                  onPress={() => {
-                    void configureNotifications();
-                  }}
-                  variant="ghost"
-                />
-              </Row>
-            </Section>
-
-            {MONETIZATION.iapEnabled ? (
-              <View style={styles.purchaseActions}>
-                <GameButton label={t('settings.removeAds', lang)} onPress={() => {}} />
-                <GameButton
-                  label={t('settings.restorePurchases', lang)}
-                  variant="ghost"
-                  onPress={() => {}}
-                />
-              </View>
-            ) : null}
-
-            <View style={styles.meta}>
-              <Pressable
-                onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})}
-                accessibilityRole="link"
-                hitSlop={8}
-                style={({ pressed }) => [styles.privacyLink, pressed && styles.pressed]}
-              >
-                <AppText preset="caption" style={styles.metaText}>
-                  {t('settings.privacy', lang)}
-                </AppText>
-              </Pressable>
-              <AppText preset="caption" style={styles.metaText}>
-                {t('settings.version', lang)}: {Constants.expoConfig?.version ?? '1.1.0'}
-              </AppText>
-            </View>
-
-            <GameButton
-              label={t('settings.resetBest', lang)}
-              variant="danger"
-              onPress={() => setResetOpen(true)}
+        <Section title={ru ? 'Игра' : 'Game'}>
+          <Row icon="sound" label={ru ? 'Звук' : 'Sound'}>
+            <CandyToggle
+              label={ru ? 'Звук' : 'Sound'}
+              value={settings.sound}
+              onChange={(sound) => settings.update({ sound })}
             />
-          </>
-        ) : null}
+          </Row>
+          <Row icon="vibration" label={ru ? 'Вибрация' : 'Haptics'}>
+            <CandyToggle
+              label={ru ? 'Вибрация' : 'Haptics'}
+              value={settings.haptics}
+              onChange={(haptics) => settings.update({ haptics })}
+            />
+          </Row>
+          <Row
+            icon="wardrobe"
+            label={ru ? 'Капи на поле' : 'Capy on the board'}
+            detail={ru ? 'Советы и реакции на ходы' : 'Tips and reactions'}
+          >
+            <CandyToggle
+              label={ru ? 'Капи на поле' : 'Capy on the board'}
+              value={settings.showMascot}
+              onChange={(showMascot) => settings.update({ showMascot })}
+            />
+          </Row>
+          <View style={styles.tone}>
+            <AppText style={styles.rowLabel}>{ru ? 'Тон похвалы' : 'Praise tone'}</AppText>
+            <Segments
+              options={[
+                { value: 'classic', label: ru ? 'Добрый' : 'Kind' },
+                { value: 'meme', label: ru ? 'Дерзкий' : 'Cheeky' },
+              ]}
+              value={settings.praiseTone}
+              onChange={(praiseTone) => settings.update({ praiseTone })}
+            />
+          </View>
+        </Section>
+        <Section title={ru ? 'Тема поля' : 'Board theme'}>
+          <View style={styles.themes}>
+            {[...WORLD_THEMES]
+              .sort(
+                (a, b) =>
+                  ['classic', 'sunset', 'aqua'].indexOf(b.id) -
+                  ['classic', 'sunset', 'aqua'].indexOf(a.id),
+              )
+              .map((theme) => {
+                const available = unlocked.has(theme.id);
+                const world = Object.entries(PROGRESSION_CONFIG.worldThemeId).find(
+                  ([, id]) => id === theme.id,
+                )?.[0];
+                return (
+                  <Pressable
+                    key={theme.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={themeLabel(theme.id)}
+                    accessibilityState={{
+                      selected: theme.id === activeTheme,
+                      disabled: !available,
+                    }}
+                    disabled={!available}
+                    onPress={() => setActiveWorldTheme(theme.id)}
+                    style={[
+                      styles.themeTile,
+                      { backgroundColor: theme.boardBg },
+                      theme.id === activeTheme && { borderColor: n.sun },
+                      !available && { opacity: 0.45 },
+                    ]}
+                  >
+                    <View style={styles.swatches}>
+                      {theme.cellColors.slice(0, 6).map((color, i) => (
+                        <Block key={i} size={15} color={color} />
+                      ))}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                      {!available && <CandyIcon name="lock" size={12} color={n.muted} />}
+                      <AppText
+                        style={{
+                          fontFamily: 'Nunito_800ExtraBold',
+                          color: theme.id === activeTheme ? n.sun : n.lavender,
+                          fontSize: 12,
+                          lineHeight: 16,
+                        }}
+                      >
+                        {available ? themeLabel(theme.id) : `${ru ? 'Мир' : 'World'} ${world}`}
+                      </AppText>
+                    </View>
+                  </Pressable>
+                );
+              })}
+          </View>
+        </Section>
+        <Section title={ru ? 'Данные' : 'Data'}>
+          <Pressable
+            onPress={() => setLanguageOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={ru ? 'Язык' : 'Language'}
+          >
+            <Row icon="language" label={ru ? 'Язык' : 'Language'}>
+              <AppText style={{ color: n.lavender }}>
+                {settings.lang === 'system'
+                  ? ru
+                    ? 'Авто'
+                    : 'Auto'
+                  : settings.lang === 'ru'
+                    ? 'Русский'
+                    : 'English'}
+              </AppText>
+              <CandyIcon name="back" size={18} color={n.muted} />
+            </Row>
+          </Pressable>
+          <Row
+            icon="bell"
+            label={ru ? 'Напоминания' : 'Reminders'}
+            detail={ru ? 'Про серию дней' : 'Keep your streak'}
+          >
+            <CandyToggle
+              label={ru ? 'Напоминания' : 'Reminders'}
+              value={settings.reminders && permission}
+              disabled={notificationBusy}
+              onChange={(value) => {
+                void configureNotifications(value);
+              }}
+            />
+          </Row>
+          <Row icon="chart" label={ru ? 'Анонимная статистика' : 'Anonymous analytics'}>
+            <CandyToggle
+              label={ru ? 'Анонимная статистика' : 'Anonymous analytics'}
+              value={!analyticsOptOut}
+              onChange={(value) => setAnalyticsOptOut(!value)}
+            />
+          </Row>
+        </Section>
+        <GameButton
+          variant="text"
+          label={ru ? 'Сбросить рекорд…' : 'Reset best score…'}
+          onPress={() => setResetOpen(true)}
+        />
+        <Pressable
+          onPress={() => {
+            void Linking.openURL(PRIVACY_URL);
+          }}
+          accessibilityRole="link"
+          accessibilityLabel={ru ? 'Конфиденциальность' : 'Privacy'}
+        >
+          <AppText style={styles.footer}>
+            {ru ? 'Версия' : 'Version'} {Constants.expoConfig?.version ?? '1.1.46'} ·{' '}
+            {ru ? 'Конфиденциальность' : 'Privacy'}
+          </AppText>
+        </Pressable>
       </ScrollView>
-
       <ConfirmDialog
         visible={resetOpen}
-        title={t('settings.resetBest', lang)}
-        message={t('settings.resetBestConfirm', lang)}
-        confirmLabel={t('settings.confirm', lang)}
-        cancelLabel={t('settings.cancel', lang)}
+        title={ru ? 'Сбросить рекорд?' : 'Reset best score?'}
+        message={
+          ru
+            ? 'Рекорд классики станет равен нулю. Прогресс Капи сохранится.'
+            : 'Your Classic best becomes zero. Capy progress is kept.'
+        }
+        confirmLabel={ru ? 'Сбросить' : 'Reset'}
+        cancelLabel={ru ? 'Отмена' : 'Cancel'}
         destructive
         onConfirm={() => {
-          setResetOpen(false);
           resetBest();
+          setResetOpen(false);
         }}
         onCancel={() => setResetOpen(false)}
       />
-    </SafeAreaView>
+      {languageOpen && (
+        <Overlay onDismiss={() => setLanguageOpen(false)}>
+          <AppText preset="title">{ru ? 'Язык' : 'Language'}</AppText>
+          {(
+            [
+              { value: 'system', label: ru ? 'Авто' : 'Auto' },
+              { value: 'ru', label: 'Русский' },
+              { value: 'en', label: 'English' },
+            ] as { value: LangSetting; label: string }[]
+          ).map((option) => (
+            <GameButton
+              key={option.value}
+              variant={settings.lang === option.value ? 'primary' : 'ghost'}
+              label={option.label}
+              onPress={() => {
+                settings.update({ lang: option.value });
+                setLanguageOpen(false);
+              }}
+            />
+          ))}
+        </Overlay>
+      )}
+    </View>
   );
 }
-
-const styles = {
-  safeArea: {
-    flex: 1,
-    backgroundColor: HOME_BLUE[1],
-  },
-  background: {
-    position: 'absolute' as const,
-    inset: 0,
-  },
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: n.night900 },
   header: {
-    minHeight: 58,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-    paddingHorizontal: spacing.m,
-    paddingTop: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
-  backButton: {
-    width: 48,
-    height: 48,
+  content: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 16, gap: 16 },
+  section: {
     borderRadius: 24,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    backgroundColor: 'rgba(255,255,255,0.11)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  headerSpacer: {
-    width: 48,
-    height: 48,
-  },
-  title: {
-    color: '#FFFFFF',
-    fontFamily: 'Unbounded_700Bold',
-    fontSize: 27,
-  },
-  tabRail: {
-    flexDirection: 'row' as const,
-    gap: 4,
-    marginHorizontal: spacing.m,
-    padding: 4,
-    borderRadius: 18,
-    backgroundColor: 'rgba(5,45,144,0.26)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-  },
-  tab: {
-    flex: 1,
-    minHeight: 48,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    paddingHorizontal: 4,
-    borderRadius: 14,
-  },
-  tabActive: {
-    backgroundColor: '#FFFFFF',
-    boxShadow: '0 3px 7px rgba(3, 42, 129, 0.28)',
-  },
-  tabText: {
-    color: 'rgba(237,249,255,0.82)',
-    fontFamily: 'Unbounded_700Bold',
-    fontSize: 13,
-  },
-  tabTextActive: {
-    color: '#1A56C7',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    gap: spacing.l,
-    padding: spacing.m,
-    paddingTop: spacing.l,
-    paddingBottom: spacing.xl,
+    padding: 16,
+    backgroundColor: 'rgba(20,26,92,0.88)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   sectionTitle: {
-    marginLeft: spacing.s,
-    color: 'rgba(240,250,255,0.78)',
-    fontFamily: 'Unbounded_700Bold',
+    fontFamily: 'Nunito_900Black',
+    color: n.muted,
     fontSize: 12,
-    letterSpacing: 0.7,
-  },
-  sectionCard: {
-    overflow: 'hidden' as const,
-    borderRadius: radii.card,
-    paddingHorizontal: spacing.m,
-    backgroundColor: 'rgba(9,58,165,0.36)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.30)',
-    boxShadow: '0 7px 14px rgba(9, 42, 124, 0.28)',
+    lineHeight: 18,
+    letterSpacing: 1.44,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
   row: {
-    minHeight: 64,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-    gap: spacing.s,
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.07)',
   },
-  rowWithDivider: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.16)',
+  rowLabel: { fontFamily: 'Nunito_800ExtraBold', fontSize: 16, lineHeight: 22 },
+  detail: { color: n.muted, fontSize: 12, lineHeight: 17 },
+  tone: { paddingTop: 14, gap: 10 },
+  segmentRail: { flexDirection: 'row', padding: 4, borderRadius: 16, backgroundColor: '#0C1044' },
+  segment: {
+    flex: 1,
+    minHeight: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
   },
-  rowLabel: {
-    flexShrink: 1,
-    color: '#FFFFFF',
-    fontFamily: 'Unbounded_700Bold',
-  },
-  rowControl: {
-    alignItems: 'flex-end' as const,
-    justifyContent: 'center' as const,
-  },
-  chipGroup: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    justifyContent: 'flex-end' as const,
-    gap: 6,
-  },
-  chip: {
-    minHeight: 48,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: 4,
-    paddingHorizontal: 11,
-    borderRadius: 14,
-    backgroundColor: 'rgba(5, 44, 133, 0.40)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.24)',
-  },
-  chipActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#FFFFFF',
-  },
-  chipText: {
-    color: 'rgba(244,250,255,0.92)',
-    fontFamily: 'Unbounded_700Bold',
-  },
-  chipTextActive: {
-    color: '#1A56C7',
-  },
-  themeGrid: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    gap: spacing.s,
-    paddingVertical: spacing.m,
-  },
+  themes: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 8 },
   themeTile: {
-    width: 100,
-    minHeight: 102,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-    gap: spacing.s,
-    padding: spacing.s,
-    borderRadius: 16,
-    backgroundColor: 'rgba(4, 46, 140, 0.36)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.24)',
-  },
-  themeTileActive: {
-    backgroundColor: 'rgba(255,194,43,0.24)',
-    borderColor: '#FFE46B',
+    width: '22%',
+    flexGrow: 1,
+    minWidth: 64,
+    borderRadius: 14,
     borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.14)',
+    padding: 8,
+    gap: 8,
+    alignItems: 'center',
   },
-  themeTileLocked: {
-    opacity: 0.54,
-  },
-  swatches: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    justifyContent: 'center' as const,
-    gap: 4,
-  },
-  themeTileLabel: {
-    width: '100%' as const,
-    minHeight: 16,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: 3,
-  },
-  themeTileText: {
-    flexShrink: 1,
-    color: '#FFFFFF',
-    fontFamily: 'Unbounded_700Bold',
-  },
-  purchaseActions: {
-    gap: spacing.s,
-  },
-  meta: {
-    alignItems: 'center' as const,
-    gap: spacing.xs,
-    marginTop: -spacing.s,
-  },
-  privacyLink: {
-    minHeight: 48,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    paddingHorizontal: spacing.s,
-  },
-  metaText: {
-    color: 'rgba(235,249,255,0.74)',
-    textDecorationLine: 'underline' as const,
-  },
-  pressed: {
-    opacity: 0.72,
-    transform: [{ scale: 0.97 }],
-  },
-} as const;
+  swatches: { flexDirection: 'row', flexWrap: 'wrap', width: 51, gap: 2 },
+  footer: { color: n.muted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+});

@@ -1,6 +1,6 @@
 import { AppState } from 'react-native';
 
-import { deserializeClassicCheckpoint } from '@/core/engine';
+import { deserializeAdventureRun, deserializeClassicCheckpoint } from '@/core/engine';
 import { getJSON, getString, KEYS, setJSONOrThrow, storage } from '@/core/storage';
 import { useGameStore } from '@/features/game/store';
 import { useLeaderboardStore } from '@/features/leaderboard/store';
@@ -17,7 +17,7 @@ function terminal() {
   const current = useGameStore.getState();
   useGameStore.setState({
     game: { ...current.game, status: 'over' },
-    classicMeta: { ...current.classicMeta!, lifecycle: 'terminal_revivable' },
+    classicMeta: { ...current.classicMeta!, lifecycle: 'terminal_revivable', activeSinceAt: null },
   });
   return { kind: 'revive', runId: current.classicMeta!.runId } as const;
 }
@@ -147,11 +147,50 @@ describe('durable earned revive and helper benefits', () => {
     await claimRewardedBenefit(offer, { showRewarded: jest.fn(async (_placement, earn) => {
       earn?.();
       expect(useGameStore.getState().classicMeta?.activeSinceAt).toBeNull();
-      expect(deserializeClassicCheckpoint(getString(KEYS.classicRunEnvelope)!)?.meta.activeSinceAt).toBeNull();
+      expect(useGameStore.getState().game.status).toBe('over');
       useAdPresentation.setState({ fullscreenActive: false });
       return 'rewarded' as const;
     }) });
     expect(useGameStore.getState().classicMeta?.activeSinceAt).toEqual(expect.any(Number));
+  });
+
+  it('keeps a failed Adventure board until the ad closes, then clears it once with the earned proof', async () => {
+    useGameStore.getState().newAdventureGame({
+      id: 'rewarded-clear',
+      seasonId: 1,
+      levelIndex: 0,
+      seed: 42,
+      objective: { type: 'jewels', target: 2 },
+    });
+    const run = useGameStore.getState().adventure!;
+    const blocked = new Array<number>(64).fill(1);
+    const game = { ...run.game, board: blocked, score: 800, status: 'over' as const };
+    useGameStore.setState({
+      game,
+      adventure: { ...run, game, status: 'failed', collectedJewels: 1 },
+    });
+    const offer = { kind: 'revive', runId: run.runId } as const;
+
+    await expect(claimRewardedBenefit(offer, {
+      showRewarded: async () => 'dismissed',
+    })).resolves.toBe('dismissed');
+    expect(useGameStore.getState().game.board).toEqual(blocked);
+
+    const showRewarded = jest.fn(async (_placement, earn) => {
+      useAdPresentation.setState({ fullscreenActive: true });
+      earn?.();
+      expect(useGameStore.getState().game.board).toEqual(blocked);
+      expect(Object.values(getJSON<Record<string, object>>(KEYS.rewardedBenefits)!))
+        .toContainEqual(expect.objectContaining({ offer, state: 'earned_pending' }));
+      useAdPresentation.setState({ fullscreenActive: false });
+      return 'rewarded' as const;
+    });
+    await expect(claimRewardedBenefit(offer, { showRewarded })).resolves.toBe('applied');
+    expect(deserializeAdventureRun(getString(KEYS.adventureRun)!)?.game)
+      .toMatchObject({ board: new Array<number>(64).fill(0), reviveUsed: true, score: 800 });
+    expect(useGameStore.getState().adventure).toMatchObject({ status: 'playing', collectedJewels: 1 });
+    await expect(claimRewardedBenefit(offer, { showRewarded })).resolves.toBe('unavailable');
+    expect(showRewarded).toHaveBeenCalledTimes(1);
   });
 
   it('retains the original run obligation when navigation changes context and never revives another run', async () => {

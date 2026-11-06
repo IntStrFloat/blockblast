@@ -1,22 +1,16 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
 import { useGameStore } from '@/features/game';
 import { useLang } from '@/features/settings';
-import { AppText, StarIcon } from '@/ui';
-import { JewelIcon } from './JewelIcon';
+import { AppText, CandyIcon, nightCandy as n } from '@/ui';
 
-import { adventureSkinFor } from '../logic/skins';
 import { levelFor } from '../logic/levels';
 import { absoluteLevelNumber } from '../logic/seasons';
 import { useAdventure } from '../store';
+import type { SharedValue } from 'react-native-reanimated';
 import type { AdventureObjectiveArrival } from './JewelCollectionFlightLayer';
 
 interface ObjectivePanelProps {
@@ -25,16 +19,47 @@ interface ObjectivePanelProps {
   arrival?: AdventureObjectiveArrival | null;
 }
 
-export function ObjectivePanel({ onLayout, onTargetLayout, arrival = null }: ObjectivePanelProps = {}) {
+function GoalSegment({
+  fill,
+  index,
+  count,
+}: {
+  fill: SharedValue<number>;
+  index: number;
+  count: number;
+}) {
+  const style = useAnimatedStyle(() => ({
+    opacity: Math.max(0, Math.min(1, fill.value * count - index)),
+  }));
+  return (
+    <View
+      style={{
+        flex: 1,
+        height: 8,
+        borderRadius: 3,
+        backgroundColor: '#0B0F42',
+        overflow: 'hidden',
+      }}
+    >
+      <Animated.View
+        style={[{ position: 'absolute', inset: 0, backgroundColor: n.sky, borderRadius: 3 }, style]}
+      />
+    </View>
+  );
+}
+
+export function ObjectivePanel({
+  onLayout,
+  onTargetLayout,
+  arrival = null,
+}: ObjectivePanelProps = {}) {
   const lang = useLang();
   const seasonId = useAdventure((s) => s.seasonId);
   const levelIndex = useAdventure((s) => s.levelIndex);
-  const seasonWindow = useAdventure((s) => s.seasonWindow);
   const gameScore = useGameStore((s) => s.game.score);
   const run = useGameStore((s) => s.adventure);
   const lastAdventureEvent = useGameStore((s) => s.lastAdventureEvent);
   const level = run?.level ?? levelFor(seasonId, levelIndex);
-  const skin = adventureSkinFor(absoluteLevelNumber(level.seasonId, level.levelIndex), seasonWindow);
   const jewelObjective = level.objective.type === 'jewels';
   const collected = run?.collectedJewels ?? 0;
   const rawCurrent = jewelObjective ? collected : gameScore;
@@ -43,15 +68,14 @@ export function ObjectivePanel({ onLayout, onTargetLayout, arrival = null }: Obj
   const seenEventIdsRef = useRef(new Set<string>());
   const arrivedEventIdsRef = useRef(new Set<string>());
   const target = level.objective.target;
-  const targetLabel = String(target);
-  const badgeDiameter = targetLabel.length >= 4 ? 76 : targetLabel.length >= 3 ? 68 : 60;
   const current = jewelObjective ? displayedCurrent : rawCurrent;
   const fill = Math.min(1, current / Math.max(1, target));
   const fillSV = useSharedValue(fill);
   const label = jewelObjective ? t('adventure.goalJewels', lang) : t('adventure.goalScore', lang);
 
   useEffect(() => {
-    if (!jewelObjective || !lastAdventureEvent || lastAdventureEvent.jewelsCollectedThisMove <= 0) return;
+    if (!jewelObjective || !lastAdventureEvent || lastAdventureEvent.jewelsCollectedThisMove <= 0)
+      return;
     if (seenEventIdsRef.current.has(lastAdventureEvent.presentationId)) return;
     seenEventIdsRef.current.add(lastAdventureEvent.presentationId);
     queueMicrotask(() => {
@@ -72,124 +96,60 @@ export function ObjectivePanel({ onLayout, onTargetLayout, arrival = null }: Obj
     fillSV.value = withTiming(fill, { duration: 420 });
   }, [fill, fillSV]);
 
-  const fillStyle = useAnimatedStyle(() => ({ width: `${fillSV.value * 100}%` }));
-
   return (
     <View
       accessible
-      accessibilityLabel={jewelObjective
-        ? `${label} ${Math.max(0, target - current)}`
-        : `${label} ${current}/${target}`}
+      accessibilityLabel={
+        jewelObjective
+          ? `${label} ${Math.max(0, target - current)}`
+          : `${label} ${current}/${target}`
+      }
       onLayout={onLayout}
-      style={[styles.shell, { height: badgeDiameter }]}
+      style={styles.shell}
     >
-      <View onLayout={onTargetLayout} style={styles.goalCopy}>
-        {jewelObjective ? <JewelIcon size={24} /> : <StarIcon size={22} color="#FFE06B" />}
-        <AppText
-          preset="speech"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.72}
-          style={styles.goalText}
-        >
-          {`${current}/${target}`}
+      <View style={styles.row}>
+        <AppText style={styles.level}>
+          {lang === 'ru' ? 'УРОВЕНЬ' : 'LEVEL'}{' '}
+          {absoluteLevelNumber(level.seasonId, level.levelIndex)}
         </AppText>
-        {pendingDelta > 0 ? (
-          <AppText
-            preset="caption"
-            accessibilityLiveRegion="polite"
-            style={styles.deltaText}
-          >
-            +{pendingDelta}
+        <View
+          onLayout={onTargetLayout}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+        >
+          <CandyIcon name={jewelObjective ? 'gem' : 'chart'} size={18} color={n.sky} />
+          <AppText style={styles.counter}>
+            {Math.min(target, current)} / {target}
           </AppText>
-        ) : null}
+        </View>
       </View>
-      <View
-        style={[
-          styles.track,
-          {
-            backgroundColor: skin.progressTrack,
-            borderColor: skin.progressBorder,
-            marginRight: 0,
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={skin.progressGradient}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={styles.trackGlow}
-        />
-        <Animated.View style={[styles.fillMask, fillStyle]}>
-          <LinearGradient
-            colors={skin.progressGradient}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.fillGradient}
-          />
-        </Animated.View>
+      <View style={styles.track}>
+        {Array.from({ length: Math.min(12, target) }, (_, index) => (
+          <GoalSegment key={index} fill={fillSV} index={index} count={Math.min(12, target)} />
+        ))}
       </View>
-
+      {pendingDelta > 0 ? (
+        <AppText accessibilityLiveRegion="polite" style={{ position: 'absolute', opacity: 0 }}>
+          +{pendingDelta}
+        </AppText>
+      ) : null}
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   shell: {
-    width: '100%',
-    maxWidth: 320,
-    minHeight: 60,
-    position: 'relative',
-    justifyContent: 'center',
+    flex: 1,
+    height: 56,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: n.border,
+    backgroundColor: 'rgba(7,10,42,0.5)',
+    gap: 7,
   },
-  goalCopy: {
-    position: 'absolute',
-    top: 0,
-    left: 4,
-    right: 4,
-    minHeight: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  goalText: {
-    color: '#FFF6E9',
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-    textAlign: 'center',
-  },
-  deltaText: {
-    color: '#FFF2A8',
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  track: {
-    marginTop: 30,
-    height: 12,
-    borderRadius: 14,
-    borderWidth: 2,
-    overflow: 'hidden',
-    shadowColor: '#2E1C28',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.34,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  trackGlow: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    opacity: 0.12,
-  },
-  fillMask: {
-    height: '100%',
-    overflow: 'hidden',
-  },
-  fillGradient: {
-    width: '100%',
-    height: '100%',
-  },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+  level: { color: n.mandarin, fontFamily: 'Nunito_900Black', fontSize: 12, letterSpacing: 1.2 },
+  counter: { color: '#FFFFFF', fontFamily: 'Unbounded_900Black', fontSize: 16, lineHeight: 20 },
+  track: { height: 8, flexDirection: 'row', gap: 3, overflow: 'hidden', borderRadius: 3 },
+  fillMask: { position: 'absolute', top: 0, bottom: 0, left: 0, overflow: 'hidden' },
 });

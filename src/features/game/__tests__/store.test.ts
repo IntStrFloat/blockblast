@@ -1,5 +1,6 @@
 import {
   deserialize,
+  serializeClassicCheckpoint,
   deserializeAdventureRun,
   emptyBoard,
   idx,
@@ -23,11 +24,18 @@ import {
 } from '@/features/onboarding';
 import { useProgression } from '@/features/progression/store';
 import { useScores } from '@/features/scores';
-import { useStreak } from '@/features/streak';
+import { useStreak, todayISO } from '@/features/streak';
+import { useMascot } from '@/features/mascot/store';
 
-import { getSavedAdventureSummary, getSavedGameSummary, hasSavedGame, useGameStore } from '../store';
+import {
+  getSavedAdventureSummary,
+  getSavedGameSummary,
+  hasSavedGame,
+  useGameStore,
+} from '../store';
 
 const dot = SHAPES_BY_ID.get('dot')!;
+const sq2 = SHAPES_BY_ID.get('sq2')!;
 const sq3 = SHAPES_BY_ID.get('sq3')!;
 
 function installLegacyClassic(raw: string): void {
@@ -196,10 +204,60 @@ describe('saved run lifecycle', () => {
     useFtueStore.getState().recordGrab();
     useGameStore.getState().syncTutorialCheckpoint();
     assertRestored();
-    expect(useGameStore.getState().placePiece(2, 3, 3)).not.toBeNull();
+    expect(useGameStore.getState().placePiece(1, 5, 3)).not.toBeNull();
     const afterClear = useGameStore.getState().game;
     expect(useFtueStore.getState().status).toBe('guided_success');
     assertRestored(afterClear);
+  });
+
+  it('recovers a rescued checkpoint before and after its charge debit without double-spending', () => {
+    useGameStore.getState().newGame();
+    const originalMeta = useGameStore.getState().classicMeta!;
+    const board = new Array(64).fill(1);
+    board[0] = 0;
+    const terminal = {
+      ...useGameStore.getState().game,
+      board,
+      status: 'over' as const,
+      score: 321,
+      tray: [
+        { shape: sq2, colorId: 1 },
+        { shape: sq2, colorId: 1 },
+        { shape: sq2, colorId: 1 },
+      ],
+    };
+    // Snapshot from the previous helper-based flow, which kept the blocked
+    // board and inserted dots to fit the open cell.
+    const rescued = {
+      ...terminal,
+      status: 'playing' as const,
+      reviveUsed: true,
+      tray: terminal.tray.map(() => ({ shape: dot, colorId: 1 })),
+    };
+    const intent = {
+      id: `${originalMeta.runId}:rescue:swap`,
+      helperId: 'swap' as const,
+      day: todayISO(),
+      source: 'charge' as const,
+    };
+    const pendingMeta = { ...originalMeta, lifecycle: 'active' as const, helperSpend: intent };
+    useProgression.setState({ level: 5 });
+    useMascot.setState({
+      helperCharges: { swap: 2 },
+      helpersUsedDay: { swap: todayISO() },
+      helperSpendReceipts: {},
+    });
+    setString(KEYS.classicRunEnvelope, serializeClassicCheckpoint(rescued, pendingMeta));
+    useGameStore.getState().recoverHelperRescues();
+    expect(useMascot.getState().helperCharges.swap).toBe(1);
+    expect(useGameStore.getState().loadSaved()).toBe('active');
+    expect(useGameStore.getState().game.score).toBe(321);
+    expect(useGameStore.getState().game.tray.every((piece) => piece !== null)).toBe(true);
+    // Model a crash after the debit committed but before its intent was cleared.
+    setString(KEYS.classicRunEnvelope, serializeClassicCheckpoint(rescued, pendingMeta));
+    useGameStore.getState().recoverHelperRescues();
+    expect(useMascot.getState().helperCharges.swap).toBe(1);
+    expect(useGameStore.getState().classicMeta?.helperSpend).toBeUndefined();
   });
 
   it('creates and persists a new run explicitly', () => {
@@ -306,37 +364,44 @@ describe('saved run lifecycle', () => {
 
   it('classifies active, terminal, final terminal, missing, and corrupt saves', () => {
     expect(getSavedGameSummary()).toMatchObject({
-      mode: 'classic', kind: 'active', score: 0, canContinue: true,
+      mode: 'classic',
+      kind: 'active',
+      score: 0,
+      canContinue: true,
     });
 
     const active = useGameStore.getState().game;
-    installLegacyClassic(
-      serialize({ ...active, status: 'over', score: 321, reviveUsed: false }),
-    );
+    installLegacyClassic(serialize({ ...active, status: 'over', score: 321, reviveUsed: false }));
     removeKey(KEYS.classicRunMeta);
-    expect(getSavedGameSummary()).toEqual(expect.objectContaining({
-      kind: 'terminal_final',
-      score: 321,
-      canContinue: false,
-    }));
+    expect(getSavedGameSummary()).toEqual(
+      expect.objectContaining({
+        kind: 'terminal_final',
+        score: 321,
+        canContinue: false,
+      }),
+    );
 
-    installLegacyClassic(
-      serialize({ ...active, status: 'over', score: 654, reviveUsed: true }),
-    );
+    installLegacyClassic(serialize({ ...active, status: 'over', score: 654, reviveUsed: true }));
     removeKey(KEYS.classicRunMeta);
-    expect(getSavedGameSummary()).toEqual(expect.objectContaining({
-      kind: 'terminal_final',
-      score: 654,
-      canContinue: false,
-    }));
+    expect(getSavedGameSummary()).toEqual(
+      expect.objectContaining({
+        kind: 'terminal_final',
+        score: 654,
+        canContinue: false,
+      }),
+    );
 
     removeKey(KEYS.gameCurrent);
     removeKey(KEYS.classicRunEnvelope);
     removeKey(KEYS.classicRunMeta);
-    expect(getSavedGameSummary()).toEqual(expect.objectContaining({ kind: 'none', score: null, canContinue: false }));
+    expect(getSavedGameSummary()).toEqual(
+      expect.objectContaining({ kind: 'none', score: null, canContinue: false }),
+    );
 
     installLegacyClassic('{broken');
-    expect(getSavedGameSummary()).toEqual(expect.objectContaining({ kind: 'none', score: null, canContinue: false }));
+    expect(getSavedGameSummary()).toEqual(
+      expect.objectContaining({ kind: 'none', score: null, canContinue: false }),
+    );
     expect(getString(KEYS.gameCurrent)).toBeNull();
   });
 
@@ -419,11 +484,13 @@ describe('Game Over and Continue accounting', () => {
     expect(useScores.getState().best).toBe(778);
     expect(useStreak.getState().count).toBe(0);
     expect(deserialize(getString(KEYS.gameCurrent)!)).toEqual(useGameStore.getState().game);
-    expect(getSavedGameSummary()).toEqual(expect.objectContaining({
-      kind: 'terminal_revivable',
-      score: 778,
-      canContinue: true,
-    }));
+    expect(getSavedGameSummary()).toEqual(
+      expect.objectContaining({
+        kind: 'terminal_revivable',
+        score: 778,
+        canContinue: true,
+      }),
+    );
     expect(useAnalyticsStore.getState().queue).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -453,9 +520,9 @@ describe('Game Over and Continue accounting', () => {
     expect(second).toEqual(first);
     expect(useScores.getState().gamesPlayed).toBe(1);
     expect(useGameStore.getState().classicMeta?.lifecycle).toBe('terminal_final');
-    expect(useAnalyticsStore.getState().queue).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: 'duplicate_reward_count' }),
-    ]));
+    expect(useAnalyticsStore.getState().queue).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'duplicate_reward_count' })]),
+    );
   });
 
   it('restores a pending terminal after process death and settles it without duplication', () => {
@@ -478,7 +545,10 @@ describe('Game Over and Continue accounting', () => {
     setNearGameOver(100);
     useGameStore.getState().placePiece(0, 0, 0);
     const terminal = useGameStore.getState().game;
-    useGameStore.setState({ recordCelebration: { score: 101, previousBest: 100 }, recordCelebrated: true });
+    useGameStore.setState({
+      recordCelebration: { score: 101, previousBest: 100 },
+      recordCelebrated: true,
+    });
 
     expect(useGameStore.getState().continueGame()).toBe(true);
     const continued = useGameStore.getState().game;
@@ -491,6 +561,10 @@ describe('Game Over and Continue accounting', () => {
     expect(continued.combo).toBe(0);
     expect(continued.movesSinceClear).toBe(0);
     expect(useGameStore.getState().lastEvent).toBeNull();
+    expect(useGameStore.getState().boardRecovery).toEqual({
+      previousBoard: terminal.board,
+      board: continued.board,
+    });
     expect(useGameStore.getState().finalResult).toBeNull();
     expect(useGameStore.getState().recordCelebration).toEqual({
       score: 101,
@@ -539,11 +613,13 @@ describe('Game Over and Continue accounting', () => {
       bestScore: 1501,
       runsCount: 1,
     });
-    expect(getSavedGameSummary()).toEqual(expect.objectContaining({
-      kind: 'terminal_final',
-      score: 1501,
-      canContinue: false,
-    }));
+    expect(getSavedGameSummary()).toEqual(
+      expect.objectContaining({
+        kind: 'terminal_final',
+        score: 1501,
+        canContinue: false,
+      }),
+    );
   });
 
   it('cold-loading a terminal save does not repeat accounting', () => {
@@ -572,7 +648,9 @@ describe('Game Over and Continue accounting', () => {
     const checkpoint = getString(KEYS.classicRunEnvelope)!;
     const proof = useLeaderboardStore.getState().activeProof;
     expect(useProgression.getState().lifetimePoints).toBe(1_000);
-    const persistedProgression = getJSON<ReturnType<typeof useProgression.getState>>(KEYS.progression)!;
+    const persistedProgression = getJSON<ReturnType<typeof useProgression.getState>>(
+      KEYS.progression,
+    )!;
 
     useGameStore.getState().newGame({ seed: 77 });
     setString(KEYS.classicRunEnvelope, checkpoint);
@@ -604,13 +682,15 @@ describe('Game Over and Continue accounting', () => {
     expect(useGameStore.getState().linesCleared).toBe(7);
     expect(useGameStore.getState().classicMeta?.placements).toBe(11);
     expect(useGameStore.getState().activeConfig).toEqual(originalConfig);
-    expect(useAnalyticsStore.getState().queue).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: 'checkpoint_recovery' }),
-      expect.objectContaining({
-        name: 'checkpoint_counter_mismatch',
-        properties: expect.objectContaining({ counter: 'placements' }),
-      }),
-    ]));
+    expect(useAnalyticsStore.getState().queue).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'checkpoint_recovery' }),
+        expect.objectContaining({
+          name: 'checkpoint_counter_mismatch',
+          properties: expect.objectContaining({ counter: 'placements' }),
+        }),
+      ]),
+    );
   });
 
   it('folds active time into the checkpoint when app activity pauses', () => {
@@ -645,8 +725,9 @@ describe('Game Over and Continue accounting', () => {
       placements: 12,
       lines: 7,
     });
-    expect(useAnalyticsStore.getState().activeRun!.active_duration_ms)
-      .toBeGreaterThanOrEqual(3_000);
+    expect(useAnalyticsStore.getState().activeRun!.active_duration_ms).toBeGreaterThanOrEqual(
+      3_000,
+    );
   });
 
   it('recovers a crash between result intent and atomic reward receipt', () => {
@@ -793,6 +874,21 @@ describe('adventure run lifecycle in game store', () => {
     expect(useGameStore.getState().game).toEqual(run.game);
   });
 
+  it('continues the authored objective of an active legacy level after the Night Candy rules update', () => {
+    const legacy = { ...adventureSpec, objective: { type: 'score' as const, target: 128 } };
+    useGameStore.getState().newAdventureGame(legacy);
+    const runId = useGameStore.getState().adventure!.runId;
+    useGameStore.getState().suspendAdventure();
+    const nextRules = {
+      ...legacy,
+      rulesVersion: 2 as const,
+      objective: { type: 'jewels' as const, target: 9 },
+    };
+    const restored = useGameStore.getState().resumeSavedAdventure(nextRules);
+    expect(restored?.runId).toBe(runId);
+    expect(restored?.level.objective).toEqual({ type: 'score', target: 128 });
+  });
+
   it('resumeSavedAdventure rejects a mismatched snapshot and clears it', () => {
     useGameStore.getState().newAdventureGame(adventureSpec);
     useGameStore.getState().suspendAdventure();
@@ -845,8 +941,9 @@ describe('adventure run lifecycle in game store', () => {
       source: 'adventure',
       grantedAmount: 500,
     });
-    expect(deserializeAdventureRun(getString(KEYS.adventureRun)!)?.outcomeSettledAt)
-      .toEqual(expect.any(Number));
+    expect(deserializeAdventureRun(getString(KEYS.adventureRun)!)?.outcomeSettledAt).toEqual(
+      expect.any(Number),
+    );
     expect(useAnalyticsStore.getState().activeRun).toMatchObject({
       run_id: pending.runId,
       mode: 'adventure',
@@ -868,9 +965,9 @@ describe('adventure run lifecycle in game store', () => {
     };
     const completionId = adventureCompletionIdentity(1, 0).completionId;
     setString(KEYS.adventureRun, serializeAdventureRun(pending));
-    expect(
-      useAdventure.getState().recordWinOnce(completionId, pending.runId, '2026-09-19'),
-    ).toBe(true);
+    expect(useAdventure.getState().recordWinOnce(completionId, pending.runId, '2026-09-19')).toBe(
+      true,
+    );
     expect(useProgression.getState().lifetimePoints).toBe(0);
     useGameStore.setState({ adventure: null, lastAdventureEvent: null });
 

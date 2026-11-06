@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CandyHelperPill } from './CandyHelperPill';
 import { StyleSheet, View } from 'react-native';
 import { Pressable } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
-import { EMPTY_MASK, previewMask, useDragCtx, useGameStore } from '@/features/game';
+import { useGameStore } from '@/features/game';
 import {
   getAds,
   loadAdsMeta,
@@ -13,7 +14,8 @@ import {
   saveAdsMeta,
 } from '@/features/monetization';
 import { isHelperUnlocked, useProgression } from '@/features/progression';
-import { useLang } from '@/features/settings';
+import { useLang, useSettings } from '@/features/settings';
+import { playSound } from '@/features/game/sound/sounds';
 import { todayISO } from '@/features/streak';
 import { useRewardedReady } from '@/features/monetization/useRewardedReady';
 import { claimRewardedBenefit } from '@/features/monetization/rewardedBenefits';
@@ -29,6 +31,7 @@ interface HelperHintProps {
   onEmote: (id: EmoteId) => void;
   reduceMotion: boolean;
   compact?: boolean;
+  candy?: boolean;
 }
 
 const THRESHOLD = MASCOT_CONFIG.helpers.hint.stuckThreshold;
@@ -39,11 +42,11 @@ const THRESHOLD = MASCOT_CONFIG.helpers.hint.stuckThreshold;
  * подсвечивает реальную валидную позицию ghost-блоками (переиспользует preview
  * drag-системы) — ход за игрока НЕ делается. После показа — кулдаун до завтра.
  */
-export function HelperHint({ onEmote, reduceMotion, compact = false }: HelperHintProps) {
-  const ctx = useDragCtx();
+export function HelperHint({ onEmote, reduceMotion, compact = false, candy = false }: HelperHintProps) {
 
-  const board = useGameStore((s) => s.game.board);
-  const tray = useGameStore((s) => s.game.tray);
+  const game = useGameStore((s) => s.game);
+  const adventure = useGameStore((s) => s.adventure);
+  const activeConfig = useGameStore((s) => s.activeConfig);
   const level = useProgression((s) => s.level);
   const usedDay = useMascot((s) => s.helpersUsedDay.hint);
   const charges = useMascot((s) => s.helperCharges.hint ?? 0);
@@ -52,26 +55,23 @@ export function HelperHint({ onEmote, reduceMotion, compact = false }: HelperHin
   const [resultText, setResultText] = useState<string | null>(null);
   const today = todayISO();
 
-  // Таймер сброса подсветки — чистим на размонтировании, не читаем в рендере.
-  const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Transient receipt / press lock; guidance itself belongs to the run's UI state.
   const resultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rewardInFlightRef = useRef(false);
   const pressLockRef = useRef(false);
   const pressUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
-      if (clearTimer.current) clearTimeout(clearTimer.current);
       if (resultTimer.current) clearTimeout(resultTimer.current);
       if (pressUnlockTimer.current) clearTimeout(pressUnlockTimer.current);
-      // Не оставлять «висящую» подсветку после анмаунта.
-      ctx.preview.value = EMPTY_MASK;
-      ctx.previewColor.value = 0;
     },
-    [ctx.preview, ctx.previewColor],
+    [],
   );
-  const stuck = isStuckish(board, tray, THRESHOLD);
-  const move = stuck ? findHintMove(board, tray) : null;
   const helperUnlocked = isHelperUnlocked('hint', level);
+  const move = useMemo(() => {
+    if (!helperUnlocked || !isStuckish(game.board, game.tray, THRESHOLD)) return null;
+    return findHintMove(game, { adventure, config: adventure ? undefined : activeConfig });
+  }, [activeConfig, adventure, game, helperUnlocked]);
   const freeAvailable = canUseHelper(usedDay, today, level, 'hint', charges) && move !== null;
   const canOfferRewarded = helperUnlocked && usedDay === today && charges === 0 && move !== null;
   const rewardedReady = useRewardedReady(canOfferRewarded && !rewardBusy);
@@ -92,31 +92,27 @@ export function HelperHint({ onEmote, reduceMotion, compact = false }: HelperHin
   }, [available, charges, source, today]);
 
 
-  if (!available && !resultText) return null;
+  if (!candy && !available && !resultText) return null;
 
   function showHint() {
-    // Свежий расчёт на момент тапа (доска могла измениться).
-    const m = findHintMove(board, tray);
+    const current = useGameStore.getState();
+    const m = current.game === game && current.adventure === adventure
+      ? move
+      : isStuckish(current.game.board, current.game.tray, THRESHOLD)
+        ? findHintMove(current.game, {
+            adventure: current.adventure,
+            config: current.adventure ? undefined : current.activeConfig,
+          })
+        : null;
     if (!m) return false;
-    const piece = tray[m.trayIndex];
-    if (!piece) return false;
-
-    ctx.preview.value = previewMask(board, piece.shape.cells, m.r, m.c);
-    ctx.previewColor.value = piece.colorId;
-    onEmote('sparkle');
-
-    if (clearTimer.current) clearTimeout(clearTimer.current);
-    clearTimer.current = setTimeout(
-      () => {
-        ctx.preview.value = EMPTY_MASK;
-        ctx.previewColor.value = 0;
-      },
-      reduceMotion ? 1200 : 1900,
-    );
 
     // Кулдаун списывается за сам показ подсказки.
     const used = useMascot.getState().useHelper('hint');
     if (used) {
+      // Persistent presentation is separate from the finger-owned drag preview.
+      useGameStore.setState({ helperHint: m });
+      if (useSettings.getState().sound) playSound('hint');
+      onEmote('sparkle');
       const remaining = useMascot.getState().helperCharges.hint ?? 0;
       useAnalyticsStore.getState().track('helper_funnel', {
         helper: 'hint',
@@ -166,6 +162,8 @@ export function HelperHint({ onEmote, reduceMotion, compact = false }: HelperHin
       setRewardBusy(false);
     }
   }
+
+  if (candy) return <CandyHelperPill helper="hint" label={t('mascot.hint', lang)} count={charges + (helperUnlocked && usedDay !== today ? 1 : 0)} disabled={!available || rewardBusy} rewarded={rewardOffer} onPress={() => { void handlePress(); }} />;
 
   if (resultText) {
     return (

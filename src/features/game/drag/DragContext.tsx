@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
+import type { PlacementHandoff } from './PlacementHandoff';
 
 export interface BoardGeometry {
   boardSize: number;
@@ -9,6 +10,10 @@ export interface BoardGeometry {
 }
 
 export interface DragCtx {
+  handoff?: PlacementHandoff;
+  boardRevision?: SharedValue<number>;
+  noMovesWave?: SharedValue<number>;
+  jewelMarkers?: readonly { slot: number; cell: number }[];
   geom: BoardGeometry;
   /**
    * Габарит одного слота трея для resting-scale: ширина и высота (в px). Нужен,
@@ -17,7 +22,7 @@ export interface DragCtx {
    * высоте. Без него TrayPiece берёт фолбэк (полная ширина экрана / 3, без
    * ограничения по высоте) — прежнее поведение Endless.
    */
-  trayFit?: { slotWidth: number; slotHeight: number };
+  trayFit?: { slotWidth: number; slotHeight: number; restingScale?: number };
   /** Позиция доски в координатах окна (measureInWindow) */
   boardOrigin: SharedValue<{ x: number; y: number }>;
   /** Актуализирует позицию доски перед началом drag */

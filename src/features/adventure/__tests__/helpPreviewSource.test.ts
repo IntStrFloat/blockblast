@@ -10,7 +10,8 @@ describe('Adventure retry help preview', () => {
     expect(screen).toContain('const assistPreview = useSharedValue<number[]>(EMPTY_MASK)');
     expect(screen).toContain('assistPreview.value = previewMask(');
     expect(screen).toContain('assistPreviewColor.value = piece.colorId');
-    expect(cell).toContain('const assistMask = assistPreviewShared?.value[index] ?? 0');
+    // Finger ownership / hint restoration are exercised by boardCellRendering's
+    // actual animated-style callbacks, rather than this implementation spelling.
     expect(cell).toContain('const mask = dragMask !== 0 ? dragMask : assistMask');
     expect(drag).not.toContain('assistPreview');
   });

@@ -14,8 +14,9 @@ import {
 } from '../animation/motion';
 
 describe('cell dissolution motion', () => {
-  it('clears locally within 240 ms and preserves an opacity-only reduced mode', () => {
-    expect(BURST_MOTION.dissolveDurationMs + 14 * CLEAR_MOTION.staggerMs).toBeLessThanOrEqual(240);
+  it('clears locally within 420 ms and preserves an opacity-only reduced mode', () => {
+    expect(CLEAR_MOTION.staggerMs).toBe(45);
+    expect(BURST_MOTION.dissolveDurationMs + 20 + clearCellDelay([0, 0], [[7, 7]])).toBeLessThanOrEqual(420);
     expect(BURST_MOTION.dissolveScale).toBeGreaterThanOrEqual(0.7);
     expect(BURST_MOTION.reducedFadeMs).toBeLessThanOrEqual(150);
   });
@@ -49,8 +50,8 @@ describe('tray interaction motion', () => {
     expect(TRAY_MOTION.appearFromScale).toBeGreaterThanOrEqual(0.9);
     expect(TRAY_MOTION.appearDurationMs).toBeLessThanOrEqual(150);
     expect(TRAY_MOTION.grabScale).toBe(1);
-    expect(TRAY_MOTION.returnDurationMs).toBeLessThanOrEqual(140);
-    expect(TRAY_MOTION.returnScaleDurationMs).toBeLessThanOrEqual(110);
+    expect(TRAY_MOTION.returnDurationMs).toBe(200);
+    expect(TRAY_MOTION.returnScaleDurationMs).toBe(200);
   });
 });
 
@@ -102,9 +103,9 @@ describe('line clear motion', () => {
       [4, 4],
     ] as const;
 
-    expect(clearCellDelay([4, 3], placed)).toBe(2);
-    expect(clearCellDelay([4, 7], placed)).toBe(14);
-    expect(CLEAR_MOTION.staggerMs).toBeLessThanOrEqual(4);
+    expect(clearCellDelay([4, 3], placed)).toBe(23);
+    expect(clearCellDelay([4, 7], placed)).toBe(158);
+    expect(CLEAR_MOTION.staggerMs).toBe(45);
     expect(CLEAR_MOTION.popScale).toBe(1);
   });
 

@@ -13,7 +13,7 @@ import { getSavedAdventureSummary, getSavedGameSummary } from '@/features/game/s
 // в notifications/index, который импортируется из game-компонентов.
 import { useLeaderboardStore } from '@/features/leaderboard/store';
 import { getUtcWeekWindow } from '@/features/leaderboard/week';
-import { useLang } from '@/features/settings';
+import { useLang, useSettings } from '@/features/settings';
 import { canUseProtector, todayISO, useStreak } from '@/features/streak';
 
 import type { Lang } from '@/core/i18n';
@@ -34,6 +34,10 @@ import { recordObservedPushPermissionStatus } from '../softAsk';
 
 /** Собрать вход планировщика из сторов (вне drag-пути, вызывается при уходе в фон). */
 async function replan(lang: Lang): Promise<void> {
+  if (!useSettings.getState().reminders) {
+    await applyLocalNotificationPlan([], lang);
+    return;
+  }
   const permissionStatus = await getLocalNotificationPermissionStatus();
   const observed = recordObservedPushPermissionStatus(permissionStatus);
   if (observed.unsubscribed) {

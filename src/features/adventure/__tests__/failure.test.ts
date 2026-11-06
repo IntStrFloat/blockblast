@@ -57,18 +57,23 @@ describe('Adventure failure recovery presentation', () => {
 
   it('returns a deterministic legal highlight only on an active playable board', () => {
     const run = createAdventureRun(scoreLevel, 2);
-    const first = findAdventureHelpMove(run.game.board, run.game.tray);
-    const second = findAdventureHelpMove(run.game.board, run.game.tray);
+    const first = findAdventureHelpMove(run);
+    const second = findAdventureHelpMove(run);
     expect(second).toEqual(first);
     expect(first).not.toBeNull();
     const piece = run.game.tray[first!.trayIndex]!;
     expect(findPlacements(run.game.board, piece.shape)).toContainEqual([first!.row, first!.col]);
 
     const blocked = emptyBoard().map(() => 1);
-    expect(findAdventureHelpMove(blocked, [
-      { shape: SHAPES_BY_ID.get('dot')!, colorId: 1 },
-      null,
-      null,
-    ])).toBeNull();
+    expect(findAdventureHelpMove({
+      ...run,
+      status: 'failed',
+      game: {
+        ...run.game,
+        board: blocked,
+        status: 'over',
+        tray: [{ shape: SHAPES_BY_ID.get('dot')!, colorId: 1 }, null, null],
+      },
+    })).toBeNull();
   });
 });

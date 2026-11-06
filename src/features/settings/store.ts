@@ -10,6 +10,7 @@ interface SettingsData {
   praiseTone: PraiseTone;
   lang: LangSetting;
   showMascot: boolean;
+  reminders: boolean;
 }
 
 interface SettingsState extends SettingsData {
@@ -22,6 +23,7 @@ const DEFAULTS: SettingsData = {
   praiseTone: 'classic',
   lang: 'ru',
   showMascot: true,
+  reminders: true,
 };
 
 const saved = getJSON<Partial<SettingsData>>(KEYS.settings);
@@ -31,8 +33,8 @@ export const useSettings = create<SettingsState>((set, get) => ({
   ...saved,
   update: (patch) => {
     set(patch);
-    const { sound, haptics, praiseTone, lang, showMascot } = get();
-    setJSON(KEYS.settings, { sound, haptics, praiseTone, lang, showMascot });
+    const { sound, haptics, praiseTone, lang, showMascot, reminders } = get();
+    setJSON(KEYS.settings, { sound, haptics, praiseTone, lang, showMascot, reminders });
   },
 }));
 

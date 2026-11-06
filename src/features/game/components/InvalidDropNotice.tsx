@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { AccessibilityInfo } from 'react-native';
 
 import { t } from '@/core/i18n';
 import { type AnalyticsGameMode, useAnalyticsStore } from '@/features/analytics';
 import { useLang } from '@/features/settings';
-import { AppText } from '@/ui';
 
 export type InvalidDropReason = 'occupied' | 'outside-board' | 'unavailable';
 
@@ -61,49 +59,10 @@ export function useInvalidDropNotice(mode: AnalyticsGameMode) {
   return useMemo(() => ({ message, report, recordValidDrop }), [message, report, recordValidDrop]);
 }
 
+/** Invalid footprints are shown on the board. Announce the guidance without a visual toast. */
 export function InvalidDropNotice({ message }: { message: string | null }) {
-  if (!message) return null;
-  return (
-    <View pointerEvents="none" style={styles.host}>
-      <Animated.View
-        entering={FadeIn.duration(120)}
-        exiting={FadeOut.duration(100)}
-        accessible
-        accessibilityLiveRegion="polite"
-        accessibilityLabel={message}
-        style={styles.notice}
-      >
-        <AppText preset="speech" style={styles.text} numberOfLines={2}>
-          {message}
-        </AppText>
-      </Animated.View>
-    </View>
-  );
+  useEffect(() => {
+    if (message) AccessibilityInfo.announceForAccessibility(message);
+  }, [message]);
+  return null;
 }
-
-const styles = StyleSheet.create({
-  host: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 170,
-    zIndex: 180,
-    alignItems: 'center',
-  },
-  notice: {
-    maxWidth: 340,
-    minHeight: 48,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(17,39,79,0.96)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,244,199,0.72)',
-  },
-  text: {
-    color: '#FFFFFF',
-    textAlign: 'center',
-    fontWeight: '700',
-  },
-});

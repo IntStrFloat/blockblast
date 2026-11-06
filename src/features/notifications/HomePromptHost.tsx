@@ -127,7 +127,7 @@ export function HomePromptHost({
   };
 
   return (
-    <Overlay>
+    <Overlay onDismiss={close}>
       <AppText preset="title" style={{ textAlign: 'center' }}>
         {t('push.title', lang)}
       </AppText>

@@ -444,7 +444,6 @@ describe('useGameFeedback', () => {
 
     expect(useGameStore.getState().recordCelebrated).toBe(true);
     expect(activeCelebrationCount(renderer)).toBe(1);
-    expect(renderer.root.findByProps({ testID: 'new-record-bloom' })).toBeDefined();
 
     act(() => {
       jest.advanceTimersByTime(600);
@@ -500,4 +499,15 @@ describe('useGameFeedback', () => {
       renderer.unmount();
     });
   });
+});
+
+// A goal clear is still a clear; reward and stone accents are grouped per move,
+// even if two mounted routes observe the same accepted placement.
+it('groups Adventure accents once and lets victory replace the jewel accent', () => {
+  const event = placementEvent({ clearedRows: [0] });
+  playPlacementFeedback(event, { sound: true, haptics: false }, {
+    jewel: true, stoneHit: true, stoneBreak: true, won: true,
+  });
+  playPlacementFeedback(event, { sound: true, haptics: false });
+  expect(mockPlaySound.mock.calls).toEqual([['clear1'], ['stonebreak'], ['victory']]);
 });

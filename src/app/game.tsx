@@ -1,13 +1,34 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { previewMask } from '@/features/game/drag/gridMath';
+import {
+  getCandyTutorialMetrics,
+  getCandyPlayfieldMetrics,
+} from '@/features/game/playfield-layout';
+import {
+  TutorialHeader,
+  TutorialHints,
+} from '@/features/game/components/TutorialHints';
+import { useReducedMotion } from '@/features/game/animation/useReducedMotion';
+import { usePlacementHandoff } from '@/features/game/drag/PlacementHandoff';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
+  AppState,
   useWindowDimensions,
   View,
   type LayoutChangeEvent,
 } from 'react-native';
-import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  Easing,
+  useSharedValue,
+} from 'react-native-reanimated';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import { t } from '@/core/i18n';
 import {
@@ -24,7 +45,6 @@ import {
   PraiseBanner,
   TrayView,
   eggForScore,
-  getClassicPlayfieldMetrics,
   getSavedGameSummary,
   useDelayedTray,
   useGameFeedback,
@@ -33,17 +53,11 @@ import {
   turnReadinessSource,
 } from '@/features/game';
 import type { DragCtx } from '@/features/game';
-import { AtmosphereToast } from '@/features/game/components/AtmosphereToast';
-import { GameBackground } from '@/features/game/components/GameBackground';
 import { GameOverOverlay } from '@/features/game/components/GameOverOverlay';
 import { Hud } from '@/features/game/components/Hud';
 import { PauseOverlay } from '@/features/game/components/PauseOverlay';
-import { TutorialHints } from '@/features/game/components/TutorialHints';
-import { AtmosphereLayer } from '@/features/game/effects/AtmosphereLayer';
-import { BoardAuraFrame } from '@/features/game/effects/BoardAuraFrame';
 import { NewRecordCelebration } from '@/features/game/effects/NewRecordCelebration';
-import { HelperControls, LevelUpReveal, MascotLayer, MascotMessages, useMascot } from '@/features/mascot';
-import type { EmoteId } from '@/features/mascot/logic/types';
+import { HelperControls, LevelUpReveal } from '@/features/mascot';
 import { GameBannerDock } from '@/features/monetization';
 import { useAdPresentation } from '@/features/monetization/adPresentation';
 import { leaveRewardedOffer } from '@/features/monetization/rewardedOfferPolicy';
@@ -58,9 +72,9 @@ import { useProgressionSync } from '@/features/progression/hooks/useProgressionS
 import { useProgression } from '@/features/progression';
 import { useProfileStore } from '@/features/profile';
 import { useScores } from '@/features/scores';
-import { useLang, useSettings } from '@/features/settings';
+import { useLang } from '@/features/settings';
 import { useActiveWorldTheme } from '@/features/themes';
-import { AppText, ConfirmDialog, radii } from '@/ui';
+import { AppText, CandyBackground, nightCandy as n, radii } from '@/ui';
 
 type BoardLayout = {
   x: number;
@@ -79,7 +93,10 @@ function EggToast() {
   useEffect(() => {
     if (!lastEvent || lastEvent.scoreDelta <= 0) return;
     if (recordCelebration?.score === lastEvent.score) return;
-    const key = eggForScore(lastEvent.score - lastEvent.scoreDelta, lastEvent.score);
+    const key = eggForScore(
+      lastEvent.score - lastEvent.scoreDelta,
+      lastEvent.score,
+    );
     if (!key) return;
     const id = ++counter.current;
     setEgg({ id, text: t(key, lang) });
@@ -117,6 +134,16 @@ function EggToast() {
 export default function GameScreen() {
   const router = useRouter();
   const lang = useLang();
+  const reduced = useReducedMotion();
+  const sectionTransition = useMemo(
+    () =>
+      reduced
+        ? undefined
+        : LinearTransition.duration(280).easing(
+            Easing.bezier(0.22, 1, 0.36, 1),
+          ),
+    [reduced],
+  );
   useEffect(() => {
     recordNotificationTargetViewed('/game');
   }, []);
@@ -130,55 +157,42 @@ export default function GameScreen() {
   const insets = useSafeAreaInsets();
   const theme = useActiveWorldTheme();
   const [playfieldHeight, setPlayfieldHeight] = useState<number | null>(null);
+  const ftueStatus = useFtueStore((state) => state.status);
+  const ftueActive = !['complete', 'skipped'].includes(ftueStatus);
+  const helperHint = useGameStore((s) => s.helperHint);
   const gamesPlayed = useScores((state) => state.gamesPlayed);
   const runId = useGameStore((state) => state.classicMeta?.runId ?? null);
-  const verticalGap = Math.max(
-    PLAYFIELD_LAYOUT.minVerticalGap,
-    Math.min(
-      PLAYFIELD_LAYOUT.maxVerticalGap,
-      Math.round(screenHeight * PLAYFIELD_LAYOUT.verticalGapRatio),
-    ),
-  );
-  const { boardSize, cellSize, cellGap, trayHeight, hudHeight, mascotHeight, compactHeader } = getClassicPlayfieldMetrics(
+  const {
+    boardSize,
+    cellSize,
+    cellGap,
+    trayHeight,
+    hudHeight,
+    helperHeight,
+    compactHeader,
+    boardTopGap,
+  } = (ftueActive ? getCandyTutorialMetrics : getCandyPlayfieldMetrics)(
     screenWidth,
     playfieldHeight ?? screenHeight,
     playfieldHeight == null ? insets : { top: 0, bottom: 0 },
-    verticalGap,
-    // GameBannerDock owns the physical reserve as a sibling, so the measured
-    // playfield height already excludes it.
-    false,
   );
   const trayFit = useMemo(
-    () => ({ slotWidth: (screenWidth - 16) / 3, slotHeight: trayHeight }),
-    [screenWidth, trayHeight],
-  );
-  const ftueStatus = useFtueStore((state) => state.status);
-  const ftueShouldShowAssistance = useFtueStore(shouldShowFtueAssistance);
-  const ftueActive = !['complete', 'skipped'].includes(ftueStatus);
-  const showMascot = useSettings((s) => s.showMascot);
-  const introDone = useMascot((s) => s.introDone);
-  const reveal = useProgression((s) => s.reveal);
-  const [mascotLostText, setMascotLostText] = useState<string | null>(null);
-  const [atmosphereVisible, setAtmosphereVisible] = useState(false);
-  const mascotEmoteRef = useRef<((id: EmoteId) => void) | null>(null);
-  const handleMascotEmoteReady = useCallback((handler: ((id: EmoteId) => void) | null) => {
-    mascotEmoteRef.current = handler;
-  }, []);
-  const relayMascotEmote = useCallback((id: EmoteId) => mascotEmoteRef.current?.(id), []);
-  const mascotMessageVisible = !ftueActive && showMascot && (!introDone || mascotLostText !== null);
-  const notificationBusy = mascotMessageVisible || reveal !== null;
-  const railWidth = Math.max(0, screenWidth - 24);
-  const mascotWidth = compactHeader ? 104 : 144;
-  const bannerEligibility = useGameBannerEligibility(runId, gamesPlayed, !ftueActive);
-  // Сеттинг всей игровой области (фон/атмосфера) следует активной теме мира (спека 12 §3).
-  const bgPalette = useMemo(
     () => ({
-      bgTop: theme.bgTop,
-      bgBottom: theme.bgBottom,
-      glowColors: theme.juiceColors,
-      haloColor: theme.praiseAccent,
+      slotWidth: (boardSize + 4) / 3,
+      slotHeight: trayHeight - 12,
+      restingScale: ftueActive ? 0.75 : 0.55,
     }),
-    [theme],
+    [boardSize, ftueActive, trayHeight],
+  );
+  const ftueShouldShowAssistance = useFtueStore(shouldShowFtueAssistance);
+  const reveal = useProgression((s) => s.reveal);
+  const notificationBusy = reveal !== null;
+  const mascotMessageVisible = false;
+  const railWidth = boardSize + 16;
+  const bannerEligibility = useGameBannerEligibility(
+    runId,
+    gamesPlayed,
+    !ftueActive,
   );
   const geom = useMemo(
     () => ({ boardSize, cell: cellSize, gap: cellGap, pad: 0 }),
@@ -187,12 +201,20 @@ export default function GameScreen() {
 
   const boardOrigin = useSharedValue({ x: 0, y: 0 });
   const [measureBoard, setMeasureBoard] = useState<() => void>(() => () => {});
-  const handleMeasureBoardReady = useCallback((nextMeasureBoard: () => void) => {
-    setMeasureBoard(() => nextMeasureBoard);
-  }, []);
+  const handleMeasureBoardReady = useCallback(
+    (nextMeasureBoard: () => void) => {
+      setMeasureBoard(() => nextMeasureBoard);
+    },
+    [],
+  );
+  const handoff = usePlacementHandoff();
+  const noMovesWave = useSharedValue(0);
+  const boardRevision = useSharedValue(0);
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
+  const assistPreview = useSharedValue<number[]>(EMPTY_MASK);
+  const assistPreviewColor = useSharedValue(0);
   const invalidPreview = useSharedValue<number[]>(EMPTY_MASK);
   const invalidReason = useSharedValue(0);
   const clearPrelude = useSharedValue(0);
@@ -213,29 +235,50 @@ export default function GameScreen() {
   } | null>(null);
   const [entryReady, setEntryReady] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [restartOpen, setRestartOpen] = useState(false);
   const [boardLayout, setBoardLayout] = useState<BoardLayout | null>(null);
   const [trayLayout, setTrayLayout] = useState<BoardLayout | null>(null);
   const entryHandled = useRef(false);
   const returnedAtRef = useRef<number | null>(null);
   const returnedRunIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (useAdPresentation.getState().fullscreenActive) return true;
-      const current = useGameStore.getState();
-      if (current.game.status === 'over' && current.classicMeta?.runId) {
-        leaveRewardedOffer(current.classicMeta.runId);
-      }
-      if (restartOpen) {
-        setRestartOpen(false);
-        return true;
-      }
-      setPaused((current) => !current);
-      return true;
-    });
-    return () => subscription.remove();
-  }, [restartOpen]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!entryReady || !runId) return;
+      const syncActivity = () => {
+        const current = useGameStore.getState();
+        if (current.adventure || current.classicMeta?.runId !== runId) return;
+        if (!paused && AppState.currentState === 'active')
+          current.resumeClassicActivity();
+        else current.pauseClassicActivity();
+      };
+      syncActivity();
+      const subscription = AppState.addEventListener('change', syncActivity);
+      return () => {
+        subscription.remove();
+        const current = useGameStore.getState();
+        if (!current.adventure && current.classicMeta?.runId === runId)
+          current.pauseClassicActivity();
+      };
+    }, [entryReady, paused, runId]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          if (useAdPresentation.getState().fullscreenActive) return true;
+          const current = useGameStore.getState();
+          if (current.game.status === 'over' && current.classicMeta?.runId) {
+            leaveRewardedOffer(current.classicMeta.runId);
+          }
+          setPaused((current) => !current);
+          return true;
+        },
+      );
+      return () => subscription.remove();
+    }, []),
+  );
 
   useEffect(() => {
     if (entryHandled.current) return;
@@ -270,7 +313,10 @@ export default function GameScreen() {
       });
       if (loaded === 'active') {
         const meta = useGameStore.getState().classicMeta;
-        if (meta?.runKind === 'tutorial' && useFtueStore.getState().runId !== meta.runId) {
+        if (
+          meta?.runKind === 'tutorial' &&
+          useFtueStore.getState().runId !== meta.runId
+        ) {
           useFtueStore.getState().bindRun(meta.runId);
         }
         returnedAtRef.current = Date.now();
@@ -281,7 +327,11 @@ export default function GameScreen() {
     } else if (entry === 'tutorial') {
       const seed = 0x46545545;
       const summary = getSavedGameSummary();
-      if (summary.kind === 'active' && summary.runKind === 'tutorial' && loadSaved()) {
+      if (
+        summary.kind === 'active' &&
+        summary.runKind === 'tutorial' &&
+        loadSaved()
+      ) {
         const runId = useGameStore.getState().classicMeta?.runId;
         if (runId) useFtueStore.getState().bindRun(runId);
       } else {
@@ -294,27 +344,26 @@ export default function GameScreen() {
 
     const readyTimer = setTimeout(() => {
       setEntryReady(true);
-      const rawStartTs = Array.isArray(params.startTs) ? params.startTs[0] : params.startTs;
+      const rawStartTs = Array.isArray(params.startTs)
+        ? params.startTs[0]
+        : params.startTs;
       const startedAt = Number(rawStartTs);
       useAnalyticsStore.getState().track('game_visible', {
         entry:
           entry === 'resume' || entry === 'new' || entry === 'tutorial'
             ? entry
             : 'unknown',
-        latency_ms: Number.isFinite(startedAt) ? Math.max(0, Date.now() - startedAt) : 0,
+        latency_ms: Number.isFinite(startedAt)
+          ? Math.max(0, Date.now() - startedAt)
+          : 0,
         network_ready: Boolean(useProfileStore.getState().authToken),
       });
     }, 0);
     return () => clearTimeout(readyTimer);
-  }, [
-    discardAndStartNew,
-    loadSaved,
-    params.entry,
-    params.startTs,
-    router,
-  ]);
+  }, [discardAndStartNew, loadSaved, params.entry, params.startTs, router]);
 
-  const { onGrab: feedbackOnGrab, onInvalidDrop: feedbackOnInvalidDrop } = useGameFeedback();
+  const { onGrab: feedbackOnGrab, onInvalidDrop: feedbackOnInvalidDrop } =
+    useGameFeedback();
   const invalidDropNotice = useInvalidDropNotice('classic');
   const onGrab = useCallback(() => {
     useAnalyticsStore.getState().recordFirstGrab('classic');
@@ -329,26 +378,32 @@ export default function GameScreen() {
       });
     }
   }, []);
-  const onInvalidDrop = useCallback((reason: 'occupied' | 'outside-board') => {
-    feedbackOnInvalidDrop(reason);
-    invalidDropNotice.report(reason);
-    const ftue = useFtueStore.getState();
-    if (!['complete', 'skipped'].includes(ftue.status)) {
-      ftue.recordInvalidDrop(reason);
-      useGameStore.getState().syncTutorialCheckpoint();
-      useAnalyticsStore.getState().track('tutorial_action', {
-        step: ftue.status,
-        result: 'invalid_drop',
-        elapsed_ms: ftue.startedAt ? Date.now() - ftue.startedAt : 0,
-      });
-    }
-  }, [feedbackOnInvalidDrop, invalidDropNotice]);
+  const onInvalidDrop = useCallback(
+    (reason: 'occupied' | 'outside-board') => {
+      feedbackOnInvalidDrop(reason);
+      invalidDropNotice.report(reason);
+      const ftue = useFtueStore.getState();
+      if (!['complete', 'skipped'].includes(ftue.status)) {
+        ftue.recordInvalidDrop(reason);
+        useGameStore.getState().syncTutorialCheckpoint();
+        useAnalyticsStore.getState().track('tutorial_action', {
+          step: ftue.status,
+          result: 'invalid_drop',
+          elapsed_ms: ftue.startedAt ? Date.now() - ftue.startedAt : 0,
+        });
+      }
+    },
+    [feedbackOnInvalidDrop, invalidDropNotice],
+  );
   const onReturn = useCallback(() => {
     feedbackOnInvalidDrop('outside-board');
   }, [feedbackOnInvalidDrop]);
-  const onUnavailablePiecePress = useCallback((shapeId: string) => {
-    invalidDropNotice.report('unavailable', shapeId);
-  }, [invalidDropNotice]);
+  const onUnavailablePiecePress = useCallback(
+    (shapeId: string) => {
+      invalidDropNotice.report('unavailable', shapeId);
+    },
+    [invalidDropNotice],
+  );
   const handleTrayInteractiveReady = useCallback((token: string) => {
     const pending = pendingTrayReadyRef.current;
     if (!pending || pending.token !== token) return;
@@ -392,14 +447,22 @@ export default function GameScreen() {
       // board in the same JS callback instead of waiting for BoardView's effect.
       boardMirror.value = [...useGameStore.getState().game.board];
       const clearedLines = event.clearedRows.length + event.clearedCols.length;
-      const postCommitPlayable = useGameStore.getState().game.status === 'playing' && !event.gameOver;
-      const readinessSource = turnReadinessSource(event.newTray, postCommitPlayable);
+      const postCommitPlayable =
+        useGameStore.getState().game.status === 'playing' && !event.gameOver;
+      const readinessSource = turnReadinessSource(
+        event.newTray,
+        postCommitPlayable,
+      );
       if (!readinessSource) {
         pendingTrayReadyRef.current = null;
         setTrayReadyToken(null);
       } else if (readinessSource === 'native_layout') {
         const token = `classic:${event.score}:${commitStartedAt}`;
-        pendingTrayReadyRef.current = { token, committedAt: commitStartedAt, clearedLines };
+        pendingTrayReadyRef.current = {
+          token,
+          committedAt: commitStartedAt,
+          clearedLines,
+        };
         setTrayReadyToken(token);
       } else {
         useAnalyticsStore.getState().track('turn_input_ready', {
@@ -411,12 +474,15 @@ export default function GameScreen() {
         });
       }
       const ftue = useFtueStore.getState();
-      const tutorialRun = useGameStore.getState().classicMeta?.runKind === 'tutorial';
+      const tutorialRun =
+        useGameStore.getState().classicMeta?.runKind === 'tutorial';
       if (tutorialRun) {
         useAnalyticsStore.getState().track('tutorial_action', {
           step: ftue.status,
           result:
-            event.clearedRows.length + event.clearedCols.length > 0 ? 'clear' : 'valid_drop',
+            event.clearedRows.length + event.clearedCols.length > 0
+              ? 'clear'
+              : 'valid_drop',
           elapsed_ms: ftue.startedAt ? Date.now() - ftue.startedAt : 0,
         });
       }
@@ -432,19 +498,31 @@ export default function GameScreen() {
   const tutorialTargetCells = useMemo(() => {
     if (!boardLayout || !tutorialRecommendation) return [];
     return tutorialRecommendation.targetCells.map(([row, col]) => ({
-      x: boardLayout.x + col * (cellSize + cellGap),
-      y: boardLayout.y + row * (cellSize + cellGap),
+      x: boardLayout.x + 8 + col * (cellSize + cellGap),
+      y: boardLayout.y + 8 + row * (cellSize + cellGap),
       size: cellSize,
     }));
   }, [boardLayout, cellGap, cellSize, tutorialRecommendation]);
   const tutorialPieceCenter = tutorialRecommendation
     ? {
         x: trayLayout
-          ? trayLayout.x + ((tutorialRecommendation.trayIndex + 0.5) * trayLayout.width) / 3
+          ? trayLayout.x +
+            ((tutorialRecommendation.trayIndex + 0.5) * trayLayout.width) / 3
           : ((tutorialRecommendation.trayIndex + 0.5) * screenWidth) / 3,
-        y: trayLayout ? trayLayout.y + trayLayout.height / 2 : screenHeight - trayHeight - 110,
+        y: trayLayout
+          ? trayLayout.y + trayLayout.height / 2
+          : screenHeight - trayHeight - 110,
       }
     : undefined;
+
+  useLayoutEffect(() => {
+    const piece = helperHint ? tray[helperHint.trayIndex] : null;
+    assistPreview.value =
+      piece && helperHint
+        ? previewMask(game.board, piece.shape.cells, helperHint.r, helperHint.c)
+        : EMPTY_MASK;
+    assistPreviewColor.value = piece?.colorId ?? 0;
+  }, [assistPreview, assistPreviewColor, game.board, helperHint, tray]);
 
   const dragCtx: DragCtx = useMemo(
     () => ({
@@ -452,8 +530,13 @@ export default function GameScreen() {
       boardOrigin,
       measureBoard,
       boardMirror,
+      boardRevision,
+      handoff,
+      noMovesWave,
       preview,
       previewColor,
+      assistPreview,
+      assistPreviewColor,
       invalidPreview,
       invalidReason,
       clearPrelude,
@@ -473,14 +556,27 @@ export default function GameScreen() {
     }),
     // Shared values are stable. Reactive inputs are geometry, theme, and callbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [geom, theme, trayFit, measureBoard, onDrop, feedbackOnGrab, onGrab, onReturn, onInvalidDrop, onUnavailablePiecePress, lang],
+    [
+      geom,
+      theme,
+      trayFit,
+      measureBoard,
+      onDrop,
+      feedbackOnGrab,
+      onGrab,
+      onReturn,
+      onInvalidDrop,
+      onUnavailablePiecePress,
+      lang,
+    ],
   );
 
   const goHome = useCallback(() => {
     if (useAdPresentation.getState().fullscreenActive) return;
     const analytics = useAnalyticsStore.getState();
     const current = useGameStore.getState();
-    if (current.classicMeta?.runId) leaveRewardedOffer(current.classicMeta.runId);
+    if (current.classicMeta?.runId)
+      leaveRewardedOffer(current.classicMeta.runId);
     if (current.game.status === 'over') {
       current.settleClassicRun('home');
     } else {
@@ -493,7 +589,8 @@ export default function GameScreen() {
     if (useAdPresentation.getState().fullscreenActive) return;
     const analytics = useAnalyticsStore.getState();
     const current = useGameStore.getState();
-    if (current.classicMeta?.runId) leaveRewardedOffer(current.classicMeta.runId);
+    if (current.classicMeta?.runId)
+      leaveRewardedOffer(current.classicMeta.runId);
     if (current.game.status === 'over') {
       current.settleClassicRun(reason);
     } else {
@@ -503,10 +600,6 @@ export default function GameScreen() {
       analyticsSource: current.game.status === 'over' ? 'result' : 'restart',
     });
     setPaused(false);
-  }, []);
-  const confirmRestart = useCallback(() => {
-    setPaused(false);
-    setRestartOpen(true);
   }, []);
   const handlePlayfieldLayout = useCallback((event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout;
@@ -534,7 +627,11 @@ export default function GameScreen() {
 
   return (
     <DragProvider value={dragCtx}>
-      <SafeAreaView style={{ flex: 1, overflow: 'hidden', backgroundColor: theme.bgTop }} edges={['top', 'bottom']}>
+      <SafeAreaView
+        style={{ flex: 1, overflow: 'hidden', backgroundColor: n.night900 }}
+        edges={['top', 'bottom']}
+      >
+        <CandyBackground />
         <View
           importantForAccessibility={paused ? 'no-hide-descendants' : 'auto'}
           onLayout={handlePlayfieldLayout}
@@ -544,82 +641,133 @@ export default function GameScreen() {
             height: '100%',
             alignItems: 'center',
             justifyContent: 'flex-start',
-            gap: verticalGap,
+            gap: 0,
             paddingTop: PLAYFIELD_LAYOUT.contentTopPadding,
             paddingBottom: 0,
             overflow: 'hidden',
           }}
         >
-          <GameBackground boardSize={boardSize} boardLayout={boardLayout} tutorial={ftueActive} {...bgPalette} />
-          {/* Эволюция сцены по ходу партии: аврора+искры поверх фона, под UI. */}
-          <AtmosphereLayer
-            glowColors={theme.juiceColors}
-            accent={theme.praiseAccent}
-            active={!ftueActive}
-          />
-          <View style={{ width: '100%', height: hudHeight, overflow: 'hidden', zIndex: 30 }}>
-            <NewRecordCelebration />
-            <View style={{ zIndex: 1 }}><Hud compact={compactHeader} onPause={() => setPaused(true)} /></View>
-          </View>
-
-          {/* Every interactive control stays inside its own native row bounds. */}
-          <View
-            testID="game-companion-rail"
-            pointerEvents={ftueActive ? 'none' : 'box-none'}
-            style={
-              ftueActive
-                ? { display: 'none' }
-                : {
-                    width: railWidth,
-                    height: mascotHeight,
-                    flexDirection: 'row',
-                    gap: 8,
-                    zIndex: 35,
-                  }
-            }
+          <Animated.View
+            layout={sectionTransition}
+            style={{
+              width: '100%',
+              height: hudHeight,
+              overflow: 'hidden',
+              zIndex: 30,
+            }}
           >
-            <View style={{ width: mascotWidth, height: mascotHeight }}>
-              <MascotLayer width={mascotWidth} height={mascotHeight} compact={compactHeader} dragActive={dragActive} active={!ftueActive} onEmoteReady={handleMascotEmoteReady} onLostTextChange={setMascotLostText} />
-            </View>
-            <HelperControls width={Math.max(0, railWidth - mascotWidth - 8)} height={mascotHeight} compact={compactHeader} active={!ftueActive} />
-          </View>
+            <NewRecordCelebration />
+            <Animated.View
+              key={ftueActive ? 'tutorial-header' : 'game-hud'}
+              entering={reduced ? undefined : FadeIn.duration(280)}
+              exiting={reduced ? undefined : FadeOut.duration(140)}
+              style={{ zIndex: 1 }}
+            >
+              {ftueActive ? (
+                <TutorialHeader compact={compactHeader} />
+              ) : (
+                <Hud compact={compactHeader} onPause={() => setPaused(true)} />
+              )}
+            </Animated.View>
+          </Animated.View>
 
-          <View testID="game-board-frame" onLayout={handleBoardLayout}>
-            <BoardAuraFrame accent={theme.praiseAccent} edge={theme.juiceColors[0]} />
+          <View style={{ height: boardTopGap }} />
+          <Animated.View
+            layout={sectionTransition}
+            testID="game-board-frame"
+            onLayout={handleBoardLayout}
+            style={{
+              padding: 8,
+              borderRadius: 20,
+              backgroundColor: '#141A5A',
+              boxShadow: 'inset 0px 0px 0px 2px #2E3A9E',
+            }}
+          >
             <BoardView onMeasureBoardReady={handleMeasureBoardReady} />
+            {ftueActive &&
+            ['grab_piece', 'valid_drop', 'not_started'].includes(ftueStatus) ? (
+              <View
+                pointerEvents="none"
+                importantForAccessibility="no-hide-descendants"
+                style={{ position: 'absolute', left: 8, top: 8 }}
+              >
+                {[5, 6].flatMap((row) =>
+                  [0, 1, 2, 5, 6, 7].map((col) => (
+                    <View
+                      key={`${row}:${col}`}
+                      style={{
+                        position: 'absolute',
+                        left: col * (cellSize + cellGap),
+                        top: row * (cellSize + cellGap),
+                        width: cellSize,
+                        height: cellSize,
+                        borderRadius: cellSize * 0.22,
+                        borderWidth: 2,
+                        borderColor: 'rgba(255,255,255,.9)',
+                        boxShadow: '0 0 14px rgba(255,212,63,.55)',
+                      }}
+                    />
+                  )),
+                )}
+              </View>
+            ) : null}
             {/* Keep the event consumer mounted throughout FTUE. Mounting it only
                 after the 700 ms tutorial celebration replayed the already-finished
                 clear event late, so “КОСМОС!” appeared after the board animation. */}
-            <PraiseBanner suppressed={notificationBusy || atmosphereVisible} />
-            <View testID="board-notification-slot" pointerEvents="box-none" style={{ position: 'absolute', top: 8, left: 8, right: 8, height: Math.max(0, boardSize - 16), zIndex: 50 }}>
-              <MascotMessages active={!ftueActive && showMascot} lostText={mascotLostText} onEmote={relayMascotEmote} />
-              <AtmosphereToast hidden={notificationBusy} onVisibleChange={setAtmosphereVisible} />
-            </View>
-          </View>
-
-          <View
+            <PraiseBanner suppressed={notificationBusy} />
+          </Animated.View>
+          {!ftueActive && (
+            <Animated.View
+              entering={reduced ? undefined : FadeIn.duration(140).delay(140)}
+              testID="game-companion-rail"
+              style={{
+                width: railWidth,
+                height: helperHeight,
+                marginTop: 17,
+                marginBottom: 14,
+              }}
+            >
+              <HelperControls
+                width={railWidth}
+                height={helperHeight}
+                compact={compactHeader}
+                candy
+              />
+            </Animated.View>
+          )}
+          <Animated.View
+            layout={sectionTransition}
             onLayout={(event) => {
               const { x, y, width, height } = event.nativeEvent.layout;
               setTrayLayout((current) =>
-                current && current.x === x && current.y === y && current.width === width && current.height === height
+                current &&
+                current.x === x &&
+                current.y === y &&
+                current.width === width &&
+                current.height === height
                   ? current
                   : { x, y, width, height },
               );
             }}
-            style={{ width: '100%', height: trayHeight, position: 'relative' }}
+            style={{
+              width: railWidth,
+              height: trayHeight,
+              position: 'relative',
+              marginTop: ftueActive ? (compactHeader ? 16 : 26) : 0,
+            }}
           >
             <View
               pointerEvents="none"
               style={{
                 position: 'absolute',
-                left: 18,
-                right: 18,
-                top: 8,
-                bottom: 8,
-                borderRadius: 30,
-                backgroundColor: 'rgba(16, 74, 175, 0.55)',
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+                borderRadius: 24,
+                backgroundColor: 'rgba(8,11,52,0.55)',
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.26)',
+                borderColor: 'rgba(255,255,255,0.08)',
                 shadowColor: '#0A3F9F',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.35,
@@ -632,13 +780,33 @@ export default function GameScreen() {
               onInteractiveReady={handleTrayInteractiveReady}
               style={{ width: '100%', height: '100%' }}
             />
-          </View>
+          </Animated.View>
+          {ftueActive ? (
+            <AppText
+              style={{
+                marginTop: compactHeader ? 16 : 26,
+                paddingHorizontal: 24,
+                textAlign: 'center',
+                fontFamily: 'Nunito_800ExtraBold',
+                color: n.lavender,
+                fontSize: compactHeader ? 13 : 14,
+                lineHeight: compactHeader ? 18 : 20,
+              }}
+            >
+              {lang === 'ru'
+                ? 'Фигуры не вращаются. Линия сгорает, когда заполнена по горизонтали или вертикали.'
+                : 'Pieces do not rotate. Fill a row or column to clear it.'}
+            </AppText>
+          ) : null}
           {/* Board/tray layouts are local to this playfield, including safe-area placement. */}
-          <TutorialHints pieceCenter={tutorialPieceCenter} targetCells={tutorialTargetCells} />
+          <TutorialHints
+            pieceCenter={tutorialPieceCenter}
+            targetCells={tutorialTargetCells}
+          />
         </View>
 
         <GameBannerDock
-          hidden={game.status !== 'playing' || paused || restartOpen}
+          hidden={game.status !== 'playing' || paused}
           {...bannerEligibility}
         />
 
@@ -646,33 +814,29 @@ export default function GameScreen() {
         <InvalidDropNotice message={invalidDropNotice.message} />
 
         <GameOverOverlay
+          onHome={goHome}
           onPlayAgain={() => startFresh('replay')}
           onOpenSettings={() => setPaused(true)}
         />
-        <LevelUpReveal hidden={game.status === 'playing' && mascotMessageVisible} top={game.status === 'playing' && boardLayout ? insets.top + boardLayout.y + 8 : undefined} width={game.status === 'playing' ? Math.max(0, boardSize - 16) : undefined} />
+        <LevelUpReveal
+          hidden={game.status === 'playing' && mascotMessageVisible}
+          top={
+            game.status === 'playing' && boardLayout
+              ? insets.top + boardLayout.y + 8
+              : undefined
+          }
+          width={
+            game.status === 'playing' ? Math.max(0, boardSize - 16) : undefined
+          }
+        />
 
         {paused ? (
           <PauseOverlay
             onClose={() => setPaused(false)}
-            onRestart={confirmRestart}
+            onRestart={() => startFresh('restart')}
             onHome={goHome}
           />
         ) : null}
-
-        <ConfirmDialog
-          visible={restartOpen}
-          title={t('pause.restart', lang)}
-          message={t('home.newGameConfirm', lang)}
-          confirmLabel={t('pause.restart', lang)}
-          cancelLabel={t('settings.cancel', lang)}
-          destructive
-          onConfirm={() => {
-            setRestartOpen(false);
-            startFresh('restart');
-          }}
-          onCancel={() => setRestartOpen(false)}
-        />
-
       </SafeAreaView>
     </DragProvider>
   );

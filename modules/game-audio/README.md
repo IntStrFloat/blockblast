@@ -1,7 +1,13 @@
 # GameAudio
 
 Local Android Expo module for short, overlapping game sounds. SoundPool decodes
-the ten WAV samples once and starts a fresh native stream for each request.
+the manifest’s 32 WAV samples once and starts a fresh native stream for each request.
+
+Eighteen logical cues are defined in `assets/sounds/sound-bank.json`. Frequent
+actions select a different recorded variant on consecutive requests. Each
+stream retains its full baked tail; when all 32 voices are occupied, a new
+request is skipped instead of evicting an audible stream. Expiry uses the
+manifest duration plus a 24ms guard. Master playback gain is 0.85.
 
 Native API (`requireNativeModule('GameAudio')`):
 
@@ -23,3 +29,8 @@ rebuild; JavaScript refresh alone cannot update native code or bundled samples.
 Debug builds log `GameAudio` initialization and each playback's name, count,
 stream ID and foreground state. These logs establish native acceptance, not
 audibility; validate the emulator or device's recorded output as well.
+
+Rebuild the original samples and manifest with `node scripts/gen-sounds.js`.
+No third-party recordings are used. Every WAV has a 40ms terminal fade and
+12ms of silence; the longest sample is 1.425s, below SoundPool sample limits.
+Android wrappers discard input queued for more than 250ms during preload.

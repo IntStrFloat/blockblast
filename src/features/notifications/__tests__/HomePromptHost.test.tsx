@@ -4,7 +4,7 @@ import { act, create } from 'react-test-renderer';
 import { KEYS, removeKey } from '@/core/storage';
 
 import { HomePromptHost } from '../HomePromptHost';
-import { recordMeaningfulSessionForPush } from '../softAsk';
+import { recordMeaningfulSessionForPush, recordFirstRecordForPush } from '../softAsk';
 
 const mockTrack = jest.fn();
 const mockTrackOnce = jest.fn();
@@ -62,9 +62,10 @@ describe('HomePromptHost', () => {
     recordMeaningfulSessionForPush('session-1', 'adventure');
     recordMeaningfulSessionForPush('session-2', 'adventure');
     recordMeaningfulSessionForPush('session-3', 'adventure');
+    recordFirstRecordForPush('record-1');
   }
 
-  it('shows for Adventure-only meaningful sessions with zero Classic gate and records OS result separately', async () => {
+  it('shows after a record with no gamesPlayed gate and records OS result separately', async () => {
     recordAdventureSessions();
     let renderer!: ReturnType<typeof create>;
     act(() => {
@@ -81,7 +82,7 @@ describe('HomePromptHost', () => {
     expect(renderer.root.findByType('Overlay' as never)).toBeDefined();
     expect(mockTrack).toHaveBeenCalledWith('notification_soft_ask_shown', {
       meaningful_sessions: 3,
-      last_meaningful_mode: 'adventure',
+      last_meaningful_mode: 'classic',
     });
     const allow = renderer.root.findAllByType('GameButton' as never)
       .find((node) => node.props.label === 'push.allow')!;
@@ -89,13 +90,13 @@ describe('HomePromptHost', () => {
 
     expect(mockTrack).toHaveBeenCalledWith('notification_soft_ask_result', {
       result: 'accepted',
-      last_meaningful_mode: 'adventure',
+      last_meaningful_mode: 'classic',
     });
     expect(mockRequestPermissions).toHaveBeenCalledWith('soft_ask');
   });
 
-  it('never shows in the first product session and does not repeat after Later', () => {
-    recordAdventureSessions();
+  it('waits for the record and does not repeat after Later', () => {
+    recordMeaningfulSessionForPush('session-1', 'adventure');
     let renderer!: ReturnType<typeof create>;
     act(() => {
       renderer = create(
@@ -108,6 +109,7 @@ describe('HomePromptHost', () => {
     });
     act(() => { jest.runOnlyPendingTimers(); });
     expect(renderer.root.findAllByType('Overlay' as never)).toHaveLength(0);
+    recordFirstRecordForPush('record-1');
 
     act(() => {
       renderer.update(

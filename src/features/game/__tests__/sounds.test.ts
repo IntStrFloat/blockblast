@@ -30,6 +30,9 @@ function event(overrides: Partial<PlacementEvent> = {}): PlacementEvent {
 }
 
 describe('soundForPlacement', () => {
+  it('distinguishes a full board clear from an ordinary line clear', () => {
+    expect(soundForPlacement(event({ clearedRows: [0], boardCleared: true }))).toBe('boardclear');
+  });
   it('maps a normal placement to drop', () => {
     expect(soundForPlacement(event())).toBe('drop');
   });

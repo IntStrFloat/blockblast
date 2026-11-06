@@ -85,7 +85,7 @@ it('keeps unchanged cells out of gameplay callback and phase renders', () => {
   // Shared preview changes still update the registered UI style without a render.
   original.preview.value[0] = 3;
   original.clearPrelude.value = 1;
-  expect(mockStyles.some((read) => read().opacity === 0.95)).toBe(true);
+  expect(mockStyles.some((read) => read().opacity === 1)).toBe(true);
   expect(mockStyleRenders).toHaveBeenCalledTimes(stylesAtMount);
   act(() => renderer.unmount());
 });
@@ -118,5 +118,37 @@ it('renders only the filled cell when a move changes one of the 64 board positio
   const stylesPerCell = stylesAtMount / 64;
   act(() => renderer.update(grid(true, { ...original, onDrop: jest.fn(() => true) })));
   expect(mockStyleRenders).toHaveBeenCalledTimes(stylesAtMount + stylesPerCell);
+  act(() => renderer.unmount());
+});
+
+it('outlines a completed line without repainting existing blocks to the dragged color', () => {
+  const ctx = context();
+  ctx.cellColors = ['#45AAFF', '#FF4F6A'];
+  ctx.preview.value[0] = 2;
+  ctx.previewColor.value = 2;
+  let renderer!: ReturnType<typeof create>;
+  act(() => {
+    renderer = create(<BoardCell index={0} colorId={1} size={43} gap={2}
+      fillColor="#45AAFF" emptyColor="#222222" reducedMotion={false} visuals={ctx} />);
+  });
+  const paints = mockStyles.map((read) => read().backgroundColor);
+  expect(paints).toContain('#45AAFF');
+  expect(paints).not.toContain('#FF4F6A');
+  act(() => renderer.unmount());
+});
+
+it('shows a gold hint target, yields to the finger, and restores it after a return', () => {
+  const ctx = context();
+  ctx.assistPreview = shared([1, ...new Array(63).fill(0)]);
+  ctx.assistPreviewColor = shared(1);
+  let renderer!: ReturnType<typeof create>;
+  act(() => { renderer = create(<BoardCell index={0} colorId={0} size={43} gap={2}
+    fillColor="" emptyColor="#222222" reducedMotion={false} visuals={ctx} />); });
+  const read = mockStyles.find((factory) => factory().borderColor === '#FFC93C')!;
+  expect(read()).toMatchObject({ borderColor: '#FFC93C', borderStyle: 'dashed' });
+  ctx.dragActive.value = 1;
+  expect(read().opacity).toBe(0);
+  ctx.dragActive.value = 0;
+  expect(read().opacity).toBeGreaterThan(0.5);
   act(() => renderer.unmount());
 });

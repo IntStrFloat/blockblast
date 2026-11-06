@@ -11,7 +11,15 @@ export type SoundName =
   | 'record'
   | 'feed'
   | 'levelup'
-  | 'lost';
+  | 'lost'
+  | 'return'
+  | 'jewel'
+  | 'stonehit'
+  | 'stonebreak'
+  | 'boardclear'
+  | 'victory'
+  | 'hint'
+  | 'swap';
 
 const SOURCES: Record<SoundName, number> = {
   pickup: require('../../../../assets/sounds/pickup.wav'),
@@ -24,6 +32,14 @@ const SOURCES: Record<SoundName, number> = {
   feed: require('../../../../assets/sounds/feed.wav'),
   levelup: require('../../../../assets/sounds/levelup.wav'),
   lost: require('../../../../assets/sounds/lost.wav'),
+  return: require('../../../../assets/sounds/return.wav'),
+  jewel: require('../../../../assets/sounds/jewel.wav'),
+  stonehit: require('../../../../assets/sounds/stonehit.wav'),
+  stonebreak: require('../../../../assets/sounds/stonebreak.wav'),
+  boardclear: require('../../../../assets/sounds/boardclear.wav'),
+  victory: require('../../../../assets/sounds/victory.wav'),
+  hint: require('../../../../assets/sounds/hint.wav'),
+  swap: require('../../../../assets/sounds/swap.wav'),
 };
 
 const POOL_SIZE: Record<SoundName, number> = {
@@ -37,6 +53,14 @@ const POOL_SIZE: Record<SoundName, number> = {
   feed: 1,
   levelup: 1,
   lost: 1,
+  return: 2,
+  jewel: 2,
+  stonehit: 2,
+  stonebreak: 2,
+  boardclear: 2,
+  victory: 2,
+  hint: 2,
+  swap: 2,
 };
 
 interface SoundVoice {

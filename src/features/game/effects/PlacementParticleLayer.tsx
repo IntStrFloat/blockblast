@@ -18,20 +18,10 @@ const POOL_SIZE = GAME_FEEL_MOTION.placementParticleMax;
 
 interface PlacementParticleLayerProps {
   presentation: PlacementPresentation;
-  color: string;
 }
 
 interface ParticleHandle {
   play: (particle: PlacementParticlePresentation, reducedMotion: boolean) => void;
-}
-
-function alphaColor(color: string, alpha: number) {
-  const normalized = color.replace('#', '');
-  if (normalized.length !== 6) return `rgba(255,255,255,${alpha})`;
-  const red = Number.parseInt(normalized.slice(0, 2), 16);
-  const green = Number.parseInt(normalized.slice(2, 4), 16);
-  const blue = Number.parseInt(normalized.slice(4, 6), 16);
-  return `rgba(${red},${green},${blue},${alpha})`;
 }
 
 const PlacementParticle = forwardRef<ParticleHandle>(function PlacementParticle(_props, ref) {
@@ -108,57 +98,17 @@ const PlacementParticle = forwardRef<ParticleHandle>(function PlacementParticle(
 
 export function PlacementParticleLayer({
   presentation,
-  color,
 }: PlacementParticleLayerProps) {
-  const flashX = useSharedValue(0);
-  const flashY = useSharedValue(0);
-  const flashSize = useSharedValue(0);
-  const flashColor = useSharedValue('rgba(255,255,255,0)');
-  const flashScale = useSharedValue(0.86);
-  const flashOpacity = useSharedValue(0);
   const slots = useRef<(ParticleHandle | null)[]>([]);
 
   useLayoutEffect(() => {
-    const size = Math.max(18, presentation.scoreScale * 28);
-    flashX.value = presentation.anchor.x - size / 2;
-    flashY.value = presentation.anchor.y - size / 2;
-    flashSize.value = size;
-    flashColor.value = alphaColor(color, Math.max(0.12, presentation.flashAlpha));
-    flashScale.value = 0.86;
-    flashOpacity.value = 0;
-    flashOpacity.value = withSequence(
-      withTiming(presentation.flashAlpha, { duration: GAME_FEEL_MOTION.placementFlashDurationMs * 0.42 }),
-      withTiming(0, { duration: GAME_FEEL_MOTION.placementFlashDurationMs * 0.58 }),
-    );
-    flashScale.value = withSequence(
-      withTiming(presentation.reducedMotion ? 1 : presentation.burstScale, {
-        duration: GAME_FEEL_MOTION.placementFlashDurationMs * 0.42,
-      }),
-      withTiming(presentation.reducedMotion ? 1 : 1.04, {
-        duration: GAME_FEEL_MOTION.placementFlashDurationMs * 0.58,
-      }),
-    );
-
     presentation.particles.forEach((particle, index) => {
       slots.current[index % POOL_SIZE]?.play(particle, presentation.reducedMotion);
     });
-  }, [color, flashColor, flashOpacity, flashScale, flashSize, flashX, flashY, presentation]);
-
-  const flashStyle = useAnimatedStyle(() => ({
-    position: 'absolute',
-    left: flashX.value,
-    top: flashY.value,
-    width: flashSize.value,
-    height: flashSize.value,
-    borderRadius: Math.max(4, flashSize.value * 0.18),
-    backgroundColor: flashColor.value,
-    opacity: flashOpacity.value,
-    transform: [{ rotate: '45deg' }, { scale: flashScale.value }],
-  }));
+  }, [presentation]);
 
   return (
     <>
-      <Animated.View pointerEvents="none" style={flashStyle} />
       {Array.from({ length: POOL_SIZE }, (_, index) => (
         <PlacementParticle
           key={index}

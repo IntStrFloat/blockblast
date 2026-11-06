@@ -22,6 +22,7 @@ jest.mock('react-native-gesture-handler', () => ({
 }));
 
 const shared = <T,>(value: T) => ({ value }) as SharedValue<T>;
+jest.mock('../animation/useHintPulse', () => ({ useHintPulse: () => ({ value: 1 }) }));
 
 describe('tray artwork and touch bounds', () => {
   function mount() {

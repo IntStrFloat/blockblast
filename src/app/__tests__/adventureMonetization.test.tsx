@@ -53,10 +53,15 @@ jest.mock('@/features/monetization', () => {
 });
 jest.mock('@/ui', () => ({
   ...jest.requireActual('@/ui/theme'),
+  ...jest.requireActual('@/ui/nightCandy'),
+  CandyBackground: () => null, CandyCapy: () => null, CandyIcon: () => null,
   AppText: 'AppText',
   ConfirmDialog: 'ConfirmDialog',
   GearIcon: () => null,
 }));
+jest.mock('@/ui/primitives/CandyControls', () => ({ CandyRoundButton: 'CandyRoundButton' }));
+jest.mock('@/features/adventure/components/StoneBoardLayer', () => ({ StoneBoardLayer: () => null }));
+jest.mock('@/features/game/components/NoMovesSheet', () => ({ NoMovesSheet: 'NoMovesSheet' }));
 jest.mock('@/features/game/components/PauseOverlay', () => ({ PauseOverlay: 'PauseOverlay' }));
 jest.mock('@/features/game', () => {
   const ReactModule = jest.requireActual<typeof React>('react');
@@ -212,6 +217,7 @@ describe('adventure contextual monetization integration', () => {
       useGameStore.setState({ adventure: { ...run, status: 'failed' } });
     });
     act(() => { jest.advanceTimersByTime(1_500); });
+    act(() => rendered.root.findByType('NoMovesSheet' as React.ElementType).props.onFinish());
     const failure = rendered.root.findByProps({ testID: 'adventure-failure' });
     await act(async () => { failure.props.onRetry(); });
     expect(mockShowInterstitial).not.toHaveBeenCalled();

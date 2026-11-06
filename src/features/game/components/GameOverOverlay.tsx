@@ -1,9 +1,14 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { BackHandler, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import Animated, {
+  Easing,
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { t } from '@/core/i18n';
 import { useAnalyticsStore } from '@/features/analytics';
@@ -11,35 +16,42 @@ import {
   MONETIZATION,
   evaluateInterstitialOpportunity,
   getAds,
-  getRewardedCtaPolicy,
   loadAdsMeta,
-  recordFullscreenCooldown,
   recordGameOver,
   recordInterstitialShown,
   saveAdsMeta,
   useEntitlements,
 } from '@/features/monetization';
-import { recordGameOverForPush } from '@/features/notifications';
-import { rememberRewardedOffer, leaveRewardedOffer } from '@/features/monetization/rewardedOfferPolicy';
+import {
+  recordGameOverForPush,
+  recordFirstRecordForPush,
+} from '@/features/notifications';
+import { leaveRewardedOffer } from '@/features/monetization/rewardedOfferPolicy';
 import { useInterstitialPreparation } from '@/features/monetization/useInterstitialPreparation';
-import { useRewardedReady } from '@/features/monetization/useRewardedReady';
-import { claimRewardedBenefit, recoverRewardedBenefits } from '@/features/monetization/rewardedBenefits';
+import { recoverRewardedBenefits } from '@/features/monetization/rewardedBenefits';
 import { useScores } from '@/features/scores';
 import { RewardProgressSummary, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
-import { AppText, CrownIcon, GearIcon, radii, spacing } from '@/ui';
+import {
+  AppText,
+  CandyBackground,
+  CandyIcon,
+  GameButton,
+  formatNumber,
+  nightCandy as n,
+} from '@/ui';
+import { CandyRoundButton } from '@/ui/primitives/CandyControls';
+import { useReducedMotion } from '../animation/useReducedMotion';
 
 import { Confetti } from '../effects/Confetti';
 import { gameOverPresentationFor } from '../gameOverPresentation';
 import { useGameStore } from '../store';
-import { ReviveButton } from './ReviveButton';
-
-const GAME_OVER_GRADIENT = ['#163EAE', '#1763CE', '#1798E0'] as const;
-const RECORD_GRADIENT = ['#4B0EAB', '#7529CE', '#9D68E8'] as const;
+import { NoMovesSheet } from './NoMovesSheet';
 
 interface GameOverOverlayProps {
   onPlayAgain: () => void;
   onOpenSettings: () => void;
+  onHome?: () => void;
 }
 
 function AnimatedFinalScore({ score }: { score: number }) {
@@ -51,27 +63,19 @@ function AnimatedFinalScore({ score }: { score: number }) {
       minimumFontScale={0.55}
       style={styles.score}
     >
-      {score}
+      {formatNumber(score)}
     </AppText>
   );
 }
 
-function PlayIcon() {
-  return (
-    <Svg width={54} height={54} viewBox="0 0 54 54" fill="none">
-      <Path
-        d="M18 11.5v31l25-15.5-25-15.5z"
-        fill="#FFFFFF"
-        stroke="rgba(12,36,70,0.28)"
-        strokeWidth={2}
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlayProps) {
+export function GameOverOverlay({ onPlayAgain, onHome }: GameOverOverlayProps) {
   const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
+  const crownScale = useSharedValue(1);
+  const crownY = useSharedValue(0);
+  const crownStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: crownY.value }, { scale: crownScale.value }],
+  }));
   const game = useGameStore((s) => s.game);
   const lastEvent = useGameStore((s) => s.lastEvent);
   const finalResult = useGameStore((s) => s.finalResult);
@@ -88,32 +92,35 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
   const busyRef = useRef(false);
   const countedEpochRef = useRef<number | null>(null);
 
-  const presentation = gameOverPresentationFor(game.status, lastEvent);
+  const presentation = gameOverPresentationFor(
+    game.status,
+    lastEvent,
+    reducedMotion,
+  );
   const isOver = presentation.visible;
+  const needsRecovery =
+    !classicMeta?.resultAcknowledged &&
+    !(
+      classicMeta?.resultAcknowledged === undefined &&
+      classicMeta?.lifecycle === 'terminal_final' &&
+      !presentation.fresh
+    );
+  const resultVisible =
+    isOver && (!presentation.fresh || visible) && !needsRecovery;
   const firstResult = runBestAtStart <= 0 && game.score > 0;
   // A terminal save is allowed to reopen after process death. In that case the
   // transient submit result is gone, but the persisted best still identifies
   // the run that established it.
   const newRecord =
     !firstResult && (finalResult?.newRecord ?? game.score > runBestAtStart);
-  const canOfferRevive = classicMeta?.lifecycle === 'terminal_revivable';
-  const rewardedReady = useRewardedReady(isOver && canOfferRevive && !busy);
-  const revivePolicy = getRewardedCtaPolicy({
-    offerAllowed: canOfferRevive,
-    rewardedReady,
-    busy,
-  });
   const earnedXp = classicMeta?.settlement
-    ? Math.max(0, classicMeta.settlement.targetScore - classicMeta.settlement.previousTargetScore)
+    ? Math.max(0, classicMeta.settlement.targetScore)
     : 0;
 
   const resultContextId = classicMeta?.runId ?? `classic-result:${epoch}`;
-  useEffect(() => { recoverRewardedBenefits(); }, [resultContextId]);
   useEffect(() => {
-    if (isOver && (!presentation.fresh || visible) && revivePolicy.visible) {
-      rememberRewardedOffer(resultContextId);
-    }
-  }, [isOver, presentation.fresh, resultContextId, revivePolicy.visible, visible]);
+    recoverRewardedBenefits();
+  }, [resultContextId]);
 
   useEffect(() => {
     if (!isOver) {
@@ -132,46 +139,79 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
       if (timer) clearTimeout(timer);
       setVisible(false);
     };
-  }, [canOfferRevive, epoch, isOver, presentation.fresh, presentation.revealDelayMs]);
+  }, [epoch, isOver, presentation.fresh, presentation.revealDelayMs]);
 
   useEffect(() => {
-    if (isOver && (!presentation.fresh || visible) && revivePolicy.visible) {
-      useAnalyticsStore.getState().trackOnce(
-        `revive-offered:${resultContextId}`,
-        'revive_shown',
-        { available: true },
-      );
-    }
-  }, [isOver, presentation.fresh, resultContextId, revivePolicy.visible, visible]);
-
-  useEffect(() => {
-    if (isOver && (!presentation.fresh || visible)) {
+    if (resultVisible) {
       if (classicMeta?.runId) {
+        if (newRecord) recordFirstRecordForPush(classicMeta.runId);
         useProgression.getState().presentRevealForRun(classicMeta.runId);
       }
-      useAnalyticsStore.getState().trackOnce(
-        `classic-result-viewed:${classicMeta?.runId ?? 'legacy'}`,
-        'result_viewed',
-        {
-          mode: 'classic',
-          score: game.score,
-          is_new_record: newRecord,
-          best_at_start: runBestAtStart,
-          game_depth: useScores.getState().gamesPlayed,
-        },
-      );
+      useAnalyticsStore
+        .getState()
+        .trackOnce(
+          `classic-result-viewed:${classicMeta?.runId ?? 'legacy'}`,
+          'result_viewed',
+          {
+            mode: 'classic',
+            score: game.score,
+            is_new_record: newRecord,
+            best_at_start: runBestAtStart,
+            game_depth: useScores.getState().gamesPlayed,
+          },
+        );
     }
-  }, [classicMeta?.runId, game.score, isOver, newRecord, presentation.fresh, runBestAtStart, visible]);
+  }, [
+    classicMeta?.runId,
+    resultVisible,
+    game.score,
+    isOver,
+    newRecord,
+    presentation.fresh,
+    runBestAtStart,
+    visible,
+  ]);
+
+  useEffect(() => {
+    if (!resultVisible) return;
+    crownY.value = reducedMotion ? 0 : -70;
+    crownY.value = withTiming(0, {
+      duration: reducedMotion ? 0 : 360,
+      easing: Easing.out(Easing.cubic),
+    });
+    crownScale.value = reducedMotion ? 1 : 0.6;
+    crownScale.value = reducedMotion
+      ? 1
+      : withSequence(
+          withTiming(1.18, { duration: 300, easing: Easing.out(Easing.cubic) }),
+          withTiming(1, { duration: 180 }),
+        );
+  }, [crownScale, crownY, resultVisible, reducedMotion]);
+
+  useEffect(() => {
+    if (!isOver) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (resultVisible && !busyRef.current) onHome?.();
+      return true;
+    });
+    return () => sub.remove();
+  }, [isOver, onHome, resultVisible]);
 
   useInterstitialPreparation({
-    active: isOver && (!presentation.fresh || visible) && !busy,
-    counter: 'gameover', mode: 'classic', removeAds, resultContextId,
+    active: resultVisible && !busy,
+    counter: 'gameover',
+    mode: 'classic',
+    removeAds,
+    resultContextId,
     activePlayMs: classicMeta?.activeDurationMs,
   });
 
   if (!isOver || (presentation.fresh && !visible)) return null;
 
-  const closeWithInterstitial = async (action: 'replay', after: () => void) => {
+  const closeWithInterstitial = async (
+    action: 'replay' | 'home',
+    after: () => void,
+  ) => {
     if (busyRef.current) return;
     busyRef.current = true;
     leaveRewardedOffer(resultContextId);
@@ -212,12 +252,15 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
           () => {
             if (impressionRecorded) return;
             impressionRecorded = true;
-            saveAdsMeta(recordInterstitialShown(
-              loadAdsMeta(),
-              Date.now(),
-              'gameover',
-              opportunity.telemetry?.product_session_id,
-            ), true);
+            saveAdsMeta(
+              recordInterstitialShown(
+                loadAdsMeta(),
+                Date.now(),
+                'gameover',
+                opportunity.telemetry?.product_session_id,
+              ),
+              true,
+            );
           },
         );
       }
@@ -227,125 +270,111 @@ export function GameOverOverlay({ onPlayAgain, onOpenSettings }: GameOverOverlay
     }
   };
 
-  const handleRevive = async () => {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    useAnalyticsStore.getState().track('game_over_action', { action: 'revive' });
-    setBusy(true);
-    try {
-      const result = classicMeta?.runId
-        ? await claimRewardedBenefit({ kind: 'revive', runId: classicMeta.runId }, getAds())
-        : 'unavailable';
-      if (result === 'applied' || result === 'pending' || result === 'dismissed') {
-        saveAdsMeta(recordFullscreenCooldown(loadAdsMeta(), Date.now()));
-      }
-      if (result === 'dismissed' || result === 'unavailable') {
-        useAnalyticsStore.getState().track('revive_used', { result });
-      }
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
-  };
+  if (needsRecovery)
+    return (
+      <NoMovesSheet
+        onFinish={() => useGameStore.getState().finishCurrentResult()}
+      />
+    );
 
   return (
     <Animated.View
-      entering={FadeIn.duration(180)}
+      entering={reducedMotion ? undefined : FadeIn.duration(280)}
       accessibilityViewIsModal
       importantForAccessibility="yes"
       style={styles.screen}
     >
-      <LinearGradient
-        colors={newRecord ? RECORD_GRADIENT : GAME_OVER_GRADIENT}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {newRecord ? <Confetti height={380} /> : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('settings.title', lang)}
-        hitSlop={12}
-        disabled={busy}
-        onPress={() => {
-          if (busyRef.current) return;
-          leaveRewardedOffer(resultContextId);
-          onOpenSettings();
-        }}
-        style={({ pressed }) => [styles.gear, pressed && styles.pressed]}
-      >
-        <GearIcon size={30} color="#FFFFFF" />
-      </Pressable>
-
+      <CandyBackground />
+      {newRecord ? (
+        <Confetti
+          height={420}
+          palette={[...n.blockColors]}
+          reducedMotion={reducedMotion}
+        />
+      ) : null}
+      <View style={[styles.share, { top: insets.top + 8 }]}>
+        <CandyRoundButton
+          icon="share"
+          label={lang === 'ru' ? 'Поделиться результатом' : 'Share score'}
+          onPress={() => {
+            void Share.share({
+              message:
+                lang === 'ru'
+                  ? `Мой результат в Блок Бластик — ${formatNumber(game.score)}!`
+                  : `My Block Blastic score: ${formatNumber(game.score)}!`,
+            });
+          }}
+        />
+      </View>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 72, paddingBottom: insets.bottom + spacing.l }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + (newRecord ? 96 : 106),
+            paddingBottom: Math.max(30, insets.bottom + 16),
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heading}>
-          {newRecord ? <CrownIcon size={48} /> : null}
+          {newRecord ? (
+            <Animated.View style={crownStyle}>
+              <CandyIcon name="crown" size={64} color={n.sun} />
+            </Animated.View>
+          ) : (
+            <AppText style={styles.label}>
+              {lang === 'ru' ? 'КЛАССИКА' : 'CLASSIC'}
+            </AppText>
+          )}
           <AppText
-            preset="speech"
-            numberOfLines={1}
+            numberOfLines={2}
             adjustsFontSizeToFit
-            minimumFontScale={0.68}
-            style={[styles.title, newRecord ? styles.recordTitle : styles.gameOverTitle]}
+            minimumFontScale={0.75}
+            style={[styles.title, newRecord && styles.recordTitle]}
           >
-            {firstResult
-              ? t('gameOver.firstResult', lang)
-              : newRecord
-                ? t('gameOver.newRecord', lang)
-                : t('gameOver.title', lang)}
-          </AppText>
-        </View>
-
-        <View style={styles.scoreBlock}>
-          <AppText preset="speech" style={[styles.label, newRecord && styles.recordLabel]}>
-            {t('gameOver.score', lang)}
+            {newRecord
+              ? t('gameOver.newRecord', lang)
+              : t('gameOver.title', lang)}
           </AppText>
           <AnimatedFinalScore score={game.score} />
-          {!newRecord && best > game.score ? (
-            <View style={styles.bestBlock} accessible accessibilityLabel={`${t('gameOver.best', lang)}: ${best}`}>
-              <CrownIcon size={20} color="#FFC733" />
-              <AppText preset="score" style={styles.bestScore}>
-                {best}
-              </AppText>
-            </View>
-          ) : null}
-          <RewardProgressSummary
-            earnedXp={earnedXp}
-            lifetimePoints={lifetimePoints}
-            light
-          />
+          <View style={styles.bestBlock}>
+            <CandyIcon name="crown" size={18} color={n.sun} />
+            <AppText style={[styles.bestScore, newRecord && { color: n.mint }]}>
+              {newRecord
+                ? lang === 'ru'
+                  ? `+${formatNumber(Math.max(0, game.score - runBestAtStart))} к прошлому`
+                  : `+${formatNumber(Math.max(0, game.score - runBestAtStart))} to your best`
+                : lang === 'ru'
+                  ? `Рекорд ${formatNumber(best)}${best > game.score ? ` · ещё ${formatNumber(best - game.score)}` : ''}`
+                  : `Best ${formatNumber(best)}`}
+            </AppText>
+          </View>
         </View>
-
+        <View style={{ flex: 1, minHeight: 64 }} />
+        <RewardProgressSummary
+          earnedXp={earnedXp}
+          lifetimePoints={lifetimePoints}
+          light
+        />
         <View style={styles.actions}>
-          {revivePolicy.visible ? (
-            <ReviveButton
-              label={t('gameOver.revive', lang)}
-              onPress={handleRevive}
-              disabled={revivePolicy.disabled}
-            />
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('gameOver.playAgain', lang)}
+          <GameButton
+            label={t('gameOver.playAgain', lang)}
+            onPress={() => {
+              void closeWithInterstitial('replay', onPlayAgain);
+            }}
             disabled={busy}
-            onPress={() => closeWithInterstitial('replay', onPlayAgain)}
-            style={({ pressed }) => [
-              styles.playShadow,
-              newRecord ? styles.playShadowRecord : styles.playShadowGameOver,
-              (pressed || busy) && styles.pressed,
-            ]}
-          >
-            <LinearGradient
-              colors={newRecord ? ['#FFC33A', '#F39A08'] : ['#4BE21F', '#12AD05']}
-              style={styles.playSurface}
-            >
-              <PlayIcon />
-            </LinearGradient>
-          </Pressable>
-
+            size="lg"
+            icon={<CandyIcon name="retry" color={n.sunInk} size={24} />}
+          />
+          <GameButton
+            label={lang === 'ru' ? 'Домой' : 'Home'}
+            variant="ghost"
+            onPress={() => {
+              if (onHome) void closeWithInterstitial('home', onHome);
+            }}
+            disabled={busy || !onHome}
+            icon={<CandyIcon name="home" size={24} />}
+          />
         </View>
       </ScrollView>
     </Animated.View>
@@ -362,115 +391,68 @@ const styles = StyleSheet.create({
     zIndex: 100,
     overflow: 'hidden',
   },
-  gear: {
-    position: 'absolute',
-    top: spacing.m,
-    right: spacing.m,
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(7,25,71,0.22)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-    zIndex: 3,
-  },
+  share: { position: 'absolute', right: 16, zIndex: 2 },
   content: {
     flexGrow: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.l,
-    paddingTop: 72,
-    paddingBottom: spacing.xl,
-    gap: 24,
-  },
-  heading: {
+    paddingHorizontal: 20,
+    gap: 16,
     width: '100%',
-    alignItems: 'center',
-    gap: spacing.s,
+    maxWidth: 520,
+    alignSelf: 'center',
   },
+  heading: { width: '100%', alignItems: 'center', gap: 10 },
   title: {
     width: '100%',
     textAlign: 'center',
-    fontFamily: 'Unbounded_700Bold',
+    fontFamily: 'Unbounded_900Black',
     fontSize: 28,
-    lineHeight: 36,
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 2,
-  },
-  gameOverTitle: {
-    color: '#25CFF4',
-    textShadowColor: 'rgba(0,65,145,0.62)',
+    lineHeight: 32,
+    color: '#FFFFFF',
+    letterSpacing: -0.28,
   },
   recordTitle: {
-    color: '#FFC21B',
-    textShadowColor: 'rgba(90,43,0,0.55)',
-  },
-  scoreBlock: {
-    width: '100%',
-    alignItems: 'center',
-    gap: spacing.s,
+    color: n.sun,
+    fontSize: 32,
+    lineHeight: 37,
+    textShadowColor: n.sunEdge,
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 0,
   },
   label: {
-    color: '#46D9F2',
-    fontFamily: 'Unbounded_700Bold',
-    fontSize: 14,
-    letterSpacing: 1,
-  },
-  recordLabel: {
-    color: '#D886EA',
+    color: n.sky,
+    fontFamily: 'Nunito_900Black',
+    fontSize: 12,
+    lineHeight: 18,
+    letterSpacing: 1.44,
   },
   score: {
     width: '100%',
     color: '#FFFFFF',
-    fontSize: 72,
-    lineHeight: 84,
+    fontFamily: 'Unbounded_800ExtraBold',
+    fontSize: 76,
+    lineHeight: 76,
     textAlign: 'center',
-    textShadowColor: 'rgba(14,38,88,0.55)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 3,
+    textShadowColor: 'rgba(5,8,40,0.5)',
+    textShadowOffset: { width: 0, height: 6 },
+    textShadowRadius: 0,
   },
   bestBlock: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingBottom: spacing.s,
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 99,
+    borderWidth: 1.5,
+    borderColor: 'rgba(200,205,251,0.18)',
+    backgroundColor: 'rgba(7,10,42,0.5)',
   },
   bestScore: {
-    color: '#FFC733',
-    fontSize: 20,
-    lineHeight: 26,
-    textShadowColor: 'rgba(124,73,0,0.4)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 2,
+    color: '#FFFFFF',
+    fontFamily: 'Unbounded_700Bold',
+    fontSize: 14,
+    lineHeight: 20,
   },
-  actions: {
-    width: '100%',
-    maxWidth: 360,
-    gap: spacing.m,
-  },
-  playShadow: {
-    width: '100%',
-    borderRadius: radii.button,
-  },
-  playShadowGameOver: {
-    backgroundColor: '#087D08',
-  },
-  playShadowRecord: {
-    backgroundColor: '#B66700',
-  },
-  playSurface: {
-    minHeight: 72,
-    borderRadius: radii.button,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    boxShadow: '0 8px 12px rgba(8, 26, 64, 0.35)',
-  },
-  pressed: {
-    opacity: 0.72,
-    transform: [{ translateY: 2 }, { scale: 0.985 }],
-  },
+  actions: { width: '100%', gap: 12 },
 });

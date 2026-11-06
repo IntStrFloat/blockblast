@@ -13,7 +13,10 @@ jest.mock('react-native-reanimated', () => {
   return {
     __esModule: true,
     default: { createAnimatedComponent: (Component: unknown) => Component, View: 'AnimatedView' },
+    ...jest.requireActual('react-native-reanimated/mock'),
     FadeIn: { duration: () => ({}) },
+    Easing: { out: (x: unknown) => x, quad: () => {} },
+    withTiming: (...args: Parameters<typeof mockSpring>) => mockSpring(...args),
     useSharedValue: (value: unknown) => ReactModule.useRef({ value }).current,
     useAnimatedStyle: (read: () => object) => read(),
     withSpring: (...args: Parameters<typeof mockSpring>) => mockSpring(...args),
@@ -22,6 +25,10 @@ jest.mock('react-native-reanimated', () => {
 jest.mock('../AppText', () => ({ AppText: 'AppText' }));
 jest.mock('@/ui', () => ({
   ...jest.requireActual('@/ui/theme'),
+  ...jest.requireActual('@/ui/nightCandy'),
+  CandyCapy: () => null, CandyIcon: () => null,
+  GameButton: jest.requireActual('../primitives/GameButton').GameButton,
+  Overlay: ({ children }: { children: React.ReactNode }) => children,
   AppText: 'AppText',
 }));
 jest.mock('@/features/settings', () => ({
@@ -45,7 +52,7 @@ describe('gesture-backed shared controls', () => {
     const button = buttons()[0];
     expect(button.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Next', disabled: false });
     act(() => { button.props.onPressIn(); button.props.onPressOut(); button.props.onPress(); });
-    expect(mockSpring.mock.calls.map(([value]) => value)).toEqual([0.95, 1]);
+    expect(mockSpring.mock.calls.map(([value]) => value)).toEqual([1, 0]);
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
@@ -62,15 +69,14 @@ describe('gesture-backed shared controls', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('preserves all three pause actions as native gesture pressables', () => {
+  it('requires a second press before restarting from pause', () => {
     const actions = { onClose: jest.fn(), onHome: jest.fn(), onRestart: jest.fn() };
     act(() => { tree = create(<PauseOverlay {...actions} />); });
-    expect(buttons()).toHaveLength(3);
-    for (const action of Object.values(actions)) {
-      const button = buttons().find((node) => node.props.onPress === action);
-      expect(button).toBeDefined();
-      act(() => button!.props.onPress());
-      expect(action).toHaveBeenCalledTimes(1);
-    }
+    const restart = () => buttons().find((node) => node.props.accessibilityLabel === 'Заново')!;
+    act(() => restart().props.onPress());
+    expect(actions.onRestart).not.toHaveBeenCalled();
+    const confirm = buttons().find((node) => node.props.accessibilityLabel === 'Да, заново')!;
+    act(() => confirm.props.onPress());
+    expect(actions.onRestart).toHaveBeenCalledTimes(1);
   });
 });

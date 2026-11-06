@@ -109,17 +109,10 @@ export function trayEnablesClear(board: Board, tray: readonly PieceInstance[]): 
   );
 }
 
-function boardAfterPlacement(
-  board: Board,
-  shape: Shape,
-  r: number,
-  c: number,
-): Board {
+function boardAfterPlacement(board: Board, shape: Shape, r: number, c: number): Board {
   const placed = applyPlacement(board, shape, r, c, 1).board;
   const { rows, cols } = findFullLines(placed);
-  return rows.length > 0 || cols.length > 0
-    ? clearLines(placed, rows, cols).board
-    : placed;
+  return rows.length > 0 || cols.length > 0 ? clearLines(placed, rows, cols).board : placed;
 }
 
 function canPlayEntireTray(
@@ -132,10 +125,7 @@ function canPlayEntireTray(
   // непроходимость, — это горячий путь пересдачи трея на дропе.
   const failed = new Set<string>();
 
-  const search = (
-    currentBoard: Board,
-    remaining: readonly PieceInstance[],
-  ): boolean => {
+  const search = (currentBoard: Board, remaining: readonly PieceInstance[]): boolean => {
     if (budget) {
       budget.visited += 1;
       if (budget.visited > budget.limit) return false;
@@ -143,7 +133,10 @@ function canPlayEntireTray(
     if (remaining.length === 0) return true;
 
     const occupied = currentBoard.map((cell) => (cell === 0 ? '0' : '1')).join('');
-    const memoKey = `${remaining.map((p) => p.shape.id).sort().join(',')}:${occupied}`;
+    const memoKey = `${remaining
+      .map((p) => p.shape.id)
+      .sort()
+      .join(',')}:${occupied}`;
     if (failed.has(memoKey)) return false;
 
     const playable = remaining.some((piece, pieceIndex) =>
@@ -205,9 +198,7 @@ function findPlayableShapeSequence(
       if (!allowDuplicates && used.has(shape.id)) continue;
 
       for (const [r, c] of findPlacements(currentBoard, shape)) {
-        const nextUsed = allowDuplicates
-          ? used
-          : new Set([...used, shape.id]);
+        const nextUsed = allowDuplicates ? used : new Set([...used, shape.id]);
         const result = search(
           boardAfterPlacement(currentBoard, shape, r, c),
           [...selected, shape],
@@ -253,8 +244,7 @@ function makeWave(
   const dryStreakMinFullness = spawn.rescueDryStreakMinFullness ?? 0.5;
   const rescue =
     fullness >= spawn.rescueFullness ||
-    (movesSinceClear >= spawn.rescueDryStreak &&
-      fullness >= dryStreakMinFullness);
+    (movesSinceClear >= spawn.rescueDryStreak && fullness >= dryStreakMinFullness);
   const target = rescue
     ? spawn.fullTargetMass
     : lerp(spawn.emptyTargetMass, spawn.fullTargetMass, fullness);
@@ -398,6 +388,7 @@ export function place(
   const gameOver = newTray ? !newTrayPlayable : !hasAnyMove(board, tray);
 
   const next: GameState = {
+    lastPiece: { shapeId: piece.shape.id, row: r, col: c, colorId: piece.colorId },
     board,
     tray,
     score,
@@ -451,9 +442,7 @@ export function replaceTrayPiece(
   // если влезают только фигуры из других слотов — разрешаем дубликат.
   const unique = placeable.filter((shape) => !otherSlotIds.has(shape.id));
   const pool = new Set((unique.length > 0 ? unique : placeable).map((s) => s.id));
-  const exclude = new Set(
-    SHAPES.filter((shape) => !pool.has(shape.id)).map((shape) => shape.id),
-  );
+  const exclude = new Set(SHAPES.filter((shape) => !pool.has(shape.id)).map((shape) => shape.id));
 
   const picked = pickWeighted(state.rngState, exclude);
   const color = rngInt(picked.state, config.colors);
@@ -469,14 +458,20 @@ export function replaceTrayPiece(
 /** Второй шанс: чистая доска, счёт и трей сохраняются. Один раз за партию. */
 type RevivableGameState = GameState & { status: 'over'; reviveUsed: false };
 
-export function revive(state: RevivableGameState): GameState;
-export function revive(state: GameState): GameState | null;
-export function revive(state: GameState): GameState | null {
+export function revive(state: RevivableGameState, config?: GameConfig): GameState;
+export function revive(state: GameState, config?: GameConfig): GameState | null;
+export function revive(state: GameState, config: GameConfig = DEFAULT_CONFIG): GameState | null {
   if (state.status !== 'over' || state.reviveUsed) return null;
 
+  const board = emptyBoard();
+  // A migrated checkpoint can have an empty tray. Deal playable pieces in that case.
+  const wave = state.tray.some(Boolean) ? null : makeWave(board, state.rngState, config, 0);
   return {
     ...state,
-    board: emptyBoard(),
+    board,
+    tray: wave?.tray ?? state.tray,
+    rngState: wave?.rngState ?? state.rngState,
+    lastPiece: undefined,
     combo: 0,
     movesSinceClear: 0,
     status: 'playing',

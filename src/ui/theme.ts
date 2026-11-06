@@ -1,26 +1,16 @@
 /** Дизайн-токены (спека 04). Цвета — только отсюда. */
 
+import { nightCandy as n } from './nightCandy';
+
 export const colors = {
-  bgTop: '#1B2A4A',
-  bgBottom: '#0F1B33',
-  boardBg: '#142142',
-  cellEmpty: '#1E2F55',
-  boardLine: '#0E1830',
-  textPrimary: '#FFFFFF',
-  textDim: '#B7C9EA',
-  accent: '#FFC93C',
-  danger: '#FF5A5F',
-  overlayScrim: 'rgba(8,14,28,0.72)',
-  surface: 'rgba(255,255,255,0.08)',
-  surfacePressed: 'rgba(255,255,255,0.16)',
-  cardGlass: 'rgba(22,36,68,0.5)',
-  hairline: 'rgba(255,255,255,0.12)',
-  // Claymorphism (спека 04): «вылепленные» приподнятые поверхности с мягкой тенью.
-  cardSolid: '#1C2E57',
-  cardRaised: '#243B6E',
-  clayShadow: '#060A18',
-  track: '#101E3C',
-  success: '#3DDC84',
+  bgTop: '#2A37B0', bgBottom: n.night900, boardBg: n.night850,
+  cellEmpty: n.cell, boardLine: n.night700,
+  textPrimary: n.white, textDim: n.lavender, accent: n.sun,
+  danger: n.coral, overlayScrim: 'rgba(5,7,31,0.70)',
+  surface: 'rgba(255,255,255,0.08)', surfacePressed: 'rgba(255,255,255,0.16)',
+  cardGlass: 'rgba(20,26,92,0.72)', hairline: n.border,
+  cardSolid: n.night850, cardRaised: n.night800, clayShadow: '#03051E',
+  track: '#0B0F42', success: n.mint,
 } as const;
 
 /** Семантические роли luminous-clay системы. Экраны должны выбирать роль,
@@ -84,22 +74,22 @@ export const spacing = {
 
 /** Explicit glyph-safe typography roles. System text deliberately omits fontFamily. */
 export const fontFamilies = {
-  display: 'Unbounded_700Bold',
+  display: 'Unbounded_800ExtraBold',
   score: 'Unbounded_800ExtraBold',
 } as const;
 
 export const typography = {
   title: { fontFamily: fontFamilies.display, fontSize: 24, lineHeight: 30 },
   score: { fontFamily: fontFamilies.score, fontSize: 40, lineHeight: 46 },
-  body: { fontSize: 16, lineHeight: 22 },
-  caption: { fontSize: 13, lineHeight: 18 },
-  button: { fontFamily: fontFamilies.display, fontSize: 15, lineHeight: 20 },
-  speech: { fontSize: 15, lineHeight: 21, fontWeight: '600' as const },
+  body: { fontFamily: 'Nunito_700Bold', fontSize: 16, lineHeight: 22 },
+  caption: { fontFamily: 'Nunito_700Bold', fontSize: 14, lineHeight: 20 },
+  button: { fontFamily: 'Unbounded_700Bold', fontSize: 16, lineHeight: 22 },
+  speech: { fontFamily: 'Nunito_800ExtraBold', fontSize: 16, lineHeight: 22 },
 } as const;
 
 export const radii = {
-  cell: 4,
-  card: 20,
+  cell: 8,
+  card: 24,
   button: 16,
 } as const;
 

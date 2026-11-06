@@ -2,6 +2,7 @@ import React from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
+import { BannerAdSize } from 'yandex-mobile-ads';
 import { AdBanner } from '../AdBanner.native';
 import { useAdPresentation } from '../adPresentation';
 import { useEntitlements } from '../entitlements';
@@ -13,7 +14,7 @@ jest.mock('@/features/analytics', () => ({ useAnalyticsStore: { getState: () => 
 jest.mock('yandex-mobile-ads', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   return {
-    BannerAdSize: { stickySize: jest.fn(async () => ({ width: 320, height: 50 })) },
+    BannerAdSize: { stickySize: jest.fn(async () => ({ width: 320, height: 90 })), inlineSize: jest.fn(async () => ({ width: 320, height: 50 })) },
     BannerView: function MockBanner(props: Record<string, unknown>) {
       React.useEffect(() => { mockMount(); return mockUnmount; }, []);
       return React.createElement('mock-banner', props);
@@ -58,6 +59,8 @@ describe('native banner bounded recovery', () => {
 
   it('remounts at 30 and 60 seconds, retains banner height, then stops', async () => {
     await mount();
+    expect(BannerAdSize.inlineSize).toHaveBeenCalledWith(expect.any(Number), 50);
+    expect(BannerAdSize.stickySize).not.toHaveBeenCalled();
     fail();
     expect(mockTrack).toHaveBeenCalledWith('ad_failed', expect.objectContaining({ message: '3: Network error' }));
     await advance(29_999);

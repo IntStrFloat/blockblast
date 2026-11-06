@@ -5,6 +5,8 @@ import {
   emptyBoard,
   idx,
   placeAdventure,
+  rescueAdventureRun,
+  SHAPES_BY_ID,
   serializeAdventureRun,
   deserializeAdventureRun,
 } from '../index';
@@ -45,6 +47,40 @@ describe('adventure run', () => {
     expect(result.run.status).toBe('won');
     expect(result.run.game.status).toBe('playing');
     expect(result.event.adventureStatus).toBe('won');
+  });
+
+  it('clears a failed level once, keeping score and collected jewels', () => {
+    const run = createAdventureRun({
+      id: 'jewel-rescue',
+      seasonId: 1,
+      levelIndex: 7,
+      seed: 42,
+      objective: { type: 'jewels', target: 2 },
+      prefill: [
+        { row: 1, col: 2, stoneHits: 2 },
+        { row: 3, col: 4, jewel: true },
+      ],
+    });
+    const terminal = {
+      ...run,
+      status: 'failed' as const,
+      collectedJewels: 1,
+      game: { ...run.game, score: 310, status: 'over' as const },
+    };
+
+    const recovered = rescueAdventureRun(terminal)!;
+    expect(recovered.status).toBe('playing');
+    expect(recovered.game.board).toEqual(emptyBoard());
+    expect(recovered.game.score).toBe(310);
+    expect(recovered.stonesOnBoard).toEqual({});
+    expect(recovered.jewelsOnBoard).toEqual([]);
+    expect(recovered.collectedJewels).toBe(1);
+    expect(recovered.jewelsInTray).toHaveLength(1);
+    const placed = placeAdventure(recovered, 0, 0, 0);
+    expect(placed.run.status).toBe('playing');
+    expect(rescueAdventureRun({
+      ...recovered, status: 'failed', game: { ...recovered.game, status: 'over' },
+    })).toBeNull();
   });
 
   it('collects board jewels only when their line clears', () => {
@@ -107,10 +143,41 @@ describe('adventure run', () => {
     expect(result.event.newTray).toBe(true);
     expect(result.run.jewelsInTray.length).toBeGreaterThan(0);
     expect(
-      result.run.collectedJewels +
-        result.run.jewelsOnBoard.length +
-        result.run.jewelsInTray.length,
+      result.run.collectedJewels + result.run.jewelsOnBoard.length + result.run.jewelsInTray.length,
     ).toBeGreaterThanOrEqual(level.objective.target);
+  });
+
+  it('keeps a stone occupied after the first line hit and durably removes it on the second', () => {
+    const dot = { shape: SHAPES_BY_ID.get('dot')!, colorId: 1 };
+    const spec: AdventureLevelSpec = {
+      id: 'stone-2',
+      seasonId: 1,
+      levelIndex: 3,
+      seed: 12,
+      objective: { type: 'jewels', target: 12 },
+      prefill: Array.from({ length: 7 }, (_, col) => ({
+        row: 7,
+        col,
+        colorId: 1,
+        ...(col === 3 ? { stoneHits: 2 as const } : {}),
+      })),
+    };
+    const initial = createAdventureRun(spec);
+    initial.game.tray = [dot, dot, dot];
+    const first = placeAdventure(initial, 0, 7, 7);
+    expect(first.run.stonesOnBoard).toEqual({ [idx(7, 3)]: 1 });
+    expect(first.run.game.board[idx(7, 3)]).toBe(1);
+    expect(first.event.clearedCells).not.toContainEqual([7, 3]);
+    expect(first.event.boardCleared).toBe(false);
+    const restored = deserializeAdventureRun(serializeAdventureRun(first.run))!;
+    expect(restored.stonesOnBoard).toEqual(first.run.stonesOnBoard);
+    for (let col = 0; col < 7; col++) restored.game.board[idx(7, col)] = 1;
+    restored.game.tray = [dot, dot, dot];
+    const second = placeAdventure(restored, 0, 7, 7);
+    expect(second.run.stonesOnBoard).toEqual({});
+    expect(second.event.clearedCells).toContainEqual([7, 3]);
+    expect(second.run.game.board[idx(7, 3)]).toBe(0);
+    expect(second.event.boardCleared).toBe(true);
   });
 
   it('round-trips serialized run state', () => {
@@ -133,13 +200,16 @@ describe('adventure run', () => {
   });
 
   it('migrates v2 checkpoints without inventing historical failures or help', () => {
-    const run = createAdventureRun({
-      id: 'save-v2',
-      seasonId: 1,
-      levelIndex: 2,
-      seed: 6,
-      objective: { type: 'score', target: 180 },
-    }, 3);
+    const run = createAdventureRun(
+      {
+        id: 'save-v2',
+        seasonId: 1,
+        levelIndex: 2,
+        seed: 6,
+        objective: { type: 'score', target: 180 },
+      },
+      3,
+    );
     const legacy = JSON.parse(serializeAdventureRun(run));
     legacy.v = 2;
     delete legacy.failureCount;

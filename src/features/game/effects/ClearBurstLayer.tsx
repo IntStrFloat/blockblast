@@ -1,4 +1,11 @@
-import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -10,11 +17,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import type {
-  ClearBurstShard,
-  ClearPresentationInstance,
-} from '../animation/clearPresentation';
+import type { ClearBurstShard, ClearPresentationInstance } from '../animation/clearPresentation';
 import { ADVENTURE_SHATTER_MOTION, BURST_MOTION } from '../animation/motion';
+import { BlockShine } from '../components/Block';
 
 const POOL_SIZE = BURST_MOTION.shardPoolSize;
 
@@ -66,7 +71,7 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
         y.value = shard.y;
         width.value = shard.width;
         height.value = shard.height;
-        color.value = shard.color;
+        color.value = shard.coverColor ?? shard.color;
         scale.value = 1;
         tx.value = 0;
         ty.value = 0;
@@ -92,16 +97,28 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
         if (shard.flight) {
           const { dx, dy, liftY, rotationDeg } = shard.flight;
           const liftMs = ADVENTURE_SHATTER_MOTION.liftDurationMs;
-          tx.value = withDelay(shard.delay, withTiming(dx, { duration: shard.duration, easing: Easing.out(Easing.quad) }));
-          ty.value = withDelay(shard.delay, withSequence(
-            withTiming(liftY, { duration: liftMs, easing: Easing.out(Easing.quad) }),
-            withTiming(dy, { duration: shard.duration - liftMs, easing: Easing.in(Easing.quad) }),
-          ));
-          rotation.value = withDelay(shard.delay, withTiming(rotationDeg, { duration: shard.duration }));
-          scale.value = withDelay(shard.delay, withSequence(
-            withTiming(ADVENTURE_SHATTER_MOTION.popScale, { duration: 40 }),
-            withTiming(ADVENTURE_SHATTER_MOTION.finalScale, { duration: shard.duration - 40 }),
-          ));
+          tx.value = withDelay(
+            shard.delay,
+            withTiming(dx, { duration: shard.duration, easing: Easing.out(Easing.quad) }),
+          );
+          ty.value = withDelay(
+            shard.delay,
+            withSequence(
+              withTiming(liftY, { duration: liftMs, easing: Easing.out(Easing.quad) }),
+              withTiming(dy, { duration: shard.duration - liftMs, easing: Easing.in(Easing.quad) }),
+            ),
+          );
+          rotation.value = withDelay(
+            shard.delay,
+            withTiming(rotationDeg, { duration: shard.duration }),
+          );
+          scale.value = withDelay(
+            shard.delay,
+            withSequence(
+              withTiming(ADVENTURE_SHATTER_MOTION.popScale, { duration: 40 }),
+              withTiming(ADVENTURE_SHATTER_MOTION.finalScale, { duration: shard.duration - 40 }),
+            ),
+          );
           opacity.value = withDelay(
             shard.delay + shard.duration - ADVENTURE_SHATTER_MOTION.fadeDurationMs,
             withTiming(0, { duration: ADVENTURE_SHATTER_MOTION.fadeDurationMs }),
@@ -115,10 +132,7 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
             easing: Easing.bezier(0.23, 1, 0.32, 1),
           }),
         );
-        opacity.value = withDelay(
-          shard.delay,
-          withTiming(0, { duration: shard.duration }),
-        );
+        opacity.value = withDelay(shard.delay, withTiming(0, { duration: shard.duration }));
       },
     }),
     // Shared values are stable for the lifetime of the pre-mounted slot.
@@ -134,9 +148,7 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
     top: y.value,
     width: width.value,
     height: height.value,
-    borderRadius: Math.max(1.5, Math.min(width.value, height.value) * 0.16),
-    borderWidth: Math.max(0.5, Math.min(width.value, height.value) * 0.045),
-    borderColor: 'rgba(255,255,255,0.38)',
+    borderRadius: Math.round(Math.min(width.value, height.value) * 0.22),
     backgroundColor: color.value,
   }));
   const motionStyle = useAnimatedStyle(() => ({
@@ -149,7 +161,21 @@ const BurstParticle = forwardRef<BurstHandle>(function BurstParticle(_props, ref
     ],
   }));
 
-  return <Animated.View pointerEvents="none" style={[geometryStyle, motionStyle]} />;
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          overflow: 'hidden',
+          boxShadow: '0px 2px 0px rgba(5,8,40,0.35)',
+        },
+        geometryStyle,
+        motionStyle,
+      ]}
+    >
+      <BlockShine />
+    </Animated.View>
+  );
 });
 
 export function ClearBurstLayer({ presentations }: ClearBurstLayerProps) {
@@ -157,9 +183,18 @@ export function ClearBurstLayer({ presentations }: ClearBurstLayerProps) {
   const owners = useRef<(string | null)[]>([]);
   const cursor = useRef(0);
   const fired = useRef<Set<string>>(new Set());
-  const particles = useMemo(() => Array.from({ length: POOL_SIZE }, (_, index) => (
-    <BurstParticle key={index} ref={(handle) => { slots.current[index] = handle; }} />
-  )), []);
+  const particles = useMemo(
+    () =>
+      Array.from({ length: POOL_SIZE }, (_, index) => (
+        <BurstParticle
+          key={index}
+          ref={(handle) => {
+            slots.current[index] = handle;
+          }}
+        />
+      )),
+    [],
+  );
 
   useLayoutEffect(() => {
     const activeIds = new Set(presentations.map(({ id }) => id));

@@ -9,7 +9,8 @@ function isReserved(row: number, col: number): boolean {
 export function prefillFor(levelIndex: number, jewelCount: number): AdventureCellPrefill[] {
   const count = Math.min(
     ADVENTURE_CONFIG.prefillMaxCells,
-    ADVENTURE_CONFIG.prefillBaseCells + Math.floor(levelIndex / ADVENTURE_CONFIG.prefillStepEvery) * 3,
+    ADVENTURE_CONFIG.prefillBaseCells +
+      Math.floor(levelIndex / ADVENTURE_CONFIG.prefillStepEvery) * 3,
   );
   const cells: AdventureCellPrefill[] = [];
   let cursor = levelIndex * 11 + 5;
@@ -20,7 +21,7 @@ export function prefillFor(levelIndex: number, jewelCount: number): AdventureCel
     cursor = (cursor + 13) % 64;
     if (isReserved(row, col)) continue;
     if (cells.some((cell) => cell.row === row && cell.col === col)) continue;
-    cells.push({ row, col, colorId: 1 });
+    cells.push({ row, col, colorId: ((row + levelIndex) % 7) + 1 });
   }
 
   // Джевелы раздаём по уникальным индексам, равномерно по списку клеток:
@@ -30,6 +31,9 @@ export function prefillFor(levelIndex: number, jewelCount: number): AdventureCel
     cells[Math.floor((i * cells.length) / jewelSlots)].jewel = true;
   }
 
+  if (levelIndex >= 3) {
+    const stone = cells.find((cell) => !cell.jewel);
+    if (stone) stone.stoneHits = 2;
+  }
   return cells;
 }
-

@@ -1,4 +1,5 @@
 import {
+  getCandyPlayfieldMetrics,
   getAdventurePlayfieldMetrics,
   getClassicPlayfieldMetrics,
   getClassicTrayHeight,
@@ -227,4 +228,13 @@ describe('shared playfield layout', () => {
     expect(metrics.boardSize).toBeLessThan(PLAYFIELD_LAYOUT.minBoardSize);
     expect(metrics.cellSize).toBeGreaterThan(0);
   });
+});
+
+// A compact Android must retain every interactive row without clipping the tray.
+it('fits the candy board, helpers and tray on a short portrait screen', () => {
+  const m = getCandyPlayfieldMetrics(320, 568, { top: 24, bottom: 24 });
+  const occupied = 8 + m.hudHeight + m.boardTopGap + m.frameSize + 17 + m.helperHeight + 14 + m.trayHeight;
+  expect(m.frameSize).toBeLessThanOrEqual(320 - 32);
+  expect(occupied).toBeLessThanOrEqual(m.usableHeight);
+  expect(m.cellSize).toBeGreaterThanOrEqual(24);
 });

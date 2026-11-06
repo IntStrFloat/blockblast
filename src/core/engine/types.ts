@@ -25,7 +25,23 @@ export interface PieceInstance {
 export type GameStatus = 'playing' | 'over';
 export type PraiseTier = 'none' | 'good' | 'great' | 'amazing' | 'unbelievable';
 
+/** A saved debit intent is reconciled idempotently before a rescued run is exposed. */
+export interface HelperSpendIntent {
+  id: string;
+  helperId: 'hint' | 'swap';
+  day: string;
+  source: 'daily' | 'charge';
+}
+
+export interface LastPlacedPiece {
+  shapeId: string;
+  row: number;
+  col: number;
+  colorId: number;
+}
+
 export interface GameState {
+  lastPiece?: LastPlacedPiece;
   board: Board;
   tray: (PieceInstance | null)[];
   score: number;

@@ -88,6 +88,7 @@ export interface AnalyticsEventMap {
     shape_id?: string;
   };
   helper_funnel: {
+    surface?: 'game' | 'no_moves';
     helper: 'hint' | 'swap';
     stage: 'eligible' | 'shown' | 'used';
     source: 'free' | 'charge' | 'rewarded';

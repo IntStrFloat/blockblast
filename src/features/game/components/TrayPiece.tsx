@@ -10,7 +10,12 @@ import Animated, {
 
 import { hasPlacement } from '@/core/engine';
 import type { PieceInstance } from '@/core/engine';
-import { TRAY_ACTIVATION, TRAY_MOTION, trayRestingScale } from '../animation/motion';
+import {
+  TRAY_ACTIVATION,
+  TRAY_MOTION,
+  trayRestingScale,
+} from '../animation/motion';
+import { useHintPulse } from '../animation/useHintPulse';
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useDragCtx } from '../drag/DragContext';
 import type { SlotMeasure } from '../drag/useDrag';
@@ -21,7 +26,10 @@ import { Block } from './Block';
 interface TrayPieceProps {
   piece: PieceInstance;
   trayIndex: number;
-  renderCellOverlay?: (cellIndex: number, cellSizePx: number) => React.ReactNode;
+  renderCellOverlay?: (
+    cellIndex: number,
+    cellSizePx: number,
+  ) => React.ReactNode;
   readyToken?: string | null;
   onInteractiveReady?: (trayIndex: number, token: string) => void;
 }
@@ -38,19 +46,34 @@ export function TrayPiece({
   const { geom, cellColors } = ctx;
   const { boardMirror, measureBoard } = ctx;
   const { cell } = geom;
-  const trayCellGap = Math.min(2, Math.max(1, Math.round(cell * 0.035)));
+  const trayCellGap = geom.gap;
 
   const board = useGameStore((s) => s.game.board);
   const { shape, colorId } = piece;
   const { cells, w, h } = shape;
 
-  const color = colorId > 0 && colorId <= cellColors.length ? cellColors[colorId - 1] : '#FFFFFF';
+  const color =
+    colorId > 0 && colorId <= cellColors.length
+      ? cellColors[colorId - 1]
+      : '#FFFFFF';
 
   // Определяем, влезает ли фигура хоть куда-нибудь
   const disabled = !hasPlacement(board, shape);
+  const hinted = useGameStore((s) => s.helperHint?.trayIndex === trayIndex && s.game.tray[trayIndex] === piece);
+  const hintPulse = useHintPulse(hinted, reducedMotion);
+  const dragActive = ctx.dragActive;
+  const landingActive = ctx.handoff?.active;
+  const hintStyle = useAnimatedStyle(() => ({
+    opacity: hinted && !dragActive?.value && !landingActive?.value ? 0.6 + hintPulse.value * 0.4 : 0,
+  }));
 
   // SharedValue для позиции слота (measureInWindow снимается заранее на JS)
-  const slotMeasure = useSharedValue<SlotMeasure>({ x: 0, y: 0, width: 0, height: 0 });
+  const slotMeasure = useSharedValue<SlotMeasure>({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
   const containerRef = useRef<View>(null);
   const appearScale = useSharedValue<number>(TRAY_MOTION.appearFromScale);
   const appearOpacity = useSharedValue<number>(0.7);
@@ -61,8 +84,12 @@ export function TrayPiece({
   useEffect(() => {
     appearScale.value = reducedMotion ? 1 : TRAY_MOTION.appearFromScale;
     appearOpacity.value = 0.7;
-    appearScale.value = withTiming(1, { duration: TRAY_MOTION.appearDurationMs });
-    appearOpacity.value = withTiming(1, { duration: TRAY_MOTION.appearDurationMs });
+    appearScale.value = withTiming(1, {
+      duration: TRAY_MOTION.appearDurationMs,
+    });
+    appearOpacity.value = withTiming(1, {
+      duration: TRAY_MOTION.appearDurationMs,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [piece, reducedMotion]);
 
@@ -83,7 +110,15 @@ export function TrayPiece({
   const { width: screenWidth } = useWindowDimensions();
   const slotWidth = ctx.trayFit?.slotWidth ?? (screenWidth - 16) / 3;
   const slotHeight = ctx.trayFit?.slotHeight;
-  const restingScale = trayRestingScale(figW, figH, slotWidth, slotHeight);
+  const restingScale = trayRestingScale(
+    figW,
+    figH,
+    slotWidth,
+    slotHeight,
+    undefined,
+    undefined,
+    ctx.trayFit?.restingScale,
+  );
 
   const measureSlot = useCallback(() => {
     // measureInWindow нельзя вызывать в worklet — снимаем на JS при layout
@@ -125,6 +160,7 @@ export function TrayPiece({
     measureForDrag,
     committedOpacity: appearOpacity,
     restingScale,
+    reducedMotion,
   });
 
   return (
@@ -154,12 +190,12 @@ export function TrayPiece({
           accessibilityRole={disabled ? 'button' : undefined}
           accessibilityLabel={disabled ? ctx.unavailablePieceLabel : undefined}
           accessibilityState={disabled ? { disabled: true } : undefined}
-          onAccessibilityTap={disabled
-            ? () => ctx.onUnavailablePiecePress?.(shape.id)
-            : undefined}
-          onPress={disabled
-            ? () => ctx.onUnavailablePiecePress?.(shape.id)
-            : undefined}
+          onAccessibilityTap={
+            disabled ? () => ctx.onUnavailablePiecePress?.(shape.id) : undefined
+          }
+          onPress={
+            disabled ? () => ctx.onUnavailablePiecePress?.(shape.id) : undefined
+          }
           style={{
             position: 'absolute',
             top: 0,
@@ -170,7 +206,10 @@ export function TrayPiece({
           }}
         />
       </GestureDetector>
-      <Animated.View pointerEvents="none" style={[{ width: figW, height: figH, flexShrink: 0 }, appearStyle]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[{ width: figW, height: figH, flexShrink: 0 }, appearStyle]}
+      >
         <Animated.View
           style={[
             {
@@ -179,25 +218,30 @@ export function TrayPiece({
               flexShrink: 0,
               alignItems: 'center',
               justifyContent: 'center',
-              opacity: disabled ? 0.35 : 1,
             },
             animatedStyle,
           ]}
         >
           <View style={{ width: figW, height: figH, position: 'relative' }}>
-            {(cells as readonly (readonly [number, number])[]).map(([dr, dc], index) => (
-              <View
-                key={index}
-                style={{
-                  position: 'absolute',
-                  left: dc * (cell + trayCellGap),
-                  top: dr * (cell + trayCellGap),
-                }}
-              >
-                <Block size={cell} color={color} />
-                {renderCellOverlay?.(index, cell)}
-              </View>
-            ))}
+            <Animated.View testID={`helper-hint-piece-${trayIndex}`} pointerEvents="none"
+              style={[{ position: 'absolute', inset: -9, borderRadius: 16, borderWidth: 4,
+                borderColor: '#FFC93C', backgroundColor: 'rgba(255,201,60,0.1)',
+                boxShadow: '0px 0px 16px rgba(255,201,60,0.55)' }, hintStyle]} />
+            {(cells as readonly (readonly [number, number])[]).map(
+              ([dr, dc], index) => (
+                <View
+                  key={index}
+                  style={{
+                    position: 'absolute',
+                    left: dc * (cell + trayCellGap),
+                    top: dr * (cell + trayCellGap),
+                  }}
+                >
+                  <Block size={cell} color={color} />
+                  {renderCellOverlay?.(index, cell)}
+                </View>
+              ),
+            )}
           </View>
         </Animated.View>
       </Animated.View>

@@ -1,31 +1,29 @@
-declare const __dirname: string;
+import { adventureMapCellPosition } from '../adventure';
 
-const fs = jest.requireActual<{ readFileSync(path: string, encoding: string): string }>('fs');
-const source = fs.readFileSync(`${__dirname}/../adventure.tsx`, 'utf8');
-
-describe('Adventure map layout', () => {
-  it('keeps the established level-map geometry intact', () => {
-    expect(source).toContain('{ offset: 0, count: 11 }');
-    expect(source).toContain('{ offset: 1, count: 9 }');
-    expect(source).toContain('{ offset: 4, count: 3 }');
-    expect(source).toContain('left: (row.offset + columnIndex) * cell');
-    expect(source).toContain('top: (MAP_ROWS.length - 1 - rowIndex) * cell');
+describe('Adventure tower geometry', () => {
+  it('gives every actual level one unique reachable node', () => {
+    const positions = Array.from({ length: 96 }, (_, i) => adventureMapCellPosition(i, 358));
+    expect(positions.every(Boolean)).toBe(true);
+    expect(new Set(positions.map((p) => `${p!.left}:${p!.top}`)).size).toBe(96);
+    expect(adventureMapCellPosition(-1, 358)).toBeNull();
+    expect(adventureMapCellPosition(96, 358)).toBeNull();
   });
-
-  it('makes the map scroll independently from the fixed play action', () => {
-    expect(source).toContain('<ScrollView');
-    expect(source).toContain('contentContainerStyle={styles.mapScrollContent}');
-    expect(source).toContain('styles.footer');
-    expect(source.indexOf('</ScrollView>')).toBeLessThan(source.indexOf('styles.footer'));
+  it('keeps every staggered node inside narrow and wide viewports', () => {
+    for (const width of [288, 358, 520]) {
+      for (let index = 0; index < 96; index++) {
+        const node = adventureMapCellPosition(index, width)!;
+        expect(node.left).toBeGreaterThanOrEqual(0);
+        expect(node.left + node.cell).toBeLessThanOrEqual(width);
+      }
+    }
   });
-
-  it('centers the active level on first entry and restores the saved offset on repeat entry', () => {
-    expect(source).toContain('scrollToCurrentOrSaved');
-    expect(source).toContain('saved?.version === 5');
-    expect(source).toContain('saved.seasonId === seasonId && saved.levelIndex === levelIndex');
-    expect(source).toContain('mapScrollRef.current?.scrollTo');
-    expect(source).toContain('KEYS.adventureMapScroll');
-    expect(source).toContain('onScrollEndDrag={persistMapOffset}');
-    expect(source).toContain('onMomentumScrollEnd={persistMapOffset}');
+  it('preserves row spacing and proportions while scaling narrow screens', () => {
+    const first = adventureMapCellPosition(0, 358)!;
+    expect(adventureMapCellPosition(4, 358)!.top).toBe(first.top);
+    expect(adventureMapCellPosition(5, 358)!.top).toBeLessThan(first.top - first.cell);
+    const narrow = adventureMapCellPosition(5, 179)!;
+    const regular = adventureMapCellPosition(5, 358)!;
+    expect(narrow.cell).toBeCloseTo(regular.cell / 2);
+    expect(narrow.left).toBeCloseTo(regular.left / 2);
   });
 });

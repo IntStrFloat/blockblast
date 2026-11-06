@@ -1,6 +1,19 @@
 import { BOARD_CELLS, TRAY_SIZE } from './types';
-import type { GameConfig, GameState } from './types';
+import type { GameConfig, GameState, HelperSpendIntent } from './types';
 import { SHAPES_BY_ID } from './shapes';
+
+export function isHelperSpendIntent(value: unknown): value is HelperSpendIntent {
+  if (!value || typeof value !== 'object') return false;
+  const intent = value as Partial<HelperSpendIntent>;
+  return (
+    typeof intent.id === 'string' &&
+    intent.id.length > 0 &&
+    (intent.helperId === 'hint' || intent.helperId === 'swap') &&
+    typeof intent.day === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(intent.day) &&
+    (intent.source === 'daily' || intent.source === 'charge')
+  );
+}
 
 interface SaveV1 {
   v: 1;
@@ -12,6 +25,7 @@ interface SaveV1 {
   status: 'playing' | 'over';
   reviveUsed: boolean;
   rngState: number;
+  lastPiece?: GameState['lastPiece'];
 }
 
 interface SaveV2 extends Omit<SaveV1, 'v'> {
@@ -34,6 +48,8 @@ export interface ClassicCheckpointSettlement {
 
 export interface ClassicCheckpointMeta {
   checkpointVersion: typeof CLASSIC_CHECKPOINT_VERSION;
+  helperSpend?: HelperSpendIntent;
+  resultAcknowledged?: boolean;
   runId: string;
   /** Identity of the separate ranked proof, used for crash-safe revive reconciliation. */
   leaderboardProofId?: string;
@@ -69,6 +85,7 @@ function gameToSave(state: GameState): SaveV2 {
     status: state.status,
     reviveUsed: state.reviveUsed,
     rngState: state.rngState,
+    ...(state.lastPiece ? { lastPiece: state.lastPiece } : {}),
   };
 }
 
@@ -111,7 +128,21 @@ export function deserialize(raw: string): GameState | null {
     tray.push({ shape, colorId: t.colorId });
   }
 
+  const last = save.lastPiece;
+  const lastShape = last && SHAPES_BY_ID.get(last.shapeId);
+  const validLast =
+    last &&
+    lastShape &&
+    Number.isInteger(last.row) &&
+    Number.isInteger(last.col) &&
+    last.row >= 0 &&
+    last.col >= 0 &&
+    last.row + lastShape.h <= 8 &&
+    last.col + lastShape.w <= 8 &&
+    Number.isInteger(last.colorId) &&
+    last.colorId > 0;
   return {
+    ...(validLast ? { lastPiece: last } : {}),
     board: save.board,
     tray,
     score: save.score,
@@ -167,8 +198,7 @@ function isSettlement(value: ClassicCheckpointSettlement | null | undefined): bo
   if (value == null) return true;
   const validResult =
     value.result === null ||
-    (typeof value.result?.newRecord === 'boolean' &&
-      isFiniteNonNegative(value.result.delta));
+    (typeof value.result?.newRecord === 'boolean' && isFiniteNonNegative(value.result.delta));
   return (
     Number.isInteger(value.revision) &&
     value.revision > 0 &&
@@ -190,10 +220,7 @@ function isSettlement(value: ClassicCheckpointSettlement | null | undefined): bo
  * The game payload remains v2-compatible internally; the outer version belongs
  * to the checkpoint contract and can evolve independently.
  */
-export function serializeClassicCheckpoint(
-  game: GameState,
-  meta: ClassicCheckpointMeta,
-): string {
+export function serializeClassicCheckpoint(game: GameState, meta: ClassicCheckpointMeta): string {
   return JSON.stringify({
     v: CLASSIC_CHECKPOINT_VERSION,
     game: gameToSave(game),
@@ -226,6 +253,7 @@ export function deserializeClassicCheckpoint(
   if (
     !game ||
     meta.checkpointVersion !== CLASSIC_CHECKPOINT_VERSION ||
+    (meta.helperSpend !== undefined && !isHelperSpendIntent(meta.helperSpend)) ||
     typeof meta.runId !== 'string' ||
     meta.runId.length === 0 ||
     (meta.leaderboardProofId !== undefined &&
@@ -253,9 +281,7 @@ export function deserializeClassicCheckpoint(
     game,
     meta: {
       ...(meta as ClassicCheckpointMeta),
-      settlement: settlement
-        ? settlement
-        : null,
+      settlement: settlement ? settlement : null,
     },
   };
 }

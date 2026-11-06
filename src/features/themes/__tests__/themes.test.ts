@@ -10,9 +10,9 @@ describe('каталог тем', () => {
     }
   });
 
-  it('у каждой темы валидная палитра из 6 цветов', () => {
+  it('у каждой темы валидная палитра для всех цветов игры', () => {
     for (const t of WORLD_THEMES) {
-      expect(t.cellColors).toHaveLength(6);
+      expect(t.cellColors.length).toBeGreaterThanOrEqual(7);
       expect(t.juiceColors.length).toBeGreaterThan(0);
     }
   });
@@ -24,10 +24,10 @@ describe('каталог тем', () => {
   it('locks the classic backdrop to deep blue', () => {
     const classic = getWorldTheme('classic');
 
-    expect(classic.bgTop).toBe('#1B4F9E');
-    expect(classic.bgBottom).toBe('#0B407C');
-    expect(classic.cellEmpty).toBe('#245CAD');
-    expect(classic.cellColors[4]).toBe('#5AB8FF');
+    expect(classic.bgTop).toBe('#2A37B0');
+    expect(classic.bgBottom).toBe('#0F1348');
+    expect(classic.cellEmpty).toBe('#1D246E');
+    expect(classic.cellColors[4]).toBe('#42B4FF');
   });
 });
 

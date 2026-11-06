@@ -3,49 +3,13 @@
  * только движок. Покрыта тестами; UI-компоненты (HelperHint/HelperSwap) лишь
  * визуализируют эти решения и НЕ делают ход за игрока.
  */
-import { findPlacements, hasPlacement } from '@/core/engine';
-import type { Board, PieceInstance } from '@/core/engine';
-
-const SIZE = 8;
+import { findPlacements, hasPlacement, place, placeAdventure } from '@/core/engine';
+import type { AdventureRun, Board, GameConfig, GameState, PieceInstance } from '@/core/engine';
 
 export interface HintMove {
   trayIndex: number;
   r: number;
   c: number;
-}
-
-/** Сколько линий соберёт постановка фигуры в (r,c) — симуляция на копии доски. */
-function linesClearedBy(
-  board: Board,
-  cells: readonly (readonly [number, number])[],
-  r: number,
-  c: number,
-): number {
-  const tmp = board.slice();
-  for (const [dr, dc] of cells) tmp[(r + dr) * SIZE + (c + dc)] = 1;
-
-  let lines = 0;
-  for (let row = 0; row < SIZE; row++) {
-    let full = true;
-    for (let col = 0; col < SIZE; col++) {
-      if (tmp[row * SIZE + col] === 0) {
-        full = false;
-        break;
-      }
-    }
-    if (full) lines++;
-  }
-  for (let col = 0; col < SIZE; col++) {
-    let full = true;
-    for (let row = 0; row < SIZE; row++) {
-      if (tmp[row * SIZE + col] === 0) {
-        full = false;
-        break;
-      }
-    }
-    if (full) lines++;
-  }
-  return lines;
 }
 
 /** Суммарное число валидных позиций для всех непустых фигур трея. */
@@ -60,25 +24,53 @@ export function countTrayPlacements(
   return total;
 }
 
-/**
- * Лучшая подсказка: ход, очищающий максимум линий; при равенстве — первый
- * найденный. null, если ни одна фигура трея не помещается.
- */
+function* legalMoves({ board, tray }: GameState): Generator<HintMove> {
+  for (let trayIndex = 0; trayIndex < tray.length; trayIndex++) {
+    const piece = tray[trayIndex];
+    if (!piece) continue;
+    for (const [r, c] of findPlacements(board, piece.shape)) yield { trayIndex, r, c };
+  }
+}
+
+/** Find a move with a playable path to the next tray, or a level win. */
 export function findHintMove(
-  board: Board,
-  tray: readonly (PieceInstance | null)[],
+  game: GameState,
+  { config, adventure }: { config?: GameConfig; adventure?: AdventureRun | null } = {},
 ): HintMove | null {
+  if (game.status !== 'playing' || (adventure && adventure.status !== 'playing')) return null;
+
+  function simulate(state: GameState, run: AdventureRun | null, move: HintMove) {
+    const { trayIndex, r, c } = move;
+    if (run) {
+      const next = placeAdventure(run, trayIndex, r, c, config);
+      return { state: next.run.game, run: next.run, event: next.event, jewels: next.event.jewelsCollectedThisMove };
+    }
+    const next = place(state, trayIndex, r, c, config);
+    return { ...next, run: null, jewels: 0 };
+  }
+
+  function canContinue(turn: ReturnType<typeof simulate>): boolean {
+    if (turn.run?.status === 'won') return true;
+    if (turn.state.status === 'over') return false;
+    if (turn.event.newTray) return true;
+    for (const move of legalMoves(turn.state)) {
+      if (canContinue(simulate(turn.state, turn.run, move))) return true;
+    }
+    return false;
+  }
+
   let best: HintMove | null = null;
+  let bestJewels = -1;
   let bestLines = -1;
-  for (let i = 0; i < tray.length; i++) {
-    const p = tray[i];
-    if (!p) continue;
-    for (const [r, c] of findPlacements(board, p.shape)) {
-      const lines = linesClearedBy(board, p.shape.cells, r, c);
-      if (lines > bestLines) {
-        bestLines = lines;
-        best = { trayIndex: i, r, c };
-      }
+  for (const move of legalMoves(game)) {
+    const turn = simulate(game, adventure ?? null, move);
+    if (turn.run?.status === 'won') return move;
+    const lines = turn.event.clearedRows.length + turn.event.clearedCols.length;
+    const better = turn.jewels > bestJewels || (turn.jewels === bestJewels && lines > bestLines);
+    if (better && canContinue(turn)) {
+      best = move;
+      bestJewels = turn.jewels;
+      bestLines = lines;
     }
   }
   return best;

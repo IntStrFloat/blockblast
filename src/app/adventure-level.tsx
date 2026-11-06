@@ -1,6 +1,11 @@
+import { NoMovesSheet } from '@/features/game/components/NoMovesSheet';
+import { getCandyAdventureMetrics } from '@/features/game/playfield-layout';
+import { StoneBoardLayer } from '@/features/adventure/components/StoneBoardLayer';
+import { Block } from '@/features/game/components/Block';
+import { CandyRoundButton } from '@/ui/primitives/CandyControls';
+import { usePlacementHandoff } from '@/features/game/drag/PlacementHandoff';
 import { type Href, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
   Pressable,
@@ -10,7 +15,10 @@ import {
   type LayoutRectangle,
 } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import type { AdventureHelpPolicy } from '@/core/engine';
 import { t } from '@/core/i18n';
@@ -24,13 +32,11 @@ import {
   absoluteLevelNumber,
   adventureCompletionIdentity,
   adventureFailurePresentation,
-  adventureSkinFor,
   findAdventureHelpMove,
   levelFor,
   seasonLength,
   shouldOfferAdventureHelp,
   useAdventure,
-  useSeasonWindowRefresh,
   type AdventureObjectiveArrival,
 } from '@/features/adventure';
 import {
@@ -45,9 +51,7 @@ import {
   EFFECT_SEQUENCE_TIMING,
   InvalidDropNotice,
   PraiseBanner,
-  PLAYFIELD_LAYOUT,
   TrayView,
-  getAdventurePlayfieldMetrics,
   getSavedAdventureSummary,
   previewMask,
   useDelayedTray,
@@ -69,20 +73,31 @@ import {
   useEntitlements,
 } from '@/features/monetization';
 import type { InterstitialCounter } from '@/features/monetization';
-import { rememberRewardedOffer, leaveRewardedOffer } from '@/features/monetization/rewardedOfferPolicy';
+import { recoverRewardedBenefits } from '@/features/monetization/rewardedBenefits';
+import {
+  rememberRewardedOffer,
+  leaveRewardedOffer,
+} from '@/features/monetization/rewardedOfferPolicy';
 import { useInterstitialPreparation } from '@/features/monetization/useInterstitialPreparation';
 import { useFtueStore } from '@/features/onboarding';
 import { useScores } from '@/features/scores';
 import { useLang } from '@/features/settings';
-import { AppText, ConfirmDialog, GearIcon, spacing } from '@/ui';
+import {
+  AppText,
+  spacing,
+  CandyBackground,
+  CandyCapy,
+  nightCandy as n,
+} from '@/ui';
 import { useReducedMotion } from '@/features/game/animation/useReducedMotion';
 
 type Phase = 'playing' | 'settling' | 'result' | 'failed';
 // Рамка BoardView: сетка клеток начинается с этим отступом от угла обёртки,
 // оверлей кристаллов обязан учитывать его, иначе джевелы уползают к углу клетки.
-const BOARD_FRAME_WIDTH = PLAYFIELD_LAYOUT.boardFrameWidth;
-const TRAY_HEIGHT = PLAYFIELD_LAYOUT.adventureTrayHeight;
-const EMPTY_JEWEL_MARKERS: NonNullable<ReturnType<typeof useGameStore.getState>['adventure']>['jewelsInTray'] = [];
+const BOARD_FRAME_WIDTH = 8;
+const EMPTY_JEWEL_MARKERS: NonNullable<
+  ReturnType<typeof useGameStore.getState>['adventure']
+>['jewelsInTray'] = [];
 
 export default function AdventureLevelScreen() {
   const router = useRouter();
@@ -96,8 +111,6 @@ export default function AdventureLevelScreen() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const seasonId = useAdventure((s) => s.seasonId);
   const levelIndex = useAdventure((s) => s.levelIndex);
-  const seasonWindow = useAdventure((s) => s.seasonWindow);
-  useSeasonWindowRefresh();
   // Progress advances when the win is saved; the visible run advances only on Next.
   const [spec, setSpec] = useState(() => levelFor(seasonId, levelIndex));
   const completedAdventureLevels = useMemo(
@@ -106,32 +119,46 @@ export default function AdventureLevelScreen() {
   );
   const bannerGamesPlayed = gamesPlayed + completedAdventureLevels;
   // Календарь меняет оформление, а уровень и его генерация зависят от прохождения.
-  const skin = useMemo(
-    () => adventureSkinFor(absoluteLevelNumber(spec.seasonId, spec.levelIndex), seasonWindow),
-    [spec, seasonWindow],
-  );
+  const helperHint = useGameStore((s) => s.helperHint);
   const runStatus = useGameStore((s) => s.adventure?.status);
   const activeAdventure = useGameStore((s) => s.adventure);
   const runLevelId = useGameStore((s) => s.adventure?.level.id);
-  const activeAdventureRunId = useGameStore((s) => s.adventure?.runId ?? 'preview');
+  const activeAdventureRunId = useGameStore(
+    (s) => s.adventure?.runId ?? 'preview',
+  );
   const [requestedPhase, setPhase] = useState<Phase>('playing');
-  const phase = requestedPhase === 'playing' && runLevelId === spec.id &&
-    (runStatus === 'won' || runStatus === 'failed') ? 'settling' : requestedPhase;
+  const phase =
+    requestedPhase === 'playing' &&
+    runLevelId === spec.id &&
+    (runStatus === 'won' || runStatus === 'failed')
+      ? 'settling'
+      : requestedPhase;
   const [attempt, setAttempt] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [restartOpen, setRestartOpen] = useState(false);
   const [adBusy, setAdBusy] = useState(false);
   const [resultReadyRunId, setResultReadyRunId] = useState<string | null>(null);
   const adBusyRef = useRef(false);
-  const resultContextId = adventureCompletionIdentity(spec.seasonId, spec.levelIndex).completionId;
-  const onBonusBusyChange = useCallback((value: boolean) => {
-    const currentRun = useGameStore.getState().adventure;
-    if (value && (adBusyRef.current || !currentRun || currentRun.status !== 'won' ||
-        currentRun.level.id !== spec.id)) return false;
-    adBusyRef.current = value;
-    setAdBusy(value);
-    return true;
-  }, [spec.id]);
+  const resultContextId = adventureCompletionIdentity(
+    spec.seasonId,
+    spec.levelIndex,
+  ).completionId;
+  const onBonusBusyChange = useCallback(
+    (value: boolean) => {
+      const currentRun = useGameStore.getState().adventure;
+      if (
+        value &&
+        (adBusyRef.current ||
+          !currentRun ||
+          currentRun.status !== 'won' ||
+          currentRun.level.id !== spec.id)
+      )
+        return false;
+      adBusyRef.current = value;
+      setAdBusy(value);
+      return true;
+    },
+    [spec.id],
+  );
   useEffect(() => {
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
       if (adBusyRef.current) return true;
@@ -140,9 +167,15 @@ export default function AdventureLevelScreen() {
     });
     return () => listener.remove();
   }, [resultContextId]);
-  const [objectiveLayout, setObjectiveLayout] = useState<LayoutRectangle | null>(null);
-  const [objectiveCounterLayout, setObjectiveCounterLayout] = useState<LayoutRectangle | null>(null);
-  const [objectiveArrival, setObjectiveArrival] = useState<AdventureObjectiveArrival | null>(null);
+  const [headerLayout, setHeaderLayout] = useState<LayoutRectangle | null>(
+    null,
+  );
+  const [objectiveLayout, setObjectiveLayout] =
+    useState<LayoutRectangle | null>(null);
+  const [objectiveCounterLayout, setObjectiveCounterLayout] =
+    useState<LayoutRectangle | null>(null);
+  const [objectiveArrival, setObjectiveArrival] =
+    useState<AdventureObjectiveArrival | null>(null);
   const [adventureBoardLayout, setAdventureBoardLayout] =
     useState<LayoutRectangle | null>(null);
   const [playfieldHeight, setPlayfieldHeight] = useState<number | null>(null);
@@ -157,28 +190,37 @@ export default function AdventureLevelScreen() {
   const insets = useSafeAreaInsets();
   // Баннер — отдельный sibling ниже playfield. После первого layout используем
   // уже оставшуюся фактическую высоту и не вычитаем рекламный слот второй раз.
-  const { boardSize, cellSize, cellGap } = getAdventurePlayfieldMetrics(
-    screenWidth,
-    playfieldHeight ?? screenHeight,
-    playfieldHeight == null ? insets : { top: 0, bottom: 0 },
-    objectiveLayout?.height,
+  const { boardSize, cellSize, cellGap, trayHeight, boardTrayGap } =
+    getCandyAdventureMetrics(
+      screenWidth,
+      playfieldHeight ?? screenHeight,
+      playfieldHeight == null ? insets : { top: 0, bottom: 0 },
+    );
+  const geom = useMemo(
+    () => ({ boardSize, cell: cellSize, gap: cellGap, pad: 0 }),
+    [boardSize, cellGap, cellSize],
   );
-  const geom = useMemo(() => ({ boardSize, cell: cellSize, gap: cellGap, pad: 0 }), [boardSize, cellGap, cellSize]);
   // Реальный слот трея: он центрирован (maxWidth 390) внутри горизонтального
   // паддинга контента, поэтому фактическая ширина слота уже, чем (экран−16)/3.
   // Передаём её и высоту трея в drag-контекст, чтобы фигуры не налезали на
   // соседей (ширина) и не вылезали за трей (высота).
-  const trayOuterWidth = Math.min(screenWidth - spacing.m * 2, 390);
+  const trayOuterWidth = boardSize + 16;
   const traySlotWidth = (trayOuterWidth - 16) / 3;
   const trayFit = useMemo(
-    () => ({ slotWidth: traySlotWidth, slotHeight: TRAY_HEIGHT }),
-    [traySlotWidth],
+    () => ({ slotWidth: traySlotWidth, slotHeight: trayHeight - 12 }),
+    [traySlotWidth, trayHeight],
   );
   const boardOrigin = useSharedValue({ x: 0, y: 0 });
   const [measureBoard, setMeasureBoard] = useState<() => void>(() => () => {});
-  const handleMeasureBoardReady = useCallback((nextMeasureBoard: () => void) => {
-    setMeasureBoard(() => nextMeasureBoard);
-  }, []);
+  const handleMeasureBoardReady = useCallback(
+    (nextMeasureBoard: () => void) => {
+      setMeasureBoard(() => nextMeasureBoard);
+    },
+    [],
+  );
+  const handoff = usePlacementHandoff();
+  const noMovesWave = useSharedValue(0);
+  const boardRevision = useSharedValue(0);
   const boardMirror = useSharedValue<number[]>(new Array(64).fill(0));
   const preview = useSharedValue<number[]>(EMPTY_MASK);
   const previewColor = useSharedValue(0);
@@ -189,21 +231,28 @@ export default function AdventureLevelScreen() {
   const clearPrelude = useSharedValue(0);
   const dragActive = useSharedValue(0);
   const dragOwner = useSharedValue(-1);
-  const { onGrab: feedbackOnGrab, onInvalidDrop: feedbackOnInvalidDrop } = useGameFeedback();
+  const { onGrab: feedbackOnGrab, onInvalidDrop: feedbackOnInvalidDrop } =
+    useGameFeedback();
   const invalidDropNotice = useInvalidDropNotice('adventure');
   const onGrab = useCallback(() => {
     useAnalyticsStore.getState().recordFirstGrab('adventure');
   }, []);
-  const onInvalidDrop = useCallback((reason: 'occupied' | 'outside-board') => {
-    feedbackOnInvalidDrop(reason);
-    invalidDropNotice.report(reason);
-  }, [feedbackOnInvalidDrop, invalidDropNotice]);
+  const onInvalidDrop = useCallback(
+    (reason: 'occupied' | 'outside-board') => {
+      feedbackOnInvalidDrop(reason);
+      invalidDropNotice.report(reason);
+    },
+    [feedbackOnInvalidDrop, invalidDropNotice],
+  );
   const onReturn = useCallback(() => {
     feedbackOnInvalidDrop('outside-board');
   }, [feedbackOnInvalidDrop]);
-  const onUnavailablePiecePress = useCallback((shapeId: string) => {
-    invalidDropNotice.report('unavailable', shapeId);
-  }, [invalidDropNotice]);
+  const onUnavailablePiecePress = useCallback(
+    (shapeId: string) => {
+      invalidDropNotice.report('unavailable', shapeId);
+    },
+    [invalidDropNotice],
+  );
   const rawTray = useGameStore((s) => s.game.tray);
   const lastEvent = useGameStore((s) => s.lastEvent);
   const lastAdventureEvent = useGameStore((s) => s.lastAdventureEvent);
@@ -215,7 +264,9 @@ export default function AdventureLevelScreen() {
     clearedLines: number;
   } | null>(null);
   const gameEpoch = useGameStore((s) => s.epoch);
-  const jewelMarkers = useGameStore((s) => s.adventure?.jewelsInTray ?? EMPTY_JEWEL_MARKERS);
+  const jewelMarkers = useGameStore(
+    (s) => s.adventure?.jewelsInTray ?? EMPTY_JEWEL_MARKERS,
+  );
   const handleTrayInteractiveReady = useCallback((token: string) => {
     const pending = pendingTrayReadyRef.current;
     if (!pending || pending.token !== token) return;
@@ -289,6 +340,20 @@ export default function AdventureLevelScreen() {
       }
       const resumed = store.resumeSavedAdventure(spec);
       if (resumed) {
+        // The player already ended this attempt and chose Home. Play starts a
+        // fresh attempt while retaining its durable per-level failure history.
+        if (resumed.status === 'failed' && resumed.resultAcknowledged) {
+          const nextSpec = levelFor(
+            resumed.level.seasonId,
+            resumed.level.levelIndex,
+          );
+          store.newAdventureGame(nextSpec, resumed.attempt + 1, 'home', 'none');
+          setTimeout(() => {
+            setSpec(nextSpec);
+            setAttempt(resumed.attempt + 1);
+          }, 0);
+          return;
+        }
         useAnalyticsStore.getState().track('resume_result', {
           mode: 'adventure',
           result: resumed.status === 'playing' ? 'resumed' : 'result_opened',
@@ -298,7 +363,11 @@ export default function AdventureLevelScreen() {
           returnedAtRef.current = Date.now();
           returnedRunIdRef.current = resumed.runId;
         }
-        if (resumed.level.id !== spec.id) {
+        if (
+          resumed.level.id !== spec.id ||
+          resumed.level.objective.type !== spec.objective.type ||
+          resumed.level.objective.target !== spec.objective.target
+        ) {
           setTimeout(() => setSpec(resumed.level as typeof spec), 0);
         }
         if (resumed.attempt !== attempt) {
@@ -322,13 +391,29 @@ export default function AdventureLevelScreen() {
   // Системная кнопка «назад» минует exitToHub: отцепляем ран от стора, чтобы
   // Endless-партия не продолжила играть по adventure-доске. Снапшот в MMKV
   // остаётся — уровень восстановится при следующем входе.
-  useEffect(() => () => {
-    const analytics = useAnalyticsStore.getState();
-    if (analytics.activeRun?.mode === 'adventure' && !analytics.activeRun.terminal_reported) {
-      analytics.leaveRun('home');
-    }
-    useGameStore.getState().suspendAdventure();
-  }, []);
+  useEffect(
+    () => () => {
+      const analytics = useAnalyticsStore.getState();
+      if (
+        analytics.activeRun?.mode === 'adventure' &&
+        !analytics.activeRun.terminal_reported
+      ) {
+        analytics.leaveRun('home');
+      }
+      useGameStore.getState().suspendAdventure();
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (activeAdventureRunId !== 'preview') recoverRewardedBenefits();
+  }, [activeAdventureRunId]);
+
+  useEffect(() => {
+    if (phase !== 'failed' || runStatus !== 'playing') return;
+    const timer = setTimeout(() => setPhase('playing'), 0);
+    return () => clearTimeout(timer);
+  }, [phase, runStatus]);
 
   useEffect(() => {
     if (!runStatus || runStatus === 'playing' || handledOutcome.current) return;
@@ -348,16 +433,18 @@ export default function AdventureLevelScreen() {
     if (!run || run.status !== 'won' || run.level.id !== spec.id) return;
     setResultReadyRunId(run.runId);
     if (winCommittedAtRef.current === null) return;
-    useAnalyticsStore.getState().trackOnce(
-      `adventure-result-ready:${run.runId}`,
-      'adventure_result_ready',
-      {
-        elapsed_ms: Math.max(0, Date.now() - winCommittedAtRef.current),
-        objective: spec.objective.type,
-        reduced_motion: reducedMotion,
-        accelerated: resultAcceleratedRef.current,
-      },
-    );
+    useAnalyticsStore
+      .getState()
+      .trackOnce(
+        `adventure-result-ready:${run.runId}`,
+        'adventure_result_ready',
+        {
+          elapsed_ms: Math.max(0, Date.now() - winCommittedAtRef.current),
+          objective: spec.objective.type,
+          reduced_motion: reducedMotion,
+          accelerated: resultAcceleratedRef.current,
+        },
+      );
   }, [reducedMotion, spec.id, spec.objective.type]);
 
   useEffect(() => {
@@ -378,22 +465,35 @@ export default function AdventureLevelScreen() {
     }
     const delay = won
       ? spec.objective.type === 'jewels'
-        ? reducedMotion ? 0 : EFFECT_SEQUENCE_TIMING.adventureResultSettleMs
+        ? reducedMotion
+          ? 0
+          : EFFECT_SEQUENCE_TIMING.adventureResultSettleMs
         : reducedMotion
           ? EFFECT_SEQUENCE_TIMING.adventureOutcomeReducedMs
           : EFFECT_SEQUENCE_TIMING.adventureOutcomeReadyMs
       : reducedMotion
         ? 0
-        : lastEvent?.clearedCells.length
-          ? EFFECT_SEQUENCE_TIMING.afterglowEndMs
-          : 180;
+        : 960 + (lastEvent?.clearedCells.length ? 420 : 0);
     const timer = setTimeout(() => setPhase(won ? 'result' : 'failed'), delay);
     return () => clearTimeout(timer);
-  }, [lastAdventureEvent, lastEvent, objectiveArrival, phase, reducedMotion, runStatus, spec.objective]);
+  }, [
+    lastAdventureEvent,
+    lastEvent,
+    objectiveArrival,
+    phase,
+    reducedMotion,
+    runStatus,
+    spec.objective,
+  ]);
 
   const onDrop = useCallback(
     (trayIndex: number, row: number, col: number) => {
-      if (phase !== 'playing' || paused || useGameStore.getState().adventure?.status !== 'playing') return false;
+      if (
+        phase !== 'playing' ||
+        paused ||
+        useGameStore.getState().adventure?.status !== 'playing'
+      )
+        return false;
       const commitStartedAt = Date.now();
       const event = useGameStore.getState().placePiece(trayIndex, row, col);
       const placed = event !== null;
@@ -401,15 +501,24 @@ export default function AdventureLevelScreen() {
         recordNotificationTargetAction('adventure_move');
         invalidDropNotice.recordValidDrop();
         boardMirror.value = [...useGameStore.getState().game.board];
-        const clearedLines = event.clearedRows.length + event.clearedCols.length;
-        const postCommitPlayable = useGameStore.getState().adventure?.status === 'playing';
-        const readinessSource = turnReadinessSource(event.newTray, postCommitPlayable);
+        const clearedLines =
+          event.clearedRows.length + event.clearedCols.length;
+        const postCommitPlayable =
+          useGameStore.getState().adventure?.status === 'playing';
+        const readinessSource = turnReadinessSource(
+          event.newTray,
+          postCommitPlayable,
+        );
         if (!readinessSource) {
           pendingTrayReadyRef.current = null;
           setTrayReadyToken(null);
         } else if (readinessSource === 'native_layout') {
           const token = `adventure:${event.score}:${commitStartedAt}`;
-          pendingTrayReadyRef.current = { token, committedAt: commitStartedAt, clearedLines };
+          pendingTrayReadyRef.current = {
+            token,
+            committedAt: commitStartedAt,
+            clearedLines,
+          };
           setTrayReadyToken(token);
         } else {
           useAnalyticsStore.getState().track('turn_input_ready', {
@@ -451,6 +560,10 @@ export default function AdventureLevelScreen() {
       boardOrigin,
       measureBoard,
       boardMirror,
+      boardRevision,
+      handoff,
+      noMovesWave,
+      jewelMarkers,
       preview,
       previewColor,
       assistPreview,
@@ -460,10 +573,9 @@ export default function AdventureLevelScreen() {
       clearPrelude,
       dragActive,
       dragOwner,
-      cellColors: [skin.blockColor],
-      boardBg: skin.boardBg,
-      cellEmpty: skin.cellEmpty,
-      cellRadius: 3,
+      cellColors: [...n.blockColors],
+      boardBg: '#141A5A',
+      cellEmpty: n.cell,
       onDrop,
       onTouch: feedbackOnGrab,
       onGrab,
@@ -474,10 +586,38 @@ export default function AdventureLevelScreen() {
     }),
     // Shared values are stable; реактивные входы — геометрия, скин и колбэки.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [geom, trayFit, skin, measureBoard, onDrop, feedbackOnGrab, onGrab, onReturn, onInvalidDrop, onUnavailablePiecePress, lang],
+    [
+      geom,
+      trayFit,
+      jewelMarkers,
+      measureBoard,
+      onDrop,
+      feedbackOnGrab,
+      onGrab,
+      onReturn,
+      onInvalidDrop,
+      onUnavailablePiecePress,
+      lang,
+    ],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (helperHint && activeAdventure?.status === 'playing') {
+      const piece = activeAdventure.game.tray[helperHint.trayIndex];
+      if (piece) {
+        assistPreview.value = previewMask(
+          activeAdventure.game.board,
+          piece.shape.cells,
+          helperHint.r,
+          helperHint.c,
+        );
+        assistPreviewColor.value = piece.colorId;
+      }
+      return () => {
+        assistPreview.value = EMPTY_MASK;
+        assistPreviewColor.value = 0;
+      };
+    }
     if (
       phase !== 'playing' ||
       !activeAdventure ||
@@ -487,10 +627,7 @@ export default function AdventureLevelScreen() {
     ) {
       return;
     }
-    const move = findAdventureHelpMove(
-      activeAdventure.game.board,
-      activeAdventure.game.tray,
-    );
+    const move = findAdventureHelpMove(activeAdventure);
     const piece = move ? activeAdventure.game.tray[move.trayIndex] : null;
     if (!move || !piece) return;
     assistPreview.value = previewMask(
@@ -504,43 +641,17 @@ export default function AdventureLevelScreen() {
       assistPreview.value = EMPTY_MASK;
       assistPreviewColor.value = 0;
     };
-  }, [activeAdventure, assistPreview, assistPreviewColor, phase]);
+  }, [activeAdventure, assistPreview, assistPreviewColor, helperHint, phase]);
 
   const failurePresentation = activeAdventure
     ? adventureFailurePresentation(activeAdventure)
     : null;
   const helpEligible = activeAdventure
-    ? shouldOfferAdventureHelp(activeAdventure.level.levelIndex, activeAdventure.failureCount)
+    ? shouldOfferAdventureHelp(
+        activeAdventure.level.levelIndex,
+        activeAdventure.failureCount,
+      )
     : false;
-
-  const exitToHub = useCallback(() => {
-    if (adBusyRef.current) return;
-    leaveRewardedOffer(resultContextId);
-    leavingRef.current = true;
-    const store = useGameStore.getState();
-    const analytics = useAnalyticsStore.getState();
-    if (store.adventure?.status === 'failed') {
-      analytics.track('adventure_retry_decision', {
-        seasonId: store.adventure.level.seasonId,
-        levelIndex: store.adventure.level.levelIndex,
-        attempt: store.adventure.attempt,
-        failure_count: store.adventure.failureCount,
-        decision: 'exit',
-      });
-    }
-    if (store.adventure?.status === 'playing') analytics.leaveRun('home');
-    else analytics.exitRun('home');
-    if (store.adventure?.status === 'failed') {
-      // Keep the settled failure checkpoint: it owns the per-level retry count
-      // and explicit help choice when the player returns from the hub.
-      store.exitAdventure();
-    } else if (store.adventure?.outcomeSettledAt) {
-      store.discardAdventure();
-    } else {
-      store.exitAdventure();
-    }
-    router.replace('/adventure' as Href);
-  }, [resultContextId, router]);
 
   const exitToHome = useCallback(() => {
     if (adBusyRef.current) return;
@@ -550,7 +661,8 @@ export default function AdventureLevelScreen() {
     const analytics = useAnalyticsStore.getState();
     if (store.adventure?.status === 'playing') analytics.leaveRun('home');
     else analytics.exitRun('home');
-    if (store.adventure?.outcomeSettledAt) store.discardAdventure();
+    if (store.adventure?.status === 'failed') store.suspendAdventure();
+    else if (store.adventure?.outcomeSettledAt) store.discardAdventure();
     else store.exitAdventure();
     router.replace('/' as Href);
   }, [resultContextId, router]);
@@ -559,7 +671,8 @@ export default function AdventureLevelScreen() {
     (nextAttempt = 0, helpPolicy?: AdventureHelpPolicy) => {
       const progress = useAdventure.getState();
       const nextSpec = levelFor(progress.seasonId, progress.levelIndex);
-      if (progress.lastWinCompletedSeason !== null) progress.ackSeasonCelebration();
+      if (progress.lastWinCompletedSeason !== null)
+        progress.ackSeasonCelebration();
       handledOutcome.current = false;
       winCommittedAtRef.current = null;
       resultAcceleratedRef.current = false;
@@ -587,18 +700,14 @@ export default function AdventureLevelScreen() {
     [],
   );
 
-  const confirmRestart = useCallback(() => {
-    setPaused(false);
-    setRestartOpen(true);
-  }, []);
-
   const handlePlayfieldLayout = useCallback((event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout;
     setPlayfieldHeight((current) => (current === height ? current : height));
   }, []);
 
   const restartCurrentLevel = useCallback(() => {
-    setRestartOpen(false);
+    if (adBusyRef.current) return;
+    setPaused(false);
     const run = useGameStore.getState().adventure;
     const analytics = useAnalyticsStore.getState();
     if (run) {
@@ -615,16 +724,27 @@ export default function AdventureLevelScreen() {
   }, [attempt, startCurrentLevel]);
 
   useInterstitialPreparation({
-    active: phase === 'result' && runStatus === 'won' && resultReadyRunId === activeAdventureRunId && !adBusy,
-    counter: 'adventure_level', mode: 'adventure', removeAds, resultContextId,
+    active:
+      phase === 'result' &&
+      runStatus === 'won' &&
+      resultReadyRunId === activeAdventureRunId &&
+      !adBusy,
+    counter: 'adventure_level',
+    mode: 'adventure',
+    removeAds,
+    resultContextId,
   });
 
   const runAfterInterstitial = useCallback(
     async (counter: InterstitialCounter, after: () => void) => {
       if (adBusyRef.current) return;
       const currentRun = useGameStore.getState().adventure;
-      if (!currentRun || currentRun.level.id !== spec.id ||
-          currentRun.status !== (counter === 'adventure_fail' ? 'failed' : 'won')) return;
+      if (
+        !currentRun ||
+        currentRun.level.id !== spec.id ||
+        currentRun.status !== (counter === 'adventure_fail' ? 'failed' : 'won')
+      )
+        return;
       adBusyRef.current = true;
       leaveRewardedOffer(resultContextId);
       setAdBusy(true);
@@ -663,12 +783,15 @@ export default function AdventureLevelScreen() {
             () => {
               if (impressionRecorded) return;
               impressionRecorded = true;
-              saveAdsMeta(recordInterstitialShown(
-                loadAdsMeta(),
-                Date.now(),
-                counter,
-                opportunity.telemetry?.product_session_id,
-              ), true);
+              saveAdsMeta(
+                recordInterstitialShown(
+                  loadAdsMeta(),
+                  Date.now(),
+                  counter,
+                  opportunity.telemetry?.product_session_id,
+                ),
+                true,
+              );
             },
           );
         }
@@ -680,102 +803,150 @@ export default function AdventureLevelScreen() {
     },
     [removeAds, resultContextId, spec.id],
   );
-  const retryFailedLevel = useCallback((withHelp: boolean) => {
-    if (adBusyRef.current) return;
-    const run = useGameStore.getState().adventure;
-    if (!run) return;
-    const eligible = shouldOfferAdventureHelp(run.level.levelIndex, run.failureCount);
-    const policy: AdventureHelpPolicy | undefined = withHelp
-      ? 'highlight'
-      : eligible
-        ? 'declined'
-        : undefined;
-    if (policy && !useGameStore.getState().setAdventureRetryPolicy(run.runId, policy)) {
-      return;
-    }
-    useAnalyticsStore.getState().track('adventure_retry_decision', {
-      seasonId: run.level.seasonId,
-      levelIndex: run.level.levelIndex,
-      attempt: run.attempt,
-      failure_count: run.failureCount,
-      decision: withHelp ? 'help' : 'standard',
-    });
-    void runAfterInterstitial('adventure_fail', () => {
-      startCurrentLevel(run.attempt + 1, policy);
-    });
-  }, [runAfterInterstitial, startCurrentLevel]);
-  const overlayBlocksPlayfield = paused || restartOpen || phase === 'result' || phase === 'failed';
+  const retryFailedLevel = useCallback(
+    (withHelp: boolean) => {
+      if (adBusyRef.current) return;
+      const run = useGameStore.getState().adventure;
+      if (!run) return;
+      const eligible = shouldOfferAdventureHelp(
+        run.level.levelIndex,
+        run.failureCount,
+      );
+      const policy: AdventureHelpPolicy | undefined = withHelp
+        ? 'highlight'
+        : eligible
+          ? 'declined'
+          : undefined;
+      if (
+        policy &&
+        !useGameStore.getState().setAdventureRetryPolicy(run.runId, policy)
+      ) {
+        return;
+      }
+      useAnalyticsStore.getState().track('adventure_retry_decision', {
+        seasonId: run.level.seasonId,
+        levelIndex: run.level.levelIndex,
+        attempt: run.attempt,
+        failure_count: run.failureCount,
+        decision: withHelp ? 'help' : 'standard',
+      });
+      void runAfterInterstitial('adventure_fail', () => {
+        startCurrentLevel(run.attempt + 1, policy);
+      });
+    },
+    [runAfterInterstitial, startCurrentLevel],
+  );
+  const overlayBlocksPlayfield =
+    paused || phase === 'result' || phase === 'failed';
 
   return (
     <DragProvider value={dragCtx}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: skin.bgBottom }} edges={['top', 'bottom']}>
-        <LinearGradient
-          colors={[skin.bgTop, skin.bgBottom]}
-          style={{ position: 'absolute', inset: 0 }}
-        />
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: n.night900 }}
+        edges={['top', 'bottom']}
+      >
+        <CandyBackground adventure />
         <View
           // Keep the native parent stable when exit/settling changes pointerEvents.
           // Flattening it reparents animated children out of SafeAreaView on Android.
           collapsable={false}
-          importantForAccessibility={overlayBlocksPlayfield ? 'no-hide-descendants' : 'auto'}
+          importantForAccessibility={
+            overlayBlocksPlayfield ? 'no-hide-descendants' : 'auto'
+          }
           onLayout={handlePlayfieldLayout}
-          pointerEvents={phase === 'playing' && runStatus === 'playing' ? 'auto' : 'none'}
-          style={{ flex: 1, alignItems: 'center', paddingHorizontal: spacing.m, paddingTop: spacing.s }}
+          pointerEvents={
+            phase === 'playing' && runStatus === 'playing' ? 'auto' : 'none'
+          }
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            paddingHorizontal: spacing.m,
+            paddingTop: spacing.s,
+          }}
         >
-          <View style={{ width: '100%', maxWidth: 390, height: 56, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+          <View
+            onLayout={(event) => setHeaderLayout(event.nativeEvent.layout)}
+            style={{
+              width: boardSize + 16,
+              height: 56,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <CandyRoundButton
+              icon="pause"
+              label={lang === 'ru' ? 'Пауза' : 'Pause'}
+              onPress={() => setPaused(true)}
+            />
+            <ObjectivePanel
+              key={`objective:${activeAdventureRunId}`}
+              arrival={objectiveArrival}
+              onLayout={(event) => setObjectiveLayout(event.nativeEvent.layout)}
+              onTargetLayout={(event) =>
+                setObjectiveCounterLayout(event.nativeEvent.layout)
+              }
+            />
             <View
-              pointerEvents="none"
               style={{
-                maxWidth: 205,
-                minHeight: 42,
-                paddingHorizontal: 14,
-                borderRadius: 18,
+                width: 48,
+                height: 48,
+                borderRadius: 99,
+                borderWidth: 2,
+                borderColor: n.grape,
+                backgroundColor: n.night700,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: 'rgba(255,226,191,0.16)',
-                borderWidth: 1,
-                borderColor: 'rgba(255,238,210,0.38)',
+              }}
+            >
+              <CandyCapy size={40} />
+            </View>
+          </View>
+          <View
+            style={{
+              width: boardSize + 16,
+              alignItems: 'flex-start',
+              height: 36,
+              marginTop: 18,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 99,
+                paddingHorizontal: 12,
+                height: 36,
+                justifyContent: 'center',
               }}
             >
               <AppText
-                preset="speech"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.55}
-                style={{ color: '#FFF6E9', fontFamily: 'Unbounded_700Bold', fontSize: 16 }}
+                style={{
+                  fontFamily: 'Nunito_900Black',
+                  color: '#141A5C',
+                  fontSize: 14,
+                }}
               >
-                {t('adventure.title', lang)} · {absoluteLevelNumber(spec.seasonId, spec.levelIndex)}
+                {helperHint
+                  ? lang === 'ru' ? 'Перетащи выделенную фигуру сюда' : 'Drag the highlighted piece here'
+                  : lang === 'ru'
+                  ? spec.objective.type === 'jewels'
+                    ? 'Собирай линии, где лежат кристаллы!'
+                    : 'Собирай линии и набирай очки!'
+                  : 'Clear lines to reach your goal!'}
               </AppText>
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 20,
+                  bottom: -8,
+                  width: 14,
+                  height: 14,
+                  backgroundColor: '#FFFFFF',
+                  transform: [{ rotate: '45deg' }],
+                }}
+              />
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('settings.title', lang)}
-              hitSlop={14}
-              onPress={() => setPaused(true)}
-              style={({ pressed }) => [{
-                position: 'absolute',
-                right: 0,
-                width: 48,
-                height: 48,
-                borderRadius: 18,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'rgba(107, 60, 33, 0.66)',
-                borderWidth: 1,
-                borderColor: 'rgba(255,238,210,0.42)',
-                opacity: pressed ? 0.7 : 1,
-              }]}
-            >
-              <GearIcon size={31} color="#FFEADA" />
-            </Pressable>
           </View>
-
-          <ObjectivePanel
-            key={`objective:${activeAdventureRunId}`}
-            arrival={objectiveArrival}
-            onLayout={(event) => setObjectiveLayout(event.nativeEvent.layout)}
-            onTargetLayout={(event) => setObjectiveCounterLayout(event.nativeEvent.layout)}
-          />
 
           {phase === 'playing' &&
           activeAdventure?.helpPolicy === 'highlight' &&
@@ -794,7 +965,14 @@ export default function AdventureLevelScreen() {
                 borderColor: 'rgba(255, 224, 132, 0.68)',
               }}
             >
-              <AppText preset="caption" style={{ color: '#FFF4C4', fontWeight: '700', textAlign: 'center' }}>
+              <AppText
+                preset="caption"
+                style={{
+                  color: '#FFF4C4',
+                  fontWeight: '700',
+                  textAlign: 'center',
+                }}
+              >
                 {t('adventure.helpActive', lang)}
               </AppText>
             </View>
@@ -802,15 +980,17 @@ export default function AdventureLevelScreen() {
 
           <View
             key={`${spec.id}-${attempt}-${gameEpoch}`}
-            onLayout={(event) => setAdventureBoardLayout(event.nativeEvent.layout)}
+            onLayout={(event) =>
+              setAdventureBoardLayout(event.nativeEvent.layout)
+            }
             style={{
               position: 'relative',
-              marginTop: spacing.l,
+              marginTop: 26,
               // ТОЛЬКО iOS-тень. Никакого elevation на обёртке доски: на Android
               // elevation поднимает всю доску над треем (он — следующий сосед), и
               // фигура при перетаскивании уезжает ЗА полотно. Endless не ставит
               // elevation на доску — именно поэтому там этого бага нет.
-              shadowColor: skin.boardShadow,
+              shadowColor: '#080A30',
               shadowOffset: { width: 0, height: 5 },
               shadowOpacity: 0.28,
               shadowRadius: 6,
@@ -823,35 +1003,51 @@ export default function AdventureLevelScreen() {
             <View
               style={{
                 padding: BOARD_FRAME_WIDTH,
-                borderRadius: 10 + BOARD_FRAME_WIDTH,
-                backgroundColor: skin.boardFrame,
-                borderWidth: 2,
-                borderColor: 'rgba(255, 239, 211, 0.38)',
+                borderRadius: 20,
+                backgroundColor: '#141A5A',
+                boxShadow: 'inset 0px 0px 0px 2px #9A5D3A',
               }}
             >
               <BoardView
-                clearStyle="shatter"
-                style={{ borderRadius: 10 }}
+                clearStyle="dissolve"
+                style={{ borderRadius: 12 }}
                 onMeasureBoardReady={handleMeasureBoardReady}
               />
             </View>
-            <JewelBoardLayer cell={cellSize} gap={cellGap} offset={BOARD_FRAME_WIDTH} />
+            <JewelBoardLayer
+              cell={cellSize}
+              gap={cellGap}
+              offset={BOARD_FRAME_WIDTH}
+            />
+            <StoneBoardLayer
+              cell={cellSize}
+              gap={cellGap}
+              offset={BOARD_FRAME_WIDTH}
+            />
             <PraiseBanner />
           </View>
 
-          <View style={{ width: '100%', maxWidth: 390, height: TRAY_HEIGHT, marginTop: 'auto', marginBottom: spacing.s, position: 'relative' }}>
+          <View
+            style={{
+              width: trayOuterWidth,
+              height: trayHeight,
+              marginTop: boardTrayGap,
+              marginBottom: 8,
+              position: 'relative',
+            }}
+          >
             <View
               pointerEvents="none"
               style={{
                 position: 'absolute',
-                left: 8,
-                right: 8,
-                top: 8,
-                bottom: 8,
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
                 borderRadius: 28,
-                backgroundColor: 'rgba(91, 49, 29, 0.28)',
+                backgroundColor: 'rgba(8,11,52,0.55)',
                 borderWidth: 1,
-                borderColor: 'rgba(255, 234, 202, 0.26)',
+                borderColor: 'rgba(255,255,255,0.08)',
               }}
             />
             <TrayView
@@ -860,9 +1056,22 @@ export default function AdventureLevelScreen() {
               onInteractiveReady={handleTrayInteractiveReady}
               style={{ width: '100%', height: '100%' }}
               renderPieceCellOverlay={(slot, cellIndex, size) =>
-                jewelMarkers.some((m) => m.slot === slot && m.cell === cellIndex) ? (
-                  <View pointerEvents="none" style={{ position: 'absolute', inset: 0 }}>
-                    <JewelIcon size={size} />
+                jewelMarkers.some(
+                  (m) => m.slot === slot && m.cell === cellIndex,
+                ) ? (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <View style={{ position: 'absolute', inset: 0 }}>
+                      <Block size={size} color="#FFD43F" />
+                    </View>
+                    <JewelIcon size={size * 0.56} />
                   </View>
                 ) : null
               }
@@ -872,13 +1081,31 @@ export default function AdventureLevelScreen() {
 
         <JewelCollectionFlightLayer
           key={`flight:${activeAdventureRunId}`}
-          boardLayout={adventureBoardLayout}
-          objectiveLayout={objectiveLayout && objectiveCounterLayout ? {
-            x: objectiveLayout.x + objectiveCounterLayout.x,
-            y: objectiveLayout.y + objectiveCounterLayout.y,
-            width: objectiveCounterLayout.width,
-            height: objectiveCounterLayout.height,
-          } : null}
+          boardLayout={
+            adventureBoardLayout
+              ? {
+                  ...adventureBoardLayout,
+                  y: adventureBoardLayout.y + insets.top,
+                }
+              : null
+          }
+          objectiveLayout={
+            objectiveLayout && objectiveCounterLayout
+              ? {
+                  x:
+                    (headerLayout?.x ?? 0) +
+                    objectiveLayout.x +
+                    objectiveCounterLayout.x,
+                  y:
+                    insets.top +
+                    (headerLayout?.y ?? 0) +
+                    objectiveLayout.y +
+                    objectiveCounterLayout.y,
+                  width: objectiveCounterLayout.width,
+                  height: objectiveCounterLayout.height,
+                }
+              : null
+          }
           cell={cellSize}
           gap={cellGap}
           boardOffset={BOARD_FRAME_WIDTH}
@@ -917,30 +1144,46 @@ export default function AdventureLevelScreen() {
           <View style={{ position: 'absolute', inset: 0, zIndex: 40 }}>
             <LevelResultView
               key={activeAdventureRunId}
-              completedLevel={absoluteLevelNumber(spec.seasonId, spec.levelIndex)}
-              runId={useGameStore.getState().adventure?.runId ?? null}
-              completionId={adventureCompletionIdentity(
+              completedLevel={absoluteLevelNumber(
                 spec.seasonId,
                 spec.levelIndex,
-              ).completionId}
+              )}
+              runId={useGameStore.getState().adventure?.runId ?? null}
+              completionId={
+                adventureCompletionIdentity(spec.seasonId, spec.levelIndex)
+                  .completionId
+              }
               completedSeason={
                 spec.levelIndex + 1 >= seasonLength(spec.seasonId)
                   ? spec.seasonId
                   : null
               }
               disabled={adBusy}
-              onBonusOfferAvailable={() => rememberRewardedOffer(resultContextId)}
+              onBonusOfferAvailable={() =>
+                rememberRewardedOffer(resultContextId)
+              }
               onBonusBusyChange={onBonusBusyChange}
               onPresentationReady={handleResultPresentationReady}
-              onNext={() => void runAfterInterstitial('adventure_level', () => startCurrentLevel(0))}
-              onExit={exitToHub}
+              onNext={() =>
+                void runAfterInterstitial('adventure_level', () =>
+                  startCurrentLevel(0),
+                )
+              }
+              onExit={exitToHome}
             />
           </View>
         ) : null}
-        {phase === 'failed' ? (
+        {phase === 'failed' && !activeAdventure?.resultAcknowledged ? (
+          <NoMovesSheet
+            onFinish={() => useGameStore.getState().finishCurrentResult()}
+          />
+        ) : null}
+        {phase === 'failed' && activeAdventure?.resultAcknowledged ? (
           <FailOverlay
             disabled={adBusy}
-            objective={activeAdventure?.level.objective.type ?? spec.objective.type}
+            objective={
+              activeAdventure?.level.objective.type ?? spec.objective.type
+            }
             current={failurePresentation?.current ?? 0}
             target={failurePresentation?.target ?? spec.objective.target}
             remaining={failurePresentation?.remaining ?? spec.objective.target}
@@ -948,10 +1191,14 @@ export default function AdventureLevelScreen() {
             helpEligible={helpEligible}
             onRetry={() => retryFailedLevel(false)}
             onRetryWithHelp={() => retryFailedLevel(true)}
-            onExit={exitToHub}
+            onExit={exitToHome}
           />
         ) : null}
-        <View importantForAccessibility={overlayBlocksPlayfield ? 'no-hide-descendants' : 'auto'}>
+        <View
+          importantForAccessibility={
+            overlayBlocksPlayfield ? 'no-hide-descendants' : 'auto'
+          }
+        >
           <GameBannerDock
             hidden={overlayBlocksPlayfield || adBusy}
             ftueComplete={ftueStatus === 'complete' || ftueStatus === 'skipped'}
@@ -962,21 +1209,10 @@ export default function AdventureLevelScreen() {
         {paused ? (
           <PauseOverlay
             onClose={() => setPaused(false)}
-            onRestart={confirmRestart}
+            onRestart={restartCurrentLevel}
             onHome={exitToHome}
           />
         ) : null}
-
-        <ConfirmDialog
-          visible={restartOpen}
-          title={t('pause.restart', lang)}
-          message={t('home.newGameConfirm', lang)}
-          confirmLabel={t('pause.restart', lang)}
-          cancelLabel={t('settings.cancel', lang)}
-          destructive
-          onConfirm={restartCurrentLevel}
-          onCancel={() => setRestartOpen(false)}
-        />
       </SafeAreaView>
     </DragProvider>
   );

@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Pressable } from 'react-native-gesture-handler';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { useLang } from '@/features/settings';
 import { AppText } from '@/ui/AppText';
+import { CandyCapy } from '@/ui/primitives/CandyCapy';
+import { nightCandy as n } from '@/ui/nightCandy';
 import { CheckIcon } from '@/ui/icons/CheckIcon';
-import { StarIcon } from '@/ui/icons/StarIcon';
-import { spacing } from '@/ui/theme';
 
 import { progressFor, thresholdForLevel } from '../logic/levels';
 import { rewardDisplayName } from '../logic/presentation';
@@ -20,7 +25,11 @@ interface RewardProgressSummaryProps {
   light?: boolean;
 }
 
-export function RewardProgressSummary({ earnedXp, lifetimePoints, light = false }: RewardProgressSummaryProps) {
+export function RewardProgressSummary({
+  earnedXp,
+  lifetimePoints,
+  light = false,
+}: RewardProgressSummaryProps) {
   const lang = useLang();
   const [expanded, setExpanded] = useState(false);
   const earned = Math.max(0, Math.floor(earnedXp));
@@ -42,13 +51,22 @@ export function RewardProgressSummary({ earnedXp, lifetimePoints, light = false 
   }, [fill, ratio]);
   const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
   const rewardLabel = next
-    ? `${rewardDisplayName(next.reward, lang)} · ${next.available
-      ? lang === 'ru' ? 'открыто' : 'unlocked'
-      : lang === 'ru' ? `ещё ${next.remaining} XP` : `${next.remaining} XP left`}`
-    : lang === 'ru' ? 'Все награды открыты' : 'All rewards unlocked';
-  const accessibleLabel = lang === 'ru'
-    ? `Получено ${earned} XP. Общий уровень ${after.level}. До уровня ${after.level + 1}: ${after.pointsToNext} XP. ${rewardLabel}`
-    : `Earned ${earned} XP. Overall level ${after.level}. ${after.pointsToNext} XP to level ${after.level + 1}. ${rewardLabel}`;
+    ? `${rewardDisplayName(next.reward, lang)} · ${
+        next.available
+          ? lang === 'ru'
+            ? 'открыто'
+            : 'unlocked'
+          : lang === 'ru'
+            ? `ещё ${next.remaining} XP`
+            : `${next.remaining} XP left`
+      }`
+    : lang === 'ru'
+      ? 'Все награды открыты'
+      : 'All rewards unlocked';
+  const accessibleLabel =
+    lang === 'ru'
+      ? `Получено ${earned} XP. Общий уровень ${after.level}. До уровня ${after.level + 1}: ${after.pointsToNext} XP. ${rewardLabel}`
+      : `Earned ${earned} XP. Overall level ${after.level}. ${after.pointsToNext} XP to level ${after.level + 1}. ${rewardLabel}`;
 
   return (
     <Pressable
@@ -63,42 +81,101 @@ export function RewardProgressSummary({ earnedXp, lifetimePoints, light = false 
       testID="reward-progress-summary"
     >
       <View style={styles.row}>
-        <View style={styles.levelBadge}>
-          <StarIcon size={16} color="#FFE06B" />
-          <AppText preset="button" style={styles.level}>{after.level}</AppText>
-        </View>
-        <View style={styles.progress}>
-          <View style={styles.numbers}>
-            <AppText preset="caption" style={styles.earned}>{earned > 0 ? `+${earned} XP` : 'XP'}</AppText>
-            {next ? <AppText preset="caption" style={styles.destination}>{next.level}</AppText> : <CheckIcon size={16} color="#FFE06B" />}
-          </View>
-          <View style={styles.track} testID="reward-progress-track" accessibilityValue={{ min: 0, max: 100, now: Math.round(ratio * 100) }}>
-            <Animated.View style={[styles.fill, fillStyle]} />
-          </View>
+        <CandyCapy size={32} />
+        <AppText style={styles.earned}>
+          {lang === 'ru' ? `Капи +${earned} опыта` : `Capy +${earned} XP`}
+        </AppText>
+        <AppText style={styles.destination}>
+          {lang === 'ru' ? 'Ранг' : 'Rank'} {after.level}
+          {next && next.level > after.level ? ` → ${next.level}` : ''}
+        </AppText>
+      </View>
+      <View style={styles.row}>
+        <View
+          style={styles.track}
+          testID="reward-progress-track"
+          accessibilityRole="progressbar"
+          accessibilityValue={{ min: 0, max: 100, now: Math.round(ratio * 100) }}
+        >
+          <Animated.View style={[styles.fill, fillStyle]} />
         </View>
         <View style={styles.reward} testID="reward-progress-item">
-          {next ? <RewardVisual reward={next.reward} size={36} /> : <CheckIcon size={28} color="#FFE06B" />}
-          {next?.available ? <View style={styles.unlocked}><CheckIcon size={12} color="#153B37" /></View> : null}
+          {next ? (
+            <RewardVisual reward={next.reward} size={32} />
+          ) : (
+            <CheckIcon size={28} color={n.sun} />
+          )}
+          {next?.available ? (
+            <View style={styles.unlocked}>
+              <CheckIcon size={12} color="#153B37" />
+            </View>
+          ) : null}
         </View>
       </View>
-      {expanded ? <AppText preset="caption" style={styles.detail}>{rewardLabel}</AppText> : null}
+      <AppText style={styles.detail}>
+        {next && !next.available
+          ? lang === 'ru'
+            ? `Ещё ${next.remaining} опыта — и Капи получит ${rewardDisplayName(next.reward, lang).toLowerCase()}`
+            : `${next.remaining} XP until ${rewardDisplayName(next.reward, lang)}`
+          : rewardLabel}
+      </AppText>
+      {expanded ? <AppText style={styles.detail}>{accessibleLabel}</AppText> : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { width: '100%', maxWidth: 360, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 18, backgroundColor: 'rgba(14,44,102,0.65)' },
-  cardLight: { backgroundColor: 'rgba(13,42,97,0.8)' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  levelBadge: { minWidth: 42, alignItems: 'center', gap: 1 },
-  level: { color: '#FFFFFF', fontSize: 20, fontVariant: ['tabular-nums'] },
-  progress: { flex: 1, gap: 7 },
-  numbers: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  earned: { color: '#FFE06B', fontWeight: '700', fontVariant: ['tabular-nums'] },
-  destination: { color: '#D9EBFF', fontVariant: ['tabular-nums'] },
-  track: { height: 10, overflow: 'hidden', borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.18)' },
-  fill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 5, backgroundColor: '#FFE06B' },
-  reward: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.13)' },
-  unlocked: { position: 'absolute', right: -2, bottom: -2, padding: 2, borderRadius: 8, backgroundColor: '#8EEAA0' },
-  detail: { paddingTop: spacing.s, color: '#F4FAFF', textAlign: 'center' },
+  card: {
+    width: '100%',
+    padding: 16,
+    gap: 12,
+    borderRadius: 24,
+    backgroundColor: '#161C59',
+    borderWidth: 1.5,
+    borderColor: 'rgba(200,205,251,0.18)',
+  },
+  cardLight: {},
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  earned: { color: '#FFFFFF', fontFamily: 'Nunito_900Black', fontSize: 16, flex: 1 },
+  destination: { color: n.grape, fontFamily: 'Nunito_900Black', fontSize: 13 },
+  track: {
+    flex: 1,
+    height: 12,
+    overflow: 'hidden',
+    borderRadius: 99,
+    backgroundColor: '#0B0F42',
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(0,0,0,0.25)',
+  },
+  fill: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 99,
+    backgroundColor: n.grape,
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(255,255,255,0.45)',
+    borderBottomWidth: 3,
+    borderBottomColor: 'rgba(0,0,0,0.18)',
+  },
+  reward: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2A2174',
+    borderWidth: 2,
+    borderColor: n.grape,
+  },
+  unlocked: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    padding: 2,
+    borderRadius: 8,
+    backgroundColor: n.mint,
+  },
+  detail: { color: n.lavender, fontFamily: 'Nunito_800ExtraBold', fontSize: 13, lineHeight: 18 },
 });

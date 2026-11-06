@@ -14,7 +14,7 @@ jest.mock('@/features/progression/components/RewardVisual', () => ({ RewardVisua
 jest.mock('@/features/progression/logic/presentation', () => ({ rewardDisplayName: (reward: { id: string }) => reward.id }));
 jest.mock('../hooks/useMascotFeedback', () => ({ useMascotFeedback: () => ({ onLevelUp: mockFeedback }) }));
 jest.mock('@/features/settings', () => ({ useLang: () => 'ru' }));
-jest.mock('@/ui', () => ({ AppText: 'AppText', CheckIcon: 'CheckIcon', StarIcon: 'StarIcon' }));
+jest.mock('@/ui', () => ({ ...jest.requireActual('@/ui/nightCandy'), CandyIcon: 'CandyIcon', AppText: 'AppText', CheckIcon: 'CheckIcon', StarIcon: 'StarIcon' }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }) }));
 jest.mock('react-native-gesture-handler', () => ({ Pressable: 'GesturePressable' }));
 jest.mock('react-native-reanimated', () => ({

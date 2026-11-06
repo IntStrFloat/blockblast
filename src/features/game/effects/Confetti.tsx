@@ -126,7 +126,11 @@ export function Confetti({
             : {
                 0: {
                   opacity: 1,
-                  transform: [{ translateY: -16 }, { translateX: 0 }, { rotate: '0deg' }],
+                  transform: [
+                    { translateY: -16 },
+                    { translateX: 0 },
+                    { rotate: '0deg' },
+                  ],
                 },
                 80: {
                   opacity: 1,
@@ -146,7 +150,7 @@ export function Confetti({
                 },
               },
         )
-          .duration(reducedMotion ? 220 : 1200)
+          .duration(reducedMotion ? 220 : 1200 - p.delay)
           .delay(p.delay);
 
         return (

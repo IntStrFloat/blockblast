@@ -5,6 +5,8 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import type { LocalNotificationKind, PlannedNotification } from '../local/planner';
 
+let mockRemindersEnabled = true;
+
 let appStateListener: ((state: 'active' | 'inactive' | 'background') => void) | undefined;
 let notificationResponseListener:
   | ((event: Notifications.NotificationResponse) => void)
@@ -52,6 +54,7 @@ jest.mock('@/features/analytics', () => ({
 
 jest.mock('@/features/settings', () => ({
   useLang: () => 'ru',
+  useSettings: { getState: () => ({ reminders: mockRemindersEnabled }) },
 }));
 
 jest.mock('@/features/adventure/store', () => ({
@@ -170,6 +173,7 @@ describe('useLocalNotifications', () => {
   const notifications = Notifications as NotificationsModule;
 
   beforeEach(() => {
+    mockRemindersEnabled = true;
     resetInitialSessionIntentForTests();
     jest.useRealTimers();
     Object.defineProperty(AppState, 'currentState', {
@@ -255,6 +259,13 @@ describe('useLocalNotifications', () => {
         }),
       ),
     ).toMatchObject({ kind: 'savedRun', route: '/adventure-level' });
+  });
+
+  it('cancels managed reminders and does not plan new ones after opting out', async () => {
+    mockRemindersEnabled = false;
+    await act(async () => { tree = create(<Probe />); });
+    expect(mockApplyLocalNotificationPlan).toHaveBeenCalledWith([], 'ru');
+    expect(mockPlanLocalNotifications).not.toHaveBeenCalled();
   });
 
   it('tracks only reminders that were actually scheduled and ignores inactive->background duplicates', async () => {
