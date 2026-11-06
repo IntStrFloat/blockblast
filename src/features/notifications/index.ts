@@ -2,6 +2,7 @@ export { PUSH } from './config';
 export { resolveNotificationTargetRoute, resolvePushRoute } from './routing';
 export {
   recordGameOverForPush,
+  recordFirstRecordForPush,
   recordMeaningfulSessionForPush,
   shouldShowPushSoftAsk,
   markPushSoftAskHandled,

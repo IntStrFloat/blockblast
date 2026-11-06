@@ -82,3 +82,17 @@ it('reports a failed preload and retries initialization on the next request', as
   await flush();
   expect(audio.native.play.mock.calls).toEqual([['drop']]);
 });
+
+// Slow initialization must not dump a queue of stale clicks into a later screen.
+it('discards stale input cues after delayed native initialization', async () => {
+  const load = deferred();
+  const now = jest.spyOn(Date, 'now').mockReturnValue(1000);
+  const audio = setup(load.promise);
+  audio.playSound('pickup');
+  now.mockReturnValue(1400);
+  load.resolve();
+  await flush();
+  expect(audio.native.play).not.toHaveBeenCalled();
+  audio.playSound('drop');
+  expect(audio.native.play).toHaveBeenCalledWith('drop');
+});

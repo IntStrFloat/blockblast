@@ -31,12 +31,24 @@ const projectIdMetas = (m: { manifest: { application: ManifestApp[] } }) =>
 describe('withRuStorePush config plugin', () => {
   it('adds the RuStore maven repo to allprojects.repositories', () => {
     const out = patchProjectBuildGradle(ALLPROJECTS);
-    expect(out).toContain('artifactory-external.vkpartner.ru/artifactory/maven');
+    expect(out).toContain('nexus-external.rustore.ru/repository/maven-rustore-exposed/');
   });
 
   it('is idempotent for the maven repo', () => {
     const once = patchProjectBuildGradle(ALLPROJECTS);
     expect(patchProjectBuildGradle(once)).toBe(once);
+  });
+
+  it('migrates the legacy endpoint ahead of JitPack so its 401 cannot block RuStore', () => {
+    const input = ALLPROJECTS.replace('mavenCentral()', `mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+    maven { url 'https://artifactory-external.vkpartner.ru/artifactory/maven' }`);
+    const output = patchProjectBuildGradle(input);
+    expect(output).not.toContain('artifactory-external.vkpartner.ru');
+    expect(output).toContain("includeGroup 'ru.ok.tracer'");
+    expect(output.indexOf('nexus-external.vkteam.ru')).toBeLessThan(output.indexOf('jitpack.io'));
+    expect(output.indexOf('nexus-external.rustore.ru')).toBeLessThan(output.indexOf('jitpack.io'));
+    expect(patchProjectBuildGradle(output)).toBe(output);
   });
 
   it('throws when no allprojects.repositories block exists', () => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { CandyHelperPill } from './CandyHelperPill';
 import { StyleSheet, View } from 'react-native';
 import { Pressable } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -14,7 +15,8 @@ import {
   saveAdsMeta,
 } from '@/features/monetization';
 import { isHelperUnlocked, useProgression } from '@/features/progression';
-import { useLang } from '@/features/settings';
+import { useLang, useSettings } from '@/features/settings';
+import { playSound } from '@/features/game/sound/sounds';
 import { todayISO } from '@/features/streak';
 import { useRewardedReady } from '@/features/monetization/useRewardedReady';
 import { claimRewardedBenefit } from '@/features/monetization/rewardedBenefits';
@@ -29,6 +31,7 @@ interface HelperSwapProps {
   onEmote: (id: EmoteId) => void;
   reduceMotion: boolean;
   compact?: boolean;
+  candy?: boolean;
 }
 
 /** Окно отмены свопа (мс): после него ход «застывает» и списывается кулдаун. */
@@ -52,7 +55,7 @@ export function swapUndoOutcome(
  * пока он виден, кулдаун НЕ списан — отмена бесплатна. По истечении окна своп
  * «застывает» и списывается кулдаун до завтра.
  */
-export function HelperSwap({ onEmote, reduceMotion, compact = false }: HelperSwapProps) {
+export function HelperSwap({ onEmote, reduceMotion, compact = false, candy = false }: HelperSwapProps) {
   const board = useGameStore((s) => s.game.board);
   const tray = useGameStore((s) => s.game.tray);
   const level = useProgression((s) => s.level);
@@ -114,6 +117,7 @@ export function HelperSwap({ onEmote, reduceMotion, compact = false }: HelperSwa
     const prev = useGameStore.getState().game;
     useGameStore.getState().replaceTrayPiece(i);
     postSwapRef.current = useGameStore.getState().game;
+    if (useSettings.getState().sound) playSound('swap');
     onEmote('sparkle');
 
     setUndoSnapshot(prev);
@@ -202,6 +206,8 @@ export function HelperSwap({ onEmote, reduceMotion, compact = false }: HelperSwa
       setRewardBusy(false);
     }
   }
+
+  if (candy) return <CandyHelperPill helper="swap" label={undoSnapshot ? t('mascot.undo', lang) : t('mascot.swap', lang)} count={charges + (helperUnlocked && usedDay !== today ? 1 : 0)} disabled={(!available && !undoSnapshot) || rewardBusy} rewarded={rewardOffer} onPress={() => { if (undoSnapshot) doUndo(); else void handlePress(); }} />;
 
   // Окно отмены: тост «фигуру заменили · вернуть».
   if (undoSnapshot) {

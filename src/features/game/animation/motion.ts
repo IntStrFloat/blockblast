@@ -6,17 +6,17 @@ export const TRAY_ACTIVATION = {
 } as const;
 
 export const TRAY_MOTION = {
-  restingScale: 0.65,
+  restingScale: 0.55,
   grabScale: 1,
-  grabDurationMs: 110,
+  grabDurationMs: 80,
   appearFromScale: 0.9,
   appearDurationMs: 150,
-  returnDurationMs: 130,
-  returnScaleDurationMs: 100,
+  returnDurationMs: 200,
+  returnScaleDurationMs: 200,
 } as const;
 
 export const CLEAR_MOTION = {
-  staggerMs: 4,
+  staggerMs: 45,
   durationMs: 180,
   popScale: 1,
   collapseScale: 0.76,
@@ -126,7 +126,7 @@ export function trayRestingScale(
   slotHeight?: number,
   innerGap = TRAY_SLOT_INNER_GAP,
   innerGapV = TRAY_SLOT_INNER_GAP_V,
-  baseScale = TRAY_MOTION.restingScale,
+  baseScale: number = TRAY_MOTION.restingScale,
   floor = 0.2,
 ): number {
   if (figureWidth <= 0 || !Number.isFinite(slotWidth)) return baseScale;
@@ -151,9 +151,9 @@ export function clearCellDelay(cell: Cell, placed: readonly Cell[]): number {
   const count = Math.max(placed.length, 1);
   const centerRow = placed.reduce((sum, [row]) => sum + row, 0) / count;
   const centerCol = placed.reduce((sum, [, col]) => sum + col, 0) / count;
-  return Math.round(
+  return Math.min(240, Math.round(
     (Math.abs(cell[0] - centerRow) + Math.abs(cell[1] - centerCol)) * CLEAR_MOTION.staggerMs,
-  );
+  ));
 }
 
 export function particleSourceIndexes(

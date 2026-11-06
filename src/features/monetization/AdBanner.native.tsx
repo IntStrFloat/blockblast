@@ -4,6 +4,7 @@ import { BannerAdSize, BannerView } from 'yandex-mobile-ads';
 
 import { useAnalyticsStore } from '@/features/analytics';
 
+import { GAME_BANNER_RESERVED_HEIGHT } from './bannerLayout';
 import { useAdPresentation } from './adPresentation';
 import { bannerLoadErrorMessage } from './bannerLoadError';
 import { MONETIZATION } from './config';
@@ -65,7 +66,9 @@ export function AdBanner({
     if (!recovery.foreground) return;
     const requestScope = `${placement}:${adUnitId}:${width}:${recovery.generation}`;
     if (requestedScopeRef.current === requestScope && size) return;
-    BannerAdSize.stickySize(width)
+    (placement === 'game'
+      ? BannerAdSize.inlineSize(width, GAME_BANNER_RESERVED_HEIGHT)
+      : BannerAdSize.stickySize(width))
       .then((nextSize) => {
         if (active) {
           const nextAttemptId = `banner:${placement}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;

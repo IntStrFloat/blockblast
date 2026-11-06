@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppState } from 'react-native';
 import { act, create } from 'react-test-renderer';
-import { KEYS, removeKey, storage } from '@/core/storage';
+import { KEYS, removeKey } from '@/core/storage';
 
 import { GameOverOverlay } from '../components/GameOverOverlay';
 
@@ -10,9 +10,14 @@ type MockGameStoreState = {
   lastEvent: { gameOver?: boolean } | null;
   finalResult: { newRecord: boolean } | null;
   continueGame: jest.Mock<boolean, []>;
+  finishCurrentResult: jest.Mock;
   epoch: number;
   runBestAtStart: number;
-  classicMeta: { runId: string; lifecycle: 'terminal_revivable' | 'terminal_final' } | null;
+  classicMeta: {
+    runId: string;
+    lifecycle: 'terminal_revivable' | 'terminal_final';
+    resultAcknowledged?: boolean;
+  } | null;
 };
 
 type MockAdsMeta = {
@@ -36,37 +41,28 @@ const mockRecordGameOver = jest.fn((meta: MockAdsMeta) => ({
   ...meta,
   gameOversSinceAd: meta.gameOversSinceAd + 1,
 }));
-const mockRecordInterstitialShown = jest.fn(
-  (meta: MockAdsMeta, nowMs: number) => ({
-    ...meta,
-    gameOversSinceAd: 0,
-    lastFullscreenAt: nowMs,
-    lastInterstitialAt: nowMs,
-  }),
-);
-const mockRecordFullscreenCooldown = jest.fn(
-  (meta: MockAdsMeta, nowMs: number) => ({
-    ...meta,
-    lastFullscreenAt: nowMs,
-  }),
-);
+const mockRecordInterstitialShown = jest.fn((meta: MockAdsMeta, nowMs: number) => ({
+  ...meta,
+  gameOversSinceAd: 0,
+  lastFullscreenAt: nowMs,
+  lastInterstitialAt: nowMs,
+}));
+const mockRecordFullscreenCooldown = jest.fn((meta: MockAdsMeta, nowMs: number) => ({
+  ...meta,
+  lastFullscreenAt: nowMs,
+}));
 const mockSaveAdsMeta = jest.fn((meta: MockAdsMeta) => {
   currentAdsMeta = meta;
 });
 const mockLoadAdsMeta = jest.fn(() => currentAdsMeta);
 const mockShouldShowInterstitial = jest.fn((_meta: MockAdsMeta, _opts: unknown) => false);
-let mockReadyListener: (() => void) | undefined;
 const mockPrepareRewarded = jest.fn(async () => {});
 const mockPrepareInterstitial = jest.fn(async () => {});
 
 const mockAdsProvider = {
   init: jest.fn(() => Promise.resolve()),
   showInterstitial: jest.fn(
-    (
-      _placement: string,
-      _telemetry?: unknown,
-      onImpression?: () => void,
-    ) => {
+    (_placement: string, _telemetry?: unknown, onImpression?: () => void) => {
       onImpression?.();
       return Promise.resolve<'shown' | 'skipped' | 'unavailable'>('shown');
     },
@@ -78,10 +74,7 @@ const mockAdsProvider = {
   isRewardedReady: jest.fn(() => true),
   prepareRewarded: mockPrepareRewarded,
   prepareInterstitial: mockPrepareInterstitial,
-  subscribeRewardedReady: jest.fn((listener: () => void) => {
-    mockReadyListener = listener;
-    return () => { mockReadyListener = undefined; };
-  }),
+  subscribeRewardedReady: jest.fn(() => () => {}),
 };
 
 jest.mock('expo-linear-gradient', () => {
@@ -103,14 +96,22 @@ jest.mock('@/core/i18n', () => ({
 
 jest.mock('@/features/analytics', () => ({
   useAnalyticsStore: {
-    getState: () => ({ track: mockTrack, trackOnce: (_key: string, name: string, props: unknown) => mockTrack(name, props) }),
+    getState: () => ({
+      track: mockTrack,
+      trackOnce: (_key: string, name: string, props: unknown) => mockTrack(name, props),
+    }),
   },
 }));
 
 jest.mock('@/features/monetization', () => ({
   MONETIZATION: jest.requireActual('@/features/monetization/config').MONETIZATION,
-  evaluateInterstitialOpportunity: (meta: MockAdsMeta, opts: unknown, _counter: string, _mode: string,
-    context?: { rewardedOfferPresented?: boolean }) => {
+  evaluateInterstitialOpportunity: (
+    meta: MockAdsMeta,
+    opts: unknown,
+    _counter: string,
+    _mode: string,
+    context?: { rewardedOfferPresented?: boolean },
+  ) => {
     const eligible = mockShouldShowInterstitial(meta, opts);
     return {
       variant: 'control',
@@ -146,6 +147,7 @@ jest.mock('@/features/monetization', () => ({
 
 jest.mock('@/features/notifications', () => ({
   recordGameOverForPush: () => mockRecordGameOverForPush(),
+  recordFirstRecordForPush: jest.fn(),
 }));
 
 jest.mock('@/features/scores', () => ({
@@ -169,6 +171,10 @@ jest.mock('@/ui', () => {
       ReactLocal.createElement('app-text', props, children),
     CrownIcon: (props: Record<string, unknown>) => ReactLocal.createElement('crown-icon', props),
     GearIcon: (props: Record<string, unknown>) => ReactLocal.createElement('gear-icon', props),
+    ...jest.requireActual('@/ui/nightCandy'),
+    CandyBackground: () => null,
+    CandyIcon: (props: Record<string, unknown>) => ReactLocal.createElement('candy-icon', props),
+    GameButton: jest.requireActual('@/ui/primitives/GameButton').GameButton,
     radii: { button: 16 },
     spacing: { s: 8, m: 16, l: 24, xl: 32 },
   };
@@ -186,25 +192,9 @@ jest.mock('../effects/Confetti', () => ({
   Confetti: () => null,
 }));
 
-jest.mock('../components/ReviveButton', () => {
+jest.mock('../components/NoMovesSheet', () => {
   const ReactLocal = jest.requireActual<typeof import('react')>('react');
-  return {
-    ReviveButton: ({
-      label,
-      disabled,
-      onPress,
-    }: {
-      label: string;
-      disabled?: boolean;
-      onPress: () => void;
-    }) =>
-      ReactLocal.createElement('revive-button', {
-        testID: 'revive-button',
-        label,
-        disabled,
-        onPress,
-      }),
-  };
+  return { NoMovesSheet: (props: object) => ReactLocal.createElement('no-moves-sheet', props) };
 });
 
 let runSequence = 0;
@@ -214,9 +204,14 @@ function makeGameState(overrides: Partial<MockGameStoreState> = {}): MockGameSto
     lastEvent: { gameOver: true },
     finalResult: null,
     continueGame: jest.fn(() => true),
+    finishCurrentResult: jest.fn(),
     epoch: 7,
     runBestAtStart: 100,
-    classicMeta: { runId: `run-${++runSequence}`, lifecycle: 'terminal_revivable' },
+    classicMeta: {
+      runId: `run-${++runSequence}`,
+      lifecycle: 'terminal_revivable',
+      resultAcknowledged: true,
+    },
     ...overrides,
   };
 }
@@ -238,7 +233,6 @@ describe('GameOverOverlay', () => {
     AppState.currentState = 'active';
     mockShouldShowInterstitial.mockReset().mockReturnValue(false);
     mockAdsProvider.isRewardedReady.mockReturnValue(true);
-    mockReadyListener = undefined;
     removeKey(KEYS.adsMeta);
     removeKey(KEYS.rewardedBenefits);
     mockGameStoreState = makeGameState();
@@ -275,45 +269,34 @@ describe('GameOverOverlay', () => {
     return renderer!;
   }
 
-  it('reveals the advertised continuation when a later rewarded load becomes ready', async () => {
-    mockAdsProvider.isRewardedReady.mockReturnValue(false);
+  it('keeps replay and record prompts behind an explicit end decision', async () => {
+    mockGameStoreState.classicMeta!.resultAcknowledged = false;
     const renderer = mount();
     await flushMicrotasks();
-    act(() => { jest.advanceTimersByTime(1_000); });
-    expect(renderer.root.findAllByProps({ testID: 'revive-button' })).toHaveLength(0);
-    expect(mockPrepareRewarded).toHaveBeenCalledTimes(1);
     act(() => {
-      mockAdsProvider.isRewardedReady.mockReturnValue(true);
-      mockReadyListener?.();
+      jest.advanceTimersByTime(1000);
     });
-    expect(renderer.root.findByProps({ testID: 'revive-button' })).toBeDefined();
-    expect(mockTrack.mock.calls.filter(([name]) => name === 'revive_shown')).toHaveLength(1);
-  });
-
-  it('does not prepare an unused replacement while a successful continuation closes the result', async () => {
-    let dismiss!: (result: 'rewarded') => void;
-    let earn!: () => void;
-    mockAdsProvider.showRewarded.mockImplementationOnce((_placement, onEarned) => {
-      earn = onEarned!;
-      return new Promise(resolve => { dismiss = resolve; });
+    const recordPrompt = jest.requireMock('@/features/notifications').recordFirstRecordForPush;
+    expect(recordPrompt).not.toHaveBeenCalled();
+    const sheet = renderer.root.findByType('no-moves-sheet' as never);
+    expect(
+      renderer.root.findAll((node) => node.props.accessibilityLabel === 'gameOver.playAgain'),
+    ).toHaveLength(0);
+    act(() => {
+      sheet.props.onFinish();
     });
-    mockGameStoreState.continueGame.mockImplementationOnce(() => {
-      mockGameStoreState.game.status = 'playing';
-      return true;
+    expect(mockGameStoreState.finishCurrentResult).toHaveBeenCalledTimes(1);
+    mockGameStoreState.classicMeta!.resultAcknowledged = true;
+    act(() => {
+      renderer.update(
+        <GameOverOverlay onPlayAgain={onPlayAgain} onOpenSettings={onOpenSettings} />,
+      );
     });
-    const renderer = mount();
-    await flushMicrotasks();
-    act(() => { jest.advanceTimersByTime(1_000); });
-    act(() => { renderer.root.findByProps({ testID: 'revive-button' }).props.onPress(); });
-    expect(mockReadyListener).toBeUndefined();
-    await act(async () => {
-      mockAdsProvider.isRewardedReady.mockReturnValue(false);
-      earn();
-      dismiss('rewarded');
-    });
-    expect(mockGameStoreState.continueGame).toHaveBeenCalledTimes(1);
-    expect(mockPrepareRewarded).not.toHaveBeenCalled();
-    expect(renderer.root.findAllByProps({ testID: 'revive-button' })).toHaveLength(0);
+    expect(renderer.root.findAllByType('no-moves-sheet' as never)).toHaveLength(0);
+    expect(recordPrompt).toHaveBeenCalledTimes(1);
+    expect(
+      renderer.root.find((node) => node.props.accessibilityLabel === 'gameOver.playAgain'),
+    ).toBeDefined();
   });
 
   it('counts the first fresh death only once within the same epoch even after a rewarded revive', async () => {
@@ -398,27 +381,31 @@ describe('GameOverOverlay', () => {
   });
 
   it('persists frequency at impression before dismiss/process interruption', async () => {
-    mockGameStoreState.classicMeta = { runId: 'final-run', lifecycle: 'terminal_final' };
+    mockGameStoreState.classicMeta = {
+      runId: 'final-run',
+      lifecycle: 'terminal_final',
+      resultAcknowledged: true,
+    };
     const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(345_678);
     mockShouldShowInterstitial.mockReturnValue(true);
     mockAdsProvider.showInterstitial.mockImplementationOnce(
-      (
-        _placement: string,
-        _telemetry?: unknown,
-        onImpression?: () => void,
-      ) => {
+      (_placement: string, _telemetry?: unknown, onImpression?: () => void) => {
         onImpression?.();
         return new Promise<'shown'>(() => {});
       },
     );
     const renderer = mount();
     await flushMicrotasks();
-    act(() => { jest.advanceTimersByTime(1_000); });
+    act(() => {
+      jest.advanceTimersByTime(1_000);
+    });
     const replay = renderer.root.find(
       (node) => node.props.accessibilityLabel === 'gameOver.playAgain',
     );
 
-    act(() => { replay.props.onPress(); });
+    act(() => {
+      replay.props.onPress();
+    });
     await flushMicrotasks();
 
     expect(mockRecordInterstitialShown).toHaveBeenCalledTimes(1);
@@ -427,120 +414,20 @@ describe('GameOverOverlay', () => {
     nowSpy.mockRestore();
   });
 
-  it('writes fullscreen cooldown after a rewarded revive without faking an interstitial show', async () => {
-    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(123_456);
-    const renderer = mount();
-
-    await flushMicrotasks();
-    act(() => {
-      jest.advanceTimersByTime(800);
-    });
-
-    const reviveButton = renderer.root.findByProps({ testID: 'revive-button' });
-    await act(async () => {
-      await reviveButton.props.onPress();
-    });
-
-    expect(mockGameStoreState.continueGame).toHaveBeenCalledTimes(1);
-    expect(mockRecordFullscreenCooldown).toHaveBeenCalledTimes(1);
-    expect(mockRecordFullscreenCooldown).toHaveBeenCalledWith(
-      expect.objectContaining({ gameOversSinceAd: 1 }),
-      123_456,
-    );
-    expect(mockRecordInterstitialShown).not.toHaveBeenCalled();
-    expect(currentAdsMeta.lastFullscreenAt).toBe(123_456);
-    expect(currentAdsMeta.lastInterstitialAt).toBeNull();
-
-    nowSpy.mockRestore();
-  });
-
-  it('writes fullscreen cooldown after a dismissed rewarded revive without continuing the run', async () => {
-    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(222_333);
-    mockAdsProvider.showRewarded.mockResolvedValueOnce('dismissed');
-    const renderer = mount();
-
-    await flushMicrotasks();
-    act(() => {
-      jest.advanceTimersByTime(800);
-    });
-
-    const reviveButton = renderer.root.findByProps({ testID: 'revive-button' });
-    await act(async () => {
-      await reviveButton.props.onPress();
-    });
-
-    expect(mockGameStoreState.continueGame).not.toHaveBeenCalled();
-    expect(mockRecordFullscreenCooldown).toHaveBeenCalledTimes(1);
-    expect(currentAdsMeta.lastFullscreenAt).toBe(222_333);
-    expect(currentAdsMeta.lastInterstitialAt).toBeNull();
-    expect(mockTrack).toHaveBeenCalledWith('revive_used', { result: 'dismissed' });
-
-    nowSpy.mockRestore();
-  });
-
-  it('does not write fullscreen cooldown when rewarded revive is unavailable', async () => {
-    mockAdsProvider.showRewarded.mockResolvedValueOnce('unavailable');
-    const renderer = mount();
-
-    await flushMicrotasks();
-    act(() => {
-      jest.advanceTimersByTime(800);
-    });
-
-    const reviveButton = renderer.root.findByProps({ testID: 'revive-button' });
-    await act(async () => {
-      await reviveButton.props.onPress();
-    });
-
-    expect(mockGameStoreState.continueGame).not.toHaveBeenCalled();
-    expect(mockRecordFullscreenCooldown).not.toHaveBeenCalled();
-    expect(currentAdsMeta.lastFullscreenAt).toBeNull();
-    expect(currentAdsMeta.lastInterstitialAt).toBeNull();
-    expect(mockTrack).toHaveBeenCalledWith('revive_used', { result: 'unavailable' });
-  });
-
-  it('retains earned proof when the continuation cannot yet be applied', async () => {
-    mockGameStoreState = makeGameState({
-      continueGame: jest.fn(() => false),
-    });
-    const renderer = mount();
-
-    await flushMicrotasks();
-    act(() => {
-      jest.advanceTimersByTime(800);
-    });
-
-    const reviveButton = renderer.root.findByProps({ testID: 'revive-button' });
-    await act(async () => {
-      await reviveButton.props.onPress();
-    });
-
-    expect(mockGameStoreState.continueGame).toHaveBeenCalledTimes(1);
-    expect(mockTrack).not.toHaveBeenCalledWith('revive_used', { result: 'rewarded' });
-    expect(Object.values(JSON.parse(storage.getString(KEYS.rewardedBenefits)!)))
-      .toEqual([expect.objectContaining({ state: 'earned_pending' })]);
-  });
-
-  it('allows a frequency-eligible interstitial on replay after declining a visible revive', async () => {
-    mockShouldShowInterstitial.mockReturnValue(true);
-    const renderer = mount();
-    await flushMicrotasks();
-    act(() => { jest.advanceTimersByTime(1_000); });
-    expect(renderer.root.findByProps({ testID: 'revive-button' })).toBeDefined();
-    expect(mockPrepareInterstitial).toHaveBeenCalledTimes(1);
-    const replay = renderer.root.find(node => node.props.accessibilityLabel === 'gameOver.playAgain');
-    await act(async () => { await replay.props.onPress(); });
-    expect(mockAdsProvider.showInterstitial).toHaveBeenCalledTimes(1);
-    expect(mockAdsProvider.showRewarded).not.toHaveBeenCalled();
-    expect(onPlayAgain).toHaveBeenCalledTimes(1);
-  });
-
   it('allows only one transition from two rapid presses of the same result', async () => {
-    mockGameStoreState.classicMeta = { runId: 'final-run', lifecycle: 'terminal_final' };
+    mockGameStoreState.classicMeta = {
+      runId: 'final-run',
+      lifecycle: 'terminal_final',
+      resultAcknowledged: true,
+    };
     const renderer = mount();
     await flushMicrotasks();
-    act(() => { jest.advanceTimersByTime(1_000); });
-    const replay = renderer.root.find(node => node.props.accessibilityLabel === 'gameOver.playAgain');
+    act(() => {
+      jest.advanceTimersByTime(1_000);
+    });
+    const replay = renderer.root.find(
+      (node) => node.props.accessibilityLabel === 'gameOver.playAgain',
+    );
     await act(async () => {
       replay.props.onPress();
       replay.props.onPress();

@@ -1,6 +1,0 @@
-- generic [ref=f2e86]:
-  - generic [ref=f2e89]:
-    - generic [ref=f2e90]: "0"
-    - generic [ref=f2e95]: "0"
-    - button "Настройки" [ref=f2e99] [cursor=pointer]
-  - generic: ур.1

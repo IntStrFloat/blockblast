@@ -3,6 +3,21 @@ import type { PlacementEvent } from '@/core/engine';
 import { SPECTACLE_MOTION } from './motion';
 import { createSeedHasher, seededRandom } from './presentationMath';
 
+export type ClearAnimationInput = Pick<
+  PlacementEvent,
+  | 'placed'
+  | 'clearedRows'
+  | 'clearedCols'
+  | 'clearedCells'
+  | 'clearedColors'
+  | 'colorId'
+  | 'score'
+  | 'scoreDelta'
+  | 'combo'
+  | 'praise'
+  | 'boardCleared'
+>;
+
 export type EffectStage =
   | 'lock'
   | 'charge'
@@ -26,6 +41,7 @@ export interface EffectStageWindow {
   endMs: number;
 }
 
+/** Source-line geometry for mote origins only; never render a wash across gutters. */
 export interface EffectBeam {
   id: string;
   axis: 'row' | 'col';
@@ -118,11 +134,11 @@ const REDUCED_STAGES: readonly EffectStageWindow[] = [
   { stage: 'afterglow', startMs: 210, endMs: 430 },
 ];
 
-function lineCountFor(event: PlacementEvent) {
+function lineCountFor(event: ClearAnimationInput) {
   return event.clearedRows.length + event.clearedCols.length;
 }
 
-export function effectSequenceTierFor(event: PlacementEvent): EffectSequenceTier {
+export function effectSequenceTierFor(event: ClearAnimationInput): EffectSequenceTier {
   if (event.boardCleared) return 'board_clear';
   if (event.combo >= 10) return 'combo_10_plus';
   if (event.combo >= 5) return 'combo_5_9';
@@ -146,7 +162,7 @@ export function effectStageStartMs(
   return sequence.stages.find((window) => window.stage === stage)?.startMs ?? 0;
 }
 
-function eventSeed(event: PlacementEvent) {
+function eventSeed(event: ClearAnimationInput) {
   const hash = createSeedHasher();
   event.clearedRows.forEach((row) => hash.feedNumber(row));
   event.clearedCols.forEach((col) => hash.feedNumber(col));
@@ -156,7 +172,7 @@ function eventSeed(event: PlacementEvent) {
   return hash.value();
 }
 
-function dominantColor(event: PlacementEvent, colors: readonly string[]) {
+function dominantColor(event: ClearAnimationInput, colors: readonly string[]) {
   const counts = new Map<number, number>();
   event.clearedColors.forEach((color) => counts.set(color, (counts.get(color) ?? 0) + 1));
   let colorId = event.colorId;
@@ -171,7 +187,7 @@ function dominantColor(event: PlacementEvent, colors: readonly string[]) {
 }
 
 function buildBeams(
-  event: PlacementEvent,
+  event: ClearAnimationInput,
   geom: EffectGeometry,
   color: string,
 ): EffectBeam[] {
@@ -202,7 +218,7 @@ function buildBeams(
 }
 
 function buildMotes(
-  event: PlacementEvent,
+  event: ClearAnimationInput,
   geom: EffectGeometry,
   beams: readonly EffectBeam[],
   color: string,
@@ -234,7 +250,7 @@ function buildMotes(
 }
 
 export function buildEffectSequence(
-  event: PlacementEvent,
+  event: ClearAnimationInput,
   geom: EffectGeometry,
   colors: readonly string[],
   reducedMotion: boolean,
@@ -253,7 +269,7 @@ export function buildEffectSequence(
 }
 
 export function countEffectSequenceNodes(sequence: EffectSequence): number {
-  return sequence.beams.length + sequence.motes.length;
+  return sequence.motes.length;
 }
 
 export function effectSequenceLifetimeMs(sequence: EffectSequence): number {

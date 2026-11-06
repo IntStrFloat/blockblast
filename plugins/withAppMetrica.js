@@ -43,9 +43,12 @@ function stripLegacyMainApplication(contents) {
 }
 
 function withAppMetrica(config, options = {}) {
-  const apiKey = validateApiKey(
-    options.apiKey ?? process.env.APPMETRICA_API_KEY,
-  );
+  const configuredKey = options.apiKey ?? process.env.APPMETRICA_API_KEY;
+  const localWithoutKey = process.env.BLOCKBLAST_LOCAL_BUILD === '1' && !configuredKey;
+  const apiKey = localWithoutKey ? undefined : validateApiKey(configuredKey);
+  if (localWithoutKey) {
+    console.warn('Local Android build: AppMetrica is disabled because APPMETRICA_API_KEY is absent.');
+  }
 
   let next = {
     ...config,

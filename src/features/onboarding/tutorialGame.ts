@@ -33,33 +33,20 @@ function requireShape(id: string): Shape {
   return shape;
 }
 
-/**
- * A deterministic first-game fixture modelled on Block Blast's opening board:
- * a red/yellow cross leaves a 2×2 center pocket and the only visible piece is
- * the blue square that completes the opening clear in one intentional move.
- */
+/** The supplied opening: one centered square fills two golden rows. */
 export function createTutorialGame(seed = 0x46545545): GameState {
   const board: Board = new Array(BOARD_SIZE * BOARD_SIZE).fill(0);
-  for (let row = 0; row < BOARD_SIZE; row += 1) {
-    if (row === 3 || row === 4) continue;
-    board[idx(row, 3)] = 1;
-    board[idx(row, 4)] = 1;
+  for (const row of [5, 6]) {
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      if (col !== 3 && col !== 4) board[idx(row, col)] = 3;
+    }
   }
-  for (const row of [3, 4]) {
-    board[idx(row, 0)] = 1;
-    board[idx(row, 1)] = 1;
-    board[idx(row, 2)] = 2;
-    board[idx(row, 5)] = 2;
-    board[idx(row, 6)] = 1;
-    board[idx(row, 7)] = 1;
-  }
-
   return {
     board,
     tray: [
       null,
-      null,
       { shape: requireShape('sq2'), colorId: 5 },
+      null,
     ],
     score: 0,
     combo: 0,
@@ -78,6 +65,9 @@ function searchClearPath(
   path: readonly TutorialPathStep[] = [],
 ): TutorialPathStep[] | null {
   if (remainingDepth === 0) return null;
+  let bestClear: TutorialPathStep[] | null = null;
+  let bestLineCount = 0;
+  const continuations: { board: Board; tray: (PieceInstance | null)[]; path: TutorialPathStep[] }[] = [];
 
   for (let trayIndex = 0; trayIndex < tray.length; trayIndex += 1) {
     const piece = tray[trayIndex];
@@ -87,13 +77,21 @@ function searchClearPath(
       const placed = applyPlacement(board, piece.shape, row, col, piece.colorId).board;
       const lines = findFullLines(placed);
       const nextPath = [...path, { trayIndex, row, col, shape: piece.shape }];
-      if (lines.rows.length + lines.cols.length > 0) return nextPath;
+      const lineCount = lines.rows.length + lines.cols.length;
+      if (lineCount > bestLineCount) {
+        bestLineCount = lineCount;
+        bestClear = nextPath;
+      }
 
       const nextTray = tray.slice();
       nextTray[trayIndex] = null;
-      const result = searchClearPath(placed, nextTray, remainingDepth - 1, nextPath);
-      if (result) return result;
+      if (remainingDepth > 1 && lineCount === 0) continuations.push({ board: placed, tray: nextTray, path: nextPath });
     }
+  }
+  if (bestClear) return bestClear;
+  for (const next of continuations) {
+    const result = searchClearPath(next.board, next.tray, remainingDepth - 1, next.path);
+    if (result) return result;
   }
   return null;
 }

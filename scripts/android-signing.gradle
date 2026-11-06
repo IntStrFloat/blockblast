@@ -1,0 +1,24 @@
+// Shared by APK and AAB builds; applied after Expo's generated configuration.
+def signingMode = providers.gradleProperty("blockblastSigning").getOrElse("release")
+if (!(signingMode in ["release", "local", "unsigned"])) {
+    throw new GradleException("Unknown blockblastSigning mode")
+}
+
+def propertiesFile = rootProject.file("../credentials/keystore.properties")
+def releaseProperties = new Properties()
+if (signingMode == "release" && propertiesFile.exists()) {
+    propertiesFile.withInputStream { releaseProperties.load(it) }
+}
+
+android {
+    def releaseKey = signingConfigs.maybeCreate("release")
+    if (signingMode == "release" && propertiesFile.exists()) {
+        releaseKey.storeFile = file(releaseProperties['storeFile'])
+        releaseKey.storePassword = releaseProperties['storePassword']
+        releaseKey.keyAlias = releaseProperties['keyAlias']
+        releaseKey.keyPassword = releaseProperties['keyPassword']
+    }
+    buildTypes.release.signingConfig = (signingMode == "local"
+        ? signingConfigs.debug
+        : signingMode == "unsigned" ? null : releaseKey)
+}

@@ -37,8 +37,9 @@ export function initSounds(): void {
 export function playSound(name: SoundName): void {
   initSounds();
   const session = generation;
+  const requestedAt = Date.now();
   const play = () => {
-    if (!ready || session !== generation) return;
+    if (!ready || session !== generation || Date.now() - requestedAt > 250) return;
     // Native code suppresses background playback and reports unsuccessful plays.
     audio.play(name);
   };

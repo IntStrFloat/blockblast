@@ -15,8 +15,10 @@ const FIXED_RNG = 42;
 const DEFAULTS = {
   unlocked: ['hat-casquette'],
   equipped: {},
+  wornCosmetics: [],
   helpersUsedDay: {},
   helperCharges: {},
+  helperSpendReceipts: {},
   lost: false,
   introDone: false,
   rngState: FIXED_RNG,
@@ -48,6 +50,16 @@ describe('defaults', () => {
 // useHelper — гейт от Уровня Игры
 // ---------------------------------------------------------------------------
 describe('useHelper', () => {
+  it('debits a saved rescue intent once across replay and a later day', () => {
+    useProgression.setState({ level: 5 });
+    useMascot.setState({ helperCharges: { hint: 2 } });
+    const receipt = { id: 'rescue-run:hint:1', helperId: 'hint' as const, source: 'charge' as const, day: '2026-11-05' };
+    expect(useMascot.getState().useHelper('hint', receipt)).toBe(true);
+    expect(useMascot.getState().useHelper('hint', { ...receipt, day: '2026-11-06' })).toBe(true);
+    expect(useMascot.getState().helperCharges.hint).toBe(1);
+    expect(getJSON<{ helperSpendReceipts: Record<string, true> }>(KEYS.mascot)?.helperSpendReceipts[receipt.id]).toBe(true);
+  });
+
   it('hint: false below unlock level (game level 1)', () => {
     useProgression.setState({ level: 1 });
     expect(useMascot.getState().useHelper('hint')).toBe(false);
@@ -134,12 +146,15 @@ describe('equip', () => {
     expect(useMascot.getState().equipped['face']).toBeUndefined();
   });
 
-  it('equip persists equipped', () => {
+  it('first wear remains acknowledged after unequip and is persisted', () => {
     useMascot.setState({ unlocked: ['hat-casquette'] });
     useMascot.getState().equip('hat', 'hat-casquette');
 
-    const saved = getJSON<{ equipped: Record<string, string> }>(KEYS.mascot);
-    expect(saved!.equipped['hat']).toBe('hat-casquette');
+    useMascot.getState().unequip('hat');
+    const saved = getJSON<{ equipped: Record<string, string>; wornCosmetics: string[] }>(KEYS.mascot);
+    expect(saved!.equipped['hat']).toBeUndefined();
+    expect(saved!.wornCosmetics).toContain('hat-casquette');
+    expect(useMascot.getState().wornCosmetics).toContain('hat-casquette');
   });
 });
 

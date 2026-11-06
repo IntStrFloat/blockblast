@@ -121,7 +121,7 @@ function activeFrameCallbacks() {
   return mockFrames.filter((entry) => entry.active).length;
 }
 function activeWork() {
-  return mockValues.filter((value) => value.animation).length +
+  return activeFrameCallbacks() + mockValues.filter((value) => value.animation).length +
     mockStyles.filter((style) => typeof style().opacity === 'number' && (style().opacity as number) > 0).length;
 }
 

@@ -1,5 +1,5 @@
-import { findPlacements } from '@/core/engine';
-import type { AdventureRun, Board, PieceInstance } from '@/core/engine';
+import type { AdventureRun } from '@/core/engine';
+import { findHintMove } from '@/features/mascot/logic/helpers';
 
 export const ADVENTURE_HELP_MAX_LEVEL_INDEX = 4;
 export const ADVENTURE_HELP_FAILURE_THRESHOLD = 2;
@@ -43,17 +43,7 @@ export function shouldOfferAdventureHelp(levelIndex: number, failureCount: numbe
     failureCount >= ADVENTURE_HELP_FAILURE_THRESHOLD;
 }
 
-/** Deterministic valid opening highlight. It never claims a move on a terminal board. */
-export function findAdventureHelpMove(
-  board: Board,
-  tray: readonly (PieceInstance | null)[],
-): AdventureHelpMove | null {
-  for (let trayIndex = 0; trayIndex < tray.length; trayIndex += 1) {
-    const piece = tray[trayIndex];
-    if (!piece) continue;
-    const placement = findPlacements(board, piece.shape)[0];
-    if (placement) return { trayIndex, row: placement[0], col: placement[1] };
-  }
-  return null;
+export function findAdventureHelpMove(run: AdventureRun): AdventureHelpMove | null {
+  const move = findHintMove(run.game, { adventure: run });
+  return move ? { trayIndex: move.trayIndex, row: move.r, col: move.c } : null;
 }
-

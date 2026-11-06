@@ -9,7 +9,7 @@ version = '1.0.0'
 def generatedSoundAssets = layout.buildDirectory.dir('generated/gameAudioAssets')
 def syncGameSounds = tasks.register('syncGameSounds', Sync) {
   from(file('../../../assets/sounds')) {
-    include '*.wav'
+    include '*.wav', 'sound-bank.json'
     into 'game-audio'
   }
   into generatedSoundAssets

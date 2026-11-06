@@ -35,10 +35,17 @@ export function getClassicHudMetrics(width: number, compact = false) {
   const gap = 6;
   const sideWidth = Math.max(48, Math.min(88, Math.floor(width * 0.23)));
   const centerWidth = Math.max(1, width - padding * 2 - gap * 2 - sideWidth * 2);
-  const height = compact ? PLAYFIELD_LAYOUT.classicCompactHudHeight : PLAYFIELD_LAYOUT.classicHudHeight;
+  const height = compact
+    ? PLAYFIELD_LAYOUT.classicCompactHudHeight
+    : PLAYFIELD_LAYOUT.classicHudHeight;
   const statusHeight = 28;
   return {
-    padding, gap, sideWidth, centerWidth, height, statusHeight,
+    padding,
+    gap,
+    sideWidth,
+    centerWidth,
+    height,
+    statusHeight,
     scoreShellHeight: height - statusHeight,
     scoreWidth: Math.floor(centerWidth / GAME_FEEL_MOTION.scoreScaleMax),
     scoreHeight: Math.floor((height - statusHeight) / GAME_FEEL_MOTION.scoreScaleMax),
@@ -60,7 +67,11 @@ export function formatHudBestScore(value: number, locale: 'ru' | 'en') {
   if (value < 1_000_000) return String(value);
   let formatter = bestCompactFormatters.get(locale);
   if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 0, useGrouping: false });
+    formatter = new Intl.NumberFormat(locale, {
+      notation: 'compact',
+      maximumFractionDigits: 0,
+      useGrouping: false,
+    });
     bestCompactFormatters.set(locale, formatter);
   }
   return formatter.format(value).replace(/\s/gu, '');
@@ -70,9 +81,15 @@ function classicSections(usableHeight: number, adReserve: number) {
   const compactHeader = usableHeight - adReserve < 640;
   return {
     compactHeader,
-    hudHeight: compactHeader ? PLAYFIELD_LAYOUT.classicCompactHudHeight : PLAYFIELD_LAYOUT.classicHudHeight,
-    mascotHeight: compactHeader ? PLAYFIELD_LAYOUT.classicCompactMascotHeight : PLAYFIELD_LAYOUT.classicMascotVisualHeight,
-    minTrayHeight: compactHeader ? PLAYFIELD_LAYOUT.classicCompactTrayMinHeight : PLAYFIELD_LAYOUT.classicTrayMinHeight,
+    hudHeight: compactHeader
+      ? PLAYFIELD_LAYOUT.classicCompactHudHeight
+      : PLAYFIELD_LAYOUT.classicHudHeight,
+    mascotHeight: compactHeader
+      ? PLAYFIELD_LAYOUT.classicCompactMascotHeight
+      : PLAYFIELD_LAYOUT.classicMascotVisualHeight,
+    minTrayHeight: compactHeader
+      ? PLAYFIELD_LAYOUT.classicCompactTrayMinHeight
+      : PLAYFIELD_LAYOUT.classicTrayMinHeight,
   };
 }
 
@@ -95,10 +112,7 @@ export function getPlayfieldBoardMetrics(
     usableHeight >= PLAYFIELD_LAYOUT.minUsableHeight
       ? PLAYFIELD_LAYOUT.minBoardSize
       : PLAYFIELD_LAYOUT.absoluteMinBoardSize;
-  const maxBoardSize = Math.max(
-    minimumBoardSize,
-    usableHeight - verticalReserve,
-  );
+  const maxBoardSize = Math.max(minimumBoardSize, usableHeight - verticalReserve);
 
   return {
     ...getBoardMetrics(screenWidth, maxBoardSize),
@@ -155,10 +169,7 @@ export function getClassicTrayHeight({
 
   return Math.max(
     sections.minTrayHeight,
-    Math.min(
-      PLAYFIELD_LAYOUT.classicTrayMaxHeight,
-      Math.floor(usableHeight - heightWithoutTray),
-    ),
+    Math.min(PLAYFIELD_LAYOUT.classicTrayMaxHeight, Math.floor(usableHeight - heightWithoutTray)),
   );
 }
 
@@ -195,5 +206,76 @@ export function getClassicPlayfieldMetrics(
       verticalGap,
       adReserve,
     }),
+  };
+}
+
+/** Native layout of the 390×844 Night Candy reference, with a smaller board on short displays. */
+export function getCandyPlayfieldMetrics(width: number, height: number, insets: PlayfieldInsets) {
+  const usableHeight = Math.max(0, height - insets.top - insets.bottom);
+  const compactHeader = usableHeight < 680;
+  const hudHeight = compactHeader ? 78 : 90;
+  const boardTopGap = compactHeader ? 24 : 30;
+  const trayHeight = compactHeader ? 104 : 126;
+  const helperHeight = 44;
+  const reserve = 8 + hudHeight + boardTopGap + 16 + 17 + helperHeight + 14 + trayHeight;
+  const maximumInner = Math.max(96, Math.min(width - 48, usableHeight - reserve));
+  const cellGap = 3;
+  const cellSize = Math.max(8, Math.floor((maximumInner - cellGap * 7) / 8));
+  const boardSize = cellSize * 8 + cellGap * 7;
+  return {
+    usableHeight,
+    compactHeader,
+    hudHeight,
+    boardTopGap,
+    trayHeight,
+    helperHeight,
+    cellSize,
+    cellGap,
+    boardSize,
+    frameSize: boardSize + 16,
+  };
+}
+
+export function getCandyAdventureMetrics(width: number, height: number, insets: PlayfieldInsets) {
+  const usableHeight = Math.max(0, height - insets.top - insets.bottom);
+  const compact = usableHeight < 680;
+  const trayHeight = compact ? 104 : 126;
+  const boardTrayGap = compact ? 24 : 64;
+  const reserve = 8 + 56 + 18 + 36 + 26 + 16 + boardTrayGap + trayHeight + 16;
+  const cellGap = 3;
+  const maximumInner = Math.max(96, Math.min(width - 48, usableHeight - reserve));
+  const cellSize = Math.max(8, Math.floor((maximumInner - cellGap * 7) / 8));
+  return { cellSize, cellGap, boardSize: cellSize * 8 + cellGap * 7, trayHeight, boardTrayGap };
+}
+
+export function getCandyTutorialMetrics(width: number, height: number, insets: PlayfieldInsets) {
+  const usableHeight = Math.max(0, height - insets.top - insets.bottom);
+  const compactHeader = usableHeight < 680;
+  const hudHeight = compactHeader ? 136 : 166;
+  const trayHeight = compactHeader ? 88 : 126;
+  const boardTopGap = compactHeader ? 12 : 18;
+  const reserve =
+    8 +
+    hudHeight +
+    boardTopGap +
+    16 +
+    (compactHeader ? 16 : 26) +
+    trayHeight +
+    (compactHeader ? 16 + 54 : 26 + 40);
+  const cellGap = 3;
+  const maximumInner = Math.max(96, Math.min(width - 48, usableHeight - reserve));
+  const cellSize = Math.max(8, Math.floor((maximumInner - cellGap * 7) / 8));
+  const boardSize = cellSize * 8 + cellGap * 7;
+  return {
+    usableHeight,
+    compactHeader,
+    hudHeight,
+    boardTopGap,
+    trayHeight,
+    helperHeight: 0,
+    cellSize,
+    cellGap,
+    boardSize,
+    frameSize: boardSize + 16,
   };
 }

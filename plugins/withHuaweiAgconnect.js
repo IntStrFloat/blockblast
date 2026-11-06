@@ -93,7 +93,7 @@ function patchProjectBuildGradle(
   return next;
 }
 
-function patchAppBuildGradle(contents) {
+function patchAppBuildGradle(contents, enableConfig = true) {
   let next = contents;
 
   if (!next.includes('com.huawei.agconnect:agconnect-core:')) {
@@ -106,6 +106,9 @@ function patchAppBuildGradle(contents) {
     );
   }
 
+  if (!enableConfig) {
+    return next.replace(/^apply plugin: "com.huawei.agconnect"\s*$/gm, '');
+  }
   if (!next.includes('apply plugin: "com.huawei.agconnect"')) {
     next = `${next.trimEnd()}\n\n${AGCONNECT_PLUGIN}\n`;
   }
@@ -130,6 +133,11 @@ function validateAgconnectConfig(agconnectConfig, expectedPackage) {
 
 const withHuaweiAgconnect = (config, options = {}) => {
   const configFile = options.configFile ?? 'agconnect-services.json';
+  const localWithoutConfig = process.env.BLOCKBLAST_LOCAL_BUILD === '1'
+    && !fs.existsSync(path.resolve(config._internal?.projectRoot ?? process.cwd(), configFile));
+  if (localWithoutConfig) {
+    console.warn('Local Android build: agconnect-services.json is absent; Huawei service configuration is disabled.');
+  }
 
   config = withProjectBuildGradle(config, (projectConfig) => {
     if (projectConfig.modResults.language !== 'groovy') {
@@ -151,6 +159,7 @@ const withHuaweiAgconnect = (config, options = {}) => {
     }
     appConfig.modResults.contents = patchAppBuildGradle(
       appConfig.modResults.contents,
+      !localWithoutConfig,
     );
     return appConfig;
   });
@@ -167,6 +176,10 @@ const withHuaweiAgconnect = (config, options = {}) => {
       );
 
       if (!fs.existsSync(sourcePath)) {
+        if (localWithoutConfig) {
+          if (fs.existsSync(targetPath)) fs.unlinkSync(targetPath);
+          return androidConfig;
+        }
         throw new Error(
           `Huawei AGConnect config is missing: ${sourcePath}. Download it from AppGallery Connect.`,
         );

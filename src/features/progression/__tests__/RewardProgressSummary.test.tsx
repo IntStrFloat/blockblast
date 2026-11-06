@@ -43,9 +43,9 @@ describe('RewardProgressSummary', () => {
     expect(summary.props.accessibilityLabel).toContain('помощник «Подсказка» · открыто');
     expect(summary.props.accessibilityState).toEqual({ expanded: false });
 
-    expect(visibleText()).toContain('+500 XP');
-    expect(visibleText().filter((value) => value.includes('XP'))).toEqual(['+500 XP']);
-    expect(visibleText().join(' ')).not.toMatch(/Рост|Вклад|Следующий уровень|осталось|Подсказка/);
+    expect(visibleText()).toContain('Капи +500 опыта');
+    expect(visibleText().filter((value) => value.includes('+500'))).toEqual(['Капи +500 опыта']);
+    expect(visibleText().join(' ')).toContain('помощник «Подсказка» · открыто');
   });
 
   it('shows the exact-threshold reward as unlocked with a full bar', () => {
@@ -65,9 +65,9 @@ describe('RewardProgressSummary', () => {
     expect(tree.root.findByType(RewardVisual).props.reward).toMatchObject({
       kind: 'cosmetic', id: 'face-sunglasses',
     });
-    expect(visibleText()).toContain('11');
+    expect(visibleText()).toContain('Ранг 10 → 11');
     expect(trackValue()).toEqual({ min: 0, max: 100, now: 50 });
-    expect(visibleText()).toContain('XP');
+    expect(visibleText()).toContain('Капи +0 опыта');
     expect(visibleText()).not.toContain('+0 XP');
   });
 
@@ -79,19 +79,19 @@ describe('RewardProgressSummary', () => {
 
     expect(summary().props.accessibilityLabel).toContain('Получено 9000 XP. Общий уровень 4.');
     expect(reward).toMatchObject({ kind: 'world', world: 2 });
-    expect(visibleText()).toContain('+9000 XP');
-    expect(visibleText()).not.toContain('дизайн мира 2 · открыто');
+    expect(visibleText()).toContain('Капи +9000 опыта');
+    expect(visibleText()).toContain('дизайн мира 2 · открыто');
 
     act(() => summary().props.onPress());
     expect(summary().props.accessibilityState).toEqual({ expanded: true });
     expect(visibleText()).toContain('дизайн мира 2 · открыто');
-    expect(visibleText()).toContain('+9000 XP');
+    expect(visibleText()).toContain('Капи +9000 опыта');
     expect(trackValue()).toEqual(value);
     expect(tree.root.findByType(RewardVisual).props.reward).toEqual(reward);
 
     act(() => summary().props.onPress());
     expect(summary().props.accessibilityState).toEqual({ expanded: false });
-    expect(visibleText()).not.toContain('дизайн мира 2 · открыто');
+    expect(visibleText()).toContain('дизайн мира 2 · открыто');
     expect(trackValue()).toEqual(value);
   });
 

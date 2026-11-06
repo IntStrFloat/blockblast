@@ -1,46 +1,36 @@
-import { Pressable } from 'react-native-gesture-handler';
+import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
+import { View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
-
 import { AppText } from '../AppText';
-import { colors, radii, spacing } from '../theme';
+import { nightCandy as n } from '../nightCandy';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-type Variant = 'primary' | 'ghost' | 'danger';
-
-const variantStyle: Record<Variant, ViewStyle> = {
-  primary: { backgroundColor: colors.accent },
-  ghost: {
-    backgroundColor: colors.cardSolid,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  danger: {
-    backgroundColor: '#342345',
-    borderWidth: 1,
-    borderColor: 'rgba(255,90,95,0.44)',
-  },
-};
-
-const variantText: Record<Variant, string> = {
-  primary: '#1B2A4A',
-  ghost: colors.textPrimary,
-  danger: colors.danger,
-};
-
-type Size = 'md' | 'lg';
+type Variant = 'primary' | 'ghost' | 'danger' | 'sky' | 'mandarin' | 'grape' | 'ink' | 'text';
+const variants = {
+  primary: { fill: n.sun, edge: n.sunEdge, ink: n.sunInk },
+  sky: { fill: n.sky, edge: n.skyEdge, ink: '#082A4D' },
+  mandarin: { fill: n.mandarin, edge: n.mandarinEdge, ink: '#3A1600' },
+  grape: { fill: n.grape, edge: n.grapeEdge, ink: '#1E0A4D' },
+  ink: { fill: '#3B2400', edge: '#6D4A0A', ink: '#FFFFFF' },
+  ghost: { fill: 'rgba(255,255,255,0.10)', edge: 'transparent', ink: n.white },
+  danger: { fill: 'rgba(255,79,106,0.12)', edge: 'transparent', ink: n.coral },
+  text: { fill: 'transparent', edge: 'transparent', ink: n.muted },
+} as const;
 
 interface GameButtonProps {
   label: string;
   onPress: () => void;
   variant?: Variant;
-  size?: Size;
+  size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
+  icon?: ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -50,58 +40,98 @@ export function GameButton({
   variant = 'primary',
   size = 'md',
   disabled = false,
+  icon,
   style,
 }: GameButtonProps) {
-  const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const lg = size === 'lg';
-
+  const pressed = useSharedValue(0);
+  const faceStyle = useAnimatedStyle(() => ({ transform: [{ translateY: pressed.value * 3 }] }));
+  const { fill, edge, ink } = variants[variant];
+  const solid = ['primary', 'sky', 'mandarin', 'grape', 'ink'].includes(variant);
+  const height = size === 'lg' ? 58 : size === 'sm' ? 44 : 50;
+  const radius = size === 'lg' ? 18 : 16;
   return (
-    <AnimatedPressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      onPressIn={() => {
-        scale.value = withSpring(0.95, { damping: 18, stiffness: 320 });
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, { damping: 18, stiffness: 320 });
-      }}
+    <View
       style={[
-        {
-          borderRadius: radii.button,
-          minHeight: 48,
-          paddingVertical: lg ? 20 : 14,
-          paddingHorizontal: spacing.l,
-          alignItems: 'center',
-          opacity: disabled ? 0.4 : 1,
-          overflow: 'hidden',
-          // «Глиняная» приподнятость для главного действия.
-          shadowColor: colors.clayShadow,
-          shadowOffset: { width: 0, height: lg ? 8 : 4 },
-          shadowOpacity: lg ? 0.45 : 0.3,
-          shadowRadius: lg ? 12 : 8,
-          elevation: lg ? 6 : 3,
-        },
-        variantStyle[variant],
-        animatedStyle,
+        { minHeight: height, marginBottom: solid ? 5 : 0, opacity: disabled ? 0.4 : 1 },
         style,
       ]}
     >
-      <AppText
-        preset="button"
-        numberOfLines={2}
-        adjustsFontSizeToFit
-        minimumFontScale={0.75}
-        style={{ color: variantText[variant], fontSize: lg ? 19 : 15, textAlign: 'center' }}
+      {solid && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            bottom: -5,
+            borderRadius: radius,
+            backgroundColor: edge,
+          }}
+        />
+      )}
+      <AnimatedPressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled }}
+        disabled={disabled}
+        onPress={onPress}
+        onPressIn={() => {
+          pressed.value = withTiming(1, {
+            duration: n.motion.tap,
+            easing: Easing.out(Easing.quad),
+          });
+        }}
+        onPressOut={() => {
+          pressed.value = withTiming(0, {
+            duration: n.motion.tap,
+            easing: Easing.out(Easing.quad),
+          });
+        }}
+        style={[
+          {
+            minHeight: height,
+            borderRadius: radius,
+            backgroundColor: fill,
+            borderWidth: solid || variant === 'text' ? 0 : 2,
+            borderColor: variant === 'danger' ? 'rgba(255,79,106,0.4)' : 'rgba(255,255,255,0.18)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: size === 'sm' ? 14 : 22,
+            flexDirection: 'row',
+            gap: 10,
+            overflow: 'hidden',
+          },
+          faceStyle,
+        ]}
       >
-        {label}
-      </AppText>
-    </AnimatedPressable>
+        {solid && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: radius,
+              borderTopWidth: 2,
+              borderTopColor: 'rgba(255,255,255,0.45)',
+            }}
+          />
+        )}
+        {icon}
+        <AppText
+          preset="button"
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          style={{
+            color: ink,
+            fontSize: size === 'lg' ? 18 : size === 'sm' ? 14 : 16,
+            lineHeight: size === 'lg' ? 24 : 22,
+            textAlign: 'center',
+            flexShrink: 1,
+          }}
+        >
+          {label}
+        </AppText>
+      </AnimatedPressable>
+    </View>
   );
 }

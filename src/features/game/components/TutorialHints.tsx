@@ -1,8 +1,6 @@
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
-  FadeIn,
-  FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -10,7 +8,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { recordExperimentExposure, useAnalyticsStore } from '@/features/analytics';
+import {
+  recordExperimentExposure,
+  useAnalyticsStore,
+} from '@/features/analytics';
 import {
   FTUE_EXPERIMENT_ID,
   TutorialPointer,
@@ -19,7 +20,7 @@ import {
 } from '@/features/onboarding';
 import type { TutorialPoint } from '@/features/onboarding/components/TutorialPointer';
 import { useLang } from '@/features/settings';
-import { AppText, colors, radii, spacing } from '@/ui';
+import { AppText, CandyCapy, nightCandy as n } from '@/ui';
 
 import { useReducedMotion } from '../animation/useReducedMotion';
 import { useGameStore } from '../store';
@@ -51,15 +52,22 @@ function GhostTarget({
       return;
     }
     pulse.value = withRepeat(
-      withSequence(withTiming(1.12, { duration: 520 }), withTiming(1, { duration: 520 })),
+      withSequence(
+        withTiming(0.55, { duration: 520 }),
+        withTiming(1, { duration: 520 }),
+      ),
       -1,
       true,
     );
   }, [pulse, reducedMotion]);
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill} importantForAccessibility="no-hide-descendants">
+    <View
+      pointerEvents="none"
+      style={StyleSheet.absoluteFill}
+      importantForAccessibility="no-hide-descendants"
+    >
       {cells.map((cell, index) => (
         <Animated.View
           key={`${cell.x}:${cell.y}:${index}`}
@@ -70,7 +78,7 @@ function GhostTarget({
               top: cell.y,
               width: cell.size,
               height: cell.size,
-              borderColor: emphasized ? colors.accent : 'rgba(255,201,60,0.72)',
+              borderColor: emphasized ? n.sun : 'rgba(255,201,60,0.72)',
             },
             animatedStyle,
           ]}
@@ -84,14 +92,14 @@ function GhostTarget({
  * Action-driven FTUE presentation. Progress is advanced only by game callbacks in
  * useFtueStore; tapping instructional text cannot advance it.
  */
-export function TutorialHints({ pieceCenter, targetCells = [] }: TutorialHintsProps = {}) {
-  const lang = useLang();
+export function TutorialHints({
+  pieceCenter,
+  targetCells = [],
+}: TutorialHintsProps = {}) {
   const reducedMotion = useReducedMotion();
   const { width, height } = useWindowDimensions();
   const status = useFtueStore((state) => state.status);
   const variant = useFtueStore((state) => state.variant);
-  const assistanceActive = useFtueStore((state) => state.assistanceActive);
-  const practicePromptVisible = useFtueStore((state) => state.practicePromptVisible);
   const invalidDrops = useFtueStore((state) => state.invalidDrops);
   const placements = useFtueStore((state) => state.placements);
   const startedAt = useFtueStore((state) => state.startedAt);
@@ -100,8 +108,9 @@ export function TutorialHints({ pieceCenter, targetCells = [] }: TutorialHintsPr
     state.classicMeta?.runKind === 'tutorial' ? state.classicMeta.runId : null,
   );
   const start = useFtueStore((state) => state.start);
-  const finishGuidedCelebration = useFtueStore((state) => state.finishGuidedCelebration);
-  const skip = useFtueStore((state) => state.skip);
+  const finishGuidedCelebration = useFtueStore(
+    (state) => state.finishGuidedCelebration,
+  );
 
   useEffect(() => {
     if (status === 'not_started') {
@@ -113,20 +122,28 @@ export function TutorialHints({ pieceCenter, targetCells = [] }: TutorialHintsPr
     if (!ftueRunId || ftueRunId !== classicRunId) return;
     useAnalyticsStore
       .getState()
-      .trackOnce(`tutorial-shown:${ftueRunId}`, 'tutorial_shown', { step: 'grab_piece' });
+      .trackOnce(`tutorial-shown:${ftueRunId}`, 'tutorial_shown', {
+        step: 'grab_piece',
+      });
   }, [classicRunId, ftueRunId]);
 
   useEffect(() => {
-    if (!ftueRunId || ftueRunId !== classicRunId || status === 'not_started') return;
+    if (!ftueRunId || ftueRunId !== classicRunId || status === 'not_started')
+      return;
     recordExperimentExposure(FTUE_EXPERIMENT_ID, variant, 'tutorial_game');
   }, [classicRunId, ftueRunId, status, variant]);
 
   useEffect(() => {
-    if (status !== 'guided_success' || !ftueRunId || ftueRunId !== classicRunId) return;
+    if (status !== 'guided_success' || !ftueRunId || ftueRunId !== classicRunId)
+      return;
     const timer = setTimeout(() => {
       const currentFtue = useFtueStore.getState();
       const currentRunId = useGameStore.getState().classicMeta?.runId;
-      if (currentFtue.runId !== currentRunId || currentFtue.status !== 'guided_success') return;
+      if (
+        currentFtue.runId !== currentRunId ||
+        currentFtue.status !== 'guided_success'
+      )
+        return;
       finishGuidedCelebration();
       useGameStore.getState().syncTutorialCheckpoint();
     }, 700);
@@ -134,16 +151,15 @@ export function TutorialHints({ pieceCenter, targetCells = [] }: TutorialHintsPr
   }, [classicRunId, finishGuidedCelebration, ftueRunId, status]);
 
   useEffect(() => {
-    if (status !== 'complete' || !ftueRunId || ftueRunId !== classicRunId) return;
-    useAnalyticsStore.getState().trackOnce(
-      `tutorial-completed:${ftueRunId}`,
-      'tutorial_completed',
-      {
+    if (status !== 'complete' || !ftueRunId || ftueRunId !== classicRunId)
+      return;
+    useAnalyticsStore
+      .getState()
+      .trackOnce(`tutorial-completed:${ftueRunId}`, 'tutorial_completed', {
         elapsed_ms: startedAt ? Date.now() - startedAt : 0,
         placements,
         skipped: false,
-      },
-    );
+      });
   }, [classicRunId, ftueRunId, placements, startedAt, status]);
 
   if (
@@ -157,33 +173,30 @@ export function TutorialHints({ pieceCenter, targetCells = [] }: TutorialHintsPr
 
   const emphasized = invalidDrops >= 3;
   const showAssistance = shouldShowFtueAssistance(useFtueStore.getState());
-  const target = targetCells.length > 0
-    ? (() => {
-        const left = Math.min(...targetCells.map((cell) => cell.x));
-        const top = Math.min(...targetCells.map((cell) => cell.y));
-        const right = Math.max(...targetCells.map((cell) => cell.x + cell.size));
-        const bottom = Math.max(...targetCells.map((cell) => cell.y + cell.size));
-        return { x: (left + right) / 2, y: (top + bottom) / 2 };
-      })()
-    : { x: width * 0.56, y: height * 0.43 };
+  const target =
+    targetCells.length > 0
+      ? (() => {
+          const left = Math.min(...targetCells.map((cell) => cell.x));
+          const top = Math.min(...targetCells.map((cell) => cell.y));
+          const right = Math.max(
+            ...targetCells.map((cell) => cell.x + cell.size),
+          );
+          const bottom = Math.max(
+            ...targetCells.map((cell) => cell.y + cell.size),
+          );
+          return { x: (left + right) / 2, y: (top + bottom) / 2 };
+        })()
+      : { x: width * 0.56, y: height * 0.43 };
   const from = pieceCenter ?? { x: width * 0.5, y: height * 0.78 };
-  const instruction = practicePromptVisible
-    ? lang === 'ru'
-      ? 'Заполни ряд или столбец'
-      : 'Fill a row or column'
-    : assistanceActive
-      ? lang === 'ru'
-        ? 'Попробуй эту фигуру'
-        : 'Try this piece'
-      : lang === 'ru'
-        ? 'Перетащи фигуру сюда'
-        : 'Drag the piece here';
-  const skipLabel = lang === 'ru' ? 'Пропустить' : 'Skip';
 
   return (
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
       {showAssistance && targetCells.length > 0 ? (
-        <GhostTarget cells={targetCells} emphasized={emphasized} reducedMotion={reducedMotion} />
+        <GhostTarget
+          cells={targetCells}
+          emphasized={emphasized}
+          reducedMotion={reducedMotion}
+        />
       ) : null}
       {showAssistance && targetCells.length > 0 ? (
         <TutorialPointer
@@ -193,88 +206,146 @@ export function TutorialHints({ pieceCenter, targetCells = [] }: TutorialHintsPr
           emphasized={emphasized}
         />
       ) : null}
+    </View>
+  );
+}
 
-      {practicePromptVisible || (showAssistance && targetCells.length > 0) ? (
-        <Animated.View
-          entering={reducedMotion ? undefined : FadeIn.duration(180)}
-          exiting={reducedMotion ? undefined : FadeOut.duration(120)}
-          pointerEvents="none"
-          accessibilityLiveRegion="polite"
-          accessibilityLabel={instruction}
-          style={styles.instruction}
-        >
-          <AppText preset="body" style={styles.instructionText}>
-            {instruction}
-          </AppText>
-        </Animated.View>
-      ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={skipLabel}
-        onPress={() => {
-          useAnalyticsStore.getState().trackOnce(
-            `tutorial-skip:${ftueRunId ?? 'unbound'}`,
-            'tutorial_completed',
-            {
-              elapsed_ms: startedAt ? Date.now() - startedAt : 0,
-              placements,
-              skipped: true,
-            },
-          );
-          skip('user');
-          useGameStore.getState().syncTutorialCheckpoint();
+export function TutorialHeader({ compact = false }: { compact?: boolean }) {
+  const lang = useLang();
+  const state = useFtueStore();
+  const stage =
+    state.status === 'grab_piece' || state.status === 'not_started'
+      ? 0
+      : state.status === 'valid_drop'
+        ? 1
+        : 2;
+  const message =
+    state.status === 'guided_success'
+      ? lang === 'ru'
+        ? 'Получилось! Обе линии сгорели. Теперь попробуй сам!'
+        : 'Great! Both lines cleared. Now try on your own!'
+      : stage === 2
+        ? lang === 'ru'
+          ? 'Теперь твой ход! Собери ещё одну линию.'
+          : 'Your turn! Complete another line.'
+        : lang === 'ru'
+          ? 'Привет, я Капи! Перетащи квадрат в светящееся место — обе линии сгорят.'
+          : 'Hi, I’m Capy! Drag the square into the glowing space to clear both lines.';
+  return (
+    <View
+      style={{
+        width: '100%',
+        paddingHorizontal: 20,
+        height: compact ? 136 : 166,
+      }}
+    >
+      <View
+        style={{
+          height: compact ? 28 : 40,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
-        hitSlop={4}
-        style={({ pressed }) => [styles.skip, pressed && styles.skipPressed]}
       >
-        <AppText preset="caption" style={styles.skipText}>
-          {skipLabel}
-        </AppText>
-      </Pressable>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {[0, 1, 2].map((i) => (
+            <View
+              key={i}
+              style={{
+                width: i === stage ? 24 : 8,
+                height: 8,
+                borderRadius: 99,
+                backgroundColor: i === stage ? n.sun : '#5D68AA',
+              }}
+            />
+          ))}
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={lang === 'ru' ? 'Пропустить' : 'Skip'}
+          hitSlop={8}
+          onPress={() => {
+            useAnalyticsStore
+              .getState()
+              .trackOnce(
+                `tutorial-skip:${state.runId ?? 'unbound'}`,
+                'tutorial_completed',
+                {
+                  elapsed_ms: state.startedAt
+                    ? Date.now() - state.startedAt
+                    : 0,
+                  placements: state.placements,
+                  skipped: true,
+                },
+              );
+            state.skip('user');
+            useGameStore.getState().syncTutorialCheckpoint();
+          }}
+          style={{ minHeight: 40, justifyContent: 'center' }}
+        >
+          <AppText
+            style={{
+              fontFamily: 'Nunito_900Black',
+              color: n.lavender,
+              fontSize: 16,
+            }}
+          >
+            {lang === 'ru' ? 'Пропустить' : 'Skip'}
+          </AppText>
+        </Pressable>
+      </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          gap: 10,
+          marginTop: compact ? 8 : 20,
+          height: compact ? 88 : 96,
+        }}
+      >
+        <CandyCapy size={compact ? 44 : 72} />
+        <View
+          style={{
+            flex: 1,
+            paddingVertical: compact ? 8 : 10,
+            paddingHorizontal: 14,
+            borderRadius: 16,
+            backgroundColor: '#FFFFFF',
+            marginBottom: compact ? 0 : 18,
+          }}
+        >
+          <AppText
+            accessibilityLiveRegion="polite"
+            style={{
+              color: '#141A5C',
+              fontFamily: 'Nunito_800ExtraBold',
+              fontSize: compact ? 12 : 14,
+              lineHeight: compact ? 16 : 19,
+            }}
+          >
+            {message}
+          </AppText>
+          <View
+            style={{
+              position: 'absolute',
+              left: 22,
+              bottom: -7,
+              width: 14,
+              height: 14,
+              backgroundColor: '#FFFFFF',
+              transform: [{ rotate: '45deg' }],
+            }}
+          />
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  instruction: {
-    position: 'absolute',
-    top: 168,
-    left: spacing.l,
-    right: spacing.l,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radii.button,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(20,33,66,0.92)',
-    paddingHorizontal: spacing.m,
-  },
-  instructionText: {
-    textAlign: 'center',
-  },
-  skip: {
-    position: 'absolute',
-    top: 112,
-    right: spacing.m,
-    minWidth: 48,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radii.button,
-    paddingHorizontal: spacing.s,
-    zIndex: 60,
-  },
-  skipPressed: {
-    backgroundColor: colors.surfacePressed,
-  },
-  skipText: {
-    color: colors.accent,
-  },
   ghostCell: {
     position: 'absolute',
-    borderRadius: radii.cell,
+    borderRadius: 9,
     borderWidth: 2,
     backgroundColor: 'rgba(255,201,60,0.2)',
     zIndex: 48,

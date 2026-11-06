@@ -12,6 +12,7 @@ import {
   place,
   replaceTrayPiece as engineReplaceTrayPiece,
   revive,
+  rescueAdventureRun,
   seedFromTime,
   serializeAdventureRun,
   serializeClassicCheckpoint,
@@ -22,6 +23,7 @@ import type {
   AdventureLevelSpec,
   AdventurePlacementEvent,
   AdventureRun,
+  Board,
   ClassicCheckpointMeta,
   GameConfig,
   GameState,
@@ -36,10 +38,7 @@ import {
   setString,
   setStringOrThrow,
 } from '@/core/storage';
-import {
-  adventureCompletionIdentity,
-  adventureXpForLevel,
-} from '@/features/adventure/logic/xp';
+import { adventureCompletionIdentity, adventureXpForLevel } from '@/features/adventure/logic/xp';
 import { seasonRewardCosmetic } from '@/features/adventure/logic/config';
 import { seasonLength } from '@/features/adventure/logic/seasons';
 import { useAdventure } from '@/features/adventure/store';
@@ -74,6 +73,7 @@ import { todayISO, useStreak } from '@/features/streak';
 
 import { recordProgressFor } from './animation/recordProgression';
 import { playPlacementFeedback } from './sound/feedback';
+import { playSound } from './sound/sounds';
 
 export interface NewGameOptions {
   seed?: number;
@@ -84,11 +84,7 @@ export interface NewGameOptions {
 
 export type ResumeKind = 'none' | 'active' | 'terminal';
 
-export type SavedGameKind =
-  | 'none'
-  | 'active'
-  | 'terminal_revivable'
-  | 'terminal_final';
+export type SavedGameKind = 'none' | 'active' | 'terminal_revivable' | 'terminal_final';
 
 export type ClassicRunMeta = ClassicCheckpointMeta;
 
@@ -161,6 +157,7 @@ interface GameStore {
   activeConfig: GameConfig;
   adventure: AdventureRun | null;
   lastEvent: PlacementEvent | null;
+  boardRecovery: { previousBoard: Board; board: Board } | null;
   lastAdventureEvent: AdventurePlacementEvent | null;
   linesCleared: number;
   finalResult: SubmitResult | null;
@@ -188,6 +185,9 @@ interface GameStore {
   replaceTrayPiece: (trayIndex: number) => void;
   restoreGame: (snapshot: GameState) => void;
   continueGame: (expectedRunId?: string) => boolean;
+  helperHint?: { trayIndex: number; r: number; c: number } | null;
+  recoverHelperRescues: () => void;
+  finishCurrentResult: () => void;
   settleClassicRun: (
     reason: 'home' | 'replay' | 'restart' | 'final_game_over',
   ) => SubmitResult | null;
@@ -197,10 +197,23 @@ interface GameStore {
   loadSaved: () => Exclude<ResumeKind, 'none'> | null;
 }
 
-function buildFreshPresentationState(best: number): Pick<
-  GameStore,
-  'runBestAtStart' | 'recordCelebration' | 'recordCelebrated'
-> {
+/** A rewarded clear is available only for the current, unfinished terminal run. */
+export function canOfferBoardRecovery(
+  { game, adventure, classicMeta }: Pick<GameStore, 'game' | 'adventure' | 'classicMeta'>,
+  runId: string | undefined,
+): boolean {
+  if (!runId || game.status !== 'over' || game.reviveUsed) return false;
+  if (adventure) {
+    return adventure.runId === runId && adventure.status === 'failed' &&
+      !adventure.resultAcknowledged && !adventure.helperSpend;
+  }
+  return classicMeta?.runId === runId && classicMeta.lifecycle === 'terminal_revivable' &&
+    !classicMeta.resultAcknowledged && !classicMeta.helperSpend;
+}
+
+function buildFreshPresentationState(
+  best: number,
+): Pick<GameStore, 'runBestAtStart' | 'recordCelebration' | 'recordCelebrated'> {
   return {
     runBestAtStart: best,
     recordCelebration: null,
@@ -272,8 +285,7 @@ interface LegacyClassicRunEnvelope {
 }
 
 function persistClassicSnapshot(game: GameState, meta: ClassicRunMeta, critical = false): void {
-  const ftueCheckpoint =
-    meta.runKind === 'tutorial' ? ftueCheckpointForRun(meta.runId) : null;
+  const ftueCheckpoint = meta.runKind === 'tutorial' ? ftueCheckpointForRun(meta.runId) : null;
   const checkpointMeta: ClassicRunMeta = {
     ...meta,
     tutorialCheckpoint: ftueCheckpoint ? { ...ftueCheckpoint } : null,
@@ -432,7 +444,12 @@ export function getSavedGameSummary(): SavedGameSummary {
   if (!snapshot) {
     const archive = getJSON<{ reason?: 'corrupt' | 'incompatible' }>(KEYS.classicRunArchive);
     return {
-      mode: 'classic', kind: 'none', runId: null, score: null, canContinue: false, runKind: null,
+      mode: 'classic',
+      kind: 'none',
+      runId: null,
+      score: null,
+      canContinue: false,
+      runKind: null,
       ...(archive?.reason ? { fallbackReason: archive.reason } : {}),
     };
   }
@@ -464,9 +481,17 @@ export function getSavedAdventureSummary(): SavedAdventureSummary {
   if (!raw) {
     const archive = getJSON<{ reason?: 'corrupt' | 'incompatible' }>(KEYS.adventureRunArchive);
     return {
-      mode: 'adventure', kind: 'none', runId: null, score: null, seasonId: null,
-      levelIndex: null, attempt: null, status: null, objectiveType: null,
-      objectiveCurrent: null, objectiveTarget: null,
+      mode: 'adventure',
+      kind: 'none',
+      runId: null,
+      score: null,
+      seasonId: null,
+      levelIndex: null,
+      attempt: null,
+      status: null,
+      objectiveType: null,
+      objectiveCurrent: null,
+      objectiveTarget: null,
       ...(archive?.reason ? { fallbackReason: archive.reason } : {}),
     };
   }
@@ -476,9 +501,18 @@ export function getSavedAdventureSummary(): SavedAdventureSummary {
     archiveSave(KEYS.adventureRunArchive, raw, 'corrupt');
     removeKey(KEYS.adventureRun);
     return {
-      mode: 'adventure', kind: 'none', runId: null, score: null, seasonId: null,
-      levelIndex: null, attempt: null, status: null, objectiveType: null,
-      objectiveCurrent: null, objectiveTarget: null, fallbackReason: 'corrupt',
+      mode: 'adventure',
+      kind: 'none',
+      runId: null,
+      score: null,
+      seasonId: null,
+      levelIndex: null,
+      attempt: null,
+      status: null,
+      objectiveType: null,
+      objectiveCurrent: null,
+      objectiveTarget: null,
+      fallbackReason: 'corrupt',
     };
   }
   return {
@@ -491,8 +525,7 @@ export function getSavedAdventureSummary(): SavedAdventureSummary {
     attempt: run.attempt,
     status: run.status,
     objectiveType: run.level.objective.type,
-    objectiveCurrent:
-      run.level.objective.type === 'score' ? run.game.score : run.collectedJewels,
+    objectiveCurrent: run.level.objective.type === 'score' ? run.game.score : run.collectedJewels,
     objectiveTarget: run.level.objective.target,
   };
 }
@@ -509,13 +542,13 @@ export function getSavedScore(): number | null {
 export const useGameStore = create<GameStore>((set, get) => {
   const clearAdventure = () => {
     removeKey(KEYS.adventureRun);
-    return { adventure: null, lastAdventureEvent: null };
+    return { adventure: null, lastAdventureEvent: null, boardRecovery: null };
   };
 
   // Убирает adventure-ран из памяти, не трогая сохранённый снапшот в MMKV:
   // Endless-партия перестаёт роутиться в adventure-ветку placePiece, а уровень
   // можно восстановить позже через resumeSavedAdventure (FR-7).
-  const detachAdventure = () => ({ adventure: null, lastAdventureEvent: null });
+  const detachAdventure = () => ({ adventure: null, lastAdventureEvent: null, boardRecovery: null });
 
   const settleClassic = (
     reason: 'home' | 'replay' | 'restart' | 'final_game_over',
@@ -524,10 +557,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     if (game.status !== 'over') return null;
     const meta = get().classicMeta ?? migrateClassicMeta(game);
     const terminalReason = reason === 'final_game_over' ? 'game_over' : reason;
-    if (
-      meta.settlement?.phase === 'complete' &&
-      meta.settlement.targetScore >= game.score
-    ) {
+    if (meta.settlement?.phase === 'complete' && meta.settlement.targetScore >= game.score) {
       useAnalyticsStore.getState().track('duplicate_reward_count', {
         run_id: meta.runId,
         reward_id: 'xp',
@@ -544,9 +574,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     const pending: ClassicRunMeta = {
       ...meta,
       lifecycle:
-        game.reviveUsed || reason !== 'final_game_over'
-          ? 'terminal_final'
-          : 'terminal_revivable',
+        game.reviveUsed || reason !== 'final_game_over' ? 'terminal_final' : 'terminal_revivable',
       activeSinceAt: null,
       settlement: {
         revision: (meta.settlement?.revision ?? 0) + 1,
@@ -566,27 +594,27 @@ export const useGameStore = create<GameStore>((set, get) => {
     const scoreOutcome = useScores
       .getState()
       .submitGameRevision(meta.runId, game.score, pending.linesCleared);
-    const progression = useProgression
-      .getState()
-      .grantReward({
-        runId: pending.runId,
-        rewardId: 'xp',
-        source: 'classic',
-        targetAmount: game.score,
-      });
+    const progression = useProgression.getState().grantReward({
+      runId: pending.runId,
+      rewardId: 'xp',
+      source: 'classic',
+      targetAmount: game.score,
+    });
     if (progression.applied) {
       for (const reward of progression.rewards) {
         if (reward.kind === 'cosmetic') useMascot.getState().unlock(reward.id);
         const rewardId = reward.kind === 'world' ? reward.themeId : reward.id;
-        useAnalyticsStore.getState().trackOnce(
-          `progression-reward:${pending.runId}:${reward.kind}:${rewardId}`,
-          'reward_granted',
-          {
-            reward_type: 'progression',
-            reward_id: `${reward.kind}:${rewardId}`,
-            mode: 'classic',
-          },
-        );
+        useAnalyticsStore
+          .getState()
+          .trackOnce(
+            `progression-reward:${pending.runId}:${reward.kind}:${rewardId}`,
+            'reward_granted',
+            {
+              reward_type: 'progression',
+              reward_id: `${reward.kind}:${rewardId}`,
+              mode: 'classic',
+            },
+          );
       }
       if (progression.toLevel > progression.fromLevel) {
         // Presentation consumes this state when ready; accounting never waits
@@ -605,23 +633,18 @@ export const useGameStore = create<GameStore>((set, get) => {
         target_amount: game.score,
       });
     }
-    useAnalyticsStore.getState().trackOnce(
-      `xp:${pending.runId}:${pending.settlement!.revision}`,
-      'reward_granted',
-      {
+    useAnalyticsStore
+      .getState()
+      .trackOnce(`xp:${pending.runId}:${pending.settlement!.revision}`, 'reward_granted', {
         reward_type: 'xp',
         amount: progression.applied
           ? progression.grantedDelta
-          : Math.max(
-              0,
-              pending.settlement!.targetScore - pending.settlement!.previousTargetScore,
-            ),
+          : Math.max(0, pending.settlement!.targetScore - pending.settlement!.previousTargetScore),
         reward_id: `classic:${pending.runId}:xp`,
         completion_id: pending.runId,
         mode: 'classic',
         first_completion: pending.settlement!.previousTargetScore === 0,
-      },
-    );
+      });
 
     void useLeaderboardStore.getState().finishActiveRun(game.score, new Date());
     useAnalyticsStore.getState().finishRun({
@@ -659,6 +682,7 @@ export const useGameStore = create<GameStore>((set, get) => {
   const startNew = (options?: NewGameOptions) => {
     useProgression.getState().discardRevealsForRun();
     removeKey(KEYS.classicRunArchive);
+    set({ helperHint: null });
     const best = useScores.getState().best;
     const proof = useLeaderboardStore.getState().startRun({
       startedAt: new Date().toISOString(),
@@ -698,12 +722,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       ...buildFreshPresentationState(best),
     });
     persistClassicSnapshot(game, meta);
-    useAnalyticsStore.getState().startRun(
-      'classic',
-      options?.analyticsSource === 'restart' ? 'restart' : 'new',
-      meta.runId,
-      options?.analyticsSource,
-    );
+    useAnalyticsStore
+      .getState()
+      .startRun(
+        'classic',
+        options?.analyticsSource === 'restart' ? 'restart' : 'new',
+        meta.runId,
+        options?.analyticsSource,
+      );
     recordAttributedNextRun('classic');
     useAnalyticsStore.getState().track('game_start', { mode: 'weekly' });
   };
@@ -729,9 +755,16 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
 
     const settings = useSettings.getState();
+    const oldStones = adventure.stonesOnBoard ?? {};
+    const newStones = adventureResult.run.stonesOnBoard ?? {};
     playPlacementFeedback(adventureResult.event, {
       sound: settings.sound,
       haptics: settings.haptics,
+    }, {
+      jewel: adventureResult.event.jewelsCollectedThisMove > 0,
+      stoneHit: Object.keys(oldStones).some((key) => oldStones[Number(key)] !== newStones[Number(key)]),
+      stoneBreak: Object.keys(oldStones).some((key) => newStones[Number(key)] == null),
+      won: adventureResult.run.status === 'won',
     });
 
     const serializedRun = serializeAdventureRun(adventureResult.run);
@@ -741,6 +774,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       adventure: adventureResult.run,
       game: adventureResult.run.game,
       lastEvent: adventureResult.event,
+      boardRecovery: null,
+      helperHint: null,
       lastAdventureEvent: adventureResult.event,
       linesCleared:
         get().linesCleared +
@@ -788,6 +823,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     activeConfig: DEFAULT_CONFIG,
     adventure: null,
     lastEvent: null,
+    boardRecovery: null,
     lastAdventureEvent: null,
     linesCleared: 0,
     finalResult: null,
@@ -799,9 +835,73 @@ export const useGameStore = create<GameStore>((set, get) => {
     discardAndStartNew: startNew,
     settleClassicRun: settleClassic,
 
+    recoverHelperRescues: () => {
+      const classic = readClassicSnapshot();
+      if (classic?.meta.helperSpend) {
+        try {
+          const intent = classic.meta.helperSpend;
+          if (useMascot.getState().useHelper(intent.helperId, intent)) {
+            const meta = { ...classic.meta, helperSpend: undefined };
+            persistClassicSnapshot(classic.game, meta, true);
+            if (get().classicMeta?.runId === meta.runId)
+              set({ classicMeta: meta, ...(!get().adventure ? { game: classic.game } : {}) });
+          }
+        } catch {
+          /* The saved debit intent remains available for retry. */
+        }
+      }
+      const raw = getString(KEYS.adventureRun);
+      const adventure = raw ? deserializeAdventureRun(raw) : null;
+      if (adventure?.helperSpend) {
+        try {
+          const intent = adventure.helperSpend;
+          if (useMascot.getState().useHelper(intent.helperId, intent)) {
+            const settled = { ...adventure, helperSpend: undefined };
+            setStringOrThrow(KEYS.adventureRun, serializeAdventureRun(settled));
+            if (get().adventure?.runId === adventure.runId)
+              set({ adventure: settled, game: settled.game });
+          }
+        } catch {
+          /* Retry the same receipt rather than debiting again. */
+        }
+      }
+    },
+
+    finishCurrentResult: () => {
+      const current = get();
+      if (current.adventure) {
+        if (current.adventure.status !== 'failed' || current.adventure.resultAcknowledged) return;
+        const finished = { ...current.adventure, resultAcknowledged: true };
+        setStringOrThrow(KEYS.adventureRun, serializeAdventureRun(finished));
+        set({ adventure: finished });
+      } else if (
+        current.game.status === 'over' &&
+        current.classicMeta &&
+        !current.classicMeta.resultAcknowledged
+      ) {
+        if (
+          current.classicMeta.settlement?.phase !== 'complete' ||
+          current.classicMeta.settlement.targetScore < current.game.score
+        )
+          settleClassic('final_game_over');
+        const meta: ClassicRunMeta = {
+          ...get().classicMeta!,
+          lifecycle: 'terminal_final',
+          resultAcknowledged: true,
+        };
+        persistClassicSnapshot(current.game, meta, true);
+        set({ classicMeta: meta });
+      }
+    },
+
     pauseClassicActivity: () => {
       const { adventure, classicMeta, game } = get();
-      if (adventure || !classicMeta || game.status !== 'playing' || classicMeta.activeSinceAt === null) {
+      if (
+        adventure ||
+        !classicMeta ||
+        game.status !== 'playing' ||
+        classicMeta.activeSinceAt === null
+      ) {
         return;
       }
       const paused = { ...advanceActiveCounters(classicMeta, Date.now()), activeSinceAt: null };
@@ -811,7 +911,12 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     resumeClassicActivity: () => {
       const { adventure, classicMeta, game } = get();
-      if (adventure || !classicMeta || game.status !== 'playing' || classicMeta.activeSinceAt !== null) {
+      if (
+        adventure ||
+        !classicMeta ||
+        game.status !== 'playing' ||
+        classicMeta.activeSinceAt !== null
+      ) {
         return;
       }
       const resumed = { ...classicMeta, activeSinceAt: Date.now() };
@@ -829,21 +934,19 @@ export const useGameStore = create<GameStore>((set, get) => {
       useProgression.getState().discardRevealsForRun();
       removeKey(KEYS.adventureRunArchive);
       const previous = get().adventure;
-      const sameLevel = previous?.level.seasonId === spec.seasonId &&
-        previous.level.levelIndex === spec.levelIndex;
+      const sameLevel =
+        previous?.level.seasonId === spec.seasonId && previous.level.levelIndex === spec.levelIndex;
       const failureCount = sameLevel ? previous.failureCount : 0;
-      const resolvedHelpPolicy = helpPolicy ??
-        (sameLevel ? previous.helpPolicy : 'none');
-      const run = createAdventureRun(
-        spec,
-        attempt,
-        undefined,
-        createPersistedRunId('adventure'),
-        { failureCount, helpPolicy: resolvedHelpPolicy },
-      );
+      const resolvedHelpPolicy = helpPolicy ?? (sameLevel ? previous.helpPolicy : 'none');
+      const run = createAdventureRun(spec, attempt, undefined, createPersistedRunId('adventure'), {
+        failureCount,
+        helpPolicy: resolvedHelpPolicy,
+      });
       set({
+        helperHint: null,
         game: run.game,
         adventure: run,
+        boardRecovery: null,
         lastEvent: null,
         lastAdventureEvent: null,
         linesCleared: 0,
@@ -851,12 +954,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         epoch: get().epoch + 1,
       });
       setString(KEYS.adventureRun, serializeAdventureRun(run));
-      useAnalyticsStore.getState().startRun(
-        'adventure',
-        attempt > 0 ? 'restart' : 'new',
-        run.runId,
-        analyticsSource,
-      );
+      useAnalyticsStore
+        .getState()
+        .startRun('adventure', attempt > 0 ? 'restart' : 'new', run.runId, analyticsSource);
       recordAttributedNextRun('adventure');
       useAnalyticsStore.getState().track('adventure_level_start', {
         seasonId: spec.seasonId,
@@ -878,8 +978,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         run !== null &&
         run.level.seasonId === spec.seasonId &&
         run.level.levelIndex === spec.levelIndex &&
-        run.level.objective.type === spec.objective.type &&
-        run.level.objective.target === spec.objective.target;
+        ((spec.rulesVersion === 2 && run.level.rulesVersion == null) ||
+          (run.level.objective.type === spec.objective.type &&
+            run.level.objective.target === spec.objective.target));
       if (!run) {
         archiveSave(KEYS.adventureRunArchive, raw, 'corrupt');
         removeKey(KEYS.adventureRun);
@@ -896,6 +997,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({
         game: run.game,
         adventure: run,
+        boardRecovery: null,
         lastEvent: null,
         lastAdventureEvent: null,
         linesCleared: 0,
@@ -987,9 +1089,8 @@ export const useGameStore = create<GameStore>((set, get) => {
           run.level.seasonId,
           run.level.levelIndex,
         ).completionId;
-        const receipt = useProgression.getState().rewardReceipts[
-          rewardReceiptKey(completionId, 'xp')
-        ];
+        const receipt =
+          useProgression.getState().rewardReceipts[rewardReceiptKey(completionId, 'xp')];
         return {
           runId: run.runId,
           completionId,
@@ -1008,13 +1109,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (run.status === 'failed') {
         const campaignApplied = useAdventure.getState().recordFailOnce(run.runId);
         if (campaignApplied) saveAdsMeta(recordAdventureFail(loadAdsMeta()));
-        const objectiveCurrent = run.level.objective.type === 'score'
-          ? run.game.score
-          : run.collectedJewels;
-        useAnalyticsStore.getState().trackOnce(
-          `adventure-result:${run.runId}`,
-          'adventure_level_fail',
-          {
+        const objectiveCurrent =
+          run.level.objective.type === 'score' ? run.game.score : run.collectedJewels;
+        useAnalyticsStore
+          .getState()
+          .trackOnce(`adventure-result:${run.runId}`, 'adventure_level_fail', {
             seasonId: run.level.seasonId,
             levelIndex: run.level.levelIndex,
             attempt: run.attempt,
@@ -1024,8 +1123,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             remaining: Math.max(0, run.level.objective.target - objectiveCurrent),
             failure_count: run.failureCount + 1,
             help_policy: run.helpPolicy,
-          },
-        );
+          });
         get().markAdventureOutcomeSettled(run.runId);
         recordNextGoalCompletion('resume', `resume:${run.runId}`);
         return {
@@ -1040,15 +1138,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         };
       }
 
-      const identity = adventureCompletionIdentity(
-        run.level.seasonId,
-        run.level.levelIndex,
-      );
+      const identity = adventureCompletionIdentity(run.level.seasonId, run.level.levelIndex);
       const completionId = identity.completionId;
       const completedSeason =
-        run.level.levelIndex + 1 >= seasonLength(run.level.seasonId)
-          ? run.level.seasonId
-          : null;
+        run.level.levelIndex + 1 >= seasonLength(run.level.seasonId) ? run.level.seasonId : null;
       const campaignApplied = useAdventure
         .getState()
         .recordWinOnce(completionId, run.runId, todayISO());
@@ -1072,17 +1165,19 @@ export const useGameStore = create<GameStore>((set, get) => {
       for (const reward of earnedRewards) {
         if (reward.kind === 'cosmetic') useMascot.getState().unlock(reward.id);
         const rewardId = reward.kind === 'world' ? reward.themeId : reward.id;
-        useAnalyticsStore.getState().trackOnce(
-          `progression-reward:${completionId}:${reward.kind}:${rewardId}`,
-          'reward_granted',
-          {
-            reward_type: 'progression',
-            reward_id: `${reward.kind}:${rewardId}`,
-            completion_id: completionId,
-            mode: 'adventure',
-            first_completion: true,
-          },
-        );
+        useAnalyticsStore
+          .getState()
+          .trackOnce(
+            `progression-reward:${completionId}:${reward.kind}:${rewardId}`,
+            'reward_granted',
+            {
+              reward_type: 'progression',
+              reward_id: `${reward.kind}:${rewardId}`,
+              completion_id: completionId,
+              mode: 'adventure',
+              first_completion: true,
+            },
+          );
       }
       const revealFromLevel = progression.receipt.fromLevel ?? progression.fromLevel;
       const revealToLevel = progression.receipt.toLevel ?? progression.toLevel;
@@ -1101,57 +1196,51 @@ export const useGameStore = create<GameStore>((set, get) => {
           target_amount: xpTarget,
         });
       }
-      useAnalyticsStore.getState().trackOnce(
-        `adventure-xp:${completionId}`,
-        'reward_granted',
-        {
-          reward_type: 'xp',
-          amount: progression.receipt.grantedAmount,
-          reward_id: `${completionId}:xp`,
-          completion_id: completionId,
-          mode: 'adventure',
-          first_completion: true,
-        },
-      );
+      useAnalyticsStore.getState().trackOnce(`adventure-xp:${completionId}`, 'reward_granted', {
+        reward_type: 'xp',
+        amount: progression.receipt.grantedAmount,
+        reward_id: `${completionId}:xp`,
+        completion_id: completionId,
+        mode: 'adventure',
+        first_completion: true,
+      });
       const sessionId = useAnalyticsStore.getState().context?.session_id;
       if (sessionId) recordMeaningfulSessionForPush(sessionId, 'adventure');
-      useAnalyticsStore.getState().trackOnce(
-        `adventure-result:${completionId}`,
-        'adventure_level_win',
-        {
+      useAnalyticsStore
+        .getState()
+        .trackOnce(`adventure-result:${completionId}`, 'adventure_level_win', {
           seasonId: run.level.seasonId,
           levelIndex: run.level.levelIndex,
           attempt: run.attempt,
           consecutive: useAdventure.getState().consecutive,
           completionId,
-        },
-      );
+        });
 
       if (completedSeason !== null) {
-        useAnalyticsStore.getState().trackOnce(
-          `adventure-season-complete:${completedSeason}`,
-          'adventure_season_complete',
-          { seasonId: completedSeason },
-        );
+        useAnalyticsStore
+          .getState()
+          .trackOnce(`adventure-season-complete:${completedSeason}`, 'adventure_season_complete', {
+            seasonId: completedSeason,
+          });
         const seasonCosmetic = seasonRewardCosmetic(completedSeason);
         if (seasonCosmetic !== null) {
           useMascot.getState().unlock(seasonCosmetic);
-          useAnalyticsStore.getState().trackOnce(
-            `season-cosmetic:${completedSeason}:${seasonCosmetic}`,
-            'season_reward_granted',
-            { seasonId: completedSeason, cosmeticId: seasonCosmetic },
-          );
-          useAnalyticsStore.getState().trackOnce(
-            `season-reward:${completedSeason}:${seasonCosmetic}`,
-            'reward_granted',
-            {
+          useAnalyticsStore
+            .getState()
+            .trackOnce(
+              `season-cosmetic:${completedSeason}:${seasonCosmetic}`,
+              'season_reward_granted',
+              { seasonId: completedSeason, cosmeticId: seasonCosmetic },
+            );
+          useAnalyticsStore
+            .getState()
+            .trackOnce(`season-reward:${completedSeason}:${seasonCosmetic}`, 'reward_granted', {
               reward_type: 'season_cosmetic',
               reward_id: seasonCosmetic,
               completion_id: completionId,
               mode: 'adventure',
               first_completion: true,
-            },
-          );
+            });
         }
       }
 
@@ -1186,17 +1275,17 @@ export const useGameStore = create<GameStore>((set, get) => {
           : null;
       const followedHighlight = Boolean(
         tutorialRecommendation &&
-          tutorialRecommendation.trayIndex === trayIndex &&
-          tutorialRecommendation.row === r &&
-          tutorialRecommendation.col === c,
+        tutorialRecommendation.trayIndex === trayIndex &&
+        tutorialRecommendation.row === r &&
+        tutorialRecommendation.col === c,
       );
       const preparedFixtureMove = Boolean(
         ftueBefore.guidedClearAt === null &&
-          ftueBefore.placements === 0 &&
-          trayIndex === 2 &&
-          r === 3 &&
-          c === 3 &&
-          game.tray[2]?.shape.id === 'sq2',
+        ftueBefore.placements === 0 &&
+        trayIndex === 2 &&
+        r === 3 &&
+        c === 3 &&
+        game.tray[2]?.shape.id === 'sq2',
       );
       let result: { state: GameState; event: PlacementEvent };
       try {
@@ -1212,26 +1301,15 @@ export const useGameStore = create<GameStore>((set, get) => {
       });
 
       const presentation = buildPlacementPresentationState(get(), result.event.score);
-      const previousRecordProgress = recordProgressFor(
-        game.score,
-        runBestAtStart,
-        game.score,
-      );
-      const nextRecordProgress = recordProgressFor(
-        result.event.score,
-        runBestAtStart,
-        game.score,
-      );
+      const previousRecordProgress = recordProgressFor(game.score, runBestAtStart, game.score);
+      const nextRecordProgress = recordProgressFor(result.event.score, runBestAtStart, game.score);
       const analyticsRecordStage =
         nextRecordProgress.stage === 'record_broken'
           ? 'broken'
           : nextRecordProgress.stage === 'pursuit' || nextRecordProgress.stage === 'near'
             ? nextRecordProgress.stage
             : null;
-      if (
-        nextRecordProgress.stage !== previousRecordProgress.stage &&
-        analyticsRecordStage
-      ) {
+      if (nextRecordProgress.stage !== previousRecordProgress.stage && analyticsRecordStage) {
         useAnalyticsStore.getState().track('record_progressed', {
           stage: analyticsRecordStage,
           score: result.event.score,
@@ -1268,43 +1346,41 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (ftuePlacement?.clearOutcome) {
         const ftueAfter = useFtueStore.getState();
         if (ftuePlacement.clearOutcome === 'guided_success') {
-          useAnalyticsStore.getState().trackOnce(
-            `first-line-cleared:${currentMeta.runId}`,
-            'first_line_cleared',
-            {
+          useAnalyticsStore
+            .getState()
+            .trackOnce(`first-line-cleared:${currentMeta.runId}`, 'first_line_cleared', {
               elapsed_ms: ftueAfter.startedAt ? Date.now() - ftueAfter.startedAt : 0,
               placements: ftueAfter.placements,
+            });
+        }
+        useAnalyticsStore
+          .getState()
+          .trackOnce(
+            `ftue-clear:${currentMeta.runId}:${ftuePlacement.acceptedMovesAfterFixture}:${ftuePlacement.clearOutcome}`,
+            'tutorial_clear_outcome',
+            {
+              experiment_id: FTUE_EXPERIMENT_ID,
+              variant: ftueAfter.variant,
+              metric_version: ftueAfter.metricVersion,
+              outcome: ftuePlacement.clearOutcome,
+              accepted_moves_after_fixture: ftuePlacement.acceptedMovesAfterFixture,
+              within_10: ftuePlacement.acceptedMovesAfterFixture <= 10,
+              skipped: ftueAfter.skipReason !== null,
             },
           );
-        }
-        useAnalyticsStore.getState().trackOnce(
-          `ftue-clear:${currentMeta.runId}:${ftuePlacement.acceptedMovesAfterFixture}:${ftuePlacement.clearOutcome}`,
-          'tutorial_clear_outcome',
-          {
-            experiment_id: FTUE_EXPERIMENT_ID,
-            variant: ftueAfter.variant,
-            metric_version: ftueAfter.metricVersion,
-            outcome: ftuePlacement.clearOutcome,
-            accepted_moves_after_fixture: ftuePlacement.acceptedMovesAfterFixture,
-            within_10: ftuePlacement.acceptedMovesAfterFixture <= 10,
-            skipped: ftueAfter.skipReason !== null,
-          },
-        );
       }
       if (ftuePlacement?.metricWindowClosed) {
         const ftueAfter = useFtueStore.getState();
-        useAnalyticsStore.getState().trackOnce(
-          `ftue-window:${currentMeta.runId}`,
-          'tutorial_metric_window_closed',
-          {
+        useAnalyticsStore
+          .getState()
+          .trackOnce(`ftue-window:${currentMeta.runId}`, 'tutorial_metric_window_closed', {
             experiment_id: FTUE_EXPERIMENT_ID,
             variant: ftueAfter.variant,
             metric_version: ftueAfter.metricVersion,
             accepted_moves_after_fixture: ftueAfter.acceptedMovesAfterFixture,
             independent_clear: ftueAfter.outcome === 'independent_success',
             skipped: ftueAfter.skipReason !== null,
-          },
-        );
+          });
       }
       useLeaderboardStore.getState().recordMove({ trayIndex, row: r, col: c });
 
@@ -1325,6 +1401,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         set({
           game: result.state,
           lastEvent: result.event,
+          boardRecovery: null,
+          helperHint: null,
           linesCleared: lines,
           finalResult: null,
           classicMeta: nextMeta,
@@ -1335,6 +1413,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         set({
           game: result.state,
           lastEvent: result.event,
+          boardRecovery: null,
+          helperHint: null,
           linesCleared: lines,
           classicMeta: nextMeta,
           ...presentation,
@@ -1352,7 +1432,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const next = engineReplaceTrayPiece(game, trayIndex);
       const meta = get().classicMeta;
       const nextMeta = meta ? advanceActiveCounters(meta, Date.now()) : null;
-      set({ game: next, ...(nextMeta ? { classicMeta: nextMeta } : {}) });
+      set({ game: next, helperHint: null, ...(nextMeta ? { classicMeta: nextMeta } : {}) });
       if (nextMeta) persistClassicSnapshot(next, nextMeta);
       else setString(KEYS.gameCurrent, serialize(next));
     },
@@ -1370,16 +1450,38 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     continueGame: (expectedRunId) => {
-      const meta = get().classicMeta ?? migrateClassicMeta(get().game);
-      if (expectedRunId && (get().adventure || meta.runId !== expectedRunId)) return false;
-      if (meta.lifecycle !== 'terminal_revivable') return false;
-      const next = revive(get().game);
+      const { adventure, game, activeConfig, classicMeta } = get();
+      if (adventure) {
+        if (adventure.runId !== expectedRunId || adventure.helperSpend) return false;
+        const next = rescueAdventureRun(adventure);
+        if (!next) return false;
+        setStringOrThrow(KEYS.adventureRun, serializeAdventureRun(next));
+        set({
+          adventure: next,
+          game: next.game,
+          boardRecovery: { previousBoard: game.board, board: next.game.board },
+          lastEvent: null,
+          lastAdventureEvent: null,
+          helperHint: null,
+        });
+        useAnalyticsStore.getState().resumeRun('adventure', 'revive', adventure.runId);
+        if (useSettings.getState().sound) playSound('boardclear');
+        return true;
+      }
+      const meta = classicMeta ?? migrateClassicMeta(game);
+      if (expectedRunId && meta.runId !== expectedRunId) return false;
+      if (meta.lifecycle !== 'terminal_revivable' || meta.resultAcknowledged || meta.helperSpend) {
+        return false;
+      }
+      const next = revive(game, activeConfig);
       if (!next) return false;
+      const proofId = useLeaderboardStore.getState().activeProof?.id;
+      if (meta.leaderboardProofId && meta.leaderboardProofId !== proofId) return false;
       // Переоткрываем ран лидерборда, чтобы продолженная партия дописывала ходы
       // и финализировалась заново — иначе счёт после ревайва не попадал в результат.
       const resumedMeta: ClassicRunMeta = {
         ...meta,
-        leaderboardProofId: meta.leaderboardProofId ?? useLeaderboardStore.getState().activeProof?.id,
+        leaderboardProofId: meta.leaderboardProofId ?? proofId,
         lifecycle: 'active',
         activeSinceAt: useAdPresentation.getState().fullscreenActive ? null : Date.now(),
       };
@@ -1391,7 +1493,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         game: next,
         classicMeta: resumedMeta,
         finalResult: null,
+        boardRecovery: { previousBoard: game.board, board: next.board },
         lastEvent: null,
+        helperHint: null,
         linesCleared: meta.linesCleared,
       });
       useAnalyticsStore.getState().track('revive_used', { result: 'continued' });
@@ -1400,6 +1504,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         lines: meta.linesCleared,
         activeDurationMs: meta.activeDurationMs,
       });
+      if (useSettings.getState().sound) playSound('boardclear');
       return true;
     },
 
@@ -1419,9 +1524,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       // the separate proof still contains the first game-over's frozen score.
       if (!reconcileRevivedLeaderboardProof(game, loadedMeta)) return null;
       if (loadedMeta.runKind === 'tutorial') {
-        useFtueStore
-          .getState()
-          .restoreCheckpoint(loadedMeta.tutorialCheckpoint, loadedMeta.runId);
+        useFtueStore.getState().restoreCheckpoint(loadedMeta.tutorialCheckpoint, loadedMeta.runId);
       }
 
       const runtime = useAnalyticsStore.getState().activeRun;

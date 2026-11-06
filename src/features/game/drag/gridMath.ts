@@ -60,10 +60,10 @@ export function topLeftToCell(
 ): { r: number; c: number } {
   'worklet';
   const step = g.cell + g.gap;
-  return {
-    r: Math.round((tlY - g.boardY - g.pad) / step),
-    c: Math.round((tlX - g.boardX - g.pad) / step),
-  };
+  const r = Math.round((tlY - g.boardY - g.pad) / step);
+  const c = Math.round((tlX - g.boardX - g.pad) / step);
+  // Canonical cell coordinates also cover a pointer just above/left of cell zero.
+  return { r: r === 0 ? 0 : r, c: c === 0 ? 0 : c };
 }
 
 /** Bbox фигуры целиком в пределах доски 8×8 (без проверки занятости). */

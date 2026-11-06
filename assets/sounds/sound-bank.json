@@ -1,0 +1,166 @@
+{
+  "pickup": [
+    {
+      "name": "pickup",
+      "durationMs": 220
+    },
+    {
+      "name": "pickup_2",
+      "durationMs": 220
+    },
+    {
+      "name": "pickup_3",
+      "durationMs": 220
+    }
+  ],
+  "drop": [
+    {
+      "name": "drop",
+      "durationMs": 340
+    },
+    {
+      "name": "drop_2",
+      "durationMs": 340
+    },
+    {
+      "name": "drop_3",
+      "durationMs": 340
+    },
+    {
+      "name": "drop_4",
+      "durationMs": 340
+    }
+  ],
+  "return": [
+    {
+      "name": "return",
+      "durationMs": 290
+    },
+    {
+      "name": "return_2",
+      "durationMs": 290
+    },
+    {
+      "name": "return_3",
+      "durationMs": 290
+    }
+  ],
+  "clear1": [
+    {
+      "name": "clear1",
+      "durationMs": 1110
+    },
+    {
+      "name": "clear1_2",
+      "durationMs": 1110
+    }
+  ],
+  "clear2": [
+    {
+      "name": "clear2",
+      "durationMs": 1200
+    },
+    {
+      "name": "clear2_2",
+      "durationMs": 1200
+    }
+  ],
+  "clear3": [
+    {
+      "name": "clear3",
+      "durationMs": 1290
+    },
+    {
+      "name": "clear3_2",
+      "durationMs": 1290
+    }
+  ],
+  "jewel": [
+    {
+      "name": "jewel",
+      "durationMs": 850
+    },
+    {
+      "name": "jewel_2",
+      "durationMs": 850
+    }
+  ],
+  "stonehit": [
+    {
+      "name": "stonehit",
+      "durationMs": 320
+    },
+    {
+      "name": "stonehit_2",
+      "durationMs": 320
+    }
+  ],
+  "stonebreak": [
+    {
+      "name": "stonebreak",
+      "durationMs": 470
+    },
+    {
+      "name": "stonebreak_2",
+      "durationMs": 470
+    }
+  ],
+  "boardclear": [
+    {
+      "name": "boardclear",
+      "durationMs": 1425
+    }
+  ],
+  "record": [
+    {
+      "name": "record",
+      "durationMs": 1350
+    }
+  ],
+  "victory": [
+    {
+      "name": "victory",
+      "durationMs": 1425
+    }
+  ],
+  "gameover": [
+    {
+      "name": "gameover",
+      "durationMs": 1275
+    }
+  ],
+  "levelup": [
+    {
+      "name": "levelup",
+      "durationMs": 1275
+    }
+  ],
+  "lost": [
+    {
+      "name": "lost",
+      "durationMs": 1200
+    }
+  ],
+  "feed": [
+    {
+      "name": "feed",
+      "durationMs": 430
+    },
+    {
+      "name": "feed_2",
+      "durationMs": 430
+    }
+  ],
+  "hint": [
+    {
+      "name": "hint",
+      "durationMs": 1200
+    }
+  ],
+  "swap": [
+    {
+      "name": "swap",
+      "durationMs": 530
+    }
+  ]
+}

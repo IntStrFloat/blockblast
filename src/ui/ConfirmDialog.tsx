@@ -29,7 +29,7 @@ export function ConfirmDialog({
   if (!visible) return null;
 
   return (
-    <Overlay>
+    <Overlay onDismiss={onCancel}>
       <AppText preset="title" style={{ textAlign: 'center' }}>
         {title}
       </AppText>

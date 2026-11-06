@@ -81,7 +81,6 @@ describe('clear effects layer source contract', () => {
     expect(boardSource).toContain('<ClearDebrisLayer');
     expect(boardSource).toContain('<ClearSparkLayer');
     expect(boardSource).toContain('<ClearChoreographyLayer');
-    expect(boardSource).toContain('<ComboAuraFrame');
     expect(boardSource).toContain('placementEffects=');
     expect(gameEffectsSource).toContain('PlacementParticleLayer');
     expect(gameEffectsSource).toContain('BoardFramePulse');
@@ -116,7 +115,6 @@ describe('clear effects layer source contract', () => {
     expect(gameEffectsSource).not.toContain('BlockCrushLayer');
 
     const choreographySource = fs.readFileSync(clearChoreographyPath, 'utf8');
-    expect(choreographySource).toContain('presentation.sequence.beams');
     expect(choreographySource).toContain('presentation.sequence.motes');
     expect(choreographySource).toContain('POOL_SIZE');
     expect(choreographySource).toContain('useSharedValue');

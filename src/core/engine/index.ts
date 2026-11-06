@@ -20,6 +20,7 @@ export {
   isAdventureWon,
   placeAdventure,
   remainingJewels,
+  rescueAdventureRun,
   serializeAdventureRun,
 } from './adventure';
 export type {

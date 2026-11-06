@@ -28,13 +28,13 @@ beforeEach(() => {
 describe('playInvalidDropFeedback', () => {
   it('sounds an occupied return and gives Reject haptics', () => {
     playInvalidDropFeedback({ sound: true, haptics: true }, 'occupied');
-    expect(mockPlaySound).toHaveBeenCalledWith('drop');
+    expect(mockPlaySound).toHaveBeenCalledWith('return');
     expect(mockHaptics).toHaveBeenCalledWith('reject');
   });
 
   it('sounds an outside-board return without rejection haptics', () => {
     playInvalidDropFeedback({ sound: true, haptics: true }, 'outside-board');
-    expect(mockPlaySound).toHaveBeenCalledWith('drop');
+    expect(mockPlaySound).toHaveBeenCalledWith('return');
     expect(mockHaptics).not.toHaveBeenCalled();
   });
 
@@ -44,7 +44,7 @@ describe('playInvalidDropFeedback', () => {
     expect(mockHaptics).toHaveBeenCalledWith('reject');
     mockHaptics.mockClear();
     playInvalidDropFeedback({ sound: true, haptics: false });
-    expect(mockPlaySound).toHaveBeenCalledWith('drop');
+    expect(mockPlaySound).toHaveBeenCalledWith('return');
     expect(mockHaptics).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@
 
 # Block Blast — клон на Expo React Native
 
-Казуальная block-puzzle (8×8, drag-n-drop, очистка линий) для Android (RuStore) и iOS. Оффлайн, без регистрации, монетизация за флагами.
+Казуальная block-puzzle (8×8, drag-n-drop, очистка линий) для Android (APK и AAB, RuStore). Оффлайн, без регистрации, монетизация за флагами.
 
 ## Документация (источник истины — читать перед работой над разделом)
 
@@ -44,17 +44,23 @@
 ## Команды
 
 ```bash
-npm test                  # Jest (движок + сторы)
-npx tsc --noEmit          # типы
-npx expo start            # dev
-npx expo prebuild -p android && node scripts/patch-signing.js
-cd android && .\gradlew bundleRelease   # signed AAB (см. 08)
+npm run build:apk             # автономный ARM64 APK для локальной проверки
+npm run build:aab             # подписанный AAB для магазина
+npm run build:aab -- --unsigned # неподписанный AAB для локальной проверки
+npm test -- --runInBand
+npm run typecheck
+npm run lint
+npm run backend:test
 ```
+
+Сборка и настройки: [08-build-release](docs/specs/08-build-release.md).
+Эмулятор Block Blastic переиспользуется: [привязка](docs/runbooks/android-emulator.md).
+
 
 ## Чего НЕ делать
 
 - Не добавлять нативные зависимости без обоснования в 07 (бюджет: только mmkv сверх Expo).
 - Не показывать рекламу/попапы вопреки анти-чеклисту из 06.
 - Не коммитить credentials/ (keystore, пароли) и серверные креды.
-- Не собирать `assembleRelease` для публикации: релизный артефакт — подписанный AAB.
+- Для публикации использовать подписанный AAB из `npm run build:aab`; локальный APK и unsigned AAB не выдавать за store-ready релиз.
 - Не создавать новый release keystore: обновления подписываются существующим `credentials/release.jks`.

@@ -27,7 +27,7 @@ const presets: Record<Preset, TextStyle> = StyleSheet.create({
     ...typography.button,
     color: colors.textPrimary,
   },
-  // System sans has complete Cyrillic coverage; do not rely on font fallback.
+  // Full bundled Nunito faces include Cyrillic; body text matches the source HTML.
   speech: {
     ...typography.speech,
     color: colors.textPrimary,
@@ -39,5 +39,12 @@ interface AppTextProps extends TextProps {
 }
 
 export function AppText({ preset = 'body', style, ...rest }: AppTextProps) {
-  return <Text {...rest} style={[presets[preset], style]} />;
+  const resolved = StyleSheet.flatten([presets[preset], style]);
+  const weight = Number(resolved.fontWeight ?? 0);
+  // Select actual bundled faces instead of asking Android to synthesize a weight.
+  if (resolved.fontFamily?.startsWith('Nunito_') && weight) {
+    resolved.fontFamily = weight >= 900 ? 'Nunito_900Black' : weight >= 800 ? 'Nunito_800ExtraBold' : 'Nunito_700Bold';
+    resolved.fontWeight = undefined;
+  }
+  return <Text {...rest} style={[{ includeFontPadding: false }, resolved]} />;
 }

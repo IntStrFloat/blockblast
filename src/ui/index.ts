@@ -28,3 +28,9 @@ export {
   semanticColors,
 } from './theme';
 export type { BlockTheme } from './theme';
+
+export { nightCandy, formatNumber } from './nightCandy';
+export { CandyIcon } from './icons/CandyIcon';
+export { CandyBackground } from './primitives/CandyBackground';
+export { CandyProgress } from './primitives/CandyProgress';
+export { CandyCapy, CandyAvatar } from './primitives/CandyCapy';

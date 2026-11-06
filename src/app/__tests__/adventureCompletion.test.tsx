@@ -2,7 +2,11 @@ import React from 'react';
 import { View } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-import { deserializeAdventureRun, emptyBoard, SHAPES_BY_ID } from '@/core/engine';
+import {
+  deserializeAdventureRun,
+  emptyBoard,
+  SHAPES_BY_ID,
+} from '@/core/engine';
 import { KEYS, getString, removeKey } from '@/core/storage';
 import { levelFor } from '@/features/adventure/logic/levels';
 import { adventureCompletionIdentity } from '@/features/adventure/logic/xp';
@@ -20,21 +24,36 @@ const mockResultMount = jest.fn();
 const mockLevelUpMount = jest.fn();
 const mockReplace = jest.fn();
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+}));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: 'SafeAreaView',
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
-jest.mock('@/features/game/sound/feedback', () => ({ playPlacementFeedback: jest.fn() }));
-jest.mock('@/features/game/animation/useReducedMotion', () => ({ useReducedMotion: () => false }));
-jest.mock('@/features/onboarding', () => jest.requireActual('@/features/onboarding/ftueStore'));
+jest.mock('@/features/game/sound/feedback', () => ({
+  playPlacementFeedback: jest.fn(),
+}));
+jest.mock('@/features/game/animation/useReducedMotion', () => ({
+  useReducedMotion: () => false,
+}));
+jest.mock('@/features/onboarding', () =>
+  jest.requireActual('@/features/onboarding/ftueStore'),
+);
 jest.mock('@/features/profile', () => {
   const state = { authToken: null, bootstrapRemote: async () => null };
-  return { useProfileStore: (selector: (value: typeof state) => unknown) => selector(state) };
+  return {
+    useProfileStore: (selector: (value: typeof state) => unknown) =>
+      selector(state),
+  };
 });
-jest.mock('@/features/notifications', () => ({ recordMeaningfulSessionForPush: jest.fn() }));
-jest.mock('@/features/mascot', () => ({ useMascot: { getState: () => ({ unlock: jest.fn() }) } }));
+jest.mock('@/features/notifications', () => ({
+  recordMeaningfulSessionForPush: jest.fn(),
+}));
+jest.mock('@/features/mascot', () => ({
+  useMascot: { getState: () => ({ unlock: jest.fn() }) },
+}));
 jest.mock('@/features/monetization', () => ({
   GameBannerDock: () => null,
   MONETIZATION: { adsEnabled: false },
@@ -52,15 +71,31 @@ jest.mock('@/features/monetization', () => ({
   recordInterstitialShown: jest.fn(),
   saveAdsMeta: jest.fn(),
   shouldShowInterstitial: () => false,
-  useEntitlements: (selector: (value: { removeAds: boolean }) => unknown) => selector({ removeAds: true }),
+  useEntitlements: (selector: (value: { removeAds: boolean }) => unknown) =>
+    selector({ removeAds: true }),
 }));
 jest.mock('@/ui', () => ({
   ...jest.requireActual('@/ui/theme'),
+  ...jest.requireActual('@/ui/nightCandy'),
+  CandyBackground: () => null,
+  CandyCapy: () => null,
+  CandyIcon: () => null,
   AppText: 'AppText',
   ConfirmDialog: 'ConfirmDialog',
   GearIcon: () => null,
 }));
-jest.mock('@/features/game/components/PauseOverlay', () => ({ PauseOverlay: 'PauseOverlay' }));
+jest.mock('@/ui/primitives/CandyControls', () => ({
+  CandyRoundButton: 'CandyRoundButton',
+}));
+jest.mock('@/features/adventure/components/StoneBoardLayer', () => ({
+  StoneBoardLayer: () => null,
+}));
+jest.mock('@/features/game/components/NoMovesSheet', () => ({
+  NoMovesSheet: 'NoMovesSheet',
+}));
+jest.mock('@/features/game/components/PauseOverlay', () => ({
+  PauseOverlay: 'PauseOverlay',
+}));
 jest.mock('@/features/game', () => {
   const ReactModule = jest.requireActual<typeof React>('react');
   return {
@@ -71,9 +106,13 @@ jest.mock('@/features/game', () => {
     BoardView: () => {
       ReactModule.useEffect(() => {
         mockBoardMount();
-        return () => { mockBoardUnmount(); };
+        return () => {
+          mockBoardUnmount();
+        };
       }, []);
-      return ReactModule.createElement('AdventureBoard', { testID: 'adventure-board' });
+      return ReactModule.createElement('AdventureBoard', {
+        testID: 'adventure-board',
+      });
     },
     TrayView: () => null,
     PraiseBanner: () => null,
@@ -101,16 +140,28 @@ jest.mock('@/features/adventure', () => {
     useSeasonWindowRefresh: () => {},
     seasonRewardCosmetic: () => null,
     JewelBoardLayer: () => null,
-    JewelCollectionFlightLayer: (props: object) => ReactModule.createElement('AdventureFlight', props),
+    JewelCollectionFlightLayer: (props: object) =>
+      ReactModule.createElement('AdventureFlight', props),
     JewelIcon: () => null,
     ObjectivePanel: () => null,
-    FailOverlay: (props: object) => ReactModule.createElement('AdventureFailure', { ...props, testID: 'adventure-failure' }),
+    FailOverlay: (props: object) =>
+      ReactModule.createElement('AdventureFailure', {
+        ...props,
+        testID: 'adventure-failure',
+      }),
     LevelResultView: (props: object) => {
-      ReactModule.useEffect(() => { mockResultMount(); }, []);
-      return ReactModule.createElement('AdventureResult', { ...props, testID: 'adventure-result' });
+      ReactModule.useEffect(() => {
+        mockResultMount();
+      }, []);
+      return ReactModule.createElement('AdventureResult', {
+        ...props,
+        testID: 'adventure-result',
+      });
     },
     LevelUpBanner: () => {
-      ReactModule.useEffect(() => { mockLevelUpMount(); }, []);
+      ReactModule.useEffect(() => {
+        mockLevelUpMount();
+      }, []);
       return ReactModule.createElement('AdventureLevelUp');
     },
   };
@@ -126,7 +177,9 @@ let tree: ReactTestRenderer | null;
 
 function renderLevel(): ReactTestRenderer {
   let rendered!: ReactTestRenderer;
-  act(() => { rendered = create(<AdventureLevelScreen />); });
+  act(() => {
+    rendered = create(<AdventureLevelScreen />);
+  });
   tree = rendered;
   return rendered;
 }
@@ -148,7 +201,10 @@ function setUpWinningClear(): void {
       ...run,
       game,
       jewelsOnBoard: [0],
-      collectedJewels: run.level.objective.type === 'jewels' ? run.level.objective.target - 1 : 0,
+      collectedJewels:
+        run.level.objective.type === 'jewels'
+          ? run.level.objective.target - 1
+          : 0,
     },
   });
 }
@@ -190,7 +246,10 @@ describe('adventure level completion presentation', () => {
   });
 
   afterEach(() => {
-    if (tree) act(() => { tree!.unmount(); });
+    if (tree)
+      act(() => {
+        tree!.unmount();
+      });
     useGameStore.setState({ newAdventureGame });
     useAdventure.setState({ recordWinOnce });
     jest.clearAllTimers();
@@ -206,7 +265,11 @@ describe('adventure level completion presentation', () => {
     expect(mockRecordWin).toHaveBeenCalledTimes(1);
     const wonRunId = useGameStore.getState().adventure!.runId;
     const completionId = adventureCompletionIdentity(1, 0).completionId;
-    expect(useProgression.getState().rewardReceipts[rewardReceiptKey(completionId, 'xp')]).toMatchObject({
+    expect(
+      useProgression.getState().rewardReceipts[
+        rewardReceiptKey(completionId, 'xp')
+      ],
+    ).toMatchObject({
       runId: wonRunId,
       completionId,
       source: 'adventure',
@@ -219,34 +282,56 @@ describe('adventure level completion presentation', () => {
     expect(useGameStore.getState().adventure?.level.levelIndex).toBe(0);
     expect(useGameStore.getState().lastEvent).toBe(event);
     expect(useGameStore.getState().epoch).toBe(epoch);
-    expect(rendered.root.findByProps({ testID: 'adventure-board' })).toBe(board);
+    expect(rendered.root.findByProps({ testID: 'adventure-board' })).toBe(
+      board,
+    );
     expect(mockBoardUnmount).not.toHaveBeenCalled();
 
-    act(() => { jest.advanceTimersByTime(minimumSettlementMs - 1); });
-    expect(rendered.root.findAllByProps({ testID: 'adventure-result' })).toHaveLength(0);
+    act(() => {
+      jest.advanceTimersByTime(minimumSettlementMs - 1);
+    });
+    expect(
+      rendered.root.findAllByProps({ testID: 'adventure-result' }),
+    ).toHaveLength(0);
     expect(mockBoardUnmount).not.toHaveBeenCalled();
     expect(mockLevelUpMount).not.toHaveBeenCalled();
 
-    act(() => { jest.advanceTimersByTime(1_500); });
-    const firstResult = rendered.root.findByProps({ testID: 'adventure-result' });
+    act(() => {
+      jest.advanceTimersByTime(1_500);
+    });
+    const firstResult = rendered.root.findByProps({
+      testID: 'adventure-result',
+    });
     expect(firstResult.props.completionId).toBe('adventure:personal:s1:l1');
     expect(firstResult.props.completedSeason).toBeNull();
     expect(mockResultMount).toHaveBeenCalledTimes(1);
     expect(mockLevelUpMount).not.toHaveBeenCalled();
     expect(mockRecordWin).toHaveBeenCalledTimes(1);
     expect(mockNewAdventureGame).not.toHaveBeenCalled();
-    expect(rendered.root.findByProps({ testID: 'adventure-board' })).toBe(board);
+    expect(rendered.root.findByProps({ testID: 'adventure-board' })).toBe(
+      board,
+    );
     expect(useGameStore.getState().lastEvent).toBe(event);
     expect(useGameStore.getState().epoch).toBe(epoch);
     expect(mockBoardUnmount).not.toHaveBeenCalled();
 
-    await act(async () => { rendered.root.findByProps({ testID: 'adventure-result' }).props.onNext(); });
-    expect(mockNewAdventureGame).toHaveBeenCalledTimes(1);
-    expect(mockNewAdventureGame).toHaveBeenCalledWith(levelFor(1, 1), 0, 'next');
-    expect(useGameStore.getState().adventure).toMatchObject({
-      status: 'playing', attempt: 0, level: { seasonId: 1, levelIndex: 1 },
+    await act(async () => {
+      rendered.root.findByProps({ testID: 'adventure-result' }).props.onNext();
     });
-    expect(rendered.root.findAllByProps({ testID: 'adventure-result' })).toHaveLength(0);
+    expect(mockNewAdventureGame).toHaveBeenCalledTimes(1);
+    expect(mockNewAdventureGame).toHaveBeenCalledWith(
+      levelFor(1, 1),
+      0,
+      'next',
+    );
+    expect(useGameStore.getState().adventure).toMatchObject({
+      status: 'playing',
+      attempt: 0,
+      level: { seasonId: 1, levelIndex: 1 },
+    });
+    expect(
+      rendered.root.findAllByProps({ testID: 'adventure-result' }),
+    ).toHaveLength(0);
     expect(mockRecordWin).toHaveBeenCalledTimes(1);
   });
 
@@ -261,36 +346,57 @@ describe('adventure level completion presentation', () => {
     const event = winLevel();
 
     expect(useAdventure.getState()).toMatchObject({
-      seasonId: 2, levelIndex: 0, lastWinCompletedSeason: 1,
+      seasonId: 2,
+      levelIndex: 0,
+      lastWinCompletedSeason: 1,
     });
     expect(mockRecordWin).toHaveBeenCalledTimes(1);
     expect(mockNewAdventureGame).not.toHaveBeenCalled();
     expect(useGameStore.getState().adventure).toMatchObject({
-      status: 'won', level: { seasonId: 1, levelIndex: lastLevelIndex },
+      status: 'won',
+      level: { seasonId: 1, levelIndex: lastLevelIndex },
     });
     expect(useGameStore.getState().lastEvent).toBe(event);
     expect(useGameStore.getState().epoch).toBe(epoch);
-    expect(rendered.root.findByProps({ testID: 'adventure-board' })).toBe(board);
+    expect(rendered.root.findByProps({ testID: 'adventure-board' })).toBe(
+      board,
+    );
 
-    act(() => { jest.advanceTimersByTime(minimumSettlementMs - 1); });
-    expect(rendered.root.findAllByProps({ testID: 'adventure-result' })).toHaveLength(0);
+    act(() => {
+      jest.advanceTimersByTime(minimumSettlementMs - 1);
+    });
+    expect(
+      rendered.root.findAllByProps({ testID: 'adventure-result' }),
+    ).toHaveLength(0);
     expect(mockBoardUnmount).not.toHaveBeenCalled();
 
-    act(() => { jest.advanceTimersByTime(1_500); });
+    act(() => {
+      jest.advanceTimersByTime(1_500);
+    });
     const result = rendered.root.findByProps({ testID: 'adventure-result' });
     expect(result.props.completedLevel).toBe(seasonLength(1));
-    expect(result.props.completionId).toBe(`adventure:personal:s1:l${seasonLength(1)}`);
+    expect(result.props.completionId).toBe(
+      `adventure:personal:s1:l${seasonLength(1)}`,
+    );
     expect(result.props.completedSeason).toBe(1);
     expect(mockResultMount).toHaveBeenCalledTimes(1);
     expect(mockLevelUpMount).not.toHaveBeenCalled();
     expect(useAdventure.getState().lastWinCompletedSeason).toBe(1);
 
-    await act(async () => { result.props.onNext(); });
+    await act(async () => {
+      result.props.onNext();
+    });
     expect(mockNewAdventureGame).toHaveBeenCalledTimes(1);
-    expect(mockNewAdventureGame).toHaveBeenCalledWith(levelFor(2, 0), 0, 'next');
+    expect(mockNewAdventureGame).toHaveBeenCalledWith(
+      levelFor(2, 0),
+      0,
+      'next',
+    );
     expect(useAdventure.getState().lastWinCompletedSeason).toBeNull();
     expect(useGameStore.getState().adventure).toMatchObject({
-      status: 'playing', attempt: 0, level: { seasonId: 2, levelIndex: 0 },
+      status: 'playing',
+      attempt: 0,
+      level: { seasonId: 2, levelIndex: 0 },
     });
   });
 
@@ -300,35 +406,55 @@ describe('adventure level completion presentation', () => {
     winLevel();
     expect(jest.getTimerCount()).toBeGreaterThan(timersBeforeWin);
 
-    act(() => { tree!.unmount(); });
+    act(() => {
+      tree!.unmount();
+    });
     tree = null;
     expect(jest.getTimerCount()).toBe(timersBeforeWin);
-    act(() => { jest.advanceTimersByTime(3_000); });
+    act(() => {
+      jest.advanceTimersByTime(3_000);
+    });
     expect(mockResultMount).not.toHaveBeenCalled();
     expect(mockLevelUpMount).not.toHaveBeenCalled();
   });
 
   it('keeps a jewel victory on the board until the final jewel arrives at its objective', () => {
-    const spec = Array.from({ length: 12 }, (_, index) => levelFor(1, index))
-      .find((level) => level.objective.type === 'jewels')!;
+    const spec = Array.from({ length: 12 }, (_, index) =>
+      levelFor(1, index),
+    ).find((level) => level.objective.type === 'jewels')!;
     useAdventure.setState({ levelIndex: spec.levelIndex });
     newAdventureGame(spec, 0);
     setUpWinningClear();
     const rendered = renderLevel();
     winLevel();
-    act(() => { jest.advanceTimersByTime(minimumSettlementMs); });
-    expect(rendered.root.findAllByProps({ testID: 'adventure-result' })).toHaveLength(0);
+    act(() => {
+      jest.advanceTimersByTime(minimumSettlementMs);
+    });
+    expect(
+      rendered.root.findAllByProps({ testID: 'adventure-result' }),
+    ).toHaveLength(0);
     const run = useGameStore.getState().adventure!;
     act(() => {
-      rendered.root.findByType('AdventureFlight' as React.ElementType).props.onArrive({
-        presentationId: useGameStore.getState().lastAdventureEvent!.presentationId,
-        delta: 1,
-        total: run.level.objective.target,
-      });
+      rendered.root
+        .findByType('AdventureFlight' as React.ElementType)
+        .props.onArrive({
+          presentationId:
+            useGameStore.getState().lastAdventureEvent!.presentationId,
+          delta: 1,
+          total: run.level.objective.target,
+        });
     });
-    act(() => { jest.advanceTimersByTime(EFFECT_SEQUENCE_TIMING.adventureResultSettleMs - 1); });
-    expect(rendered.root.findAllByProps({ testID: 'adventure-result' })).toHaveLength(0);
-    act(() => { jest.advanceTimersByTime(1); });
+    act(() => {
+      jest.advanceTimersByTime(
+        EFFECT_SEQUENCE_TIMING.adventureResultSettleMs - 1,
+      );
+    });
+    expect(
+      rendered.root.findAllByProps({ testID: 'adventure-result' }),
+    ).toHaveLength(0);
+    act(() => {
+      jest.advanceTimersByTime(1);
+    });
     expect(mockResultMount).toHaveBeenCalledTimes(1);
     expect(mockRecordWin).toHaveBeenCalledTimes(1);
     expect(mockBoardUnmount).not.toHaveBeenCalled();
@@ -340,59 +466,44 @@ describe('adventure level completion presentation', () => {
       const run = useGameStore.getState().adventure!;
       useGameStore.setState({ adventure: { ...run, status: 'failed' } });
     });
-    act(() => { jest.advanceTimersByTime(1_500); });
+    act(() => {
+      jest.advanceTimersByTime(1_500);
+    });
+    act(() =>
+      rendered.root
+        .findByType('NoMovesSheet' as React.ElementType)
+        .props.onFinish(),
+    );
     const failure = rendered.root.findByProps({ testID: 'adventure-failure' });
     expect(failure.props).toMatchObject({
-      objective: 'score',
-      current: useGameStore.getState().adventure!.game.score,
+      objective: 'jewels',
+      current: useGameStore.getState().adventure!.collectedJewels,
       target: levelFor(1, 0).objective.target,
       remaining:
-        levelFor(1, 0).objective.target - useGameStore.getState().adventure!.game.score,
+        levelFor(1, 0).objective.target -
+        useGameStore.getState().adventure!.collectedJewels,
       helpEligible: false,
     });
 
-    await act(async () => { failure.props.onRetry(); });
+    await act(async () => {
+      failure.props.onRetry();
+    });
     expect(mockNewAdventureGame).toHaveBeenCalledTimes(1);
-    expect(mockNewAdventureGame).toHaveBeenCalledWith(levelFor(1, 0), 1, 'restart');
-    expect(useGameStore.getState().adventure).toMatchObject({
-      status: 'playing', attempt: 1, level: { seasonId: 1, levelIndex: 0 },
-    });
-    expect(useAdventure.getState().levelIndex).toBe(0);
-    expect(mockRecordWin).not.toHaveBeenCalled();
-    expect(rendered.root.findAllByProps({ testID: 'adventure-failure' })).toHaveLength(0);
-  });
-
-  it('offers explicit free help after the second early-level failure and persists the choice', async () => {
-    const rendered = renderLevel();
-    act(() => {
-      const run = useGameStore.getState().adventure!;
-      useGameStore.setState({
-        adventure: {
-          ...run,
-          status: 'failed',
-          failureCount: 2,
-          outcomeSettledAt: Date.now(),
-        },
-      });
-    });
-    act(() => { jest.advanceTimersByTime(1_500); });
-    const failure = rendered.root.findByProps({ testID: 'adventure-failure' });
-    expect(failure.props.helpEligible).toBe(true);
-
-    await act(async () => { failure.props.onRetryWithHelp(); });
-
     expect(mockNewAdventureGame).toHaveBeenCalledWith(
       levelFor(1, 0),
       1,
       'restart',
-      'highlight',
     );
     expect(useGameStore.getState().adventure).toMatchObject({
       status: 'playing',
-      failureCount: 2,
-      helpPolicy: 'highlight',
-      helpUsed: false,
+      attempt: 1,
+      level: { seasonId: 1, levelIndex: 0 },
     });
+    expect(useAdventure.getState().levelIndex).toBe(0);
+    expect(mockRecordWin).not.toHaveBeenCalled();
+    expect(
+      rendered.root.findAllByProps({ testID: 'adventure-failure' }),
+    ).toHaveLength(0);
   });
 
   it('keeps settled failure history when exiting to the hub and reopening offline', () => {
@@ -409,15 +520,24 @@ describe('adventure level completion presentation', () => {
       useGameStore.setState({ adventure: failed, game: failed.game });
       useGameStore.getState().settleAdventureOutcome(failed.runId);
     });
-    act(() => { jest.advanceTimersByTime(1_500); });
+    act(() => {
+      jest.advanceTimersByTime(1_500);
+    });
 
+    act(() =>
+      rendered.root
+        .findByType('NoMovesSheet' as React.ElementType)
+        .props.onFinish(),
+    );
     act(() => {
       rendered.root.findByProps({ testID: 'adventure-failure' }).props.onExit();
     });
 
-    expect(mockReplace).toHaveBeenCalledWith('/adventure');
+    expect(mockReplace).toHaveBeenCalledWith('/');
     expect(useGameStore.getState().adventure).toBeNull();
-    expect(deserializeAdventureRun(getString(KEYS.adventureRun)!)).toMatchObject({
+    expect(
+      deserializeAdventureRun(getString(KEYS.adventureRun)!),
+    ).toMatchObject({
       status: 'failed',
       failureCount: 2,
       helpPolicy: 'declined',
@@ -433,21 +553,50 @@ describe('adventure level completion presentation', () => {
     });
   });
 
+  it('restarts immediately after the pause sheet has obtained its inline confirmation', () => {
+    const rendered = renderLevel();
+    act(() =>
+      rendered.root
+        .findByType('CandyRoundButton' as React.ElementType)
+        .props.onPress(),
+    );
+    const pause = rendered.root.findByType('PauseOverlay' as React.ElementType);
+    act(() => pause.props.onRestart());
+    expect(mockNewAdventureGame).toHaveBeenCalledTimes(1);
+    expect(useGameStore.getState().adventure).toMatchObject({
+      attempt: 1,
+      level: { levelIndex: 0 },
+      status: 'playing',
+    });
+    expect(
+      rendered.root.findAllByType('PauseOverlay' as React.ElementType),
+    ).toHaveLength(0);
+    expect(
+      rendered.root.findAllByType('ConfirmDialog' as React.ElementType),
+    ).toHaveLength(0);
+  });
+
   it('keeps a native playfield parent when Home disables input before navigation unmounts the screen', () => {
     const rendered = renderLevel();
-    const playfield = rendered.root.findAllByType(View).find(
-      (node) => node.props.onLayout && node.props.pointerEvents === 'auto',
-    )!;
+    const playfield = rendered.root
+      .findAllByType(View)
+      .find(
+        (node) => node.props.onLayout && node.props.pointerEvents === 'auto',
+      )!;
     // Fabric must not flatten this parent and then reparent its animated children
     // when exitAdventure switches pointerEvents to none during a native transition.
     expect(playfield.props.collapsable).toBe(false);
 
     const settings = rendered.root.findAll(
-      (node) => node.props.accessibilityRole === 'button' && typeof node.props.onPress === 'function',
+      (node) => node.type === ('CandyRoundButton' as React.ElementType),
     )[0];
-    act(() => { settings.props.onPress(); });
     act(() => {
-      rendered.root.findByType('PauseOverlay' as React.ElementType).props.onHome();
+      settings.props.onPress();
+    });
+    act(() => {
+      rendered.root
+        .findByType('PauseOverlay' as React.ElementType)
+        .props.onHome();
     });
 
     expect(mockReplace).toHaveBeenCalledTimes(1);

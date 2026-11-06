@@ -27,7 +27,7 @@ export function GameEffectsLayer({ placementEffects = [] }: GameEffectsLayerProp
     >
       {placementEffects.map(({ id, placement, comboFrame, color }) => (
         <Fragment key={id}>
-          <PlacementParticleLayer presentation={placement} color={color} />
+          <PlacementParticleLayer presentation={placement} />
           {comboFrame.intensity > 0 ? (
             <BoardFramePulse presentation={comboFrame} color={color} />
           ) : null}

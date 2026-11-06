@@ -1,57 +1,73 @@
-# 08 — Сборка и релиз (AAB, RuStore)
+# 08 — Android: APK и AAB
 
-Статус: утверждено · Обновлено: 2026-06-15
+Обновлено: 2026-11-05.
 
-## Пайплайн (локальный, без EAS — проверен на прошлом RuStore-релизе)
+Источник конфигурации — `app.json`, config plugins и закреплённые зависимости.
+Сгенерированный `android/` в Git не хранится. Единственные форматы приложения:
+APK и AAB. iOS/web-целей и отдельной C++-сборки нет.
 
-1. `npx expo prebuild --platform android` — генерация `android/` (CNG; папка в .gitignore, источник истины — app.json + plugins).
-2. JDK: **JBR 21** (`C:\Program Files\Android\Android Studio\jbr`) через `JAVA_HOME` на время сборки. Android SDK: `%LOCALAPPDATA%\Android\Sdk` (local.properties генерится).
-3. Release keystore: `credentials/release.jks` — **только локально, в .gitignore, обязателен бэкап**. Это ключ уже опубликованной версии: его нельзя генерировать заново или заменять. Пароли — в `credentials/keystore.properties` (тоже в .gitignore).
-4. Подпись: signingConfig в `android/app/build.gradle` подхватывается из `keystore.properties` (патчится скриптом `scripts/patch-signing.js` после prebuild, чтобы prebuild оставался воспроизводимым).
-5. Сборка: `cd android && .\gradlew bundleRelease` → `android/app/build/outputs/bundle/release/app-release.aab`.
-6. Для публикации используется подписанный AAB. `assembleRelease` допустим только для отдельного локального APK-теста.
-7. PEPK и сертификат загрузки: [docs/runbooks/android-app-signing.md](../runbooks/android-app-signing.md).
+## Команды
 
-## RuStore maven (push SDK) — TLS truststore
-
-Нативный AAR push-SDK (`ru.rustore.sdk:pushclient`) тянется из maven RuStore
-`https://artifactory-external.vkpartner.ru/artifactory/maven`. Его TLS-сертификат
-(издатель HARICA CA) отсутствует в truststore JBR → `gradlew` падает с
-`PKIX path building failed` (curl/OS сертификату доверяют, Java — нет). Варианты:
-
-- **Разово (рекомендуется):** импортировать сертификат в `cacerts` JBR —
-  `keytool -importcert -trustcacerts -keystore "$JAVA_HOME\lib\security\cacerts" -storepass changeit -alias rustore-artifactory -file rustore.pem`
-  (сертификат: `echo | openssl s_client -connect artifactory-external.vkpartner.ru:443 | openssl x509 -outform PEM > rustore.pem`).
-- **Без правки JBR:** собрать копию `cacerts` + этот сертификат и передать сборке
-  `GRADLE_OPTS="-Djavax.net.ssl.trustStore=<copy> -Djavax.net.ssl.trustStorePassword=changeit"` (с `--no-daemon`).
-
-Требуется при любой версии RuStore push SDK (npm и GitFlic). См. [16-push-notifications.md](16-push-notifications.md).
-
-## app.json (ключевое)
-
-- `android.package`: `com.intstrfloat.blockblast`
-- `versionCode` — инкремент на каждый аплоад в RuStore (vc1 = 1.0.0).
-- `orientation: portrait`, `userInterfaceStyle: dark` (игра тёмная всегда).
-- `predictiveBackGestureEnabled: false` (жесты игры).
-
-## Чек-лист RuStore (из опыта прошлой модерации)
-
-- [ ] Политика конфиденциальности: публичный URL обязателен (хостим `privacy.html` на сервере проекта — 186.246.12.198; деплой см. ниже).
-- [ ] Нет мёртвых фич/кнопок-заглушек на экранах (причина прошлого реджекта другого проекта!). Кнопки IAP при `iapEnabled:false` — скрыты, не «недоступно».
-- [ ] Тексты стора: название, короткое/полное описание, скриншоты (5+), иконка 512.
-- [ ] Возрастной рейтинг 0+/6+, категория «Головоломки».
-- [ ] Данные: приложение оффлайн, аналитики нет, разрешений нет (кроме VIBRATE) — анкета приватности простая.
-
-## Сервер проекта
-
-`186.246.12.198` — статический хостинг политики (`/privacy.html`, порт 80/8088 по факту окружения). Креды — у владельца, в репо не хранятся. Деплой: scp файла, один раз.
-
-## CI-замечание
-
-Сборка локальная по решению проекта (история: EAS не использовался). Если понадобится CI — GitHub Actions с ubuntu + `expo prebuild` + gradle, keystore в secrets.
-
-## Версии
-
-| Артефакт | Версия |
+| Команда | Результат |
 |---|---|
-| v1.0.0 (vc1) | первый APK: core loop, монетизация флагами OFF |
+| `npm run build:apk` | автономный ARM64 release APK с локальной debug-подписью |
+| `npm run build:aab` | AAB с прежней release-подписью для магазина |
+| `npm run build:aab -- --unsigned` | неподписанный AAB для локальной проверки |
+
+Артефакты: `dist/blockblast-<version>-vc<versionCode>-local.apk`,
+`dist/blockblast-<version>-vc<versionCode>-release.aab` или `*-unsigned.aab`.
+Версия берётся из `app.json`; локальная пересборка не меняет versionCode.
+Перед новым store upload версию и versionCode нужно увеличить согласованно
+в app.json, package.json и корневых записях package-lock.json.
+
+## Среда
+
+Node.js 22.13+ (или совместимая версия из engines React Native), JDK 21 через JAVA_HOME, Android SDK через ANDROID_HOME.
+Для текущей версии нужны platforms;android-36, build-tools;35.0.0 и build-tools;36.0.0,
+ndk;27.1.12297006 и cmake;3.22.1. На macOS SDK по умолчанию берётся из
+`~/Library/Android/sdk`, на Windows — `%LOCALAPPDATA%/Android/Sdk`.
+Шаблон prebuild закреплён на expo-template-bare-minimum@56.0.38. Патч
+@react-native/gradle-plugin обновляет Foojay resolver до 1.0.0 для Gradle 9;
+без него чистая сборка падает на удалённом IBM_SEMERU.
+RuStore Maven и его зависимость Tracer используют новые Nexus-адреса RuStore/VK,
+перед JitPack, чтобы его HTTP 401 не блокировал поиск зависимостей.
+После `npm ci` команды сами делают Android prebuild, записывают local.properties,
+применяют signing patch и запускают только assembleRelease или bundleRelease.
+
+Нативные CMake/C++ задачи RN, Nitro, MMKV и Reanimated остаются необходимой
+частью Android-компиляции. APK по умолчанию ARM64 для постоянного эмулятора;
+AAB сохраняет совместимость с четырьмя прежними Android ABI. Набор можно явно
+передать через `--architectures=armeabi-v7a,arm64-v8a`.
+
+## Локальная проверка без production-настроек
+
+APK использует существующий debug keystore сгенерированного Android-проекта.
+Unsigned AAB вообще не подписывается. Новый release keystore не создаётся.
+Если нет APPMETRICA_API_KEY или agconnect-services.json, локальная команда
+явно отключает соответствующую активацию/конфигурацию и выводит предупреждение.
+Настоящие значения не заменяются фиктивными. Это не проверка аналитики или Huawei.
+
+Для APK не нужен Metro. Установка в постоянный эмулятор:
+[android-emulator.md](../runbooks/android-emulator.md).
+
+## Релиз в магазин
+
+Нужны прежние credentials/release.jks и credentials/keystore.properties,
+agconnect-services.json нужного Android package и APPMETRICA_API_KEY в .env.local.
+Подписанный режим не допускает отсутствующих настроек или локальной подписи.
+Команда проверяет ожидаемый сертификат AAB; ключ нельзя генерировать заново.
+Подпись, fingerprint и однократное подключение PEPK:
+[android-app-signing.md](../runbooks/android-app-signing.md).
+
+## Проверки и хранение
+
+`npm run lint`, `npm run typecheck`, `npm test -- --runInBand`, `npm run backend:test`.
+Дополнительно проверить подпись APK/AAB, package/version из готового артефакта,
+установить APK и пройти начало игры на Android. Для unsigned AAB подтвердить
+отсутствие JAR-подписи. APK/AAB, Gradle/CMake-вывод, бандлы, логи и скриншоты
+не коммитить; в Git остаются исходники и поддерживаемая документация.
+
+Если Java не доверяет TLS цепочке Maven RuStore, исправить доверенные CA в
+отдельном локальном truststore и указать его JVM. Не отключать проверку TLS и
+не коммитить truststore. Исторические отчёты описывают прошлые версии; их команды
+не заменяют текущие build:apk / build:aab.

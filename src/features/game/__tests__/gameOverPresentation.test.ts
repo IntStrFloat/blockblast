@@ -9,8 +9,14 @@ describe('gameOverPresentationFor', () => {
     expect(gameOverPresentationFor('over', gameOverEvent)).toEqual({
       visible: true,
       fresh: true,
-      revealDelayMs: 800,
+      revealDelayMs: 960,
     });
+  });
+
+  it('lets a clear finish before the dim wave, and skips both delays under reduced motion', () => {
+    const clear = { ...gameOverEvent, clearedCells: [[0, 0]] as const };
+    expect(gameOverPresentationFor('over', clear).revealDelayMs).toBe(1380);
+    expect(gameOverPresentationFor('over', clear, true).revealDelayMs).toBe(0);
   });
 
   it('shows a restored terminal result immediately without replay side effects', () => {

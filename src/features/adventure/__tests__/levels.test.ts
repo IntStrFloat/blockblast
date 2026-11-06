@@ -9,15 +9,18 @@ import {
 } from '../index';
 
 describe('adventure levels', () => {
-  it('generates deterministic score and jewel objectives', () => {
+  it('generates the authored crystal campaign and keeps its final season reward', () => {
     const first = levelFor(1, 0);
     const jewel = levelFor(1, ADVENTURE_CONFIG.jewelStartLevel);
 
-    expect(first.objective).toEqual({ type: 'score', target: ADVENTURE_CONFIG.scoreBaseTarget });
+    expect(first.objective).toEqual({ type: 'jewels', target: 9 });
+    expect(levelFor(1, 3).objective).toEqual({ type: 'jewels', target: 12 });
+    expect(levelFor(1, 3)).toEqual(levelFor(1, 3));
+    expect(levelFor(1, 95).milestone).toBe(true);
     expect(jewel.objective.type).toBe('jewels');
     expect(jewel.objective.target).toBe(ADVENTURE_CONFIG.jewelBaseTarget);
-    expect(levelFor(1, 5).milestone).toBe(true);
-    expect(levelFor(1, 5).objective.target).toBeGreaterThan(levelFor(1, 4).objective.target);
+    expect(levelFor(1, 9).milestone).toBe(true);
+    expect(levelFor(1, 9).objective.target).toBeGreaterThan(levelFor(1, 8).objective.target);
   });
 
   it('places the expected number of jewels on distinct prefill cells', () => {

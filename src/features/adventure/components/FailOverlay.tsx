@@ -1,14 +1,19 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
-
+import { ScrollView, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@/core/i18n';
+import { useReducedMotion } from '@/features/game/animation/useReducedMotion';
 import { useLang } from '@/features/settings';
-import { AppText, GameButton, StarIcon, spacing } from '@/ui';
-
+import {
+  AppText,
+  CandyBackground,
+  CandyCapy,
+  CandyIcon,
+  CandyProgress,
+  GameButton,
+  nightCandy as n,
+} from '@/ui';
 import type { AdventureFailureTip } from '../logic/failure';
-import { JewelIcon } from './JewelIcon';
 
 interface Props {
   onRetry: () => void;
@@ -23,57 +28,124 @@ interface Props {
   disabled?: boolean;
 }
 
-export function FailOverlay({ onRetry, onRetryWithHelp, onExit, objective, current, target, remaining, tip, helpEligible = false, disabled = false }: Props) {
+export function FailOverlay({
+  onRetry,
+  onExit,
+  objective,
+  current,
+  target,
+  remaining,
+  tip,
+  disabled = false,
+}: Props) {
   const lang = useLang();
-  const [showTip, setShowTip] = useState(false);
+  const ru = lang === 'ru';
+  const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
   const resultLabel = `${t(objective === 'jewels' ? 'adventure.failureCollected' : 'adventure.failureScore', lang)} ${current}/${target}, ${t('adventure.failureRemaining', lang)} ${remaining}`;
-  const tipLabel = t(`adventure.failureTip.${tip}` as const, lang);
-  const canHelp = helpEligible && onRetryWithHelp != null;
-
   return (
-    <Animated.View entering={FadeIn.duration(220)} style={styles.scrim}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={ZoomIn.duration(220)} style={styles.panel} accessibilityViewIsModal>
-          <LinearGradient colors={['#173C5A', '#102A47']} style={styles.surface}>
-            <AppText preset="title" style={styles.title}>{t('adventure.failedTitle', lang)}</AppText>
-            <View accessible accessibilityLabel={resultLabel} style={styles.result}>
-              <View style={styles.counter}>
-                {objective === 'jewels' ? <JewelIcon size={36} /> : <StarIcon size={30} color="#FFCE55" />}
-                <AppText preset="score" style={styles.value}>{current}/{target}</AppText>
-              </View>
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${Math.max(0, Math.min(100, current / Math.max(1, target) * 100))}%` }]} />
-              </View>
-            </View>
-            <View style={styles.actions}>
-              {canHelp ? <GameButton label={lang === 'ru' ? 'С подсказкой · бесплатно' : 'With a hint · free'} onPress={onRetryWithHelp} disabled={disabled} /> : null}
-              <GameButton label={t('adventure.retry', lang)} onPress={onRetry} size="lg" variant={canHelp ? 'ghost' : 'primary'} disabled={disabled} />
-              <GameButton label={t('adventure.exit', lang)} variant="ghost" onPress={onExit} disabled={disabled} />
-            </View>
-            <Pressable accessibilityRole="button" accessibilityState={{ expanded: showTip }} onPress={() => setShowTip((value) => !value)} style={styles.tipButton}>
-              <AppText preset="caption" style={styles.tipLabel}>{lang === 'ru' ? 'Совет' : 'Tip'}</AppText>
-            </Pressable>
-            {showTip ? <AppText preset="body" style={styles.tip}>{tipLabel}</AppText> : null}
-          </LinearGradient>
-        </Animated.View>
+    <Animated.View
+      entering={reduced ? undefined : FadeIn.duration(280)}
+      accessibilityViewIsModal
+      style={{ position: 'absolute', inset: 0, zIndex: 240, backgroundColor: n.night900 }}
+    >
+      <CandyBackground />
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          width: '100%',
+          maxWidth: 520,
+          alignSelf: 'center',
+          paddingHorizontal: 20,
+          paddingTop: insets.top + 120,
+          paddingBottom: Math.max(30, insets.bottom + 16),
+          gap: 16,
+          alignItems: 'center',
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <AppText
+          style={{
+            fontFamily: 'Nunito_900Black',
+            color: n.mandarin,
+            fontSize: 12,
+            letterSpacing: 1.44,
+          }}
+        >
+          {ru ? 'ПРИКЛЮЧЕНИЕ' : 'ADVENTURE'}
+        </AppText>
+        <AppText
+          accessibilityRole="header"
+          style={{
+            fontFamily: 'Unbounded_900Black',
+            fontSize: 28,
+            lineHeight: 34,
+            textAlign: 'center',
+          }}
+        >
+          {ru ? 'Партия окончена' : 'Game over'}
+        </AppText>
+        <View
+          accessible
+          accessibilityLabel={resultLabel}
+          style={{ width: '100%', alignItems: 'center', gap: 12 }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <CandyIcon name={objective === 'jewels' ? 'gem' : 'chart'} size={32} color={n.sky} />
+            <AppText
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={{
+                fontFamily: 'Unbounded_900Black',
+                fontSize: 56,
+                lineHeight: 68,
+                textShadowColor: 'rgba(5,8,40,0.5)',
+                textShadowOffset: { width: 0, height: 6 },
+                textShadowRadius: 0,
+              }}
+            >
+              {current} / {target}
+            </AppText>
+          </View>
+          <View style={{ width: '80%' }}>
+            <CandyProgress value={current / Math.max(1, target)} color={n.sky} />
+          </View>
+          <AppText style={{ color: n.lavender, fontFamily: 'Nunito_900Black', fontSize: 16 }}>
+            {t('adventure.failureRemaining', lang)} {remaining}
+          </AppText>
+        </View>
+        <View style={{ flex: 1, minHeight: 64 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <CandyCapy size={44} />
+          <AppText
+            style={{
+              flex: 1,
+              fontFamily: 'Nunito_800ExtraBold',
+              fontSize: 14,
+              lineHeight: 20,
+              color: n.lavender,
+            }}
+          >
+            {t(`adventure.failureTip.${tip}` as const, lang)}
+          </AppText>
+        </View>
+        <GameButton
+          label={t('adventure.retry', lang)}
+          size="lg"
+          onPress={onRetry}
+          disabled={disabled}
+          style={{ width: '100%' }}
+          icon={<CandyIcon name="retry" color={n.sunInk} size={24} />}
+        />
+        <GameButton
+          label={ru ? 'Домой' : 'Home'}
+          variant="ghost"
+          onPress={onExit}
+          disabled={disabled}
+          style={{ width: '100%' }}
+          icon={<CandyIcon name="home" size={24} />}
+        />
       </ScrollView>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  scrim: { ...StyleSheet.absoluteFill, zIndex: 240, paddingHorizontal: spacing.l, paddingVertical: spacing.xl, backgroundColor: 'rgba(3,15,29,0.7)' },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
-  panel: { width: '100%', maxWidth: 368, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(126,231,255,0.42)', borderRadius: 24 },
-  surface: { alignItems: 'center', gap: spacing.m, padding: spacing.l },
-  title: { color: '#FFFFFF', fontSize: 24, lineHeight: 32, textAlign: 'center' },
-  result: { width: '100%', gap: 12, alignItems: 'center' },
-  counter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  value: { fontSize: 28, color: '#FFFFFF' },
-  track: { width: '100%', height: 10, borderRadius: 5, overflow: 'hidden', backgroundColor: '#284B63' },
-  fill: { height: '100%', borderRadius: 5, backgroundColor: '#67DFD8' },
-  actions: { width: '100%', gap: spacing.s, paddingTop: spacing.s },
-  tipButton: { minHeight: 48, minWidth: 80, alignItems: 'center', justifyContent: 'center' },
-  tipLabel: { color: '#BEEAF6' },
-  tip: { color: '#FFFFFF', fontSize: 15, lineHeight: 21, textAlign: 'center' },
-});

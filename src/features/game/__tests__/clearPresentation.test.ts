@@ -141,7 +141,7 @@ describe('clear presentation basics', () => {
       for (const particle of presentation.debris) {
         expect(particle.size).toBeLessThanOrEqual(geom.cell * 0.18);
         expect(Math.hypot(particle.dx, particle.dy)).toBeLessThan(geom.cell * 1.8);
-        expect(particle.delay + particle.duration).toBeLessThanOrEqual(340);
+        expect(particle.delay + particle.duration).toBeLessThanOrEqual(420);
       }
       for (const spark of presentation.sparks) {
         expect(spark.size).toBeLessThanOrEqual(geom.cell * 0.18);
@@ -151,7 +151,7 @@ describe('clear presentation basics', () => {
           const dy = spark.velocityY * seconds + 0.5 * spark.gravity * seconds * seconds;
           expect(Math.hypot(dx, dy)).toBeLessThan(geom.cell * 1.8);
         }
-        expect(spark.delay + spark.duration).toBeLessThanOrEqual(340);
+        expect(spark.delay + spark.duration).toBeLessThanOrEqual(420);
       }
     }
   });
@@ -279,8 +279,9 @@ describe('cell dissolution', () => {
         const pieces = shardsOfCell(presentation.shards, row, col);
         expect(pieces).toHaveLength(1);
         expect(pieces[0]!.width * pieces[0]!.height).toBe(GEOM.cell * GEOM.cell);
-        expect(pieces[0]!.flashColor).not.toBe(pieces[0]!.color);
-        expect(pieces[0]!.delay + pieces[0]!.duration).toBeLessThanOrEqual(240);
+        expect(pieces[0]!.coverColor).toBe(pieces[0]!.color);
+        expect(pieces[0]!.flashColor).toBe('#FFFFFF');
+        expect(pieces[0]!.delay + pieces[0]!.duration).toBeLessThanOrEqual(420);
       }
     },
   );
@@ -290,7 +291,7 @@ describe('cell dissolution', () => {
     const near = shardsOfCell(presentation.shards, 3, 3)[0]!;
     const far = shardsOfCell(presentation.shards, 3, 0)[0]!;
     expect(far.delay).toBeGreaterThan(near.delay);
-    expect(far.delay - near.delay).toBeLessThanOrEqual(30);
+    expect(far.delay - near.delay).toBe(135);
   });
 
   it('uses only opacity coverage under reduced motion', () => {

@@ -1,7 +1,9 @@
+import { CandySplash } from '@/ui/primitives/CandySplash';
 import { Fredoka_500Medium, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import {
   Unbounded_700Bold,
   Unbounded_800ExtraBold,
+  Unbounded_900Black,
   useFonts,
 } from '@expo-google-fonts/unbounded';
 import Constants from 'expo-constants';
@@ -11,7 +13,7 @@ import * as Notifications from 'expo-notifications';
 import { Stack, ThemeProvider, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Dimensions, Linking, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -46,6 +48,9 @@ import { useScores } from '@/features/scores';
 import { colors } from '@/ui';
 import { appNavigationTheme } from '@/ui/navigationTheme';
 
+// The custom screen already owns the transition. Android's default 400ms native
+// fade would leave a second Capy floating over it at a different position.
+SplashScreen.setOptions({ duration: 0 });
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Cold start always waits for the shared intent promise. This tiny warm-start window lets
@@ -56,12 +61,18 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Unbounded_700Bold,
     Unbounded_800ExtraBold,
+    Unbounded_900Black,
+    Nunito_700Bold: require('../../assets/fonts/Nunito_700Bold.ttf'),
+    Nunito_800ExtraBold: require('../../assets/fonts/Nunito_800ExtraBold.ttf'),
+    Nunito_900Black: require('../../assets/fonts/Nunito_900Black.ttf'),
     // Голос Капи (округлый, тёплый) — отделён от системного UI (Unbounded), спека 09.
     // Fredoka_700Bold — крупный «сочный» леттеринг похвал/комбо (как в оригинале).
     Fredoka_500Medium,
     Fredoka_700Bold,
   });
   const router = useRouter();
+  const [showSplash, setShowSplash] = useState(true);
+  const finishSplash = useCallback(() => setShowSplash(false), []);
   const welcomePromptResolved = useWelcomePromptStore((state) => state.resolved);
   const analyticsOptOut = useAnalyticsStore((state) => state.optOut);
   const appStateRef = useRef(AppState.currentState);
@@ -100,6 +111,7 @@ export default function RootLayout() {
       clearActiveProductSession();
     }
     analytics.initialize(resolution.context);
+    useGameStore.getState().recoverHelperRescues();
     recoverAdventureXpBonuses();
     recoverRewardedBenefits();
     initializeInterstitialExperiment(resolution.context);
@@ -182,7 +194,6 @@ export default function RootLayout() {
   useEffect(() => {
     navigationReadyRef.current = fontsLoaded;
     if (!fontsLoaded) return;
-    SplashScreen.hideAsync().catch(() => {});
     const pendingRoute = pendingNotificationRouteRef.current;
     pendingNotificationRouteRef.current = null;
     if (pendingRoute) router.navigate(pendingRoute as never);
@@ -275,7 +286,7 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bgBottom }}>
+    <GestureHandlerRootView onLayout={() => { void SplashScreen.hideAsync().catch(() => {}); }} style={{ flex: 1, backgroundColor: colors.bgBottom }}>
       <LinearGradient
         colors={[colors.bgTop, colors.bgBottom]}
         style={{ flex: 1, backgroundColor: colors.bgBottom }}
@@ -291,6 +302,7 @@ export default function RootLayout() {
           >
             <Stack.Screen name="game" options={{ gestureEnabled: false }} />
           </Stack>
+          {showSplash ? <CandySplash onDone={finishSplash} /> : null}
         </ThemeProvider>
       </LinearGradient>
     </GestureHandlerRootView>

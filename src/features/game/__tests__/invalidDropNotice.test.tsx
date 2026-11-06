@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable } from 'react-native';
+import { AccessibilityInfo, Pressable } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { useAnalyticsStore } from '@/features/analytics';
@@ -31,9 +31,11 @@ function renderedText(tree: ReactTestRenderer) {
 describe('invalid drop notice', () => {
   let tree!: ReactTestRenderer;
   let trackSpy: jest.SpyInstance;
+  let announceSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.useFakeTimers();
+    announceSpy = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
     jest.spyOn(Date, 'now').mockReturnValue(10_000);
     useSettings.setState({ lang: 'ru' });
     trackSpy = jest.spyOn(useAnalyticsStore.getState(), 'track').mockImplementation(() => null);
@@ -51,11 +53,12 @@ describe('invalid drop notice', () => {
     act(() => tree.root.findByProps({ testID: testId }).props.onPress());
   }
 
-  it('explains an occupied placement only after the repeated error', () => {
+  it('announces repeated occupied placement without a visual error toast', () => {
     report('occupied');
     expect(renderedText(tree)).toBe('');
     report('occupied');
-    expect(renderedText(tree)).toContain('Клетки заняты');
+    expect(renderedText(tree)).toBe('');
+    expect(announceSpy).toHaveBeenCalledWith(expect.stringContaining('Клетки заняты'));
     expect(trackSpy).toHaveBeenLastCalledWith('invalid_drop', expect.objectContaining({
       reason: 'occupied',
       streak: 2,
@@ -63,11 +66,12 @@ describe('invalid drop notice', () => {
     }));
   });
 
-  it('keeps outside-board return neutral and explains an unavailable piece', () => {
+  it('keeps outside-board return neutral and announces unavailable pieces', () => {
     report('outside-board');
     expect(renderedText(tree)).toBe('');
     report('unavailable');
-    expect(renderedText(tree)).toContain('Освободи место другой фигурой');
+    expect(renderedText(tree)).toBe('');
+    expect(announceSpy).toHaveBeenCalledWith(expect.stringContaining('Освободи место другой фигурой'));
   });
 
   it('clears the occupied streak after a valid placement', () => {

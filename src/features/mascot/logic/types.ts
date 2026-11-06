@@ -85,11 +85,14 @@ export interface Cosmetic {
 export interface MascotState {
   unlocked: string[];
   equipped: Partial<Record<Slot, string>>;
+  /** A new badge survives until first wear, including after unequipping/relaunch. */
+  wornCosmetics?: string[];
   helpersUsedDay: Partial<Record<HelperId, string>>;
   /** Доп. заряды помощников (из дроп-дейли), тратятся сверх дневного лимита. */
   helperCharges: Partial<Record<HelperId, number>>;
   /** Applied ad sessions, committed atomically with their charge. */
   rewardedHelperReceipts?: Record<string, true>;
+  helperSpendReceipts?: Record<string, true>;
   lost: boolean;
   introDone: boolean;
   rngState: number;

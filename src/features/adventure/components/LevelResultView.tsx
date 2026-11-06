@@ -1,21 +1,21 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
-import { Pressable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { t } from '@/core/i18n';
-import { Confetti } from '@/features/game';
 import { useReducedMotion } from '@/features/game/animation/useReducedMotion';
+import { Confetti } from '@/features/game/effects/Confetti';
 import { LevelUpReveal } from '@/features/mascot';
-import { RewardProgressSummary, rewardReceiptKey, useProgression } from '@/features/progression';
+import { progressFor, rewardReceiptKey, useProgression } from '@/features/progression';
 import { useLang } from '@/features/settings';
-import { AppText, ChevronIcon, FireIcon, GameButton, TrophyIcon } from '@/ui';
-
-import { ADVENTURE_THEME } from '../theme';
-import { useAdventure } from '../store';
-import { MosaicView } from './MosaicView';
-import { SeasonCelebration } from './SeasonCelebration';
+import {
+  AppText,
+  CandyBackground,
+  CandyCapy,
+  CandyIcon,
+  CandyProgress,
+  GameButton,
+  nightCandy as n,
+} from '@/ui';
+import { ChapterPicture } from './ChapterPicture';
 import { AdventureXpBonus } from './AdventureXpBonus';
 import { LevelResultTransition } from './LevelResultTransition';
 
@@ -45,89 +45,122 @@ export function LevelResultView({
   onPresentationReady,
 }: Props) {
   const lang = useLang();
+  const ru = lang === 'ru';
   const reduced = useReducedMotion();
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const [presentationReady, setPresentationReady] = useState(false);
   const handleReady = useCallback(() => {
     setPresentationReady(true);
     onPresentationReady?.();
   }, [onPresentationReady]);
-  const seasonId = useAdventure((s) => s.seasonId);
-  const levelIndex = useAdventure((s) => s.levelIndex);
-  const consecutive = useAdventure((s) => s.consecutive);
   const lifetimePoints = useProgression((s) => s.lifetimePoints);
   const earnedXp = useProgression((s) =>
-    completionId
-      ? (s.rewardReceipts[rewardReceiptKey(completionId, 'xp')]?.grantedAmount ?? 0)
-      : 0,
+    completionId ? (s.rewardReceipts[rewardReceiptKey(completionId, 'xp')]?.grantedAmount ?? 0) : 0,
   );
-
+  const progress = progressFor(lifetimePoints);
+  const parts = ((Math.max(1, completedLevel) - 1) % 12) + 1;
+  const pictureWidth = Math.min(227, width - 112);
   useEffect(() => {
     if (presentationReady && runId) useProgression.getState().presentRevealForRun(runId);
   }, [presentationReady, runId]);
-
-  if (completedSeason !== null) {
-    return (
-      <LevelResultTransition onReady={handleReady}>
-        <SeasonCelebration
-          seasonId={completedSeason}
-          disabled={disabled}
-          earnedXp={earnedXp}
-          lifetimePoints={lifetimePoints}
-          onContinue={onNext}
-          presentationReady={presentationReady}
-        />
-        {presentationReady ? <LevelUpReveal /> : null}
-      </LevelResultTransition>
-    );
-  }
-
-  const mosaicWidth = Math.min(210, width - 120, height * 0.25);
-
   return (
     <LevelResultTransition onReady={handleReady}>
       <SafeAreaView
         accessibilityViewIsModal
         importantForAccessibility="yes"
-        style={{ flex: 1, backgroundColor: ADVENTURE_THEME.resultBottom }}
+        style={{ flex: 1, backgroundColor: n.night900 }}
         edges={['top', 'bottom']}
       >
-        <LinearGradient
-          colors={[ADVENTURE_THEME.resultTop, ADVENTURE_THEME.resultBottom]}
-          style={{ position: 'absolute', inset: 0 }}
-        />
+        <CandyBackground />
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12, gap: 12 }}
-          showsVerticalScrollIndicator
+          contentContainerStyle={{
+            flexGrow: 1,
+            width: '100%',
+            maxWidth: 520,
+            alignSelf: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            paddingTop: 48,
+            paddingBottom: 20,
+            gap: 16,
+          }}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={{ position: 'absolute', top: 8, left: 12, zIndex: 2 }}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('adventure.exit', lang)}
-              disabled={disabled}
-              hitSlop={14}
-              onPress={onExit}
-              style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <ChevronIcon size={28} direction="left" color="#C8F4FF" />
-            </Pressable>
+          <CandyIcon name="trophy" size={44} color={n.sun} />
+          <AppText
+            style={{
+              color: n.mandarin,
+              fontFamily: 'Nunito_900Black',
+              fontSize: 12,
+              letterSpacing: 1.44,
+            }}
+          >
+            {ru ? 'ПРИКЛЮЧЕНИЕ' : 'ADVENTURE'}
+          </AppText>
+          <AppText
+            accessibilityRole="header"
+            style={{
+              color: '#FFFFFF',
+              fontFamily: 'Unbounded_900Black',
+              fontSize: 26,
+              lineHeight: 32,
+              textAlign: 'center',
+              letterSpacing: -0.26,
+            }}
+          >
+            {ru ? `Уровень ${completedLevel} пройден` : `Level ${completedLevel} complete`}
+          </AppText>
+          <View
+            style={{
+              padding: 18,
+              gap: 14,
+              borderWidth: 1.5,
+              borderColor: n.border,
+              borderRadius: 28,
+              backgroundColor: '#161C59',
+              alignItems: 'center',
+              marginTop: 4,
+            }}
+          >
+            <ChapterPicture parts={parts} width={pictureWidth} reveal={presentationReady} />
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+              <CandyIcon name={parts === 12 ? 'trophy' : 'sunburst'} color={n.sun} size={18} />
+              <AppText style={{ fontFamily: 'Nunito_900Black', fontSize: 14 }}>
+                {ru
+                  ? parts === 12
+                    ? 'Картина собрана · 12 / 12'
+                    : `+1 часть картины · ${parts} / 12`
+                  : `+1 picture part · ${parts} / 12`}
+              </AppText>
+            </View>
           </View>
-          <View accessible accessibilityLabel={`${t('adventure.levelClear', lang)}. ${t('adventure.level', lang)} ${completedLevel}`} style={{ alignItems: 'center', gap: 4 }}>
-            <TrophyIcon size={44} color="#FFE06B" />
-            <AppText preset="button" style={{ color: '#FFFFFF', textAlign: 'center' }}>
-              {t('adventure.levelClear', lang)}
-            </AppText>
-            <AppText preset="title" accessibilityRole="header" style={{ color: '#FFFFFF', fontSize: 24, textAlign: 'center' }}>
-              {t('adventure.level', lang)} {completedLevel}
+          <View style={{ flex: 1, minHeight: 40 }} />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              width: '100%',
+              gap: 12,
+              padding: 16,
+              borderRadius: 24,
+              backgroundColor: 'rgba(7,10,42,0.5)',
+            }}
+          >
+            <CandyCapy size={32} />
+            <View style={{ flex: 1 }}>
+              <CandyProgress
+                value={
+                  progress.pointsInLevel /
+                  Math.max(1, progress.pointsInLevel + progress.pointsToNext)
+                }
+                color={n.grape}
+                height={12}
+              />
+            </View>
+            <AppText style={{ fontFamily: 'Nunito_900Black', fontSize: 14, color: n.grape }}>
+              +{earnedXp}
             </AppText>
           </View>
-          <MosaicView
-            seasonId={seasonId}
-            cleared={presentationReady ? levelIndex : Math.max(0, levelIndex - 1)}
-            justFilled={presentationReady ? levelIndex - 1 : undefined}
-            width={mosaicWidth}
-          />
-          <RewardProgressSummary earnedXp={earnedXp} lifetimePoints={lifetimePoints} light />
           {presentationReady && completionId && runId ? (
             <AdventureXpBonus
               key={completionId}
@@ -139,27 +172,24 @@ export function LevelResultView({
             />
           ) : null}
           <GameButton
-            label={t('adventure.nextLevel', lang)}
+            label={ru ? 'Дальше' : 'Next'}
             onPress={onNext}
             disabled={disabled}
-            style={{
-              width: '100%',
-              maxWidth: 300,
-              backgroundColor: '#F58A22',
-              borderRadius: 8,
-              borderWidth: 2,
-              borderColor: '#FFAB42',
-              borderBottomColor: '#B34D12',
-            }}
+            size="lg"
+            style={{ width: '100%' }}
+            icon={<CandyIcon name="next" color={n.sunInk} size={24} />}
           />
-          {consecutive > 1 ? (
-            <View accessible accessibilityLabel={`${t('adventure.consecutive', lang)}: ${consecutive}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <FireIcon size={20} />
-              <AppText preset="button" style={{ color: '#062842' }}>{consecutive}</AppText>
-            </View>
-          ) : null}
+          <GameButton
+            label={ru ? 'На главную' : 'Home'}
+            variant="text"
+            onPress={onExit}
+            disabled={disabled}
+            style={{ width: '100%' }}
+          />
         </ScrollView>
-        {presentationReady && !reduced ? <Confetti count={14} /> : null}
+        {presentationReady && !reduced && (parts === 12 || completedSeason !== null) ? (
+          <Confetti count={24} palette={[...n.blockColors]} />
+        ) : null}
         {presentationReady ? <LevelUpReveal /> : null}
       </SafeAreaView>
     </LevelResultTransition>

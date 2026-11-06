@@ -9,6 +9,7 @@ interface GameOverPresentation {
 export function gameOverPresentationFor(
   status: GameStatus,
   lastEvent: PlacementEvent | null,
+  reducedMotion = false,
 ): GameOverPresentation {
   if (status !== 'over') {
     return { visible: false, fresh: false, revealDelayMs: 0 };
@@ -17,6 +18,6 @@ export function gameOverPresentationFor(
   return {
     visible: true,
     fresh,
-    revealDelayMs: fresh ? 800 : 0,
+    revealDelayMs: fresh && !reducedMotion ? 960 + (lastEvent?.clearedCells?.length ? 420 : 0) : 0,
   };
 }

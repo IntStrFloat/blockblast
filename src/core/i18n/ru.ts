@@ -78,7 +78,7 @@ export const ru = {
     haptics: 'Вибрация',
   },
   gameOver: {
-    title: 'Игра окончена',
+    title: 'Партия окончена',
     newRecord: 'Новый рекорд!',
     firstResult: 'Результат',
     recordDelta: 'к прошлому рекорду',
@@ -86,7 +86,7 @@ export const ru = {
     toNextPrefix: 'Ещё',
     toNextMid: 'до уровня',
     score: 'Счет',
-    playAgain: 'Сыграть еще',
+    playAgain: 'Ещё раз',
     revivePrompt: 'Хочешь продолжить?',
     revive: 'Продолжить за рекламу',
     decline: 'Нет',

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import type { HelperSpendIntent } from '@/core/engine';
 import { seedFromTime } from '@/core/engine';
 import { KEYS, getJSON, setJSON, setJSONOrThrow } from '@/core/storage';
 import { recordNextGoalCompletion, useAnalyticsStore } from '@/features/analytics';
@@ -51,6 +52,9 @@ function normalizeEquipped(
 function buildInitial(): MascotState {
   const merged: MascotState = { ...DEFAULTS, ...saved };
   merged.equipped = normalizeEquipped(merged.equipped, merged.unlocked);
+  merged.wornCosmetics = [
+    ...new Set([...(merged.wornCosmetics ?? []), ...Object.values(merged.equipped)]),
+  ];
   return merged;
 }
 
@@ -59,9 +63,11 @@ function persist(state: MascotState, critical = false): void {
   write(KEYS.mascot, {
     unlocked: state.unlocked,
     equipped: state.equipped,
+    wornCosmetics: state.wornCosmetics,
     helpersUsedDay: state.helpersUsedDay,
     helperCharges: state.helperCharges,
     rewardedHelperReceipts: state.rewardedHelperReceipts,
+    helperSpendReceipts: state.helperSpendReceipts,
     lost: state.lost,
     introDone: state.introDone,
     rngState: state.rngState,
@@ -77,8 +83,12 @@ interface MascotActions {
   unlock: (id: string) => void;
   /** Добавить заряд помощника (дроп дейли), тратится сверх дневного лимита. */
   addHelperCharge: (id: HelperId) => void;
-  grantRewardedHelperCharge: (id: HelperId, sessionId: string, pendingSessionIds?: readonly string[]) => void;
-  useHelper: (id: HelperId) => boolean;
+  grantRewardedHelperCharge: (
+    id: HelperId,
+    sessionId: string,
+    pendingSessionIds?: readonly string[],
+  ) => void;
+  useHelper: (id: HelperId, receipt?: HelperSpendIntent) => boolean;
   drop: () => void;
   recover: () => void;
   equip: (slot: Slot, id: string, source?: 'wardrobe' | 'map') => void;
@@ -124,33 +134,40 @@ export const useMascot = create<MascotStore>((set, get) => ({
     const protectedIds = new Set([...pendingSessionIds, sessionId]);
     const recentIds = new Set(Object.keys(rewardedHelperReceipts).slice(-256));
     for (const receiptId of Object.keys(rewardedHelperReceipts)) {
-      if (!protectedIds.has(receiptId) && !recentIds.has(receiptId)) delete rewardedHelperReceipts[receiptId];
+      if (!protectedIds.has(receiptId) && !recentIds.has(receiptId))
+        delete rewardedHelperReceipts[receiptId];
     }
     persist({ ...prev, helperCharges, rewardedHelperReceipts }, true);
     set({ helperCharges, rewardedHelperReceipts });
   },
 
-  useHelper(id) {
+  useHelper(id, receipt) {
     const prev = get();
-    const today = todayISO();
-    // Гейт разлока — из Уровня Игры (спека 15 §3).
+    if (receipt && prev.helperSpendReceipts?.[receipt.id]) return true;
+    const today = receipt?.day ?? todayISO();
     const gameLevel = useProgression.getState().level;
     const charges = prev.helperCharges[id] ?? 0;
-    if (!canUseHelper(prev.helpersUsedDay[id], today, gameLevel, id, charges)) return false;
-
-    if (prev.helpersUsedDay[id] !== today) {
-      // Дневной слот свободен — пометить день.
-      const helpersUsedDay = { ...prev.helpersUsedDay, [id]: today };
-      const next: MascotState = { ...prev, helpersUsedDay };
-      set({ helpersUsedDay });
-      persist(next);
-    } else {
-      // Дневной лимит исчерпан — потратить заряд из дейли-дропа.
-      const helperCharges = { ...prev.helperCharges, [id]: charges - 1 };
-      const next: MascotState = { ...prev, helperCharges };
-      set({ helperCharges });
-      persist(next);
-    }
+    if (!receipt && !canUseHelper(prev.helpersUsedDay[id], today, gameLevel, id, charges))
+      return false;
+    const source = receipt?.source ?? (prev.helpersUsedDay[id] !== today ? 'daily' : 'charge');
+    if (source === 'charge' && charges <= 0) return false;
+    const helpersUsedDay =
+      source === 'daily'
+        ? {
+            ...prev.helpersUsedDay,
+            [id]: (prev.helpersUsedDay[id] ?? '') > today ? prev.helpersUsedDay[id]! : today,
+          }
+        : prev.helpersUsedDay;
+    const helperCharges =
+      source === 'charge' ? { ...prev.helperCharges, [id]: charges - 1 } : prev.helperCharges;
+    const helperSpendReceipts = receipt
+      ? { ...prev.helperSpendReceipts, [receipt.id]: true as const }
+      : prev.helperSpendReceipts;
+    const next: MascotState = { ...prev, helpersUsedDay, helperCharges, helperSpendReceipts };
+    // The debit and receipt share one critical MMKV write. A pending run can
+    // retry after process death without spending its charge twice.
+    persist(next, !!receipt);
+    set({ helpersUsedDay, helperCharges, helperSpendReceipts });
     return true;
   },
 
@@ -174,8 +191,9 @@ export const useMascot = create<MascotStore>((set, get) => ({
     if (COSMETIC_SLOT[id] !== slot) return;
 
     const equipped = { ...prev.equipped, [slot]: id };
-    const next: MascotState = { ...prev, equipped };
-    set({ equipped });
+    const wornCosmetics = [...new Set([...(prev.wornCosmetics ?? []), id])];
+    const next: MascotState = { ...prev, equipped, wornCosmetics };
+    set({ equipped, wornCosmetics });
     persist(next);
     useAnalyticsStore.getState().track('reward_equipped', {
       item_id: id,

@@ -5,6 +5,7 @@ import {
   getPushPromptSnapshot,
   recordGameOverForPush,
   recordMeaningfulSessionForPush,
+  recordFirstRecordForPush,
   shouldShowPushSoftAsk,
   recordObservedPushPermissionStatus,
 } from '../softAsk';
@@ -25,15 +26,19 @@ describe('push soft-ask gating', () => {
     expect(shouldShowPushSoftAsk(ELIGIBLE_CONTEXT)).toBe(false);
   });
 
-  it('becomes eligible after three distinct meaningful sessions', () => {
+  it('requires the first record rather than a count of sessions', () => {
     recordMeaningfulSessionForPush('game-1', 'adventure');
     recordMeaningfulSessionForPush('game-2', 'adventure');
     expect(shouldShowPushSoftAsk(ELIGIBLE_CONTEXT)).toBe(false);
     recordMeaningfulSessionForPush('game-3', 'adventure');
+    expect(shouldShowPushSoftAsk(ELIGIBLE_CONTEXT)).toBe(false);
+    recordFirstRecordForPush('record-1');
+    recordFirstRecordForPush('record-2');
     expect(shouldShowPushSoftAsk(ELIGIBLE_CONTEXT)).toBe(true);
     expect(getPushPromptSnapshot()).toMatchObject({
       meaningfulSessions: 3,
-      lastMeaningfulMode: 'adventure',
+      firstRecordRunId: 'record-1',
+      lastMeaningfulMode: 'classic',
     });
   });
 
@@ -44,11 +49,13 @@ describe('push soft-ask gating', () => {
     expect(shouldShowPushSoftAsk(ELIGIBLE_CONTEXT)).toBe(false);
   });
 
-  it('blocks first-session, incomplete-FTUE and decided-permission contexts', () => {
+  it('waits for a record even in the first session and respects FTUE and permission', () => {
     recordMeaningfulSessionForPush('game-1');
     recordMeaningfulSessionForPush('game-2');
     recordMeaningfulSessionForPush('game-3');
     expect(shouldShowPushSoftAsk({ ...ELIGIBLE_CONTEXT, isFirstSession: true })).toBe(false);
+    recordFirstRecordForPush('record-1');
+    expect(shouldShowPushSoftAsk({ ...ELIGIBLE_CONTEXT, isFirstSession: true })).toBe(true);
     expect(shouldShowPushSoftAsk({ ...ELIGIBLE_CONTEXT, ftueComplete: false })).toBe(false);
     expect(
       shouldShowPushSoftAsk({ ...ELIGIBLE_CONTEXT, permissionStatus: 'granted' }),

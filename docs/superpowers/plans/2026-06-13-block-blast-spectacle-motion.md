@@ -48,7 +48,7 @@ Run:
 
 ```powershell
 npx jest src/features/leaderboard/__tests__/presentation.test.ts --runInBand
-npx expo export --platform web --output-dir web-dist
+npm run build:apk
 Select-String web-dist/index.html -Pattern '#0f1b33'
 Select-String web-dist/index.html -Pattern 'backend'
 ```

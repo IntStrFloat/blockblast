@@ -1,11 +1,10 @@
 import { createAdventureRun, findPlacements, placeAdventure } from '@/core/engine';
 import type { AdventureRun } from '@/core/engine';
-import { findHintMove } from '@/features/mascot/logic/helpers';
 
 import { findAdventureHelpMove } from '../logic/failure';
 import { levelFor } from '../logic/levels';
 
-type Strategy = 'first_legal' | 'clear_greedy';
+type Strategy = 'first_legal' | 'safe_hint';
 
 interface SimulationResult {
   strategy: Strategy;
@@ -17,11 +16,16 @@ interface SimulationResult {
 }
 
 function moveFor(run: AdventureRun, strategy: Strategy) {
-  if (strategy === 'clear_greedy') {
-    const move = findHintMove(run.game.board, run.game.tray);
-    return move ? { trayIndex: move.trayIndex, row: move.r, col: move.c } : null;
+  if (strategy === 'safe_hint') {
+    const hint = findAdventureHelpMove(run);
+    if (hint) return hint;
   }
-  return findAdventureHelpMove(run.game.board, run.game.tray);
+  for (const [trayIndex, piece] of run.game.tray.entries()) {
+    if (!piece) continue;
+    const position = findPlacements(run.game.board, piece.shape)[0];
+    if (position) return { trayIndex, row: position[0], col: position[1] };
+  }
+  return null;
 }
 
 function simulate(strategy: Strategy, levelIndex: number, attempt: number): SimulationResult {
@@ -44,7 +48,7 @@ function simulate(strategy: Strategy, levelIndex: number, attempt: number): Simu
 }
 
 describe('G16 fixed-seed scenario runs', () => {
-  const matrix = (['first_legal', 'clear_greedy'] as const).flatMap((strategy) =>
+  const matrix = (['first_legal', 'safe_hint'] as const).flatMap((strategy) =>
     Array.from({ length: 5 }, (_, levelIndex) =>
       Array.from({ length: 3 }, (_, attempt) => simulate(strategy, levelIndex, attempt)),
     ).flat(),
@@ -73,7 +77,7 @@ describe('G16 fixed-seed scenario runs', () => {
     expect(assisted.game).toEqual(normal.game);
     expect(assisted.level).toEqual(normal.level);
 
-    const move = findAdventureHelpMove(assisted.game.board, assisted.game.tray)!;
+    const move = findAdventureHelpMove(assisted)!;
     const piece = assisted.game.tray[move.trayIndex]!;
     expect(findPlacements(assisted.game.board, piece.shape)).toContainEqual([move.row, move.col]);
     expect(placeAdventure(assisted, move.trayIndex, move.row, move.col).run.status).toBe('playing');

@@ -29,6 +29,24 @@ describe('AppMetrica config plugin', () => {
     expect(validateApiKey(apiKey)).toBe(apiKey);
   });
 
+  it('allows an explicitly local build without inventing an analytics key', () => {
+    const previousMode = process.env.BLOCKBLAST_LOCAL_BUILD;
+    const previousKey = process.env.APPMETRICA_API_KEY;
+    process.env.BLOCKBLAST_LOCAL_BUILD = '1';
+    delete process.env.APPMETRICA_API_KEY;
+    try {
+      const config = withAppMetrica({ name: 'Block Blast', slug: 'blockblast' });
+      expect(config.extra.appMetricaApiKey).toBeUndefined();
+      delete process.env.BLOCKBLAST_LOCAL_BUILD;
+      expect(() => withAppMetrica({ name: 'Block Blast', slug: 'blockblast' })).toThrow('APPMETRICA_API_KEY is missing');
+    } finally {
+      if (previousMode === undefined) delete process.env.BLOCKBLAST_LOCAL_BUILD;
+      else process.env.BLOCKBLAST_LOCAL_BUILD = previousMode;
+      if (previousKey === undefined) delete process.env.APPMETRICA_API_KEY;
+      else process.env.APPMETRICA_API_KEY = previousKey;
+    }
+  });
+
   it('removes legacy native activation left by earlier plugin versions', () => {
     const gradle = stripLegacyGradle(`
       buildConfigField "String", "APPMETRICA_API_KEY", "\\"key\\""

@@ -31,14 +31,30 @@ export function markPlacementFeedbackHandled(event: PlacementEvent): void {
   handledPlacementFeedback.add(event);
 }
 
+export interface PlacementAudioAccent {
+  jewel?: boolean;
+  stoneHit?: boolean;
+  stoneBreak?: boolean;
+  won?: boolean;
+}
+
 export function playPlacementFeedback(
   event: PlacementEvent,
   settings: FeedbackSettings,
+  accent: PlacementAudioAccent = {},
 ): void {
   if (handledPlacementFeedback.has(event)) return;
   handledPlacementFeedback.add(event);
 
-  if (settings.sound) playSound(soundForPlacement(event));
+  if (settings.sound) {
+    // One clear texture includes impact + crumbs. Never sonify every particle.
+    playSound(soundForPlacement(event));
+    if (accent.stoneBreak) playSound('stonebreak');
+    else if (accent.stoneHit) playSound('stonehit');
+    // Victory replaces the collection accent on the final goal to keep the mix open.
+    if (accent.won) playSound('victory');
+    else if (accent.jewel) playSound('jewel');
+  }
   if (settings.haptics) androidHaptic(placementHapticFor(event));
 }
 
@@ -52,7 +68,7 @@ export function playInvalidDropFeedback(
   settings: FeedbackSettings,
   reason: 'occupied' | 'outside-board' = 'occupied',
 ): void {
-  if (settings.sound) playSound('drop');
+  if (settings.sound) playSound('return');
   if (settings.haptics && reason === 'occupied') androidHaptic(Haptics.AndroidHaptics.Reject);
 }
 

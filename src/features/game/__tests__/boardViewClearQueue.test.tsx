@@ -28,6 +28,13 @@ const mockGameEffectsLayerSpy = jest.fn();
 const mockClearBurstLayerSpy = jest.fn();
 const mockBoardFramePulseSpy = jest.fn();
 const mockTriggerShakeSpy = jest.fn();
+const mockScheduleOnUI = jest.fn((worklet: () => void) => worklet());
+jest.mock('react-native-worklets', () => ({
+  scheduleOnUI: (worklet: () => void) => mockScheduleOnUI(worklet),
+}));
+jest.mock('../drag/PlacementHandoff', () => ({ PlacementHandoffLayer: () => null }));
+jest.mock('../animation/useHintPulse', () => ({ useHintPulse: () => ({ value: 1 }) }));
+jest.mock('../components/HintTarget', () => ({ HintTarget: () => null }));
 
 let mockBoardState: {
   game: { board: number[] };
@@ -35,6 +42,8 @@ let mockBoardState: {
 };
 
 const mockDragCtx = {
+  handoff: { active: { value: 0 }, owner: { value: -1 }, pending: { current: 0 } },
+  dragOwner: { value: -1 }, dragActive: { value: 0 },
   geom: { boardSize: 94, cell: 10, gap: 2, pad: 0 },
   boardOrigin: { value: { x: 0, y: 0 } },
   measureBoard: jest.fn(),
@@ -64,6 +73,8 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
+jest.mock('../effects/LinePreviewSheen', () => ({ LinePreviewSheen: () => null, useLinePreviewPulse: () => ({ value: 0 }) }));
+jest.mock('../effects/BoardDangerFrame', () => ({ BoardDangerFrame: () => null }));
 jest.mock('../components/BoardCell', () => ({
   BoardCell: () => null,
 }));
@@ -247,6 +258,10 @@ function makeEvent(id: string, lifetimeMs: number): MockPlacementEvent {
 describe('BoardView clear presentation queue', () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    mockScheduleOnUI.mockReset().mockImplementation((worklet: () => void) => worklet());
+    mockDragCtx.handoff.active.value = 0;
+    mockDragCtx.handoff.pending.current = 0;
+    mockDragCtx.dragOwner.value = -1;
     mockClearDebrisLayerSpy.mockClear();
     mockGameEffectsLayerSpy.mockClear();
     mockClearBurstLayerSpy.mockClear();
@@ -308,6 +323,30 @@ describe('BoardView clear presentation queue', () => {
     expect(mockDragCtx.preview.value.every((value) => value === 0)).toBe(true);
     expect(mockDragCtx.previewColor.value).toBe(0);
     act(() => renderer!.unmount());
+  });
+
+  it('keeps landing art until one UI transaction publishes the board and retires its old preview', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { BoardView } = require('../components/BoardView') as typeof import('../components/BoardView');
+    let renderer!: ReturnType<typeof create>;
+    act(() => { renderer = create(<BoardView />); });
+    let commit!: () => void;
+    mockScheduleOnUI.mockImplementation((worklet) => { commit = worklet; });
+    mockDragCtx.handoff.active.value = 7;
+    mockDragCtx.handoff.pending.current = 7;
+    mockDragCtx.preview.value = new Array(64).fill(2);
+    mockDragCtx.previewColor.value = 2;
+    const nextBoard = [1, ...new Array(63).fill(0)];
+    mockBoardState = { game: { board: nextBoard }, lastEvent: makeEvent('landing', 420) };
+    act(() => { renderer.update(<BoardView />); });
+    expect(mockDragCtx.handoff.active.value).toBe(7);
+    expect(mockDragCtx.boardMirror.value[0]).toBe(0);
+    act(() => commit());
+    expect(mockDragCtx.handoff.active.value).toBe(0);
+    expect(mockDragCtx.boardMirror.value).toEqual(nextBoard);
+    expect(mockDragCtx.preview.value.every((mask) => mask === 0)).toBe(true);
+    expect(mockDragCtx.previewColor.value).toBe(0);
+    act(() => renderer.unmount());
   });
 
   it('передаёт свежий клир в пул разрушения в том же коммите, где доска уже пуста', () => {

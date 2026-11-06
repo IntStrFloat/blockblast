@@ -3,6 +3,8 @@ package expo.modules.gameaudio
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.util.Log
+import android.os.SystemClock
+import org.json.JSONObject
 import com.facebook.react.bridge.ReactContext
 import com.facebook.react.common.LifecycleState
 import expo.modules.kotlin.Promise
@@ -16,7 +18,11 @@ class GameAudioModule : Module() {
   private val samples = mutableMapOf<String, Int>()
   private val loaded = mutableSetOf<Int>()
   private val waiters = mutableListOf<Promise>()
-  private val streams = ArrayDeque<Int>()
+  private data class ActiveStream(val id: Int, val endsAt: Long)
+  private data class Sample(val name: String, val durationMs: Long)
+  private val streams = ArrayDeque<ActiveStream>()
+  private val cues = mutableMapOf<String, List<Sample>>()
+  private val lastVariant = mutableMapOf<String, Int>()
   private var loadError: String? = null
   private var foreground = false
   private var destroyed = false
@@ -46,23 +52,28 @@ class GameAudioModule : Module() {
 
     Function("play") { name: String ->
       synchronized(lock) {
-        require(NAMES.contains(name)) { "Unknown game sound: $name" }
-        val soundId = samples[name]
+        val variants = requireNotNull(cues[name]) { "Unknown game sound: $name" }
+        val previous = lastVariant[name] ?: -1
+        // Random alternate without consecutive repeats; no pitch-shifted resampling.
+        val offset = if (variants.size > 1) (1 until variants.size).random() else 0
+        val next = if (previous < 0) variants.indices.random() else (previous + offset) % variants.size
+        val sample = variants[next]
+        val soundId = samples[sample.name]
         val currentPool = pool
+        val now = SystemClock.uptimeMillis()
+        streams.removeAll { it.endsAt <= now }
+        // Refuse overload instead of SoundPool stealing and chopping an audible tail.
         val streamId = if (foreground && loadError == null && currentPool != null &&
-          soundId != null && loaded.contains(soundId)) {
-          currentPool.play(soundId, 1f, 1f, 1, 0, 1f)
-        } else {
-          0
-        }
+          streams.size < MAX_STREAMS && soundId != null && loaded.contains(soundId)) {
+          currentPool.play(soundId, 0.85f, 0.85f, 1, 0, 1f)
+        } else 0
         if (streamId != 0) {
-          // SoundPool itself evicts the oldest equal-priority stream at this limit.
-          if (streams.size == MAX_STREAMS) streams.removeFirst()
-          streams.addLast(streamId)
+          lastVariant[name] = next
+          streams.addLast(ActiveStream(streamId, now + sample.durationMs + 24))
         }
         playCount += 1
         if (BuildConfig.DEBUG) {
-          Log.d(TAG, "play count=$playCount name=$name stream=$streamId foreground=$foreground")
+          Log.d(TAG, "play count=$playCount name=$name variant=${sample.name} active=${streams.size} stream=$streamId foreground=$foreground")
         }
         streamId
       }
@@ -76,7 +87,7 @@ class GameAudioModule : Module() {
       synchronized(lock) {
         foreground = false
         // Stop, never autoPause/autoResume: an old drop must not replay on return.
-        streams.forEach { pool?.stop(it) }
+        streams.forEach { pool?.stop(it.id) }
         streams.clear()
       }
     }
@@ -116,7 +127,16 @@ class GameAudioModule : Module() {
           }
         }
       }
-      NAMES.forEach { name ->
+      val manifest = JSONObject(context.assets.open("game-audio/sound-bank.json").bufferedReader().use { it.readText() })
+      manifest.keys().forEach { cue ->
+        val entries = manifest.getJSONArray(cue)
+        cues[cue] = (0 until entries.length()).map { i ->
+          val entry = entries.getJSONObject(i)
+          Sample(entry.getString("name"), entry.getLong("durationMs"))
+        }
+      }
+      cues.values.flatten().forEach { sample ->
+        val name = sample.name
         context.assets.openFd("game-audio/$name.wav").use { asset ->
           val sampleId = newPool.load(asset, 1)
           check(sampleId != 0) { "Unable to load game sound $name" }
@@ -131,7 +151,7 @@ class GameAudioModule : Module() {
 
   private fun settleWaiters() {
     val error = loadError
-    if (error == null && loaded.size != NAMES.size) return
+    if (error == null && (loaded.size != samples.size || samples.isEmpty())) return
     val pending = waiters.toList()
     waiters.clear()
     pending.forEach {
@@ -149,6 +169,8 @@ class GameAudioModule : Module() {
     oldPool?.setOnLoadCompleteListener(null)
     oldPool?.release()
     samples.clear()
+    cues.clear()
+    lastVariant.clear()
     loaded.clear()
     streams.clear()
     loadError = null
@@ -162,9 +184,6 @@ class GameAudioModule : Module() {
   companion object {
     private const val TAG = "GameAudio"
     private const val MAX_STREAMS = 32
-    private val NAMES = listOf(
-      "pickup", "drop", "clear1", "clear2", "clear3", "gameover",
-      "record", "feed", "levelup", "lost"
-    )
+
   }
 }

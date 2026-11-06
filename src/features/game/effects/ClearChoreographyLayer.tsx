@@ -10,8 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import type { EffectBeam, EffectMote } from '../animation/effectSequence';
-import { EFFECT_SEQUENCE_TIMING } from '../animation/effectSequence';
+import type { EffectMote } from '../animation/effectSequence';
 import {
   MAX_ACTIVE_CLEAR_PRESENTATIONS,
   type ClearPresentationInstance,
@@ -22,71 +21,8 @@ interface ClearChoreographyLayerProps {
 }
 
 const POOL_SIZE = {
-  beams: MAX_ACTIVE_CLEAR_PRESENTATIONS * 4,
   motes: MAX_ACTIVE_CLEAR_PRESENTATIONS * 8,
 } as const;
-
-interface BeamHandle {
-  stop: () => void;
-  play: (beam: EffectBeam, reducedMotion: boolean) => void;
-}
-
-/** A line wash leaves neighboring blocks and the center of the board readable. */
-const BeamSlot = forwardRef<BeamHandle>(function BeamSlot(_props, ref) {
-  const x = useSharedValue(0);
-  const y = useSharedValue(0);
-  const width = useSharedValue(0);
-  const height = useSharedValue(0);
-  const color = useSharedValue('#FFFFFF');
-  const opacity = useSharedValue(0);
-
-  const stop = useCallback(() => {
-    cancelAnimation(opacity);
-    opacity.value = 0;
-    // Pool shared values are stable for the slot lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useLayoutEffect(() => stop, [stop]);
-
-  useImperativeHandle(ref, () => ({
-    stop,
-    play(beam, reducedMotion) {
-      x.value = beam.x;
-      y.value = beam.y;
-      width.value = beam.width;
-      height.value = beam.height;
-      color.value = beam.color;
-      opacity.value = 0;
-      opacity.value = withDelay(
-        reducedMotion ? 0 : EFFECT_SEQUENCE_TIMING.impactStartMs,
-        withSequence(
-          withTiming(reducedMotion ? 0.16 : 0.36, { duration: 30 }),
-          withTiming(0, { duration: reducedMotion ? 120 : 230 }),
-        ),
-      );
-    },
-  // Shared values stay stable for the lifetime of each pool slot.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), []);
-
-  const geometryStyle = useAnimatedStyle(() => ({
-    position: 'absolute',
-    left: x.value,
-    top: y.value,
-    width: width.value,
-    height: height.value,
-    backgroundColor: color.value,
-    shadowColor: color.value,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-  }));
-  const motionStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  return <Animated.View pointerEvents="none" style={[geometryStyle, motionStyle]} />;
-});
 
 interface MoteHandle {
   stop: () => void;
@@ -154,18 +90,12 @@ const MoteSlot = forwardRef<MoteHandle>(function MoteSlot(_props, ref) {
 });
 
 export function ClearChoreographyLayer({ presentations }: ClearChoreographyLayerProps) {
-  const beamSlots = useRef<(BeamHandle | null)[]>([]);
   const moteSlots = useRef<(MoteHandle | null)[]>([]);
-  const beamOwners = useRef<(string | null)[]>([]);
   const moteOwners = useRef<(string | null)[]>([]);
-  const beamCursor = useRef(0);
   const moteCursor = useRef(0);
   const fired = useRef<Set<string>>(new Set());
   const particles = useMemo(() => (
     <>
-      {Array.from({ length: POOL_SIZE.beams }, (_, index) => (
-        <BeamSlot key={`beam-${index}`} ref={(handle) => { beamSlots.current[index] = handle; }} />
-      ))}
       {Array.from({ length: POOL_SIZE.motes }, (_, index) => (
         <MoteSlot key={`mote-${index}`} ref={(handle) => { moteSlots.current[index] = handle; }} />
       ))}
@@ -174,12 +104,6 @@ export function ClearChoreographyLayer({ presentations }: ClearChoreographyLayer
 
   useLayoutEffect(() => {
     const activeIds = new Set(presentations.map(({ id }) => id));
-    beamOwners.current.forEach((owner, index) => {
-      if (owner && !activeIds.has(owner)) {
-        beamSlots.current[index]?.stop();
-        beamOwners.current[index] = null;
-      }
-    });
     moteOwners.current.forEach((owner, index) => {
       if (owner && !activeIds.has(owner)) {
         moteSlots.current[index]?.stop();
@@ -192,14 +116,6 @@ export function ClearChoreographyLayer({ presentations }: ClearChoreographyLayer
     for (const { id, presentation } of presentations) {
       if (fired.current.has(id)) continue;
       fired.current.add(id);
-      for (const beam of presentation.sequence.beams) {
-        const index = beamCursor.current % POOL_SIZE.beams;
-        const slot = beamSlots.current[index];
-        beamCursor.current += 1;
-        slot?.stop();
-        beamOwners.current[index] = id;
-        slot?.play(beam, presentation.reducedMotion);
-      }
       for (const mote of presentation.sequence.motes) {
         const index = moteCursor.current % POOL_SIZE.motes;
         const slot = moteSlots.current[index];

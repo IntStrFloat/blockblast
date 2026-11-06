@@ -1,4 +1,4 @@
-import type { PlacementEvent, PraiseTier } from '@/core/engine';
+import { BOARD_SIZE, type Board, type PraiseTier } from '@/core/engine';
 
 import { centroid, createSeedHasher, seededRandom, type Cell } from './presentationMath';
 import { ADVENTURE_SHATTER_MOTION, BURST_MOTION, SPECTACLE_MOTION, clearCellDelay } from './motion';
@@ -7,6 +7,7 @@ import {
   countEffectSequenceNodes,
   EFFECT_NODE_BUDGET,
   effectSequenceLifetimeMs,
+  type ClearAnimationInput,
   type EffectSequence,
 } from './effectSequence';
 
@@ -58,6 +59,7 @@ export interface ClearBurstShard {
   height: number;
   color: string;
   flashColor: string;
+  coverColor?: string;
   delay: number;
   duration: number;
   flight?: { dx: number; dy: number; liftY: number; rotationDeg: number };
@@ -96,7 +98,7 @@ function cellKey(row: number, col: number) {
   return `${row}:${col}`;
 }
 
-function eventSeed(event: PlacementEvent): number {
+function eventSeed(event: ClearAnimationInput): number {
   const hash = createSeedHasher();
   event.clearedRows.forEach((value) => hash.feedNumber(value));
   event.clearedCols.forEach((value) => hash.feedNumber(value));
@@ -111,7 +113,7 @@ function eventSeed(event: PlacementEvent): number {
   return hash.value();
 }
 
-function colorLookup(event: PlacementEvent, cellColors: readonly string[]) {
+function colorLookup(event: ClearAnimationInput, cellColors: readonly string[]) {
   const colors = new Map<string, string>();
   event.clearedCells.forEach(([row, col], index) => {
     const colorId = event.clearedColors[index] ?? event.colorId;
@@ -120,10 +122,7 @@ function colorLookup(event: PlacementEvent, cellColors: readonly string[]) {
   return (row: number, col: number) => colors.get(cellKey(row, col)) ?? '#FFFFFF';
 }
 
-function sampleEffectCells(
-  cells: readonly (readonly [number, number])[],
-  count: number,
-) {
+function sampleEffectCells(cells: readonly (readonly [number, number])[], count: number) {
   const stride = cells.length / count;
   return Array.from({ length: count }, (_, index) => cells[Math.floor(index * stride)]!);
 }
@@ -174,7 +173,7 @@ function lightenColor(hex: string, mix: number): string {
 
 /** Small chips leave each cleared line; density and travel rise with its clear strength. */
 function buildDebris(
-  event: PlacementEvent,
+  event: ClearAnimationInput,
   geom: ClearGeometry,
   getColor: (row: number, col: number) => string,
   random: () => number,
@@ -185,15 +184,16 @@ function buildDebris(
   const step = geom.cell + geom.gap;
   const chipCount = Math.min(
     BURST_MOTION.debrisCap,
-    Math.max(2, Math.round(
-      event.clearedCells.length / BURST_MOTION.debrisPerCells * (1 + strength * 0.4),
-    )),
+    Math.max(
+      2,
+      Math.round((event.clearedCells.length / BURST_MOTION.debrisPerCells) * (1 + strength * 0.4)),
+    ),
   );
   const sampledCells = sampleEffectCells(event.clearedCells, chipCount);
 
   return sampledCells.map(([row, col], index) => {
     const size = Math.max(1, geom.cell * (0.08 + random() * 0.1));
-    const angle = index / chipCount * Math.PI * 2 + (random() - 0.5) * 0.55;
+    const angle = (index / chipCount) * Math.PI * 2 + (random() - 0.5) * 0.55;
     const travel = geom.cell * (0.6 + random() * 0.5 + strength * 0.5);
     const outwardX = Math.cos(angle) * travel;
     const driftY = Math.sin(angle) * travel;
@@ -202,6 +202,7 @@ function buildDebris(
       ? 0
       : SPECTACLE_MOTION.debrisStartMs +
         clearCellDelay([row, col], event.placed as readonly Cell[]);
+    const delay = waveDelay + Math.round(random() * BURST_MOTION.debrisDelayJitterMs);
     return {
       id: `debris-${index}`,
       x: col * step + geom.cell * (0.18 + random() * 0.64),
@@ -211,8 +212,8 @@ function buildDebris(
       dx: outwardX,
       dy: driftY,
       rotateDeg: (random() - 0.5) * 160,
-      delay: waveDelay + Math.round(random() * BURST_MOTION.debrisDelayJitterMs),
-      duration: 180 + Math.round(random() * 40),
+      delay,
+      duration: Math.min(420 - delay, 180 + Math.round(random() * 40)),
     };
   });
 }
@@ -223,7 +224,7 @@ function buildDebris(
  * so each burst breathes and disperses instead of following a canned tween.
  */
 function buildSparks(
-  event: PlacementEvent,
+  event: ClearAnimationInput,
   geom: ClearGeometry,
   getColor: (row: number, col: number) => string,
   random: () => number,
@@ -234,9 +235,10 @@ function buildSparks(
 
   const count = Math.min(
     BURST_MOTION.sparkCap,
-    Math.max(3, Math.round(
-      event.clearedCells.length / BURST_MOTION.sparkPerCells * (1 + strength * 0.4),
-    )),
+    Math.max(
+      3,
+      Math.round((event.clearedCells.length / BURST_MOTION.sparkPerCells) * (1 + strength * 0.4)),
+    ),
   );
   const sampledCells = sampleEffectCells(event.clearedCells, count);
   const step = geom.cell + geom.gap;
@@ -257,23 +259,25 @@ function buildSparks(
       y: row * step + geom.cell * (0.28 + random() * 0.44),
       size: Math.max(1, geom.cell * (0.09 + random() * 0.08)),
       color,
-      velocityX: (index % 2 === 0 ? -1 : 1) * geom.cell *
-        (1.4 + random() * 2.3 + strength * 1.3),
+      velocityX: (index % 2 === 0 ? -1 : 1) * geom.cell * (1.4 + random() * 2.3 + strength * 1.3),
       velocityY: -geom.cell * (1.8 + random() * 1.8 + strength),
       gravity: geom.cell * (5 + random() * 3),
       spinDegPerSecond: (random() - 0.5) * 260,
       delay,
       duration: reducedMotion
         ? 180
-        : BURST_MOTION.sparkDurationMinMs +
-          Math.round(random() * BURST_MOTION.sparkDurationJitterMs),
+        : Math.min(
+            420 - delay,
+            BURST_MOTION.sparkDurationMinMs +
+              Math.round(random() * BURST_MOTION.sparkDurationJitterMs),
+          ),
     };
   });
 }
 
 /** Every removed block is covered in frame zero and dissolves locally. */
 function buildBurstShards(
-  event: PlacementEvent,
+  event: ClearAnimationInput,
   geom: ClearGeometry,
   getColor: (row: number, col: number) => string,
   reducedMotion: boolean,
@@ -288,26 +292,32 @@ function buildBurstShards(
       width: geom.cell,
       height: geom.cell,
       color,
-      flashColor: reducedMotion ? color : lightenColor(color, BURST_MOTION.crackFlashMix),
-      delay: reducedMotion ? 0 : SPECTACLE_MOTION.crushStartMs +
-        clearCellDelay([row, col], event.placed as readonly Cell[]),
+      coverColor: color,
+      flashColor: reducedMotion ? color : '#FFFFFF',
+      delay: reducedMotion
+        ? 0
+        : SPECTACLE_MOTION.crushStartMs +
+          clearCellDelay([row, col], event.placed as readonly Cell[]),
       duration: reducedMotion ? BURST_MOTION.reducedFadeMs : BURST_MOTION.dissolveDurationMs,
     };
   });
 }
 
 function buildShatteringShards(
-  event: PlacementEvent,
+  event: ClearAnimationInput,
   geom: ClearGeometry,
   getColor: (row: number, col: number) => string,
   random: () => number,
   maxShards: number,
 ): ClearBurstShard[] {
   const cells = event.clearedCells.slice(0, BURST_MOTION.shardPoolSize);
-  const counts: number[] = cells.map(() => cells.length <= BURST_MOTION.shardPoolSize / 2 ? 2 : 1);
+  const counts: number[] = cells.map(() =>
+    cells.length <= BURST_MOTION.shardPoolSize / 2 ? 2 : 1,
+  );
   let spare = maxShards - counts.reduce((sum, count) => sum + count, 0);
   // Split every block before spending spare fragments on the cells closest to the move.
-  const nearest = cells.map((cell, index) => ({ index, delay: clearCellDelay(cell, event.placed) }))
+  const nearest = cells
+    .map((cell, index) => ({ index, delay: clearCellDelay(cell, event.placed) }))
     .sort((a, b) => a.delay - b.delay);
   for (const { index } of nearest) {
     const upgrade = counts[index] === 1 ? 1 : 2;
@@ -374,7 +384,7 @@ export function praiseFontSize(tier: PraiseTier, boardSize: number): number {
 }
 
 export function buildClearPresentation(
-  event: PlacementEvent,
+  event: ClearAnimationInput,
   geom: ClearGeometry,
   cellColors: readonly string[],
   reducedMotion: boolean,
@@ -385,30 +395,53 @@ export function buildClearPresentation(
   const centroidPoint = centroid(event.clearedCells as readonly Cell[], geom);
   const lineCount = event.clearedRows.length + event.clearedCols.length;
   // Sublinear growth makes early streaks visible and saturates before dense clears get noisy.
-  const strength = event.boardCleared ? 1 : Math.pow(Math.max(
-    Math.min(1, Math.max(0, lineCount - 1) / 3),
-    Math.min(1, Math.max(0, event.combo - 1) / 9),
-  ), 0.8);
+  const strength = event.boardCleared
+    ? 1
+    : Math.pow(
+        Math.max(
+          Math.min(1, Math.max(0, lineCount - 1) / 3),
+          Math.min(1, Math.max(0, event.combo - 1) / 9),
+        ),
+        0.8,
+      );
   const presentationKey = `${event.score}-${event.combo}-${eventSeed(event)}-${reducedMotion ? 1 : 0}-${clearStyle}`;
   const sequence = buildEffectSequence(event, geom, cellColors, reducedMotion);
   const cellCount = Math.min(event.clearedCells.length, BURST_MOTION.shardPoolSize);
   const minimumShards = cellCount <= BURST_MOTION.shardPoolSize / 2 ? cellCount * 2 : cellCount;
-  const shatterBudget = Math.max(minimumShards, Math.min(
-    BURST_MOTION.shardPoolSize,
-    EFFECT_NODE_BUDGET.clearAndPlacement - countEffectSequenceNodes(sequence) -
-      BURST_MOTION.secondaryParticleReserve,
-  ));
-  const shards = clearStyle === 'shatter' && !reducedMotion
-    ? buildShatteringShards(event, geom, getColor, random, shatterBudget)
-    : buildBurstShards(event, geom, getColor, reducedMotion);
+  const shatterBudget = Math.max(
+    minimumShards,
+    Math.min(
+      BURST_MOTION.shardPoolSize,
+      EFFECT_NODE_BUDGET.clearAndPlacement -
+        countEffectSequenceNodes(sequence) -
+        BURST_MOTION.secondaryParticleReserve,
+    ),
+  );
+  const shards =
+    clearStyle === 'shatter' && !reducedMotion
+      ? buildShatteringShards(event, geom, getColor, random, shatterBudget)
+      : buildBurstShards(
+          event,
+          geom,
+          getColor,
+          reducedMotion,
+        );
   // Preserve every removed block first; secondary accents share the remaining budget.
-  let availableNodes = Math.max(0, EFFECT_NODE_BUDGET.clearAndPlacement - shards.length - sequence.beams.length);
+  let availableNodes = Math.max(
+    0,
+    EFFECT_NODE_BUDGET.clearAndPlacement - shards.length,
+  );
   sequence.motes = sequence.motes.slice(0, Math.floor(availableNodes / 3));
   availableNodes -= sequence.motes.length;
-  const debris = buildDebris(event, geom, getColor, random, reducedMotion, strength)
-    .slice(0, Math.ceil(availableNodes / 2));
+  const debris = buildDebris(event, geom, getColor, random, reducedMotion, strength).slice(
+    0,
+    Math.ceil(availableNodes / 2),
+  );
   availableNodes -= debris.length;
-  const sparks = buildSparks(event, geom, getColor, random, reducedMotion, strength).slice(0, availableNodes);
+  const sparks = buildSparks(event, geom, getColor, random, reducedMotion, strength).slice(
+    0,
+    availableNodes,
+  );
 
   return {
     key: presentationKey,
@@ -421,6 +454,35 @@ export function buildClearPresentation(
     praiseFontSize: praiseFontSize(event.praise, geom.boardSize),
     reducedMotion,
   };
+}
+
+/** A recovery clears occupied cells independently of placements, scoring and combos. */
+export function buildRecoveryClearPresentation(
+  previousBoard: Board,
+  geom: ClearGeometry,
+  cellColors: readonly string[],
+  reducedMotion: boolean,
+): ClearPresentation {
+  const clearedCells: [number, number][] = [];
+  const clearedColors: number[] = [];
+  previousBoard.forEach((color, index) => {
+    if (color === 0) return;
+    clearedCells.push([Math.floor(index / BOARD_SIZE), index % BOARD_SIZE]);
+    clearedColors.push(color);
+  });
+  return buildClearPresentation({
+    clearedCells,
+    clearedColors,
+    clearedRows: [],
+    clearedCols: [],
+    placed: [],
+    colorId: clearedColors[0] ?? 1,
+    score: 0,
+    scoreDelta: 0,
+    combo: 0,
+    praise: 'none',
+    boardCleared: true,
+  }, geom, cellColors, reducedMotion);
 }
 
 export function clearPresentationLifetimeMs(presentation: ClearPresentation | null): number {

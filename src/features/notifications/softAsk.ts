@@ -7,6 +7,7 @@ interface PushPromptState {
   gameOvers: number;
   meaningfulSessions: number;
   handled: boolean;
+  firstRecordRunId?: string;
   lastMeaningfulSessionId?: string;
   lastMeaningfulMode?: 'classic' | 'adventure';
   lastObservedPermissionStatus?: PushPermissionStatus;
@@ -23,7 +24,6 @@ const EMPTY: PushPromptState = {
   meaningfulSessions: 0,
   handled: false,
 };
-const MIN_MEANINGFUL_SESSIONS = 3;
 
 function load(): PushPromptState {
   const persisted = getJSON<Partial<PushPromptState>>(KEYS.pushPrompt);
@@ -62,15 +62,21 @@ export function recordMeaningfulSessionForPush(
   });
 }
 
-/** Soft-ask is allowed only after repeated value, outside the first session. */
+/** A score record is the single positive trigger in the Night Candy flow. */
+export function recordFirstRecordForPush(runId: string): void {
+  const state = load();
+  if (state.handled || state.firstRecordRunId || !runId) return;
+  setJSON(KEYS.pushPrompt, { ...state, firstRecordRunId: runId, lastMeaningfulMode: 'classic' });
+}
+
+/** The OS permission request still needs the player's explicit Allow tap. */
 export function shouldShowPushSoftAsk(context: PushSoftAskContext): boolean {
   const state = load();
   return (
     !state.handled &&
     context.ftueComplete &&
-    !context.isFirstSession &&
     context.permissionStatus === 'undetermined' &&
-    state.meaningfulSessions >= MIN_MEANINGFUL_SESSIONS
+    Boolean(state.firstRecordRunId)
   );
 }
 

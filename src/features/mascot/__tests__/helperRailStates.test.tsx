@@ -13,12 +13,13 @@ const mockUseHelper = jest.fn(() => true);
 const mockRestore = jest.fn((game: typeof mockBefore) => { mockGame = game; });
 const mockPreview = { value: [] as number[] };
 const mockPreviewColor = { value: 1 };
+const mockHintPresentation = jest.fn();
 jest.mock('@/features/game', () => ({
   EMPTY_MASK: [], previewMask: () => [1],
   useDragCtx: () => ({ preview: mockPreview, previewColor: mockPreviewColor }),
   useGameStore: Object.assign(
     (select: (state: object) => unknown) => select({ game: mockGame }),
-    { getState: () => ({
+    { setState: (value: unknown) => mockHintPresentation(value), getState: () => ({
       game: mockGame, epoch: 1,
       replaceTrayPiece: () => { mockGame = { ...mockGame, score: 2 }; },
       restoreGame: mockRestore,
@@ -35,7 +36,7 @@ jest.mock('../logic/helpers', () => ({ isStuckish: () => true, findHintMove: () 
 jest.mock('../logic/rules', () => ({ canUseHelper: () => mockFree }));
 jest.mock('@/features/progression', () => ({ isHelperUnlocked: () => true, useProgression: (select: (state: object) => unknown) => select({ level: 30 }) }));
 jest.mock('@/features/analytics', () => ({ useAnalyticsStore: { getState: () => ({ activeRun: null, track: jest.fn(), trackOnce: jest.fn() }) } }));
-jest.mock('@/features/settings', () => ({ useLang: () => 'ru' }));
+jest.mock('@/features/settings', () => ({ useLang: () => 'ru', useSettings: { getState: () => ({ sound: false }) } }));
 jest.mock('@/features/streak', () => ({ todayISO: () => 'today' }));
 jest.mock('@/features/monetization', () => ({ getAds: () => ({}), loadAdsMeta: () => ({}), recordFullscreenCooldown: (value: object) => value, saveAdsMeta: jest.fn() }));
 jest.mock('@/features/monetization/useRewardedReady', () => ({ useRewardedReady: () => true }));
@@ -94,7 +95,8 @@ describe('bounded helper states', () => {
     expect(label.props.numberOfLines).toBe(2);
     expect(enlargedLineBudget(label)).toBeLessThanOrEqual(contentHeight(result));
     expect(mockUseHelper).toHaveBeenCalledTimes(1);
-    expect(mockPreview.value).toEqual([1]);
+    expect(mockHintPresentation).toHaveBeenCalledWith({ helperHint: { trayIndex: 0, r: 0, c: 0 } });
+    expect(mockPreview.value).toEqual([]);
   });
 
   it('uses the whole 44dp Undo card and restores the snapshot without charging', () => {

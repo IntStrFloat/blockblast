@@ -12,22 +12,26 @@ const {
 // Messaging-сервис (.RustorePushService) и params_class пакет объявляет САМ в своём
 // манифесте (autolinking merge) — здесь его задавать НЕ нужно.
 const RUSTORE_MAVEN_URL =
-  'https://artifactory-external.vkpartner.ru/artifactory/maven';
-const RUSTORE_MAVEN = `maven { url '${RUSTORE_MAVEN_URL}' }`;
+  'https://nexus-external.rustore.ru/repository/maven-rustore-exposed/';
+const RUSTORE_MAVEN = `maven { url '${RUSTORE_MAVEN_URL}'; content { includeGroupByRegex 'ru[.]rustore([.].*)?' } }`;
+const TRACER_MAVEN = "maven { url 'https://nexus-external.vkteam.ru/repository/maven/'; content { includeGroup 'ru.ok.tracer' } }";
 const PROJECT_ID_META = 'ru.rustore.sdk.pushclient.project_id';
 
 /** Добавляет maven-репозиторий RuStore в allprojects.repositories (идемпотентно). */
 function patchProjectBuildGradle(contents) {
-  if (contents.includes(RUSTORE_MAVEN_URL)) {
-    return contents;
-  }
-  const pattern = /(allprojects\s*\{\s*repositories\s*\{)([\s\S]*?)(\n\s*\})/;
-  if (!pattern.test(contents)) {
+  // Remove the legacy endpoint and put RuStore before JitPack, whose 401
+  // stops Gradle resolution before it can try subsequent repositories.
+  const cleaned = contents.replace(
+    /maven\s*\{\s*url\s*(?:=\s*)?['"]https:\/\/(?:artifactory-external\.vkpartner\.ru\/artifactory\/maven\/?|nexus-external\.rustore\.ru\/repository\/maven-rustore-exposed\/|nexus-external\.vkteam\.ru\/repository\/maven\/)['"](?:\s*;?\s*content\s*\{[^{}]*\})?\s*;?\s*\}/g,
+    '',
+  );
+  const pattern = /(allprojects\s*\{\s*repositories\s*\{)/;
+  if (!pattern.test(cleaned)) {
     throw new Error(
       'RuStore Push: allprojects.repositories block was not found in android/build.gradle',
     );
   }
-  return contents.replace(pattern, `$1$2\n    ${RUSTORE_MAVEN}$3`);
+  return cleaned.replace(pattern, `$1\n    ${RUSTORE_MAVEN}\n    ${TRACER_MAVEN}`).replace(/\n(?:[ \t]*\n)+/g, '\n');
 }
 
 /** Прописывает meta-data project_id в manifest (upsert), для авто-инициализации SDK. */

@@ -8,14 +8,14 @@ import {
 } from '../tutorialGame';
 
 describe('curated tutorial opening', () => {
-  it('starts with the original-style cross board and one blue square piece', () => {
+  it('starts with the authored two-row board and one blue square piece', () => {
     const game = createTutorialGame(42);
     expect(game.status).toBe('playing');
     expect(game.tray).toHaveLength(3);
     expect(game.tray[0]).toBeNull();
-    expect(game.tray[1]).toBeNull();
-    expect(game.tray[2]?.shape.id).toBe('sq2');
-    expect(findPlacements(game.board, game.tray[2]!.shape)).toContainEqual([3, 3]);
+    expect(game.tray[2]).toBeNull();
+    expect(game.tray[1]?.shape.id).toBe('sq2');
+    expect(findPlacements(game.board, game.tray[1]!.shape)).toContainEqual([5, 3]);
   });
 
   it('offers a valid recommendation that clears in at most three placements', () => {
@@ -47,10 +47,13 @@ describe('curated tutorial opening', () => {
   it('recommends the center pocket as the first and only tutorial move', () => {
     const game = createTutorialGame(42);
     const recommendation = findTutorialRecommendation(game)!;
-    expect(recommendation.trayIndex).toBe(2);
-    expect(recommendation.row).toBe(3);
+    expect(recommendation.trayIndex).toBe(1);
+    expect(recommendation.row).toBe(5);
     expect(recommendation.col).toBe(3);
     expect(recommendation.placementsToClear).toBe(1);
+    const result = place(game, recommendation.trayIndex, recommendation.row, recommendation.col);
+    expect(result.event.clearedRows).toEqual([5, 6]);
+    expect(result.event.clearedCols).toEqual([]);
     expect(isTutorialRecommendationValid(game, recommendation)).toBe(true);
   });
 
